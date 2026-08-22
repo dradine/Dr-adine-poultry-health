@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+>
+
+<meta
+    name="theme-color"
+    content="#173f35"
+>
+
+<title>
+پرونده و سوابق | مرکز تخصصی سلامت طیور آدینه
+</title>
+
+<link rel="stylesheet" href="app.css">
+
+</head>
+
+
+<body>
+
+<header class="topbar">
+
+    <div class="brand">
+
+        <img
+            src="IMG_4309.png"
+            alt="مرکز تخصصی سلامت طیور آدینه"
+        >
+
+        <span>
+            پرونده و سوابق
+        </span>
+
+    </div>
+
+
+    <button
+        type="button"
+        class="btn btn-secondary"
+        onclick="location.href='Dashboard.html'"
+    >
+        داشبورد
+    </button>
+
+</header>
+
+
+
+<main class="page">
+
+<div class="container">
+
+
+<h1 class="page-title">
+پرونده و سوابق دوره‌ها
+</h1>
+
+
+<p class="page-description">
+سوابق فارم‌ها و دوره‌های قبلی در این قسمت نگهداری می‌شوند.
+</p>
+
+
+
+<!-- =====================================================
+     CURRENT FARM
+===================================================== -->
+
+<section class="card">
+
+<h2 class="card-title">
+فارم‌ها
+</h2>
+
+
+<div id="farmsList"></div>
+
+</section>
+
+
+
+<!-- =====================================================
+     CURRENT FLOCKS
+===================================================== -->
+
+<section class="card">
+
+<h2 class="card-title">
+دوره‌های گله
+</h2>
+
+
+<div id="flocksList"></div>
+
+</section>
+
+
+
+<!-- =====================================================
+     ARCHIVE
+===================================================== -->
+
+<section class="card">
+
+<h2 class="card-title">
+سوابق بایگانی‌شده
+</h2>
+
+
+<div
+    id="archiveList"
+></div>
+
+</section>
+
+
+</div>
+
+</main>
+
+
+
+<script src="app-core.js"></script>
+<script src="standard-data.js"></script>
+<script src="standards.js"></script>
+<script src="poultry-utils.js"></script>
+<script src="weekly-storage.js"></script>
+<script src="comparison-engine.js"></script>
+<script src="genetics-ui.js"></script>
+<script src="weekly-engine.js"></script>
+
+
+
+<script>
+
+/* =====================================================
+   FARMS
+===================================================== */
+
+function renderFarms() {
+
+    const container =
+        document.getElementById(
+            "farmsList"
+        );
+
+
+    const farms =
+        getFarms();
+
+
+    if (!farms.length) {
+
+        container.innerHTML = `
+
+            <div class="empty-state">
+
+                هنوز فارمی ثبت نشده است.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+
+        farms
+            .map(
+                farm => {
+
+                    const flockCount =
+                        getFlocks()
+                            .filter(
+                                flock =>
+                                    flock.farmId ===
+                                    farm.id
+                            )
+                            .length;
+
+
+                    return `
+
+                        <div class="list-card">
+
+                            <div>
+
+                                <h3>
+                                    ${escapeHTML(
+                                        farm.name ||
+                                        "بدون نام"
+                                    )}
+                                </h3>
+
+                                <p>
+                                    کد:
+                                    ${escapeHTML(
+                                        farm.code ||
+                                        "-"
+                                    )}
+                                </p>
+
+                                <p>
+                                    تعداد دوره:
+                                    ${flockCount}
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+
+/* =====================================================
+   FLOCKS
+===================================================== */
+
+function renderFlocks() {
+
+    const container =
+        document.getElementById(
+            "flocksList"
+        );
+
+
+    const flocks =
+        getFlocks();
+
+
+    if (!flocks.length) {
+
+        container.innerHTML = `
+
+            <div class="empty-state">
+
+                هنوز دوره‌ای ثبت نشده است.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+
+        flocks
+            .map(
+                flock => {
+
+                    const farm =
+                        getFarms()
+                            .find(
+                                farm =>
+                                    farm.id ===
+                                    flock.farmId
+                            );
+
+
+                    const house =
+                        getHouses()
+                            .find(
+                                house =>
+                                    house.id ===
+                                    flock.houseId
+                            );
+
+
+                    const records =
+                        getFlockWeeklyRecords(
+                            flock.id
+                        );
+
+
+                    const last =
+                        records.length
+                            ? records[
+                                records.length - 1
+                              ]
+                            : null;
+
+
+                    return `
+
+                        <div class="list-card">
+
+                            <div>
+
+                                <h3>
+                                    ${escapeHTML(
+                                        flock.flockName ||
+                                        "-"
+                                    )}
+                                </h3>
+
+                                <p>
+                                    فارم:
+                                    ${escapeHTML(
+                                        farm?.name ||
+                                        "-"
+                                    )}
+                                </p>
+
+                                <p>
+                                    سالن:
+                                    ${escapeHTML(
+                                        house?.name ||
+                                        "-"
+                                    )}
+                                </p>
+
+                                <p>
+                                    نوع:
+                                    ${escapeHTML(
+                                        flock.productionType ||
+                                        "-"
+                                    )}
+                                </p>
+
+                                <p>
+                                    سویه:
+                                    ${escapeHTML(
+                                        flock.strain ||
+                                        "-"
+                                    )}
+                                </p>
+
+                                <p>
+                                    تعداد:
+                                    ${Number(
+                                        flock.birdCount ||
+                                        0
+                                    ).toLocaleString(
+                                        "fa-IR"
+                                    )}
+                                </p>
+
+                                <p>
+                                    رکورد هفتگی:
+                                    ${records.length.toLocaleString(
+                                        "fa-IR"
+                                    )}
+                                </p>
+
+                                ${
+                                    last
+                                    ? `
+                                        <p>
+                                            آخرین وزن:
+                                            ${Number(
+                                                last.averageWeight ||
+                                                0
+                                            ).toLocaleString(
+                                                "fa-IR"
+                                            )}
+                                            گرم
+                                        </p>
+                                    `
+                                    : ""
+                                }
+
+                            </div>
+
+
+                            <div class="button-row">
+
+                                <button
+                                    class="btn btn-primary"
+                                    onclick="
+                                        openFlock(
+                                            '${flock.id}'
+                                        )
+                                    "
+                                >
+                                    مشاهده پرونده
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+
+/* =====================================================
+   ARCHIVE
+===================================================== */
+
+function renderArchive() {
+
+    const container =
+        document.getElementById(
+            "archiveList"
+        );
+
+
+    const flocks =
+        getFlocks()
+            .filter(
+                flock =>
+                    flock.status ===
+                    "closed"
+            );
+
+
+    if (!flocks.length) {
+
+        container.innerHTML = `
+
+            <div class="empty-state">
+
+                هنوز دوره بسته‌شده‌ای وجود ندارد.
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+
+        flocks
+            .map(
+                flock => `
+
+                    <div class="list-card">
+
+                        <div>
+
+                            <h3>
+                                ${escapeHTML(
+                                    flock.flockName
+                                )}
+                            </h3>
+
+                            <p>
+                                دوره بایگانی‌شده
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="btn btn-secondary"
+                            onclick="
+                                openFlock(
+                                    '${flock.id}'
+                                )
+                            "
+                        >
+                            مشاهده
+                        </button>
+
+                    </div>
+
+                `
+            )
+            .join("");
+
+}
+
+
+
+/* =====================================================
+   OPEN FLOCK
+===================================================== */
+
+function openFlock(
+    flockId
+) {
+
+    const flock =
+        getFlocks()
+            .find(
+                item =>
+                    item.id ===
+                    flockId
+            );
+
+
+    if (!flock) {
+
+        return;
+
+    }
+
+
+    setCurrentSelection({
+
+        farmId:
+            flock.farmId,
+
+        houseId:
+            flock.houseId,
+
+        flockId:
+            flock.id
+
+    });
+
+
+    location.href =
+        "weekly.html";
+
+}
+
+
+
+renderFarms();
+
+renderFlocks();
+
+renderArchive();
+
+</script>
+
+
+</body>
+</html>

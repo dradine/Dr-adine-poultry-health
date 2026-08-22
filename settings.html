@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+>
+
+<meta
+    name="theme-color"
+    content="#173f35"
+>
+
+<title>
+تنظیمات | مرکز تخصصی سلامت طیور آدینه
+</title>
+
+<link rel="stylesheet" href="app.css">
+
+</head>
+
+
+<body>
+
+<header class="topbar">
+
+    <div class="brand">
+
+        <img
+            src="IMG_4309.png"
+            alt="آدینه"
+        >
+
+        <span>
+            تنظیمات
+        </span>
+
+    </div>
+
+
+    <button
+        class="btn btn-secondary"
+        onclick="location.href='Dashboard.html'"
+    >
+        داشبورد
+    </button>
+
+</header>
+
+
+
+<main class="page">
+
+<div class="container">
+
+
+<h1 class="page-title">
+تنظیمات سامانه
+</h1>
+
+
+
+<!-- =====================================================
+     APP
+===================================================== -->
+
+<section class="card">
+
+<h2 class="card-title">
+تنظیمات برنامه
+</h2>
+
+
+<div class="form-grid">
+
+
+<div class="form-group">
+
+<label>
+نام مرکز
+</label>
+
+<input
+    id="centerName"
+    value="مرکز تخصصی سلامت طیور آدینه"
+>
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+واحد وزن
+</label>
+
+<select id="weightUnit">
+
+<option value="gram">
+گرم
+</option>
+
+<option value="kg">
+کیلوگرم
+</option>
+
+</select>
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+استاندارد یکنواختی
+</label>
+
+<select id="uniformityStandard">
+
+<option value="10">
+±10%
+</option>
+
+<option value="15">
+±15%
+</option>
+
+<option value="both">
+هر دو
+</option>
+
+</select>
+
+</div>
+
+
+<div class="form-group">
+
+<label>
+فرمت تاریخ
+</label>
+
+<select id="dateFormat">
+
+<option value="jalali">
+شمسی
+</option>
+
+<option value="gregorian">
+میلادی
+</option>
+
+</select>
+
+</div>
+
+
+</div>
+
+
+<div class="button-row">
+
+<button
+    id="saveSettings"
+    class="btn btn-primary"
+>
+ذخیره تنظیمات
+</button>
+
+</div>
+
+</section>
+
+
+
+<!-- =====================================================
+     BACKUP
+===================================================== -->
+
+<section class="card">
+
+<h2 class="card-title">
+پشتیبان‌گیری
+</h2>
+
+
+<p class="page-description">
+
+قبل از تغییرات مهم، از اطلاعات سامانه
+نسخه پشتیبان تهیه کنید.
+
+</p>
+
+
+<div class="button-row">
+
+<button
+    id="exportData"
+    class="btn btn-primary"
+>
+دریافت نسخه پشتیبان
+</button>
+
+
+<button
+    id="importData"
+    class="btn btn-secondary"
+>
+بازیابی نسخه پشتیبان
+</button>
+
+
+<input
+    id="backupFile"
+    type="file"
+    accept=".json"
+    hidden
+>
+
+</div>
+
+</section>
+
+
+
+<!-- =====================================================
+     DANGER
+===================================================== -->
+
+<section class="card danger-card">
+
+<h2 class="card-title">
+منطقه حساس
+</h2>
+
+
+<p>
+حذف اطلاعات قابل بازگشت نیست.
+</p>
+
+
+<button
+    id="clearData"
+    class="btn btn-danger"
+>
+پاک کردن اطلاعات محلی
+</button>
+
+</section>
+
+
+</div>
+
+</main>
+
+
+
+<script src="app-core.js"></script>
+<script src="standard-data.js"></script>
+<script src="standards.js"></script>
+<script src="poultry-utils.js"></script>
+<script src="weekly-storage.js"></script>
+<script src="comparison-engine.js"></script>
+<script src="genetics-ui.js"></script>
+<script src="weekly-engine.js"></script>
+
+
+
+<script>
+
+/* =====================================================
+   SETTINGS
+===================================================== */
+
+const SETTINGS_KEY =
+    "adine_app_settings";
+
+
+const defaultSettings = {
+
+    centerName:
+        "مرکز تخصصی سلامت طیور آدینه",
+
+    weightUnit:
+        "gram",
+
+    uniformityStandard:
+        "10",
+
+    dateFormat:
+        "jalali"
+
+};
+
+
+
+function getSettings() {
+
+    return readStorage(
+        SETTINGS_KEY,
+        defaultSettings
+    );
+
+}
+
+
+
+function saveSettings(
+    settings
+) {
+
+    writeStorage(
+        SETTINGS_KEY,
+        settings
+    );
+
+}
+
+
+
+/* =====================================================
+   LOAD
+===================================================== */
+
+const settings =
+    getSettings();
+
+
+document.getElementById(
+    "centerName"
+).value =
+    settings.centerName;
+
+
+document.getElementById(
+    "weightUnit"
+).value =
+    settings.weightUnit;
+
+
+document.getElementById(
+    "uniformityStandard"
+).value =
+    settings.uniformityStandard;
+
+
+document.getElementById(
+    "dateFormat"
+).value =
+    settings.dateFormat;
+
+
+
+/* =====================================================
+   SAVE
+===================================================== */
+
+document.getElementById(
+    "saveSettings"
+).addEventListener(
+    "click",
+    function() {
+
+        saveSettings({
+
+            centerName:
+                document.getElementById(
+                    "centerName"
+                ).value,
+
+            weightUnit:
+                document.getElementById(
+                    "weightUnit"
+                ).value,
+
+            uniformityStandard:
+                document.getElementById(
+                    "uniformityStandard"
+                ).value,
+
+            dateFormat:
+                document.getElementById(
+                    "dateFormat"
+                ).value
+
+        });
+
+
+        alert(
+            "تنظیمات ذخیره شد."
+        );
+
+    }
+);
+
+
+
+/* =====================================================
+   EXPORT
+===================================================== */
+
+document.getElementById(
+    "exportData"
+).addEventListener(
+    "click",
+    function() {
+
+        const backup = {
+
+            version:
+                "1.0",
+
+            exportedAt:
+                new Date().toISOString(),
+
+            farms:
+                getFarms(),
+
+            houses:
+                getHouses(),
+
+            flocks:
+                getFlocks(),
+
+            weekly:
+                readStorage(
+                    "weekly_records",
+                    []
+                ),
+
+            health:
+                readStorage(
+                    "health_records",
+                    []
+                ),
+
+            disease:
+                readStorage(
+                    "disease_records",
+                    []
+                ),
+
+            settings:
+                getSettings()
+
+        };
+
+
+        const blob =
+            new Blob(
+                [
+                    JSON.stringify(
+                        backup,
+                        null,
+                        2
+                    )
+                ],
+                {
+                    type:
+                        "application/json"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+
+        link.href = url;
+
+        link.download =
+            "adine-poultry-backup-" +
+            new Date()
+                .toISOString()
+                .slice(0,10) +
+            ".json";
+
+
+        document.body.appendChild(
+            link
+        );
+
+
+        link.click();
+
+
+        link.remove();
+
+
+        URL.revokeObjectURL(
+            url
+        );
+
+    }
+);
+
+
+
+/* =====================================================
+   IMPORT
+===================================================== */
+
+document.getElementById(
+    "importData"
+).addEventListener(
+    "click",
+    function() {
+
+        document.getElementById(
+            "backupFile"
+        ).click();
+
+    }
+);
+
+
+document.getElementById(
+    "backupFile"
+).addEventListener(
+    "change",
+    function(event) {
+
+        const file =
+            event.target.files[0];
+
+
+        if (!file) {
+
+            return;
+
+        }
+
+
+        const reader =
+            new FileReader();
+
+
+        reader.onload =
+            function() {
+
+                try {
+
+                    const backup =
+                        JSON.parse(
+                            reader.result
+                        );
+
+
+                    if (
+                        !confirm(
+                            "اطلاعات فعلی با نسخه پشتیبان جایگزین شود؟"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        backup.farms
+                    ) {
+
+                        writeStorage(
+                            "farms",
+                            backup.farms
+                        );
+
+                    }
+
+
+                    if (
+                        backup.houses
+                    ) {
+
+                        writeStorage(
+                            "houses",
+                            backup.houses
+                        );
+
+                    }
+
+
+                    if (
+                        backup.flocks
+                    ) {
+
+                        writeStorage(
+                            "flocks",
+                            backup.flocks
+                        );
+
+                    }
+
+
+                    if (
+                        backup.weekly
+                    ) {
+
+                        writeStorage(
+                            "weekly_records",
+                            backup.weekly
+                        );
+
+                    }
+
+
+                    if (
+                        backup.health
+                    ) {
+
+                        writeStorage(
+                            "health_records",
+                            backup.health
+                        );
+
+                    }
+
+
+                    if (
+                        backup.disease
+                    ) {
+
+                        writeStorage(
+                            "disease_records",
+                            backup.disease
+                        );
+
+                    }
+
+
+                    if (
+                        backup.settings
+                    ) {
+
+                        writeStorage(
+                            SETTINGS_KEY,
+                            backup.settings
+                        );
+
+                    }
+
+
+                    alert(
+                        "بازیابی با موفقیت انجام شد."
+                    );
+
+
+                    location.reload();
+
+                }
+
+                catch(error) {
+
+                    alert(
+                        "فایل پشتیبان معتبر نیست."
+                    );
+
+                }
+
+            };
+
+
+        reader.readAsText(
+            file
+        );
+
+    }
+);
+
+
+
+/* =====================================================
+   CLEAR
+===================================================== */
+
+document.getElementById(
+    "clearData"
+).addEventListener(
+    "click",
+    function() {
+
+        const first =
+            confirm(
+                "هشدار: تمام اطلاعات محلی حذف خواهد شد. ادامه می‌دهید؟"
+            );
+
+
+        if (!first) {
+
+            return;
+
+        }
+
+
+        const second =
+            confirm(
+                "این عملیات قابل بازگشت نیست. مطمئن هستید؟"
+            );
+
+
+        if (!second) {
+
+            return;
+
+        }
+
+
+        const keys = [
+
+            "farms",
+            "houses",
+            "flocks",
+            "weekly_records",
+            "health_records",
+            "disease_records",
+            SETTINGS_KEY
+
+        ];
+
+
+        keys.forEach(
+            key =>
+                localStorage.removeItem(
+                    key
+                )
+        );
+
+
+        alert(
+            "اطلاعات محلی پاک شد."
+        );
+
+
+        location.reload();
+
+    }
+);
+
+</script>
+
+</body>
+</html>

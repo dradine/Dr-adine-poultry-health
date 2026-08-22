@@ -1,17 +1,24 @@
 /* =========================================================
    ADINEH OWNER MANAGEMENT
-========================================================= */
+   OWNER PANEL — FINAL VERSION
+   ========================================================= */
 
 (function () {
     "use strict";
 
     let users = [];
     let selectedUser = null;
+    let isInitialized = false;
 
     const $ = (id) => document.getElementById(id);
 
+    /* =====================================================
+       SECURITY / DISPLAY HELPERS
+    ===================================================== */
+
     function esc(value) {
         if (value === null || value === undefined) return "";
+
         return String(value)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -21,7 +28,11 @@
     }
 
     function faNumber(value) {
-        if (value === null || value === undefined || value === "") {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
             return "—";
         }
 
@@ -32,32 +43,47 @@
     }
 
     function formatDate(value) {
+
         if (!value) return "—";
 
         try {
-            const d = new Date(value);
 
-            if (isNaN(d.getTime())) return "—";
+            const date = new Date(value);
 
-            return new Intl.DateTimeFormat("fa-IR", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit"
-            }).format(d);
+            if (isNaN(date.getTime())) {
+                return "—";
+            }
+
+            return new Intl.DateTimeFormat(
+                "fa-IR",
+                {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            ).format(date);
 
         } catch {
             return "—";
         }
     }
 
+    /* =====================================================
+       LABELS
+    ===================================================== */
+
     function roleLabel(role) {
 
         const map = {
-            owner: "مالک",
-            admin: "مدیر",
+
+            owner: "مالک سامانه",
+
+            admin: "مدیر سامانه",
+
             user: "کاربر"
+
         };
 
         return map[role] || role || "—";
@@ -66,14 +92,31 @@
     function userTypeLabel(type) {
 
         const map = {
-            veterinarian: "🩺 دامپزشک",
-            technical_veterinarian: "🩺 دامپزشک مسئول فنی",
-            poultry_operator: "🐔 بهره‌بردار واحد طیور",
-            poultry_manager: "👨‍💼 مدیر واحد طیور",
-            veterinary_lab: "🔬 آزمایشگاه تشخیص دامپزشکی",
-            poultry_technical_expert: "📊 کارشناس فنی طیور",
-            organization_manager: "🏢 مدیر / نماینده مجموعه",
-            other: "سایر"
+
+            veterinarian:
+                "🩺 دامپزشک",
+
+            technical_veterinarian:
+                "🩺 دامپزشک مسئول فنی",
+
+            poultry_operator:
+                "🐔 بهره‌بردار واحد طیور",
+
+            poultry_manager:
+                "👨‍💼 مدیر واحد طیور",
+
+            veterinary_lab:
+                "🔬 آزمایشگاه تشخیص دامپزشکی",
+
+            poultry_technical_expert:
+                "📊 کارشناس فنی طیور",
+
+            organization_manager:
+                "🏢 مدیر / نماینده مجموعه",
+
+            other:
+                "سایر"
+
         };
 
         return map[type] || type || "—";
@@ -82,11 +125,22 @@
     function statusLabel(status) {
 
         const map = {
-            active: "فعال",
-            pending: "در انتظار",
-            suspended: "معلق",
-            blocked: "مسدود",
-            removed: "حذف شده"
+
+            active:
+                "فعال",
+
+            pending:
+                "در انتظار تأیید",
+
+            suspended:
+                "معلق",
+
+            blocked:
+                "مسدود",
+
+            removed:
+                "حذف شده"
+
         };
 
         return map[status] || status || "—";
@@ -94,26 +148,47 @@
 
     function statusClass(status) {
 
-        if (status === "active") return "status-active";
-        if (status === "pending") return "status-pending";
-        if (status === "blocked") return "status-danger";
-        if (status === "suspended") return "status-warning";
+        switch (status) {
 
-        return "status-neutral";
+            case "active":
+                return "status-active";
+
+            case "pending":
+                return "status-pending";
+
+            case "suspended":
+                return "status-warning";
+
+            case "blocked":
+                return "status-danger";
+
+            default:
+                return "status-neutral";
+        }
     }
+
+    /* =====================================================
+       ACTIVITY
+    ===================================================== */
 
     function activityText(activityTypes) {
 
-        if (!activityTypes) return "—";
+        if (
+            activityTypes === null ||
+            activityTypes === undefined ||
+            activityTypes === ""
+        ) {
+            return "—";
+        }
 
         let list = activityTypes;
 
-        if (typeof activityTypes === "string") {
+        if (typeof list === "string") {
 
             try {
-                list = JSON.parse(activityTypes);
+                list = JSON.parse(list);
             } catch {
-                return activityTypes;
+                return list;
             }
         }
 
@@ -121,58 +196,120 @@
             return String(list);
         }
 
-        if (!list.length) return "—";
+        if (!list.length) {
+            return "—";
+        }
 
         const map = {
-            broiler: "گوشتی",
-            layer: "تخمگذار",
-            breeder: "مادر",
-            pullet: "پولت",
-            hatchery: "جوجه‌کشی",
-            other: "سایر"
+
+            broiler:
+                "گوشتی",
+
+            layer:
+                "تخمگذار",
+
+            breeder:
+                "مادر",
+
+            pullet:
+                "پولت",
+
+            hatchery:
+                "جوجه‌کشی",
+
+            other:
+                "سایر"
+
         };
 
         return list
-            .map(x => map[x] || x)
+            .map(item => map[item] || item)
             .join("، ");
     }
 
-    function showMessage(message, type = "success") {
+    /* =====================================================
+       MESSAGE
+    ===================================================== */
+
+    function showMessage(
+        message,
+        type = "success"
+    ) {
 
         const box = $("ownerStatus");
 
         if (!box) return;
 
-        box.textContent = message;
+        box.textContent =
+            message || "";
 
         box.className =
             "owner-status " +
-            (type === "error"
-                ? "error"
-                : "success");
+            (
+                type === "error"
+                    ? "error"
+                    : "success"
+            );
 
-        setTimeout(() => {
-            box.className = "owner-status";
-        }, 4500);
+        clearTimeout(
+            showMessage.timer
+        );
+
+        showMessage.timer =
+            setTimeout(
+                () => {
+
+                    box.className =
+                        "owner-status";
+
+                    box.textContent =
+                        "";
+
+                },
+                5000
+            );
     }
 
+    /* =====================================================
+       SUPABASE USER
+    ===================================================== */
+
     async function getCurrentUser() {
+
+        if (
+            typeof supabaseClient ===
+            "undefined"
+        ) {
+            throw new Error(
+                "اتصال Supabase پیدا نشد."
+            );
+        }
 
         const {
             data,
             error
-        } = await supabaseClient.auth.getUser();
+        } =
+            await supabaseClient.auth.getUser();
 
-        if (error) throw error;
+        if (error) {
+            throw error;
+        }
 
-        if (!data || !data.user) {
+        if (
+            !data ||
+            !data.user
+        ) {
             throw new Error(
-                "کاربر وارد نشده است."
+                "کاربر وارد سامانه نشده است."
             );
         }
 
         return data.user;
     }
+
+    /* =====================================================
+       OWNER VERIFICATION
+    ===================================================== */
 
     async function verifyOwner() {
 
@@ -182,27 +319,41 @@
         const {
             data,
             error
-        } = await supabaseClient
-            .from("profiles")
-            .select(`
-                id,
-                full_name,
-                email,
-                role,
-                status,
-                is_active
-            `)
-            .eq("id", authUser.id)
-            .maybeSingle();
+        } =
+            await supabaseClient
+                .from("profiles")
+                .select(`
+                    id,
+                    full_name,
+                    email,
+                    phone,
+                    role,
+                    status,
+                    is_active
+                `)
+                .eq(
+                    "id",
+                    authUser.id
+                )
+                .maybeSingle();
 
-        if (error) throw error;
+        if (error) {
+            throw error;
+        }
+
+        if (!data) {
+
+            throw new Error(
+                "پروفایل مالک در سامانه پیدا نشد."
+            );
+        }
 
         if (
-            !data ||
             data.role !== "owner" ||
             data.status !== "active" ||
             data.is_active !== true
         ) {
+
             throw new Error(
                 "این صفحه فقط برای مالک سامانه قابل دسترسی است."
             );
@@ -210,6 +361,10 @@
 
         return data;
     }
+
+    /* =====================================================
+       LOAD USERS
+    ===================================================== */
 
     async function loadUsers() {
 
@@ -220,11 +375,14 @@
             const {
                 data,
                 error
-            } = await supabaseClient.rpc(
-                "owner_get_user_directory"
-            );
+            } =
+                await supabaseClient.rpc(
+                    "owner_get_user_directory"
+                );
 
-            if (error) throw error;
+            if (error) {
+                throw error;
+            }
 
             users =
                 Array.isArray(data)
@@ -256,18 +414,26 @@
         }
     }
 
+    /* =====================================================
+       LOADING
+    ===================================================== */
+
     function setLoading(isLoading) {
 
         const loading =
             $("ownerLoading");
 
-        if (loading) {
-            loading.style.display =
-                isLoading
-                    ? "block"
-                    : "none";
-        }
+        if (!loading) return;
+
+        loading.style.display =
+            isLoading
+                ? "block"
+                : "none";
     }
+
+    /* =====================================================
+       STATISTICS
+    ===================================================== */
 
     function renderStats() {
 
@@ -276,33 +442,40 @@
 
         const active =
             users.filter(
-                x => x.status === "active"
+                user =>
+                    user.status === "active"
             ).length;
 
         const veterinarians =
             users.filter(
-                x =>
-                    x.user_type === "veterinarian" ||
-                    x.user_type === "technical_veterinarian"
+                user =>
+                    user.user_type ===
+                        "veterinarian" ||
+                    user.user_type ===
+                        "technical_veterinarian"
             ).length;
 
         const laboratories =
             users.filter(
-                x =>
-                    x.user_type === "veterinary_lab"
+                user =>
+                    user.user_type ===
+                    "veterinary_lab"
             ).length;
 
         const operators =
             users.filter(
-                x =>
-                    x.user_type === "poultry_operator"
+                user =>
+                    user.user_type ===
+                    "poultry_operator"
             ).length;
 
         const managers =
             users.filter(
-                x =>
-                    x.user_type === "poultry_manager" ||
-                    x.user_type === "organization_manager"
+                user =>
+                    user.user_type ===
+                        "poultry_manager" ||
+                    user.user_type ===
+                        "organization_manager"
             ).length;
 
         setText(
@@ -336,6 +509,10 @@
         );
     }
 
+    /* =====================================================
+       TABLE
+    ===================================================== */
+
     function renderTable() {
 
         const tbody =
@@ -353,117 +530,162 @@
         }
 
         tbody.innerHTML =
-            users.map(user => {
+            users.map(
+                user => {
 
-                const code =
-                    user.professional_code
-                        ? "••••"
-                        : "ندارد";
+                    /*
+                     * مالک باید کد واقعی را ببیند.
+                     * سایر کاربران از طریق RLS/RPC
+                     * به این اطلاعات دسترسی ندارند.
+                     */
 
-                return `
-                    <tr>
+                    const code =
+                        user.professional_code
+                            ? faNumber(
+                                user.professional_code
+                              )
+                            : "ندارد";
 
-                        <td>
-                            <strong>
+                    return `
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    ${esc(
+                                        user.full_name ||
+                                        "بدون نام"
+                                    )}
+                                </strong>
+                            </td>
+
+                            <td>
                                 ${esc(
-                                    user.full_name ||
-                                    "بدون نام"
+                                    user.email ||
+                                    "—"
                                 )}
-                            </strong>
-                        </td>
+                            </td>
 
-                        <td>
-                            ${esc(
-                                user.email || "—"
-                            )}
-                        </td>
-
-                        <td>
-                            ${esc(
-                                user.phone || "—"
-                            )}
-                        </td>
-
-                        <td>
-                            ${userTypeLabel(
-                                user.user_type
-                            )}
-                        </td>
-
-                        <td>
-                            <span class="owner-code">
-                                ${code}
-                            </span>
-                        </td>
-
-                        <td>
-                            <span class="${statusClass(
-                                user.status
-                            )}">
-                                ${statusLabel(
-                                    user.status
+                            <td dir="ltr">
+                                ${esc(
+                                    user.phone ||
+                                    "—"
                                 )}
-                            </span>
-                        </td>
+                            </td>
 
-                        <td>
-                            <button
-                                type="button"
-                                class="btn btn-small btn-primary"
-                                data-user-id="${esc(
-                                    user.user_id
-                                )}"
-                                data-action="details"
-                            >
-                                جزئیات
-                            </button>
-                        </td>
+                            <td>
+                                ${userTypeLabel(
+                                    user.user_type
+                                )}
+                            </td>
 
-                    </tr>
-                `;
+                            <td>
+                                <span
+                                    class="owner-code"
+                                    dir="ltr"
+                                >
+                                    ${code}
+                                </span>
+                            </td>
 
-            }).join("");
+                            <td>
+                                <span
+                                    class="${statusClass(
+                                        user.status
+                                    )}"
+                                >
+                                    ${statusLabel(
+                                        user.status
+                                    )}
+                                </span>
+                            </td>
+
+                            <td>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-small btn-primary"
+                                    data-user-id="${esc(
+                                        user.user_id
+                                    )}"
+                                    data-action="details"
+                                >
+                                    جزئیات
+                                </button>
+
+                            </td>
+
+                        </tr>
+                    `;
+                }
+            ).join("");
     }
+
+    /* =====================================================
+       DETAILS
+    ===================================================== */
 
     function openDetails(userId) {
 
         const user =
             users.find(
-                x => x.user_id === userId
+                item =>
+                    String(item.user_id) ===
+                    String(userId)
             );
 
-        if (!user) return;
+        if (!user) {
 
-        selectedUser = user;
+            showMessage(
+                "اطلاعات کاربر پیدا نشد.",
+                "error"
+            );
+
+            return;
+        }
+
+        selectedUser =
+            user;
 
         const modal =
             $("ownerUserModal");
 
-        if (!modal) return;
+        if (!modal) {
+
+            showMessage(
+                "ساختار پنجره جزئیات در HTML پیدا نشد.",
+                "error"
+            );
+
+            return;
+        }
 
         setText(
             "detailName",
-            user.full_name || "—"
+            user.full_name
         );
 
         setText(
             "detailEmail",
-            user.email || "—"
+            user.email
         );
 
         setText(
             "detailPhone",
-            user.phone || "—"
+            user.phone
         );
 
         setText(
             "detailRole",
-            roleLabel(user.role)
+            roleLabel(
+                user.role
+            )
         );
 
         setText(
             "detailUserType",
-            userTypeLabel(user.user_type)
+            userTypeLabel(
+                user.user_type
+            )
         );
 
         setText(
@@ -475,42 +697,48 @@
 
         setText(
             "detailOrganization",
-            user.organization_name || "—"
+            user.organization_name
         );
 
         setText(
             "detailLicense",
-            user.license_number || "—"
+            user.license_number
         );
 
         setText(
             "detailProvince",
-            user.province || "—"
+            user.province
         );
 
         setText(
             "detailCity",
-            user.city || "—"
+            user.city
         );
 
         setText(
             "detailSpecialty",
-            user.specialty || "—"
+            user.specialty
         );
 
         setText(
             "detailStatus",
-            statusLabel(user.status)
+            statusLabel(
+                user.status
+            )
         );
 
         setText(
             "detailCreated",
-            formatDate(user.created_at)
+            formatDate(
+                user.created_at
+            )
         );
 
         setText(
             "detailLastSeen",
-            formatDate(user.last_seen_at)
+            formatDate(
+                user.last_seen_at
+            )
         );
 
         setText(
@@ -519,27 +747,19 @@
             "کد ندارد"
         );
 
-        const verified =
-            $("detailVerified");
+        setText(
+            "detailCodeStatus",
+            user.professional_code_active
+                ? "فعال"
+                : "غیرفعال"
+        );
 
-        if (verified) {
-
-            verified.textContent =
-                user.is_verified
-                    ? "تأیید شده"
-                    : "تأیید نشده";
-        }
-
-        const codeStatus =
-            $("detailCodeStatus");
-
-        if (codeStatus) {
-
-            codeStatus.textContent =
-                user.professional_code_active
-                    ? "فعال"
-                    : "غیرفعال";
-        }
+        setText(
+            "detailVerified",
+            user.is_verified
+                ? "تأیید شده"
+                : "تأیید نشده"
+        );
 
         const codeSection =
             $("professionalCodeSection");
@@ -552,12 +772,17 @@
                     : "none";
         }
 
-        modal.style.display = "flex";
+        modal.style.display =
+            "flex";
 
         document.body.classList.add(
             "modal-open"
         );
     }
+
+    /* =====================================================
+       CLOSE DETAILS
+    ===================================================== */
 
     function closeDetails() {
 
@@ -566,18 +791,32 @@
 
         if (!modal) return;
 
-        modal.style.display = "none";
+        modal.style.display =
+            "none";
 
         document.body.classList.remove(
             "modal-open"
         );
 
-        selectedUser = null;
+        selectedUser =
+            null;
     }
+
+    /* =====================================================
+       GENERATE / CHANGE PROFESSIONAL CODE
+    ===================================================== */
 
     async function generateCode() {
 
-        if (!selectedUser) return;
+        if (!selectedUser) {
+
+            showMessage(
+                "ابتدا یک کاربر را انتخاب کنید.",
+                "error"
+            );
+
+            return;
+        }
 
         if (!selectedUser.user_type) {
 
@@ -594,7 +833,8 @@
 
         if (button) {
 
-            button.disabled = true;
+            button.disabled =
+                true;
 
             button.textContent =
                 "در حال تولید...";
@@ -605,25 +845,45 @@
             const {
                 data,
                 error
-            } = await supabaseClient.rpc(
-                "owner_generate_professional_code",
-                {
-                    p_user_id:
-                        selectedUser.user_id
-                }
-            );
+            } =
+                await supabaseClient.rpc(
+                    "owner_generate_professional_code",
+                    {
+                        p_user_id:
+                            selectedUser.user_id
+                    }
+                );
 
-            if (error) throw error;
+            if (error) {
+                throw error;
+            }
+
+            /*
+             * RPC باید کد چهار رقمی برگرداند.
+             */
+
+            const newCode =
+                data === null ||
+                data === undefined
+                    ? ""
+                    : String(data);
+
+            if (!newCode) {
+
+                throw new Error(
+                    "کد تولید شد اما مقدار کد از سرور دریافت نشد."
+                );
+            }
 
             selectedUser.professional_code =
-                data;
+                newCode;
 
             selectedUser.professional_code_active =
                 true;
 
             setText(
                 "detailCode",
-                data
+                newCode
             );
 
             setText(
@@ -634,7 +894,7 @@
             renderTable();
 
             showMessage(
-                "کد حرفه‌ای با موفقیت ایجاد شد."
+                "کد حرفه‌ای با موفقیت ایجاد / تغییر کرد."
             );
 
         } catch (error) {
@@ -646,7 +906,7 @@
 
             showMessage(
                 error.message ||
-                "تولید کد ناموفق بود.",
+                "تولید کد حرفه‌ای ناموفق بود.",
                 "error"
             );
 
@@ -654,13 +914,18 @@
 
             if (button) {
 
-                button.disabled = false;
+                button.disabled =
+                    false;
 
                 button.textContent =
                     "تولید / تغییر کد";
             }
         }
     }
+
+    /* =====================================================
+       SEARCH
+    ===================================================== */
 
     function filterUsers() {
 
@@ -679,19 +944,25 @@
                 "#ownerUsersTable tr"
             );
 
-        rows.forEach(row => {
+        rows.forEach(
+            row => {
 
-            const text =
-                row.textContent
-                    .toLowerCase();
+                const text =
+                    row.textContent
+                        .toLowerCase();
 
-            row.style.display =
-                !query ||
-                text.includes(query)
-                    ? ""
-                    : "none";
-        });
+                row.style.display =
+                    !query ||
+                    text.includes(query)
+                        ? ""
+                        : "none";
+            }
+        );
     }
+
+    /* =====================================================
+       EMPTY TABLE
+    ===================================================== */
 
     function renderEmpty(message) {
 
@@ -702,37 +973,72 @@
 
         tbody.innerHTML = `
             <tr>
+
                 <td
                     colspan="7"
-                    style="text-align:center;padding:35px;"
+                    style="
+                        text-align:center;
+                        padding:35px;
+                    "
                 >
                     ${esc(message)}
                 </td>
+
             </tr>
         `;
     }
 
+    /* =====================================================
+       RENDER ALL
+    ===================================================== */
+
     function renderAll() {
 
         renderStats();
+
         renderTable();
     }
 
-    function setText(id, value) {
+    /* =====================================================
+       SAFE TEXT
+    ===================================================== */
 
-        const el = $(id);
+    function setText(
+        id,
+        value
+    ) {
 
-        if (!el) return;
+        const element =
+            $(id);
 
-        el.textContent =
-            value === null ||
-            value === undefined ||
-            value === ""
+        if (!element) return;
+
+        element.textContent =
+            (
+                value === null ||
+                value === undefined ||
+                value === ""
+            )
                 ? "—"
                 : value;
     }
 
+    /* =====================================================
+       EVENTS
+    ===================================================== */
+
     function bindEvents() {
+
+        if (isInitialized) {
+            return;
+        }
+
+        isInitialized =
+            true;
+
+        /* -----------------------------------------------
+           TABLE DETAILS
+        ------------------------------------------------ */
 
         document.addEventListener(
             "click",
@@ -745,8 +1051,11 @@
 
                 if (!button) return;
 
+                const action =
+                    button.dataset.action;
+
                 if (
-                    button.dataset.action ===
+                    action ===
                     "details"
                 ) {
 
@@ -756,6 +1065,10 @@
                 }
             }
         );
+
+        /* -----------------------------------------------
+           CLOSE BUTTON
+        ------------------------------------------------ */
 
         const closeButton =
             $("closeOwnerModal");
@@ -768,6 +1081,10 @@
             );
         }
 
+        /* -----------------------------------------------
+           MODAL BACKDROP
+        ------------------------------------------------ */
+
         const modal =
             $("ownerUserModal");
 
@@ -778,13 +1095,19 @@
                 function (event) {
 
                     if (
-                        event.target === modal
+                        event.target ===
+                        modal
                     ) {
+
                         closeDetails();
                     }
                 }
             );
         }
+
+        /* -----------------------------------------------
+           SEARCH
+        ------------------------------------------------ */
 
         const search =
             $("ownerSearch");
@@ -797,6 +1120,10 @@
             );
         }
 
+        /* -----------------------------------------------
+           GENERATE CODE
+        ------------------------------------------------ */
+
         const generateButton =
             $("generateProfessionalCodeBtn");
 
@@ -808,18 +1135,28 @@
             );
         }
 
+        /* -----------------------------------------------
+           ESCAPE
+        ------------------------------------------------ */
+
         document.addEventListener(
             "keydown",
             function (event) {
 
                 if (
-                    event.key === "Escape"
+                    event.key ===
+                    "Escape"
                 ) {
+
                     closeDetails();
                 }
             }
         );
     }
+
+    /* =====================================================
+       INITIALIZATION
+    ===================================================== */
 
     async function init() {
 
@@ -853,7 +1190,10 @@
 
         document.addEventListener(
             "DOMContentLoaded",
-            init
+            init,
+            {
+                once: true
+            }
         );
 
     } else {

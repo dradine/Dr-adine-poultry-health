@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#0b3025"
+    >
+
+    <meta
+        name="description"
+        content="فارم‌یار
+ مدیریت هوشمند فارم‌های طیور مرکز تخصصی سلامت طیور آدینه"
+    >
+
+    <title>
+        داشبورد |فارم‌یار
+ مدیریت هوشمند فارم‌های طیور
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="app.css"
+    >
+</head>
+
+
+<body class="dashboard-page">
+
+<div class="app-shell">
+
+
+    <!-- =========================
+         HEADER
+    ========================== -->
+
+    <header class="topbar dashboard-topbar">
+
+        <div class="brand dashboard-brand">
+
+            <div class="brand-logo-wrap">
+
+                <img
+                    src="IMG_4309.png"
+                    alt="لوگوی مرکز تخصصی سلامت طیور آدینه"
+                    class="brand-logo"
+                >
+
+            </div>
+
+
+            <div class="brand-text dashboard-brand-text">
+
+                <strong>
+                    مرکز تخصصی سلامت طیور آدینه
+                </strong>
+
+                <small>
+ مدیریت هوشمند فارم‌های طیور
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <button
+            id="logoutButton"
+            class="logout-btn"
+            type="button"
+            aria-label="خروج از حساب کاربری"
+        >
+
+            <span data-icon="logout"></span>
+
+            <span>
+                خروج
+            </span>
+
+        </button>
+
+    </header>
+
+
+    <!-- =========================
+         MAIN
+    ========================== -->
+
+    <main class="page dashboard-main">
+
+        <div class="container">
+
+
+            <!-- =========================
+                 HERO
+            ========================== -->
+
+            <section class="dashboard-hero">
+
+                <div class="hero-image"></div>
+
+                <div class="hero-overlay"></div>
+
+
+                <div class="hero-content">
+
+                    <span class="hero-kicker">
+                        داشبورد مدیریتی
+                    </span>
+
+
+                    <h1>پایش علمی، تصمیم مدیریتی، عملکرد پایدار گله
+                    </h1>
+
+
+                    <p id="welcomeText">
+                        در حال دریافت اطلاعات حساب…
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 ACCOUNT STATUS
+            ========================== -->
+
+            <section class="account-status-card dashboard-account-card">
+
+                <div
+                    class="status-icon"
+                    data-icon="check"
+                ></div>
+
+
+                <div class="status-content">
+
+                    <strong>
+                        وضعیت حساب کاربری
+                    </strong>
+
+
+                    <span id="accountStatus">
+                        در حال بررسی اتصال و حساب…
+                    </span>
+
+                </div>
+
+
+                <button
+                    id="retryAccountButton"
+                    type="button"
+                    class="account-retry"
+                    hidden
+                >
+                    تلاش مجدد
+                </button>
+
+            </section>
+
+
+            <!-- =========================
+                 MANAGEMENT
+            ========================== -->
+
+            <section class="dashboard-section">
+
+
+                <div class="section-heading dashboard-section-heading">
+
+                    <div>
+
+                        <span class="section-eyebrow">
+                            مرکز کنترل
+                        </span>
+
+
+                        <h2>
+                            مدیریت فارم و گله
+                        </h2>
+
+
+                        <p>
+                            ثبت اطلاعات، پایش عملکرد، سلامت و تحلیل دوره‌های پرورش
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="dashboard-grid">
+
+
+                    <!-- PROFESSIONALS -->
+
+                    <a
+                        class="menu-card"
+                        href="farm-professionals.html"
+                    >
+                        <div class="menu-icon">👨‍⚕️</div>
+                        <div class="menu-content">
+                            <h3>دامپزشک و آزمایشگاه فارم</h3>
+                            <p>مدیریت دسترسی متخصصان، قطع همکاری و ارزیابی</p>
+                        </div>
+                    </a>
+
+
+                    <!-- FARM -->
+
+                    <a
+                        class="menu-card menu-card-farm"
+                        href="Farms.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="farm"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                ثبت و مدیریت فارم
+                            </h3>
+
+                            <p>
+                                ایجاد فارم، مشخصات و ظرفیت
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                    <!-- FLOCK -->
+
+                    <a
+                        class="menu-card menu-card-flock"
+                        href="flocks.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="flock"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                سالن و گله
+                            </h3>
+
+                            <p>
+                                مدیریت سالن، گله و سویه
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                    <!-- WEEKLY -->
+
+                    <a
+                        class="menu-card menu-card-weekly"
+                        href="weekly.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="scale"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                ثبت گزارش هفتگی
+                            </h3>
+
+                            <p>
+                                وزن، یکنواختی، دان، آب و FCR
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                    <!-- HEALTH -->
+
+                    <a
+                        class="menu-card menu-card-health"
+                        href="health.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="vaccine"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                سلامت، واکسیناسیون و دارو
+                            </h3>
+
+                            <p>
+                                برنامه‌ها، سوابق و پایش سلامت
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                    <!-- MORTALITY -->
+
+                    <a
+                        class="menu-card menu-card-mortality"
+                        href="mortality.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="health"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                تلفات و بیماری
+                            </h3>
+
+                            <p>
+                                ثبت تلفات، علائم و رویدادهای بیماری
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                    <!-- REPORTS -->
+
+                    <a
+                        class="menu-card menu-card-reports"
+                        href="reports.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="report"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                گزارش‌ها و تحلیل
+                            </h3>
+
+                            <p>
+                                نمودارها، استانداردها و مقایسه عملکرد
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                    <!-- RECORDS -->
+
+                    <a
+                        class="menu-card menu-card-records"
+                        href="records.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="archive"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                پرونده دوره‌ها
+                            </h3>
+
+                            <p>
+                                سوابق دوره‌های قبلی و آرشیو
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                    <!-- SETTINGS -->
+
+                    <a
+                        class="menu-card menu-card-settings"
+                        href="settings.html"
+                    >
+
+                        <div
+                            class="menu-icon"
+                            data-icon="settings"
+                        ></div>
+
+
+                        <div class="menu-content">
+
+                            <h3>
+                                تنظیمات سامانه
+                            </h3>
+
+                            <p>
+                                حساب کاربری و تنظیمات مدیریتی
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="menu-arrow"
+                            aria-hidden="true"
+                        >
+                            ←
+                        </span>
+
+                    </a>
+
+
+                </div>
+
+            </section>
+
+
+        </div>
+
+    </main>
+
+
+    <!-- =========================
+         BOTTOM NAV
+    ========================== -->
+
+    <nav
+        class="bottom-nav"
+        aria-label="ناوبری اصلی"
+    >
+
+
+        <button
+            class="active"
+            type="button"
+            data-nav="Dashboard.html"
+            aria-label="خانه"
+        >
+
+            <span data-icon="home"></span>
+
+            <small>
+                خانه
+            </small>
+
+        </button>
+
+
+        <button
+            type="button"
+            data-nav="Farms.html"
+            aria-label="فارم‌ها"
+        >
+
+            <span data-icon="farm"></span>
+
+            <small>
+                فارم‌ها
+            </small>
+
+        </button>
+
+
+        <button
+            type="button"
+            data-nav="weekly.html"
+            aria-label="هفتگی"
+        >
+
+            <span data-icon="scale"></span>
+
+            <small>
+                هفتگی
+            </small>
+
+        </button>
+
+
+        <button
+            type="button"
+            data-nav="reports.html"
+            aria-label="گزارش‌ها"
+        >
+
+            <span data-icon="report"></span>
+
+            <small>
+                گزارش
+            </small>
+
+        </button>
+
+
+    </nav>
+
+
+</div>
+
+
+<!-- =========================
+     SCRIPTS
+========================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="supabase-config.js"></script>
+
+<script src="app-core.js"></script>
+
+<script src="poultry-icons.js"></script>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        const welcomeText =
+            document.getElementById(
+                "welcomeText"
+            );
+
+
+        const accountStatus =
+            document.getElementById(
+                "accountStatus"
+            );
+
+
+        const retryButton =
+            document.getElementById(
+                "retryAccountButton"
+            );
+
+
+        const logoutButton =
+            document.getElementById(
+                "logoutButton"
+            );
+
+
+        function setStatus(
+            text,
+            type
+        ) {
+
+            accountStatus.textContent =
+                text;
+
+
+            accountStatus.className =
+                type === "active"
+                    ? "account-active"
+                    : type === "warning"
+                        ? "account-warning"
+                        : "account-error";
+
+        }
+
+
+        async function loadAccount() {
+
+
+            retryButton.hidden =
+                true;
+
+
+            setStatus(
+                "در حال بررسی اتصال و حساب…",
+                "loading"
+            );
+
+
+            welcomeText.textContent =
+                "در حال دریافت اطلاعات حساب…";
+
+
+            try {
+
+
+                const result =
+                    await checkUserAccess();
+
+
+                if (
+                    !result?.authenticated
+                ) {
+
+                    window.location.replace(
+                        "login.html?message=" +
+                        encodeURIComponent(
+                            "ابتدا وارد سامانه شوید."
+                        )
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    result.error ===
+                    "PROFILE_NOT_FOUND"
+                ) {
+
+                    welcomeText.textContent =
+                        "حساب شما وارد شده است، اما پروفایل سامانه پیدا نشد.";
+
+
+                    setStatus(
+                        "پروفایل کاربری پیدا نشد.",
+                        "error"
+                    );
+
+
+                    retryButton.hidden =
+                        false;
+
+
+                    return;
+
+                }
+
+
+                const user =
+                    result.user;
+
+
+                const fullName =
+                    user?.user_metadata?.full_name ||
+                    user?.user_metadata?.name ||
+                    user?.email?.split("@")[0] ||
+                    "کاربر سامانه";
+
+
+                welcomeText.textContent =
+                    `سلام ${fullName}؛ به سامانه مدیریت و پایش طیور خوش آمدید.`;
+
+
+                if (
+                    result.allowed
+                ) {
+
+                    setStatus(
+                        "حساب شما فعال است.",
+                        "active"
+                    );
+
+                }
+
+                else {
+
+                    setStatus(
+                        "حساب شما هنوز تأیید یا فعال نشده است.",
+                        "warning"
+                    );
+
+
+                    retryButton.hidden =
+                        false;
+
+                }
+
+
+            }
+
+            catch (error) {
+
+
+                console.error(
+                    "Dashboard account error:",
+                    error
+                );
+
+
+                welcomeText.textContent =
+                    "ارتباط با حساب کاربری کامل نشد.";
+
+
+                setStatus(
+                    "خطا در دریافت حساب؛ دوباره تلاش کنید.",
+                    "error"
+                );
+
+
+                retryButton.hidden =
+                    false;
+
+            }
+
+        }
+
+
+        /*
+         * Bottom navigation
+         */
+
+        document
+            .querySelectorAll(
+                ".bottom-nav [data-nav]"
+            )
+            .forEach(
+                function (button) {
+
+
+                    button.addEventListener(
+                        "click",
+                        function () {
+
+
+                            const target =
+                                button.getAttribute(
+                                    "data-nav"
+                                );
+
+
+                            if (target) {
+
+                                window.location.href =
+                                    target;
+
+                            }
+
+                        }
+                    );
+
+                }
+            );
+
+
+        /*
+         * Logout
+         */
+
+        logoutButton.addEventListener(
+            "click",
+            async function () {
+
+
+                logoutButton.disabled =
+                    true;
+
+
+                try {
+
+
+                    if (
+                        typeof logoutUser ===
+                        "function"
+                    ) {
+
+                        await logoutUser();
+
+                    }
+
+                    else if (
+                        typeof supabaseClient !==
+                        "undefined"
+                    ) {
+
+                        await supabaseClient
+                            .auth
+                            .signOut();
+
+
+                        window.location.replace(
+                            "login.html"
+                        );
+
+                    }
+
+
+                }
+
+                catch (error) {
+
+
+                    console.error(
+                        "Logout:",
+                        error
+                    );
+
+
+                    logoutButton.disabled =
+                        false;
+
+                }
+
+            }
+        );
+
+
+        /*
+         * Retry
+         */
+
+        retryButton.addEventListener(
+            "click",
+            loadAccount
+        );
+
+
+        /*
+         * Initial account load
+         */
+
+        loadAccount();
+
+    }
+);
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#173f35"
+    >
+
+    <title>
+        ثبت فارم | مرکز تخصصی سلامت طیور آدینه
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="app.css"
+    >
+
+</head>
+
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- =================================================
+         TOP BAR
+    ================================================== -->
+
+    <header class="topbar">
+
+        <div class="brand">
+
+            <img
+                src="IMG_4309.png"
+                alt="مرکز تخصصی سلامت طیور آدینه"
+            >
+
+            <span>
+                ثبت فارم
+            </span>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="location.href='Dashboard.html'"
+        >
+            داشبورد
+        </button>
+
+    </header>
+
+
+    <!-- =================================================
+         MAIN
+    ================================================== -->
+
+    <main class="page">
+
+        <div class="container">
+
+
+            <h1 class="page-title">
+                ثبت و مدیریت فارم
+            </h1>
+
+
+            <p class="page-description">
+                اطلاعات پایه فارم را وارد کنید.
+            </p>
+
+
+            <!-- =========================================
+                 FARM FORM
+            ========================================== -->
+
+            <form
+                id="farmForm"
+                class="card"
+            >
+
+                <div class="form-grid">
+
+
+                    <div class="form-group">
+
+                        <label for="farmName">
+                            نام فارم *
+                        </label>
+
+                        <input
+                            id="farmName"
+                            type="text"
+                            required
+                            autocomplete="off"
+                            placeholder="مثلاً فارم شماره ۱"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="farmCode">
+                            کد فارم
+                        </label>
+
+                        <input
+                            id="farmCode"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="مثلاً F01"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="farmLocation">
+                            موقعیت
+                        </label>
+
+                        <input
+                            id="farmLocation"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="شهر / منطقه"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="farmOwner">
+                            نام مالک
+                        </label>
+
+                        <input
+                            id="farmOwner"
+                            type="text"
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="farmManager">
+                            مسئول فارم
+                        </label>
+
+                        <input
+                            id="farmManager"
+                            type="text"
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="farmCapacity">
+                            ظرفیت کل
+                        </label>
+
+                        <input
+                            id="farmCapacity"
+                            type="text"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            placeholder="مثلاً ۵۰۰۰۰"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full">
+
+                        <label for="farmNotes">
+                            توضیحات
+                        </label>
+
+                        <textarea
+                            id="farmNotes"
+                            rows="4"
+                            placeholder="توضیحات مربوط به فارم..."
+                        ></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div class="button-row">
+
+                    <button
+                        class="btn btn-primary"
+                        type="submit"
+                    >
+                        ذخیره فارم
+                    </button>
+
+
+                    <button
+                        class="btn btn-secondary"
+                        type="button"
+                        onclick="location.href='Dashboard.html'"
+                    >
+                        بازگشت
+                    </button>
+
+                </div>
+
+            </form>
+
+
+            <!-- =========================================
+                 FARM LIST
+            ========================================== -->
+
+            <section class="card">
+
+                <h2 class="card-title">
+                    فارم‌های ثبت‌شده
+                </h2>
+
+
+                <div id="farmsList">
+
+                    در حال بارگذاری...
+
+                </div>
+
+            </section>
+
+
+        </div>
+
+    </main>
+
+
+    <!-- =================================================
+         BOTTOM NAV
+    ================================================== -->
+
+    <nav class="bottom-nav" aria-label="ناوبری اصلی">
+
+    <button
+        type="button"
+        onclick="window.location.href='Dashboard.html'"
+        aria-label="خانه"
+    >
+        <span data-icon="home"></span>
+        <small>خانه</small>
+    </button>
+
+    <button
+        class="active"
+        type="button"
+        onclick="window.location.href='Farms.html'"
+        aria-label="فارم‌ها"
+    >
+        <span data-icon="farm"></span>
+        <small>فارم‌ها</small>
+    </button>
+
+    <button
+        type="button"
+        onclick="window.location.href='weekly.html'"
+        aria-label="هفتگی"
+    >
+        <span data-icon="scale"></span>
+        <small>هفتگی</small>
+    </button>
+
+    <button
+        type="button"
+        onclick="window.location.href='reports.html'"
+        aria-label="گزارش‌ها"
+    >
+        <span data-icon="report"></span>
+        <small>گزارش</small>
+    </button>
+
+</nav>
+<!-- SUPABASE -->
+
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
+
+<script src="supabase-config.js"></script>
+
+
+<!-- CORE -->
+
+<script src="standards.js"></script>
+<script src="standard-data.js"></script>
+<script src="poultry-utils.js"></script>
+<script src="weekly-storage.js"></script>
+<script src="comparison-engine.js"></script>
+<script src="app-core.js"></script>
+<script src="genetics-ui.js"></script>
+<script src="weekly-engine.js"></script>
+
+
+<!-- FARMS ICON SYSTEM -->
+<script src="poultry-icons.js"></script>
+
+<!-- FARMS -->
+<script src="Farms.js"></script>
+</body>
+
+</html>

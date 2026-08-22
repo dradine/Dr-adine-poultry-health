@@ -8,19 +8,12 @@
 <title>مدیریت سامانه | مرکز تخصصی سلامت طیور آدینه</title>
 
 <style>
-*{
-    box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
-html,
-body{
+html,body{
     margin:0;
     padding:0;
-    font-family:
-        Tahoma,
-        "Vazirmatn",
-        Arial,
-        sans-serif;
+    font-family:Tahoma,"Vazirmatn",Arial,sans-serif;
     background:#f4f7f5;
     color:#24342e;
 }
@@ -33,9 +26,7 @@ body.modal-open{
     overflow:hidden;
 }
 
-/* =========================
-   HEADER
-========================= */
+/* HEADER */
 
 .owner-header{
     background:#173f35;
@@ -43,14 +34,13 @@ body.modal-open{
     position:sticky;
     top:0;
     z-index:100;
-    box-shadow:
-        0 3px 16px rgba(0,0,0,.12);
+    box-shadow:0 3px 16px rgba(0,0,0,.12);
 }
 
 .owner-header-inner{
-    max-width:1250px;
+    max-width:1300px;
     margin:auto;
-    padding:15px 18px;
+    padding:14px 18px;
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -64,8 +54,8 @@ body.modal-open{
 }
 
 .brand-mark{
-    width:42px;
-    height:42px;
+    width:44px;
+    height:44px;
     border-radius:12px;
     background:#fff;
     object-fit:contain;
@@ -83,14 +73,12 @@ body.modal-open{
     opacity:.8;
 }
 
-/* =========================
-   MAIN
-========================= */
+/* MAIN */
 
 .owner-main{
-    max-width:1250px;
+    max-width:1300px;
     margin:auto;
-    padding:22px 16px 40px;
+    padding:22px 16px 45px;
 }
 
 .hero{
@@ -98,8 +86,7 @@ body.modal-open{
     border-radius:20px;
     padding:20px;
     margin-bottom:16px;
-    box-shadow:
-        0 7px 25px rgba(20,60,45,.07);
+    box-shadow:0 7px 25px rgba(20,60,45,.07);
     border:1px solid #e5ebe8;
 }
 
@@ -115,29 +102,27 @@ body.modal-open{
     line-height:1.9;
 }
 
-/* =========================
-   STATS
-========================= */
+/* STATS */
 
 .stats{
     display:grid;
-    grid-template-columns:
-        repeat(4,1fr);
+    grid-template-columns:repeat(4,1fr);
     gap:12px;
-    margin-top:16px;
+    margin-top:18px;
 }
 
 .stat{
     background:#f7faf8;
     border:1px solid #e6ece9;
     border-radius:14px;
-    padding:13px;
+    padding:14px;
 }
 
 .stat b{
     display:block;
-    font-size:22px;
+    font-size:23px;
     color:#173f35;
+    margin-bottom:4px;
 }
 
 .stat span{
@@ -145,9 +130,44 @@ body.modal-open{
     color:#697670;
 }
 
-/* =========================
-   TOOLBAR
-========================= */
+/* MESSAGE */
+
+.message{
+    padding:12px 14px;
+    border-radius:12px;
+    margin-bottom:14px;
+    font-size:13px;
+    line-height:1.8;
+}
+
+.message.hidden{
+    display:none;
+}
+
+.message.success{
+    background:#e7f6ec;
+    color:#17603f;
+}
+
+.message.error{
+    background:#ffebee;
+    color:#a51f2a;
+}
+
+.message.info{
+    background:#edf5ff;
+    color:#245d91;
+}
+
+/* TABLE CARD */
+
+.table-card{
+    background:#fff;
+    border-radius:20px;
+    padding:16px;
+    box-shadow:0 7px 25px rgba(20,60,45,.07);
+    border:1px solid #e5ebe8;
+}
 
 .toolbar{
     display:flex;
@@ -159,7 +179,7 @@ body.modal-open{
 
 .search{
     flex:1;
-    min-width:220px;
+    min-width:250px;
     border:1px solid #dbe4df;
     border-radius:12px;
     padding:11px 13px;
@@ -200,53 +220,12 @@ body.modal-open{
     color:#9b2424;
 }
 
-.btn-small{
-    padding:7px 10px;
-    font-size:11px;
-}
-
 .btn:disabled{
     opacity:.55;
     cursor:not-allowed;
 }
 
-/* =========================
-   STATUS MESSAGE
-========================= */
-
-.owner-status{
-    min-height:0;
-    margin-bottom:14px;
-    padding:0;
-    border-radius:12px;
-    font-size:13px;
-    line-height:1.8;
-}
-
-.owner-status.success{
-    padding:12px 14px;
-    background:#e7f6ec;
-    color:#17603f;
-}
-
-.owner-status.error{
-    padding:12px 14px;
-    background:#ffebee;
-    color:#a51f2a;
-}
-
-/* =========================
-   TABLE
-========================= */
-
-.table-card{
-    background:#fff;
-    border-radius:20px;
-    padding:16px;
-    box-shadow:
-        0 7px 25px rgba(20,60,45,.07);
-    border:1px solid #e5ebe8;
-}
+/* TABLE */
 
 .table-wrap{
     width:100%;
@@ -257,7 +236,7 @@ body.modal-open{
 
 .users-table{
     width:100%;
-    min-width:1050px;
+    min-width:1100px;
     border-collapse:collapse;
 }
 
@@ -283,30 +262,22 @@ body.modal-open{
     border-bottom:0;
 }
 
-.users-table tr:hover td{
-    background:#fafcfb;
-}
-
-.owner-code{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-width:60px;
-    padding:5px 9px;
-    border-radius:10px;
-    background:#f0f4f2;
-    color:#173f35;
+.user-name{
     font-weight:800;
-    letter-spacing:2px;
+    color:#173f35;
 }
 
-.status-active,
-.status-pending,
-.status-warning,
-.status-danger,
-.status-neutral{
+.muted{
+    display:block;
+    color:#7a8581;
+    font-size:10px;
+    margin-top:4px;
+}
+
+.badge{
     display:inline-flex;
     align-items:center;
+    gap:5px;
     padding:5px 9px;
     border-radius:20px;
     font-size:10px;
@@ -314,67 +285,84 @@ body.modal-open{
     white-space:nowrap;
 }
 
-.status-active{
+.badge.active{
     background:#e4f7eb;
     color:#19703f;
 }
 
-.status-pending{
+.badge.pending{
     background:#fff5dc;
     color:#9b6a05;
 }
 
-.status-warning{
+.badge.suspended{
     background:#fff0df;
     color:#9a5312;
 }
 
-.status-danger{
+.badge.blocked,
+.badge.removed{
     background:#ffe7e7;
     color:#a52222;
 }
 
-.status-neutral{
-    background:#eef1ef;
-    color:#697670;
+.badge.owner{
+    background:#e8eaf6;
+    color:#3949ab;
 }
 
-/* =========================
-   LOADING
-========================= */
+.owner-code{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:62px;
+    padding:6px 10px;
+    border-radius:9px;
+    background:#f1f5f3;
+    color:#173f35;
+    font-weight:900;
+    letter-spacing:2px;
+}
 
-#ownerLoading{
-    text-align:center;
-    padding:22px;
+.actions{
+    display:flex;
+    gap:5px;
+    flex-wrap:wrap;
+}
+
+.actions .btn{
+    padding:7px 9px;
+    font-size:10px;
+}
+
+.loading,
+.empty{
+    text-align:center!important;
     color:#6c7772;
-    font-size:13px;
+    padding:32px!important;
 }
 
-/* =========================
-   MODAL
-========================= */
+/* MODAL */
 
-#ownerUserModal{
+.owner-modal{
     display:none;
     position:fixed;
     inset:0;
-    z-index:1000;
-    background:rgba(12,31,25,.58);
-    backdrop-filter:blur(4px);
+    z-index:500;
+    background:rgba(15,35,29,.58);
+    padding:20px;
+    overflow:auto;
     align-items:center;
     justify-content:center;
-    padding:18px;
 }
 
 .owner-modal-card{
-    width:min(760px,100%);
-    max-height:
-        calc(100vh - 36px);
+    width:min(850px,100%);
+    max-height:calc(100vh - 40px);
     overflow:auto;
     background:#fff;
     border-radius:22px;
-    box-shadow:
-        0 20px 70px rgba(0,0,0,.25);
+    box-shadow:0 20px 70px rgba(0,0,0,.25);
 }
 
 .owner-modal-header{
@@ -387,7 +375,7 @@ body.modal-open{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:10px;
+    gap:12px;
 }
 
 .owner-modal-header h3{
@@ -395,14 +383,14 @@ body.modal-open{
     font-size:17px;
 }
 
-.owner-modal-close{
+.modal-close{
+    width:38px;
+    height:38px;
     border:0;
+    border-radius:10px;
     background:rgba(255,255,255,.12);
     color:#fff;
-    width:36px;
-    height:36px;
-    border-radius:10px;
-    font-size:20px;
+    font-size:22px;
     cursor:pointer;
 }
 
@@ -410,35 +398,21 @@ body.modal-open{
     padding:18px;
 }
 
-/* =========================
-   DETAIL GRID
-========================= */
-
-.detail-section{
-    margin-bottom:18px;
-}
-
-.detail-section-title{
-    font-size:13px;
-    font-weight:800;
-    color:#173f35;
-    margin-bottom:10px;
-    padding-bottom:8px;
-    border-bottom:1px solid #e5ebe8;
-}
-
 .detail-grid{
     display:grid;
-    grid-template-columns:
-        repeat(2,1fr);
+    grid-template-columns:repeat(2,1fr);
     gap:10px;
 }
 
 .detail-item{
-    background:#f7faf8;
     border:1px solid #e6ece9;
-    border-radius:12px;
-    padding:10px 12px;
+    background:#f8faf9;
+    border-radius:13px;
+    padding:11px;
+}
+
+.detail-item.full{
+    grid-column:1/-1;
 }
 
 .detail-label{
@@ -450,71 +424,78 @@ body.modal-open{
 
 .detail-value{
     display:block;
-    color:#24342e;
-    font-size:12px;
+    color:#173f35;
+    font-size:13px;
     font-weight:700;
+    line-height:1.8;
     word-break:break-word;
 }
 
-/* =========================
-   PROFESSIONAL CODE
-========================= */
-
-#professionalCodeSection{
-    background:
-        linear-gradient(
-            135deg,
-            #f1f8f4,
-            #f8fbf9
-        );
-    border:1px solid #d8e8df;
+.professional-box{
+    margin-top:15px;
+    border:1px solid #dfe9e4;
     border-radius:16px;
     padding:15px;
+    background:#f6faf8;
 }
 
-.professional-code-box{
+.professional-box h4{
+    margin:0 0 10px;
+    color:#173f35;
+    font-size:14px;
+}
+
+.code-row{
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    gap:12px;
+    gap:10px;
     flex-wrap:wrap;
 }
 
-.professional-code{
-    font-size:27px;
-    font-weight:900;
-    letter-spacing:7px;
-    color:#173f35;
+.code-display{
     direction:ltr;
+    text-align:center;
+    font-size:22px;
+    font-weight:900;
+    letter-spacing:5px;
     background:#fff;
-    border:1px dashed #a9c2b5;
+    border:2px solid #173f35;
+    color:#173f35;
     border-radius:12px;
-    padding:9px 16px;
+    padding:10px 15px;
+    min-width:130px;
 }
 
-.code-security-note{
+.code-note{
+    color:#6d7974;
     font-size:10px;
-    color:#718079;
     line-height:1.8;
     margin-top:8px;
 }
 
-/* =========================
-   MODAL ACTIONS
-========================= */
-
 .modal-actions{
-    display:flex;
-    justify-content:flex-start;
-    gap:8px;
     margin-top:18px;
-    padding-top:15px;
-    border-top:1px solid #e5ebe8;
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* RESPONSIVE */
+
+@media(max-width:800px){
+
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .detail-grid{
+        grid-template-columns:1fr;
+    }
+
+    .detail-item.full{
+        grid-column:auto;
+    }
+}
 
 @media(max-width:700px){
 
@@ -526,17 +507,12 @@ body.modal-open{
         font-size:16px;
     }
 
-    .brand-title p{
-        font-size:10px;
-    }
-
     .owner-main{
         padding:14px 10px 30px;
     }
 
     .stats{
-        grid-template-columns:
-            repeat(2,1fr);
+        grid-template-columns:repeat(2,1fr);
     }
 
     .hero{
@@ -559,20 +535,20 @@ body.modal-open{
 
     .filter{
         flex:1;
-        min-width:0;
+        min-width:130px;
     }
 
-    .detail-grid{
-        grid-template-columns:1fr;
+    .owner-modal{
+        padding:8px;
     }
 
     .owner-modal-card{
-        border-radius:18px;
+        max-height:calc(100vh - 16px);
+        border-radius:17px;
     }
 
-    .professional-code{
-        font-size:22px;
-        letter-spacing:5px;
+    .owner-modal-body{
+        padding:12px;
     }
 }
 </style>
@@ -581,29 +557,19 @@ body.modal-open{
 <body>
 
 <header class="owner-header">
-
     <div class="owner-header-inner">
 
         <div class="brand-title">
-
             <img
                 class="brand-mark"
                 src="IMG_4309.png"
-                alt="مرکز تخصصی سلامت طیور آدینه"
+                alt="آدینه"
             >
 
             <div>
-
-                <h1>
-                    مدیریت سامانه
-                </h1>
-
-                <p>
-                    مرکز تخصصی سلامت طیور آدینه
-                </p>
-
+                <h1>مدیریت سامانه</h1>
+                <p>مرکز تخصصی سلامت طیور آدینه</p>
             </div>
-
         </div>
 
         <button
@@ -615,521 +581,422 @@ body.modal-open{
         </button>
 
     </div>
-
 </header>
 
 
 <main class="owner-main">
 
-    <!-- =========================
-         HERO
-    ========================== -->
+<section class="hero">
 
-    <section class="hero">
+    <h2>مدیریت کاربران و دسترسی‌ها</h2>
 
-        <h2>
-            مدیریت کاربران و دسترسی‌ها
-        </h2>
+    <p id="ownerIdentity">
+        در حال بررسی دسترسی مالک...
+    </p>
 
-        <p id="ownerIdentity">
-            در حال بررسی دسترسی مالک...
-        </p>
+    <div class="stats">
 
-        <div class="stats">
-
-            <div class="stat">
-                <b id="statTotal">—</b>
-                <span>
-                    کل کاربران
-                </span>
-            </div>
-
-            <div class="stat">
-                <b id="statActive">—</b>
-                <span>
-                    کاربران فعال
-                </span>
-            </div>
-
-            <div class="stat">
-                <b id="statVeterinarians">—</b>
-                <span>
-                    دامپزشکان
-                </span>
-            </div>
-
-            <div class="stat">
-                <b id="statLabs">—</b>
-                <span>
-                    آزمایشگاه‌ها
-                </span>
-            </div>
-
-            <div class="stat">
-                <b id="statOperators">—</b>
-                <span>
-                    بهره‌برداران
-                </span>
-            </div>
-
-            <div class="stat">
-                <b id="statManagers">—</b>
-                <span>
-                    مدیران
-                </span>
-            </div>
-
+        <div class="stat">
+            <b id="statTotal">—</b>
+            <span>کل کاربران</span>
         </div>
 
-    </section>
-
-
-    <!-- =========================
-         MESSAGE
-    ========================== -->
-
-    <div
-        id="ownerStatus"
-        class="owner-status"
-        aria-live="polite"
-    ></div>
-
-
-    <!-- =========================
-         USERS
-    ========================== -->
-
-    <section class="table-card">
-
-        <div class="toolbar">
-
-            <input
-                id="ownerSearch"
-                class="search"
-                type="search"
-                placeholder="جستجو بر اساس نام، ایمیل، شماره تماس..."
-                autocomplete="off"
-            >
-
-            <button
-                id="refreshOwnerUsers"
-                class="btn btn-primary"
-                type="button"
-                onclick="location.reload()"
-            >
-                ↻ بروزرسانی
-            </button>
-
+        <div class="stat">
+            <b id="statActive">—</b>
+            <span>کاربران فعال</span>
         </div>
 
-
-        <div
-            id="ownerLoading"
-            style="display:none;"
-        >
-            در حال دریافت اطلاعات کاربران...
+        <div class="stat">
+            <b id="statPending">—</b>
+            <span>در انتظار تأیید</span>
         </div>
 
-
-        <div class="table-wrap">
-
-            <table class="users-table">
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            نام و نام خانوادگی
-                        </th>
-
-                        <th>
-                            ایمیل ثبت‌نامی
-                        </th>
-
-                        <th>
-                            شماره تماس
-                        </th>
-
-                        <th>
-                            نوع کاربری
-                        </th>
-
-                        <th>
-                            کد حرفه‌ای
-                        </th>
-
-                        <th>
-                            وضعیت
-                        </th>
-
-                        <th>
-                            عملیات
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody id="ownerUsersTable">
-
-                    <tr>
-
-                        <td
-                            colspan="7"
-                            class="loading"
-                        >
-                            در حال بارگذاری کاربران...
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
-
+        <div class="stat">
+            <b id="statSpecialists">—</b>
+            <span>متخصصان و کاربران فنی</span>
         </div>
 
-    </section>
+    </div>
+
+</section>
+
+
+<div
+    id="message"
+    class="message hidden"
+></div>
+
+
+<section class="table-card">
+
+<div class="toolbar">
+
+    <input
+        id="userSearch"
+        class="search"
+        type="search"
+        placeholder="جستجو بر اساس نام، ایمیل یا شماره تماس..."
+        autocomplete="off"
+    >
+
+    <select
+        id="roleFilter"
+        class="filter"
+    >
+        <option value="all">همه کاربران</option>
+        <option value="owner">مالک</option>
+        <option value="veterinarian">دامپزشک</option>
+        <option value="technical_veterinarian">
+            دامپزشک مسئول فنی
+        </option>
+        <option value="poultry_operator">
+            بهره‌بردار واحد طیور
+        </option>
+        <option value="poultry_manager">
+            مدیر واحد طیور
+        </option>
+        <option value="veterinary_lab">
+            آزمایشگاه تشخیص دامپزشکی
+        </option>
+        <option value="poultry_technical_expert">
+            کارشناس فنی طیور
+        </option>
+        <option value="organization_manager">
+            مدیر / نماینده مجموعه
+        </option>
+        <option value="other">
+            سایر
+        </option>
+    </select>
+
+    <select
+        id="statusFilter"
+        class="filter"
+    >
+        <option value="all">همه وضعیت‌ها</option>
+        <option value="active">فعال</option>
+        <option value="pending">در انتظار تأیید</option>
+        <option value="suspended">موقتاً غیرفعال</option>
+        <option value="blocked">مسدود</option>
+        <option value="removed">اخراج‌شده</option>
+    </select>
+
+    <button
+        id="refreshButton"
+        class="btn btn-primary"
+        type="button"
+    >
+        ↻ بروزرسانی
+    </button>
+
+</div>
+
+
+<div class="table-wrap">
+
+<table class="users-table">
+
+<thead>
+
+<tr>
+    <th>کاربر</th>
+    <th>ایمیل</th>
+    <th>تماس</th>
+    <th>نوع کاربری</th>
+    <th>کد حرفه‌ای</th>
+    <th>وضعیت</th>
+    <th>ثبت‌نام</th>
+    <th>آخرین فعالیت</th>
+    <th>عملیات</th>
+</tr>
+
+</thead>
+
+<tbody id="usersTableBody">
+
+<tr>
+    <td
+        colspan="9"
+        class="loading"
+    >
+        در حال بارگذاری کاربران...
+    </td>
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+</section>
 
 </main>
 
 
-<!-- =====================================================
-     USER DETAILS MODAL
-===================================================== -->
+<!-- USER DETAILS MODAL -->
 
 <div
     id="ownerUserModal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="ownerModalTitle"
+    class="owner-modal"
+    aria-hidden="true"
 >
 
-    <div class="owner-modal-card">
+<div class="owner-modal-card">
 
-        <div class="owner-modal-header">
+<div class="owner-modal-header">
 
-            <h3 id="ownerModalTitle">
-                جزئیات کاربر
-            </h3>
+    <h3>
+        جزئیات کاربر
+    </h3>
 
-            <button
-                id="closeOwnerModal"
-                class="owner-modal-close"
-                type="button"
-                aria-label="بستن"
-            >
-                ×
-            </button>
+    <button
+        id="closeOwnerModal"
+        class="modal-close"
+        type="button"
+        aria-label="بستن"
+    >
+        ×
+    </button>
 
-        </div>
-
-
-        <div class="owner-modal-body">
+</div>
 
 
-            <!-- اطلاعات اصلی -->
+<div class="owner-modal-body">
 
-            <section class="detail-section">
+<div class="detail-grid">
 
-                <div class="detail-section-title">
-                    اطلاعات ثبت‌نام
-                </div>
-
-                <div class="detail-grid">
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            نام و نام خانوادگی
-                        </span>
-                        <span
-                            id="detailName"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            ایمیل ثبت‌نامی
-                        </span>
-                        <span
-                            id="detailEmail"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            شماره تماس
-                        </span>
-                        <span
-                            id="detailPhone"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            نقش سامانه
-                        </span>
-                        <span
-                            id="detailRole"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            نوع کاربری
-                        </span>
-                        <span
-                            id="detailUserType"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            وضعیت
-                        </span>
-                        <span
-                            id="detailStatus"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                </div>
-
-            </section>
+    <div class="detail-item">
+        <span class="detail-label">
+            نام و نام خانوادگی
+        </span>
+        <span
+            id="detailName"
+            class="detail-value"
+        >—</span>
+    </div>
 
 
-            <!-- فعالیت حرفه‌ای -->
-
-            <section class="detail-section">
-
-                <div class="detail-section-title">
-                    اطلاعات حرفه‌ای
-                </div>
-
-                <div class="detail-grid">
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            نوع فعالیت
-                        </span>
-                        <span
-                            id="detailActivity"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            سازمان / مجموعه
-                        </span>
-                        <span
-                            id="detailOrganization"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            شماره پروانه
-                        </span>
-                        <span
-                            id="detailLicense"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            تخصص
-                        </span>
-                        <span
-                            id="detailSpecialty"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            استان
-                        </span>
-                        <span
-                            id="detailProvince"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            شهر
-                        </span>
-                        <span
-                            id="detailCity"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            وضعیت تأیید حرفه‌ای
-                        </span>
-                        <span
-                            id="detailVerified"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                </div>
-
-            </section>
+    <div class="detail-item">
+        <span class="detail-label">
+            ایمیل ثبت‌نامی
+        </span>
+        <span
+            id="detailEmail"
+            class="detail-value"
+        >—</span>
+    </div>
 
 
-            <!-- کد حرفه‌ای -->
-
-            <section
-                id="professionalCodeSection"
-                class="detail-section"
-                style="display:none;"
-            >
-
-                <div class="detail-section-title">
-                    🔐 کد حرفه‌ای
-                </div>
-
-                <div class="professional-code-box">
-
-                    <div>
-
-                        <div
-                            id="detailCode"
-                            class="professional-code"
-                        >
-                            —
-                        </div>
-
-                        <div class="code-security-note">
-                            این کد فقط برای ارتباط حرفه‌ای با فارم
-                            استفاده می‌شود و فقط مالک و صاحب حساب
-                            حرفه‌ای مجاز به مشاهده آن هستند.
-                        </div>
-
-                    </div>
-
-                    <div class="detail-item">
-
-                        <span class="detail-label">
-                            وضعیت کد
-                        </span>
-
-                        <span
-                            id="detailCodeStatus"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-
-                    </div>
-
-                </div>
-
-                <div class="modal-actions">
-
-                    <button
-                        id="generateProfessionalCodeBtn"
-                        type="button"
-                        class="btn btn-primary"
-                    >
-                        تولید / تغییر کد
-                    </button>
-
-                </div>
-
-            </section>
+    <div class="detail-item">
+        <span class="detail-label">
+            شماره تماس
+        </span>
+        <span
+            id="detailPhone"
+            class="detail-value"
+        >—</span>
+    </div>
 
 
-            <!-- تاریخ‌ها -->
-
-            <section class="detail-section">
-
-                <div class="detail-section-title">
-                    اطلاعات حساب
-                </div>
-
-                <div class="detail-grid">
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            تاریخ ثبت‌نام
-                        </span>
-                        <span
-                            id="detailCreated"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                    <div class="detail-item">
-                        <span class="detail-label">
-                            آخرین فعالیت
-                        </span>
-                        <span
-                            id="detailLastSeen"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
-
-                </div>
-
-            </section>
+    <div class="detail-item">
+        <span class="detail-label">
+            نقش سامانه
+        </span>
+        <span
+            id="detailRole"
+            class="detail-value"
+        >—</span>
+    </div>
 
 
-        </div>
+    <div class="detail-item">
+        <span class="detail-label">
+            نوع کاربری
+        </span>
+        <span
+            id="detailUserType"
+            class="detail-value"
+        >—</span>
+    </div>
 
+
+    <div class="detail-item">
+        <span class="detail-label">
+            وضعیت
+        </span>
+        <span
+            id="detailStatus"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item full">
+        <span class="detail-label">
+            نوع فعالیت
+        </span>
+        <span
+            id="detailActivity"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            نام مجموعه
+        </span>
+        <span
+            id="detailOrganization"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            شماره پروانه
+        </span>
+        <span
+            id="detailLicense"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            استان
+        </span>
+        <span
+            id="detailProvince"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            شهر
+        </span>
+        <span
+            id="detailCity"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            تخصص
+        </span>
+        <span
+            id="detailSpecialty"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            تأیید حرفه‌ای
+        </span>
+        <span
+            id="detailVerified"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            تاریخ ثبت‌نام
+        </span>
+        <span
+            id="detailCreated"
+            class="detail-value"
+        >—</span>
+    </div>
+
+
+    <div class="detail-item">
+        <span class="detail-label">
+            آخرین فعالیت
+        </span>
+        <span
+            id="detailLastSeen"
+            class="detail-value"
+        >—</span>
     </div>
 
 </div>
 
 
+<div
+    id="professionalCodeSection"
+    class="professional-box"
+>
+
+    <h4>
+        🔐 کد حرفه‌ای
+    </h4>
+
+    <div class="code-row">
+
+        <div
+            id="detailCode"
+            class="code-display"
+        >
+            —
+        </div>
+
+        <button
+            id="generateProfessionalCodeBtn"
+            class="btn btn-primary"
+            type="button"
+        >
+            تولید / تغییر کد
+        </button>
+
+    </div>
+
+    <div class="code-note">
+        این کد فقط برای کاربر حرفه‌ای صادر می‌شود.
+        مشاهده و تغییر کد از این قسمت فقط در اختیار مالک سامانه است.
+        کد برای اتصال امن دامپزشک یا مسئول آزمایشگاه به فارم استفاده خواهد شد.
+    </div>
+
+    <div style="margin-top:8px;font-size:11px;color:#68756f;">
+        وضعیت کد:
+        <strong id="detailCodeStatus">—</strong>
+    </div>
+
+</div>
+
+
+<div class="modal-actions">
+
+    <button
+        id="closeOwnerModalBottom"
+        class="btn btn-secondary"
+        type="button"
+    >
+        بستن
+    </button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script src="config.js"></script>
-
 <script src="auth.js"></script>
-
 <script src="owner.js"></script>
 
 </body>

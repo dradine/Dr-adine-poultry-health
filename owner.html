@@ -1,1 +1,58 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مدیریت سامانه | آدینه</title><link rel="stylesheet" href="style.css"><style>.table-wrapper{overflow:auto}.users-table{width:100%;border-collapse:collapse}.users-table th,.users-table td{padding:10px;border-bottom:1px solid #e6ebe8;text-align:right;white-space:nowrap}.code{font-family:monospace;letter-spacing:4px;font-size:18px}.tools{display:flex;gap:6px;flex-wrap:wrap}.small{padding:7px 10px}.filter{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.filter input,.filter select{padding:10px;border:1px solid #dfe6e2;border-radius:10px}</style></head><body class="app-page"><header class="app-header"><div class="app-header-inner"><h1 class="app-title">مدیریت کاربران و دسترسی‌ها</h1><button id="logoutButton" class="action-button action-block">خروج</button></div></header><main class="app-content"><section class="card"><h2>مدیریت کاربران</h2><p>مالک سامانه به تمام کاربران، فارم‌ها و ارتباطات دسترسی مدیریتی دارد. کد حرفه‌ای فقط برای مالک و صاحب همان حساب نمایش داده می‌شود.</p><div id="message" class="message hidden"></div><div class="filter"><input id="search" placeholder="جستجوی نام، ایمیل یا تلفن"><select id="roleFilter"><option value="">همه نقش‌ها</option><option value="veterinarian">دامپزشک</option><option value="technical_veterinarian">دامپزشک مسئول فنی</option><option value="veterinary_lab">آزمایشگاه</option><option value="poultry_operator">بهره‌بردار</option><option value="poultry_manager">مدیر واحد</option><option value="poultry_technical_expert">کارشناس فنی</option><option value="organization_manager">مدیر/نماینده مجموعه</option><option value="other">سایر</option></select></div><div class="table-wrapper"><table class="users-table"><thead><tr><th>نام</th><th>ایمیل</th><th>تماس</th><th>نقش</th><th>فعالیت</th><th>کد حرفه‌ای</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody id="usersTableBody"><tr><td colspan="8">در حال بارگذاری...</td></tr></tbody></table></div></section></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="auth.js"></script><script src="owner.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<title>مدیریت سامانه | مرکز تخصصی سلامت طیور آدینه</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:Tahoma,"Vazirmatn",Arial,sans-serif;background:#f4f7f5;color:#24342e}
+body{min-height:100vh}
+.owner-header{background:#173f35;color:#fff;position:sticky;top:0;z-index:20;box-shadow:0 3px 16px rgba(0,0,0,.12)}
+.owner-header-inner{max-width:1250px;margin:auto;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.brand-title{display:flex;align-items:center;gap:12px}.brand-mark{width:42px;height:42px;border-radius:12px;background:#fff;object-fit:contain;padding:4px}.brand-title h1{font-size:19px;margin:0}.brand-title p{font-size:12px;margin:4px 0 0;opacity:.8}
+.owner-main{max-width:1250px;margin:auto;padding:22px 16px 40px}
+.hero{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 7px 25px rgba(20,60,45,.07);border:1px solid #e5ebe8}.hero h2{margin:0 0 8px;font-size:21px}.hero p{margin:0;color:#68756f;font-size:13px;line-height:1.9}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}.stat{background:#f7faf8;border:1px solid #e6ece9;border-radius:14px;padding:13px}.stat b{display:block;font-size:22px;color:#173f35}.stat span{font-size:11px;color:#697670}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.search{flex:1;min-width:220px;border:1px solid #dbe4df;border-radius:12px;padding:11px 13px;font:inherit;background:#fff}.filter{border:1px solid #dbe4df;border-radius:12px;padding:11px 12px;background:#fff;font:inherit}.btn{border:0;border-radius:11px;padding:10px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.btn-primary{background:#173f35;color:#fff}.btn-secondary{background:#eef3f0;color:#173f35}.btn-danger{background:#ffe7e7;color:#9b2424}.btn:disabled{opacity:.55;cursor:not-allowed}
+.message{padding:12px 14px;border-radius:12px;margin-bottom:14px;font-size:13px;line-height:1.8}.message.hidden{display:none}.message.success{background:#e7f6ec;color:#17603f}.message.error{background:#ffebee;color:#a51f2a}.message.info{background:#edf5ff;color:#245d91}
+.table-card{background:#fff;border-radius:20px;padding:16px;box-shadow:0 7px 25px rgba(20,60,45,.07);border:1px solid #e5ebe8}.table-wrap{width:100%;overflow:auto;border:1px solid #e6ece9;border-radius:14px}.users-table{width:100%;min-width:1000px;border-collapse:collapse}.users-table th,.users-table td{padding:12px 10px;border-bottom:1px solid #e7ece9;text-align:right;vertical-align:middle;font-size:12px}.users-table th{background:#f3f7f5;color:#274538;font-size:12px;position:sticky;top:0}.users-table tr:last-child td{border-bottom:0}.user-name{font-weight:800;color:#173f35}.muted{display:block;color:#7a8581;font-size:10px;margin-top:4px;direction:ltr;text-align:right}.badge{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:20px;font-size:10px;font-weight:800;white-space:nowrap}.badge.active{background:#e4f7eb;color:#19703f}.badge.pending{background:#fff5dc;color:#9b6a05}.badge.suspended{background:#fff0df;color:#9a5312}.badge.blocked,.badge.removed{background:#ffe7e7;color:#a52222}.badge.owner{background:#e8eaf6;color:#3949ab}.actions{display:flex;gap:5px;flex-wrap:wrap}.actions .btn{padding:7px 9px;font-size:10px}.loading{text-align:center!important;color:#6c7772;padding:28px!important}.empty{text-align:center!important;color:#6c7772;padding:35px!important}.error-box{color:#a51f2a;background:#fff5f5;padding:14px;border-radius:12px;margin:10px 0;font-size:12px;line-height:1.9}
+@media(max-width:700px){.owner-header-inner{padding:12px}.brand-title h1{font-size:16px}.owner-main{padding:14px 10px 30px}.stats{grid-template-columns:repeat(2,1fr)}.hero{padding:16px}.table-card{padding:10px;border-radius:16px}.toolbar{align-items:stretch}.search{min-width:100%;flex-basis:100%}.filter{flex:1}.btn{white-space:nowrap}}
+</style>
+</head>
+<body>
+<header class="owner-header">
+<div class="owner-header-inner">
+<div class="brand-title"><img class="brand-mark" src="IMG_4309.png" alt="آدینه"><div><h1>مدیریت سامانه</h1><p>مرکز تخصصی سلامت طیور آدینه</p></div></div>
+<button id="logoutButton" class="btn btn-secondary" type="button">خروج</button>
+</div>
+</header>
+<main class="owner-main">
+<section class="hero">
+<h2>مدیریت کاربران و دسترسی‌ها</h2>
+<p id="ownerIdentity">در حال بررسی دسترسی مالک...</p>
+<div class="stats">
+<div class="stat"><b id="statTotal">—</b><span>کل کاربران</span></div>
+<div class="stat"><b id="statActive">—</b><span>کاربران فعال</span></div>
+<div class="stat"><b id="statPending">—</b><span>در انتظار تأیید</span></div>
+<div class="stat"><b id="statSpecialists">—</b><span>متخصصان و کاربران فنی</span></div>
+</div>
+</section>
+<div id="message" class="message hidden"></div>
+<section class="table-card">
+<div class="toolbar">
+<input id="userSearch" class="search" type="search" placeholder="جستجو بر اساس نام، ایمیل یا شماره تماس..." autocomplete="off">
+<select id="roleFilter" class="filter"><option value="all">همه نقش‌ها</option><option value="owner">مالک</option><option value="veterinarian">دامپزشک</option><option value="technical_veterinarian">دامپزشک مسئول فنی</option><option value="farm_operator">بهره‌بردار واحد طیور</option><option value="farm_manager">مدیر واحد طیور</option><option value="diagnostic_lab">آزمایشگاه تشخیص دامپزشکی</option><option value="poultry_technical_expert">کارشناس فنی طیور</option><option value="company_manager">مدیر / نماینده مجموعه</option><option value="user">سایر</option></select>
+<select id="statusFilter" class="filter"><option value="all">همه وضعیت‌ها</option><option value="active">فعال</option><option value="pending">در انتظار تأیید</option><option value="suspended">موقتاً غیرفعال</option><option value="blocked">مسدود</option><option value="removed">اخراج‌شده</option></select>
+<button id="refreshButton" class="btn btn-primary" type="button">↻ بروزرسانی</button>
+</div>
+<div class="table-wrap"><table class="users-table"><thead><tr><th>کاربر</th><th>ایمیل</th><th>تماس</th><th>نوع کاربری</th><th>وضعیت</th><th>تاریخ ثبت‌نام</th><th>آخرین فعالیت</th><th>عملیات</th></tr></thead><tbody id="usersTableBody"><tr><td colspan="8" class="loading">در حال بارگذاری کاربران...</td></tr></tbody></table></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="owner.js"></script>
+</body>
+</html>

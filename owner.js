@@ -1,6 +1,5 @@
 /* =========================================================
    ADINEH OWNER MANAGEMENT
-   Owner-only professional management panel
 ========================================================= */
 
 (function () {
@@ -11,13 +10,8 @@
 
     const $ = (id) => document.getElementById(id);
 
-    /* =====================================================
-       HELPERS
-    ===================================================== */
-
     function esc(value) {
         if (value === null || value === undefined) return "";
-
         return String(value)
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -31,7 +25,10 @@
             return "—";
         }
 
-        return String(value).replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
+        return String(value).replace(
+            /\d/g,
+            d => "۰۱۲۳۴۵۶۷۸۹"[d]
+        );
     }
 
     function formatDate(value) {
@@ -69,30 +66,14 @@
     function userTypeLabel(type) {
 
         const map = {
-
-            veterinarian:
-                "🩺 دامپزشک",
-
-            technical_veterinarian:
-                "🩺 دامپزشک مسئول فنی",
-
-            poultry_operator:
-                "🐔 بهره‌بردار واحد طیور",
-
-            poultry_manager:
-                "👨‍💼 مدیر واحد طیور",
-
-            veterinary_lab:
-                "🔬 آزمایشگاه تشخیص دامپزشکی",
-
-            poultry_technical_expert:
-                "📊 کارشناس فنی طیور",
-
-            organization_manager:
-                "🏢 مدیر / نماینده مجموعه",
-
-            other:
-                "سایر"
+            veterinarian: "🩺 دامپزشک",
+            technical_veterinarian: "🩺 دامپزشک مسئول فنی",
+            poultry_operator: "🐔 بهره‌بردار واحد طیور",
+            poultry_manager: "👨‍💼 مدیر واحد طیور",
+            veterinary_lab: "🔬 آزمایشگاه تشخیص دامپزشکی",
+            poultry_technical_expert: "📊 کارشناس فنی طیور",
+            organization_manager: "🏢 مدیر / نماینده مجموعه",
+            other: "سایر"
         };
 
         return map[type] || type || "—";
@@ -136,29 +117,19 @@
             }
         }
 
-        if (!Array.isArray(list)) return String(list);
+        if (!Array.isArray(list)) {
+            return String(list);
+        }
 
         if (!list.length) return "—";
 
         const map = {
-
-            broiler:
-                "گوشتی",
-
-            layer:
-                "تخمگذار",
-
-            breeder:
-                "مادر",
-
-            pullet:
-                "پولت",
-
-            hatchery:
-                "جوجه‌کشی",
-
-            other:
-                "سایر"
+            broiler: "گوشتی",
+            layer: "تخمگذار",
+            breeder: "مادر",
+            pullet: "پولت",
+            hatchery: "جوجه‌کشی",
+            other: "سایر"
         };
 
         return list
@@ -168,7 +139,7 @@
 
     function showMessage(message, type = "success") {
 
-        let box = $("ownerStatus");
+        const box = $("ownerStatus");
 
         if (!box) return;
 
@@ -181,16 +152,9 @@
                 : "success");
 
         setTimeout(() => {
-
             box.className = "owner-status";
-
         }, 4500);
     }
-
-
-    /* =====================================================
-       AUTH
-    ===================================================== */
 
     async function getCurrentUser() {
 
@@ -199,25 +163,21 @@
             error
         } = await supabaseClient.auth.getUser();
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
         if (!data || !data.user) {
-            throw new Error("کاربر وارد نشده است.");
+            throw new Error(
+                "کاربر وارد نشده است."
+            );
         }
 
         return data.user;
     }
 
-
-    /* =====================================================
-       OWNER CHECK
-    ===================================================== */
-
     async function verifyOwner() {
 
-        const authUser = await getCurrentUser();
+        const authUser =
+            await getCurrentUser();
 
         const {
             data,
@@ -243,7 +203,6 @@
             data.status !== "active" ||
             data.is_active !== true
         ) {
-
             throw new Error(
                 "این صفحه فقط برای مالک سامانه قابل دسترسی است."
             );
@@ -251,11 +210,6 @@
 
         return data;
     }
-
-
-    /* =====================================================
-       LOAD USERS
-    ===================================================== */
 
     async function loadUsers() {
 
@@ -272,9 +226,10 @@
 
             if (error) throw error;
 
-            users = Array.isArray(data)
-                ? data
-                : [];
+            users =
+                Array.isArray(data)
+                    ? data
+                    : [];
 
             renderAll();
 
@@ -301,25 +256,18 @@
         }
     }
 
-
-    /* =====================================================
-       LOADING
-    ===================================================== */
-
     function setLoading(isLoading) {
 
-        const loading = $("ownerLoading");
+        const loading =
+            $("ownerLoading");
 
         if (loading) {
             loading.style.display =
-                isLoading ? "block" : "none";
+                isLoading
+                    ? "block"
+                    : "none";
         }
     }
-
-
-    /* =====================================================
-       STATISTICS
-    ===================================================== */
 
     function renderStats() {
 
@@ -357,18 +305,36 @@
                     x.user_type === "organization_manager"
             ).length;
 
-        setText("statTotal", faNumber(total));
-        setText("statActive", faNumber(active));
-        setText("statVeterinarians", faNumber(veterinarians));
-        setText("statLabs", faNumber(laboratories));
-        setText("statOperators", faNumber(operators));
-        setText("statManagers", faNumber(managers));
+        setText(
+            "statTotal",
+            faNumber(total)
+        );
+
+        setText(
+            "statActive",
+            faNumber(active)
+        );
+
+        setText(
+            "statVeterinarians",
+            faNumber(veterinarians)
+        );
+
+        setText(
+            "statLabs",
+            faNumber(laboratories)
+        );
+
+        setText(
+            "statOperators",
+            faNumber(operators)
+        );
+
+        setText(
+            "statManagers",
+            faNumber(managers)
+        );
     }
-
-
-    /* =====================================================
-       TABLE
-    ===================================================== */
 
     function renderTable() {
 
@@ -395,59 +361,69 @@
                         : "ندارد";
 
                 return `
-                <tr>
+                    <tr>
 
-                    <td>
-                        <strong>
-                            ${esc(user.full_name || "بدون نام")}
-                        </strong>
-                    </td>
+                        <td>
+                            <strong>
+                                ${esc(
+                                    user.full_name ||
+                                    "بدون نام"
+                                )}
+                            </strong>
+                        </td>
 
-                    <td>
-                        ${esc(user.email || "—")}
-                    </td>
+                        <td>
+                            ${esc(
+                                user.email || "—"
+                            )}
+                        </td>
 
-                    <td>
-                        ${esc(user.phone || "—")}
-                    </td>
+                        <td>
+                            ${esc(
+                                user.phone || "—"
+                            )}
+                        </td>
 
-                    <td>
-                        ${userTypeLabel(user.user_type)}
-                    </td>
+                        <td>
+                            ${userTypeLabel(
+                                user.user_type
+                            )}
+                        </td>
 
-                    <td>
-                        <span class="owner-code">
-                            ${code}
-                        </span>
-                    </td>
+                        <td>
+                            <span class="owner-code">
+                                ${code}
+                            </span>
+                        </td>
 
-                    <td>
-                        <span class="${statusClass(user.status)}">
-                            ${statusLabel(user.status)}
-                        </span>
-                    </td>
+                        <td>
+                            <span class="${statusClass(
+                                user.status
+                            )}">
+                                ${statusLabel(
+                                    user.status
+                                )}
+                            </span>
+                        </td>
 
-                    <td>
-                        <button
-                            type="button"
-                            class="btn btn-small btn-primary"
-                            data-user-id="${esc(user.user_id)}"
-                            data-action="details"
-                        >
-                            جزئیات
-                        </button>
-                    </td>
+                        <td>
+                            <button
+                                type="button"
+                                class="btn btn-small btn-primary"
+                                data-user-id="${esc(
+                                    user.user_id
+                                )}"
+                                data-action="details"
+                            >
+                                جزئیات
+                            </button>
+                        </td>
 
-                </tr>
+                    </tr>
                 `;
 
             }).join("");
     }
-
-
-    /* =====================================================
-       DETAILS
-    ===================================================== */
 
     function openDetails(userId) {
 
@@ -492,7 +468,9 @@
 
         setText(
             "detailActivity",
-            activityText(user.activity_types)
+            activityText(
+                user.activity_types
+            )
         );
 
         setText(
@@ -537,7 +515,8 @@
 
         setText(
             "detailCode",
-            user.professional_code || "کد ندارد"
+            user.professional_code ||
+            "کد ندارد"
         );
 
         const verified =
@@ -549,7 +528,6 @@
                 user.is_verified
                     ? "تأیید شده"
                     : "تأیید نشده";
-
         }
 
         const codeStatus =
@@ -561,7 +539,6 @@
                 user.professional_code_active
                     ? "فعال"
                     : "غیرفعال";
-
         }
 
         const codeSection =
@@ -569,19 +546,18 @@
 
         if (codeSection) {
 
-            const isProfessional =
-                !!user.user_type;
-
             codeSection.style.display =
-                isProfessional
+                user.user_type
                     ? "block"
                     : "none";
         }
 
         modal.style.display = "flex";
-        document.body.classList.add("modal-open");
-    }
 
+        document.body.classList.add(
+            "modal-open"
+        );
+    }
 
     function closeDetails() {
 
@@ -599,18 +575,11 @@
         selectedUser = null;
     }
 
-
-    /* =====================================================
-       GENERATE CODE
-    ===================================================== */
-
     async function generateCode() {
 
         if (!selectedUser) return;
 
-        if (
-            !selectedUser.user_type
-        ) {
+        if (!selectedUser.user_type) {
 
             showMessage(
                 "این کاربر پروفایل حرفه‌ای ندارد.",
@@ -624,7 +593,9 @@
             $("generateProfessionalCodeBtn");
 
         if (button) {
+
             button.disabled = true;
+
             button.textContent =
                 "در حال تولید...";
         }
@@ -691,11 +662,6 @@
         }
     }
 
-
-    /* =====================================================
-       SEARCH
-    ===================================================== */
-
     function filterUsers() {
 
         const input =
@@ -727,11 +693,6 @@
         });
     }
 
-
-    /* =====================================================
-       EMPTY
-    ===================================================== */
-
     function renderEmpty(message) {
 
         const tbody =
@@ -751,40 +712,25 @@
         `;
     }
 
-
-    /* =====================================================
-       RENDER ALL
-    ===================================================== */
-
     function renderAll() {
 
         renderStats();
         renderTable();
     }
 
-
-    /* =====================================================
-       SET TEXT
-    ===================================================== */
-
     function setText(id, value) {
 
         const el = $(id);
 
-        if (el) {
-            el.textContent =
-                value === null ||
-                value === undefined ||
-                value === ""
-                    ? "—"
-                    : value;
-        }
+        if (!el) return;
+
+        el.textContent =
+            value === null ||
+            value === undefined ||
+            value === ""
+                ? "—"
+                : value;
     }
-
-
-    /* =====================================================
-       EVENTS
-    ===================================================== */
 
     function bindEvents() {
 
@@ -799,19 +745,17 @@
 
                 if (!button) return;
 
-                const action =
-                    button.dataset.action;
-
-                if (action === "details") {
+                if (
+                    button.dataset.action ===
+                    "details"
+                ) {
 
                     openDetails(
                         button.dataset.userId
                     );
                 }
-
             }
         );
-
 
         const closeButton =
             $("closeOwnerModal");
@@ -823,7 +767,6 @@
                 closeDetails
             );
         }
-
 
         const modal =
             $("ownerUserModal");
@@ -839,11 +782,9 @@
                     ) {
                         closeDetails();
                     }
-
                 }
             );
         }
-
 
         const search =
             $("ownerSearch");
@@ -856,7 +797,6 @@
             );
         }
 
-
         const generateButton =
             $("generateProfessionalCodeBtn");
 
@@ -868,7 +808,6 @@
             );
         }
 
-
         document.addEventListener(
             "keydown",
             function (event) {
@@ -878,15 +817,9 @@
                 ) {
                     closeDetails();
                 }
-
             }
         );
     }
-
-
-    /* =====================================================
-       INITIALIZE
-    ===================================================== */
 
     async function init() {
 
@@ -912,11 +845,6 @@
             );
         }
     }
-
-
-    /* =====================================================
-       START
-    ===================================================== */
 
     if (
         document.readyState ===

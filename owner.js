@@ -1,41 +1,22 @@
 /* =========================================================
    ADINEH OWNER MANAGEMENT
-   OWNER PANEL — COMPLETE USER DIRECTORY
-========================================================= */
+   Complete Owner Panel
+   ========================================================= */
 
 (function () {
-
     "use strict";
 
-
-    /* =====================================================
-       STATE
-    ===================================================== */
-
     let users = [];
-    let filteredUsers = [];
     let selectedUser = null;
 
-    let isLoading = false;
-    let initialized = false;
-
+    const $ = (id) => document.getElementById(id);
 
     /* =====================================================
        HELPERS
     ===================================================== */
 
-    const $ = (id) =>
-        document.getElementById(id);
-
-
     function esc(value) {
-
-        if (
-            value === null ||
-            value === undefined
-        ) {
-            return "";
-        }
+        if (value === null || value === undefined) return "";
 
         return String(value)
             .replace(/&/g, "&amp;")
@@ -45,15 +26,9 @@
             .replace(/'/g, "&#039;");
     }
 
-
     function faNumber(value) {
-
-        if (
-            value === null ||
-            value === undefined ||
-            value === ""
-        ) {
-            return "—";
+        if (value === null || value === undefined || value === "") {
+            return "۰";
         }
 
         return String(value).replace(
@@ -62,609 +37,321 @@
         );
     }
 
-
     function formatDate(value) {
+        if (!value) return "—";
 
-        if (!value) {
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
             return "—";
         }
 
         try {
-
-            const d =
-                new Date(value);
-
-            if (
-                Number.isNaN(
-                    d.getTime()
-                )
-            ) {
-                return "—";
-            }
-
-            return new Intl.DateTimeFormat(
-                "fa-IR",
-                {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                }
-            ).format(d);
-
+            return new Intl.DateTimeFormat("fa-IR", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            }).format(date);
         } catch {
-
-            return "—";
+            return date.toLocaleString("fa-IR");
         }
     }
 
+    function roleLabel(role) {
+        const map = {
+            owner: "مالک",
+            admin: "مدیر",
+            user: "کاربر"
+        };
+
+        return map[role] || role || "—";
+    }
+
+    function userTypeLabel(type) {
+        const map = {
+            veterinarian: "دامپزشک",
+            technical_veterinarian: "دامپزشک مسئول فنی",
+            poultry_operator: "بهره‌بردار واحد طیور",
+            poultry_manager: "مدیر واحد طیور",
+            veterinary_lab: "آزمایشگاه تشخیص دامپزشکی",
+            poultry_technical_expert: "کارشناس فنی طیور",
+            organization_manager: "مدیر / نماینده مجموعه",
+            farm_operator: "بهره‌بردار واحد طیور",
+            farm_manager: "مدیر واحد طیور",
+            diagnostic_lab: "آزمایشگاه تشخیص دامپزشکی",
+            company_manager: "مدیر / نماینده مجموعه",
+            other: "سایر"
+        };
+
+        return map[type] || type || "—";
+    }
+
+    function statusLabel(status) {
+        const map = {
+            active: "فعال",
+            pending: "در انتظار تأیید",
+            suspended: "موقتاً غیرفعال",
+            blocked: "مسدود",
+            removed: "اخراج‌شده"
+        };
+
+        return map[status] || status || "—";
+    }
+
+    function statusClass(status) {
+        return {
+            active: "active",
+            pending: "pending",
+            suspended: "suspended",
+            blocked: "blocked",
+            removed: "removed"
+        }[status] || "pending";
+    }
+
+    function activityText(value) {
+        if (!value) return "—";
+
+        let list = value;
+
+        if (typeof list === "string") {
+            try {
+                list = JSON.parse(list);
+            } catch {
+                return list;
+            }
+        }
+
+        if (!Array.isArray(list)) {
+            return String(list);
+        }
+
+        const map = {
+            broiler: "گوشتی",
+            layer: "تخمگذار",
+            breeder: "مادر",
+            pullet: "پولت",
+            hatchery: "جوجه‌کشی",
+            other: "سایر"
+        };
+
+        return list
+            .map(item => map[item] || item)
+            .join("، ") || "—";
+    }
 
     function setText(id, value) {
+        const element = $(id);
 
-        const element =
-            $(id);
-
-        if (!element) {
-            return;
-        }
+        if (!element) return;
 
         element.textContent =
             value === null ||
             value === undefined ||
             value === ""
                 ? "—"
-                : String(value);
+                : value;
     }
 
-
-    /* =====================================================
-       LABELS
-    ===================================================== */
-
-    function roleLabel(role) {
-
-        const map = {
-
-            owner:
-                "مالک",
-
-            admin:
-                "مدیر",
-
-            user:
-                "کاربر"
-
-        };
-
-        return (
-            map[role] ||
-            role ||
-            "—"
-        );
-    }
-
-
-    function userTypeLabel(type) {
-
-        const map = {
-
-            veterinarian:
-                "🩺 دامپزشک",
-
-            technical_veterinarian:
-                "🩺 دامپزشک مسئول فنی",
-
-            poultry_operator:
-                "🐔 بهره‌بردار واحد طیور",
-
-            farm_operator:
-                "🐔 بهره‌بردار واحد طیور",
-
-            poultry_manager:
-                "👨‍💼 مدیر واحد طیور",
-
-            farm_manager:
-                "👨‍💼 مدیر واحد طیور",
-
-            veterinary_lab:
-                "🔬 آزمایشگاه تشخیص دامپزشکی",
-
-            diagnostic_lab:
-                "🔬 آزمایشگاه تشخیص دامپزشکی",
-
-            poultry_technical_expert:
-                "📊 کارشناس فنی طیور",
-
-            organization_manager:
-                "🏢 مدیر / نماینده مجموعه",
-
-            company_manager:
-                "🏢 مدیر / نماینده مجموعه",
-
-            other:
-                "سایر"
-
-        };
-
-        return (
-            map[type] ||
-            type ||
-            "—"
-        );
-    }
-
-
-    function statusLabel(status) {
-
-        const map = {
-
-            active:
-                "فعال",
-
-            pending:
-                "در انتظار تأیید",
-
-            suspended:
-                "موقتاً غیرفعال",
-
-            blocked:
-                "مسدود",
-
-            removed:
-                "اخراج‌شده"
-
-        };
-
-        return (
-            map[status] ||
-            status ||
-            "—"
-        );
-    }
-
-
-    function statusClass(status) {
-
-        if (
-            status === "active"
-        ) {
-            return "active";
-        }
-
-        if (
-            status === "pending"
-        ) {
-            return "pending";
-        }
-
-        if (
-            status === "suspended"
-        ) {
-            return "suspended";
-        }
-
-        if (
-            status === "blocked"
-        ) {
-            return "blocked";
-        }
-
-        if (
-            status === "removed"
-        ) {
-            return "removed";
-        }
-
-        return "pending";
-    }
-
-
-    function activityText(activityTypes) {
-
-        if (!activityTypes) {
-            return "—";
-        }
-
-        let list =
-            activityTypes;
-
-
-        if (
-            typeof activityTypes ===
-            "string"
-        ) {
-
-            try {
-
-                list =
-                    JSON.parse(
-                        activityTypes
-                    );
-
-            } catch {
-
-                return activityTypes;
-            }
-        }
-
-
-        if (
-            !Array.isArray(list)
-        ) {
-
-            return String(list);
-        }
-
-
-        if (
-            !list.length
-        ) {
-
-            return "—";
-        }
-
-
-        const map = {
-
-            broiler:
-                "گوشتی",
-
-            layer:
-                "تخمگذار",
-
-            breeder:
-                "مادر",
-
-            pullet:
-                "پولت",
-
-            hatchery:
-                "جوجه‌کشی",
-
-            other:
-                "سایر"
-
-        };
-
-
-        return list
-            .map(
-                item =>
-                    map[item] ||
-                    item
-            )
-            .join("، ");
-    }
-
-
-    /* =====================================================
-       MESSAGE
-    ===================================================== */
-
-    function showMessage(
-        message,
-        type = "success"
-    ) {
-
+    function showMessage(message, type = "success") {
         const box =
-            $("message");
+            $("message") ||
+            $("ownerStatus");
 
-        if (!box) {
-            return;
-        }
+        if (!box) return;
 
-        box.textContent =
-            message || "";
+        box.textContent = message;
 
         box.className =
             "message " +
-            (
-                type === "error"
-                    ? "error"
-                    : type === "info"
-                        ? "info"
-                        : "success"
-            );
+            (type === "error"
+                ? "error"
+                : type === "info"
+                    ? "info"
+                    : "success");
 
-        box.classList.remove(
-            "hidden"
-        );
+        box.classList.remove("hidden");
 
+        clearTimeout(box._messageTimer);
 
-        window.clearTimeout(
-            showMessage.timer
-        );
-
-
-        showMessage.timer =
-            window.setTimeout(
-                () => {
-
-                    box.className =
-                        "message hidden";
-
-                },
-                5000
-            );
+        box._messageTimer = setTimeout(() => {
+            box.classList.add("hidden");
+        }, 5000);
     }
 
+    function setLoading(value) {
+        const loading = $("ownerLoading");
+
+        if (loading) {
+            loading.style.display =
+                value ? "block" : "none";
+        }
+    }
 
     /* =====================================================
        AUTH
     ===================================================== */
 
     async function getCurrentUser() {
-
         if (
-            typeof supabaseClient ===
-            "undefined"
+            typeof supabaseClient === "undefined" ||
+            !supabaseClient
         ) {
-
             throw new Error(
-                "اتصال Supabase برقرار نشده است."
+                "اتصال Supabase برقرار نیست."
             );
         }
-
 
         const {
             data,
             error
-        } =
-            await supabaseClient
-                .auth
-                .getUser();
+        } = await supabaseClient.auth.getUser();
 
+        if (error) throw error;
 
-        if (error) {
-            throw error;
-        }
-
-
-        if (
-            !data ||
-            !data.user
-        ) {
-
+        if (!data || !data.user) {
             throw new Error(
                 "کاربر وارد سامانه نشده است."
             );
         }
 
-
         return data.user;
     }
 
-
     async function verifyOwner() {
-
         const authUser =
             await getCurrentUser();
-
 
         const {
             data,
             error
-        } =
-            await supabaseClient
-                .from("profiles")
-                .select(
-                    `
-                    id,
-                    full_name,
-                    email,
-                    phone,
-                    role,
-                    status,
-                    is_active
-                    `
-                )
-                .eq(
-                    "id",
-                    authUser.id
-                )
-                .maybeSingle();
+        } = await supabaseClient
+            .from("profiles")
+            .select(`
+                id,
+                full_name,
+                email,
+                role,
+                status,
+                is_active
+            `)
+            .eq("id", authUser.id)
+            .maybeSingle();
 
-
-        if (error) {
-            throw error;
-        }
-
+        if (error) throw error;
 
         if (!data) {
-
             throw new Error(
-                "پروفایل مالک در سامانه پیدا نشد."
+                "پروفایل مالک پیدا نشد."
             );
         }
 
-
-        if (
-            data.role !== "owner" ||
-            data.status !== "active" ||
-            data.is_active !== true
-        ) {
-
+        if (data.role !== "owner") {
             throw new Error(
-                "این صفحه فقط برای مالک فعال سامانه قابل دسترسی است."
+                "این صفحه فقط برای مالک سامانه قابل دسترسی است."
             );
         }
 
+        if (data.status !== "active") {
+            throw new Error(
+                "وضعیت حساب مالک فعال نیست."
+            );
+        }
 
-        setText(
-            "ownerIdentity",
-            "ورود موفق — " +
-            (
-                data.full_name ||
-                data.email ||
-                "مالک سامانه"
-            )
-        );
+        if (data.is_active !== true) {
+            throw new Error(
+                "حساب مالک غیرفعال است."
+            );
+        }
 
+        const identity = $("ownerIdentity");
+
+        if (identity) {
+            identity.textContent =
+                "ورود به عنوان مالک سامانه: " +
+                (data.full_name ||
+                    data.email ||
+                    "مالک");
+        }
 
         return data;
     }
-
 
     /* =====================================================
        LOAD USERS
     ===================================================== */
 
     async function loadUsers() {
-
-        if (isLoading) {
-            return;
-        }
-
-        isLoading = true;
-
         setLoading(true);
 
-
         try {
-
             const {
                 data,
                 error
-            } =
-                await supabaseClient
-                    .rpc(
-                        "owner_get_user_directory"
-                    );
-
+            } = await supabaseClient.rpc(
+                "owner_get_user_directory"
+            );
 
             if (error) {
                 throw error;
             }
-
 
             users =
                 Array.isArray(data)
                     ? data
                     : [];
 
-
-            filteredUsers =
-                [...users];
-
-
             renderAll();
 
-
         } catch (error) {
-
             console.error(
                 "OWNER LOAD ERROR:",
                 error
             );
 
-
             users = [];
-            filteredUsers = [];
 
-
-            renderStats();
-            renderEmpty(
-                error &&
-                error.message
-                    ? error.message
-                    : "خطا در دریافت کاربران"
-            );
-
+            renderAll();
 
             showMessage(
-                error &&
-                error.message
-                    ? error.message
-                    : "دریافت اطلاعات کاربران ناموفق بود.",
+                error.message ||
+                "دریافت اطلاعات کاربران ناموفق بود.",
                 "error"
             );
 
-
         } finally {
-
-            isLoading = false;
-
             setLoading(false);
         }
     }
-
-
-    function setLoading(
-        loading
-    ) {
-
-        const button =
-            $("refreshButton");
-
-        if (!button) {
-            return;
-        }
-
-        button.disabled =
-            loading;
-
-        button.textContent =
-            loading
-                ? "در حال بروزرسانی..."
-                : "↻ بروزرسانی";
-    }
-
 
     /* =====================================================
        STATS
     ===================================================== */
 
     function renderStats() {
-
-        const total =
-            users.length;
-
+        const total = users.length;
 
         const active =
             users.filter(
-                user =>
-                    user.status ===
-                    "active"
+                u => u.status === "active"
             ).length;
-
 
         const pending =
             users.filter(
-                user =>
-                    user.status ===
-                    "pending"
+                u => u.status === "pending"
             ).length;
-
 
         const specialists =
-            users.filter(
-                user => {
-
-                    const type =
-                        user.user_type;
-
-                    return (
-
-                        type ===
-                            "veterinarian" ||
-
-                        type ===
-                            "technical_veterinarian" ||
-
-                        type ===
-                            "poultry_technical_expert" ||
-
-                        type ===
-                            "veterinary_lab" ||
-
-                        type ===
-                            "diagnostic_lab"
-
-                    );
-                }
-            ).length;
-
+            users.filter(u => {
+                return [
+                    "veterinarian",
+                    "technical_veterinarian",
+                    "veterinary_lab",
+                    "poultry_technical_expert",
+                    "diagnostic_lab"
+                ].includes(u.user_type);
+            }).length;
 
         setText(
             "statTotal",
@@ -683,384 +370,322 @@
 
         setText(
             "statSpecialists",
+            faNumber(specialists)
+        );
+
+        setText(
+            "statVeterinarians",
             faNumber(
-                specialists
+                users.filter(
+                    u =>
+                        u.user_type ===
+                        "veterinarian" ||
+                        u.user_type ===
+                        "technical_veterinarian"
+                ).length
             )
         );
-    }
 
+        setText(
+            "statLabs",
+            faNumber(
+                users.filter(
+                    u =>
+                        u.user_type ===
+                        "veterinary_lab" ||
+                        u.user_type ===
+                        "diagnostic_lab"
+                ).length
+            );
+
+        setText(
+            "statOperators",
+            faNumber(
+                users.filter(
+                    u =>
+                        u.user_type ===
+                        "poultry_operator" ||
+                        u.user_type ===
+                        "farm_operator"
+                ).length
+            );
+
+        setText(
+            "statManagers",
+            faNumber(
+                users.filter(
+                    u =>
+                        u.user_type ===
+                        "poultry_manager" ||
+                        u.user_type ===
+                        "farm_manager" ||
+                        u.user_type ===
+                        "organization_manager" ||
+                        u.user_type ===
+                        "company_manager"
+                ).length
+            );
+        );
+    }
 
     /* =====================================================
        TABLE
     ===================================================== */
 
     function renderTable() {
-
         const tbody =
-            $("usersTableBody");
+            $("usersTableBody") ||
+            $("ownerUsersTable");
 
-        if (!tbody) {
+        if (!tbody) return;
+
+        if (!users.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="empty">
+                        هیچ کاربری برای نمایش وجود ندارد.
+                    </td>
+                </tr>
+            `;
+
             return;
         }
-
-
-        if (
-            !filteredUsers.length
-        ) {
-
-            renderEmpty(
-                "کاربری مطابق فیلتر انتخاب‌شده پیدا نشد."
-            );
-
-            return;
-        }
-
 
         tbody.innerHTML =
-            filteredUsers
-                .map(
-                    renderUserRow
-                )
-                .join("");
+            users.map(user => {
+
+                const code =
+                    user.professional_code ||
+                    "";
+
+                return `
+                    <tr>
+
+                        <td>
+                            <div class="user-name">
+                                ${esc(
+                                    user.full_name ||
+                                    "بدون نام"
+                                )}
+                            </div>
+
+                            <span class="muted">
+                                ${esc(
+                                    user.user_id || ""
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${esc(
+                                user.email || "—"
+                            )}
+                        </td>
+
+                        <td>
+                            ${esc(
+                                user.phone || "—"
+                            )}
+                        </td>
+
+                        <td>
+                            ${esc(
+                                userTypeLabel(
+                                    user.user_type
+                                )
+                            )}
+                        </td>
+
+                        <td>
+                            <span class="badge ${statusClass(
+                                user.status
+                            )}">
+                                ${esc(
+                                    statusLabel(
+                                        user.status
+                                    )
+                                )}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${formatDate(
+                                user.created_at
+                            )}
+                        </td>
+
+                        <td>
+                            ${formatDate(
+                                user.last_seen_at
+                            )}
+                        </td>
+
+                        <td>
+                            <div class="actions">
+
+                                <button
+                                    type="button"
+                                    class="btn btn-primary"
+                                    data-action="details"
+                                    data-user-id="${esc(
+                                        user.user_id
+                                    )}"
+                                >
+                                    جزئیات
+                                </button>
+
+                            </div>
+                        </td>
+
+                    </tr>
+                `;
+            }).join("");
+
+        filterUsers();
     }
-
-
-    function renderUserRow(
-        user
-    ) {
-
-        const code =
-            user.professional_code
-                ? "دارای کد"
-                : "بدون کد";
-
-
-        return `
-
-        <tr>
-
-            <td>
-
-                <span class="user-name">
-
-                    ${esc(
-                        user.full_name ||
-                        "بدون نام"
-                    )}
-
-                </span>
-
-                <span class="muted">
-
-                    ${esc(
-                        user.role
-                            ? roleLabel(
-                                user.role
-                            )
-                            : ""
-                    )}
-
-                </span>
-
-            </td>
-
-
-            <td>
-
-                ${esc(
-                    user.email ||
-                    "—"
-                )}
-
-            </td>
-
-
-            <td>
-
-                ${esc(
-                    user.phone ||
-                    "—"
-                )}
-
-            </td>
-
-
-            <td>
-
-                ${esc(
-                    userTypeLabel(
-                        user.user_type
-                    )
-                )}
-
-                <span class="muted">
-
-                    ${esc(code)}
-
-                </span>
-
-            </td>
-
-
-            <td>
-
-                <span
-                    class="badge ${statusClass(
-                        user.status
-                    )}"
-                >
-
-                    ${esc(
-                        statusLabel(
-                            user.status
-                        )
-                    )}
-
-                </span>
-
-            </td>
-
-
-            <td>
-
-                ${esc(
-                    formatDate(
-                        user.created_at
-                    )
-                )}
-
-            </td>
-
-
-            <td>
-
-                ${esc(
-                    formatDate(
-                        user.last_seen_at
-                    )
-                )}
-
-            </td>
-
-
-            <td>
-
-                <div class="actions">
-
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        data-action="details"
-                        data-user-id="${esc(
-                            user.user_id
-                        )}"
-                    >
-                        جزئیات
-                    </button>
-
-                </div>
-
-            </td>
-
-        </tr>
-
-        `;
-    }
-
-
-    function renderEmpty(
-        message
-    ) {
-
-        const tbody =
-            $("usersTableBody");
-
-        if (!tbody) {
-            return;
-        }
-
-
-        tbody.innerHTML = `
-
-            <tr>
-
-                <td
-                    colspan="8"
-                    class="empty"
-                >
-
-                    ${esc(
-                        message
-                    )}
-
-                </td>
-
-            </tr>
-
-        `;
-    }
-
 
     /* =====================================================
-       FILTERS
+       FILTER
     ===================================================== */
 
-    function applyFilters() {
-
+    function filterUsers() {
         const search =
-            (
-                $("userSearch") &&
-                $("userSearch").value
-                    ? $("userSearch").value
-                    : ""
-            )
-            .trim()
-            .toLowerCase();
-
+            $("userSearch") ||
+            $("ownerSearch");
 
         const role =
-            $("roleFilter")
-                ? $("roleFilter").value
-                : "all";
-
+            $("roleFilter");
 
         const status =
-            $("statusFilter")
-                ? $("statusFilter").value
+            $("statusFilter");
+
+        const query =
+            search
+                ? search.value
+                    .trim()
+                    .toLowerCase()
+                : "";
+
+        const roleValue =
+            role
+                ? role.value
                 : "all";
 
+        const statusValue =
+            status
+                ? status.value
+                : "all";
 
-        filteredUsers =
-            users.filter(
-                user => {
+        const tbody =
+            $("usersTableBody") ||
+            $("ownerUsersTable");
 
-                    const searchable =
-                        [
+        if (!tbody) return;
 
-                            user.full_name,
+        Array.from(
+            tbody.querySelectorAll("tr")
+        ).forEach(row => {
 
-                            user.email,
+            const userId =
+                row.querySelector(
+                    "[data-user-id]"
+                )?.dataset.userId;
 
-                            user.phone,
+            const user =
+                users.find(
+                    u => u.user_id === userId
+                );
 
-                            user.user_type,
+            if (!user) return;
 
-                            user.organization_name,
+            const text =
+                (
+                    (user.full_name || "") +
+                    " " +
+                    (user.email || "") +
+                    " " +
+                    (user.phone || "") +
+                    " " +
+                    (user.user_type || "")
+                ).toLowerCase();
 
-                            user.license_number,
+            const matchesSearch =
+                !query ||
+                text.includes(query);
 
-                            user.province,
+            const matchesRole =
+                roleValue === "all" ||
+                user.role === roleValue ||
+                user.user_type === roleValue;
 
-                            user.city,
+            const matchesStatus =
+                statusValue === "all" ||
+                user.status === statusValue;
 
-                            user.specialty
-
-                        ]
-                        .filter(Boolean)
-                        .join(" ")
-                        .toLowerCase();
-
-
-                    const searchOK =
-                        !search ||
-                        searchable.includes(
-                            search
-                        );
-
-
-                    const roleOK =
-                        role === "all" ||
-                        user.role === role ||
-                        user.user_type === role;
-
-
-                    const statusOK =
-                        status === "all" ||
-                        user.status === status;
-
-
-                    return (
-                        searchOK &&
-                        roleOK &&
-                        statusOK
-                    );
-                }
-            );
-
-
-        renderTable();
+            row.style.display =
+                matchesSearch &&
+                matchesRole &&
+                matchesStatus
+                    ? ""
+                    : "none";
+        });
     }
-
 
     /* =====================================================
        DETAILS
     ===================================================== */
 
-    function openDetails(
-        userId
-    ) {
-
+    function openDetails(userId) {
         const user =
             users.find(
-                item =>
-                    String(
-                        item.user_id
-                    ) ===
-                    String(userId)
+                u => u.user_id === userId
             );
 
-
         if (!user) {
-
             showMessage(
                 "اطلاعات کاربر پیدا نشد.",
                 "error"
             );
-
             return;
         }
 
+        selectedUser = user;
 
-        selectedUser =
-            user;
+        const modal =
+            $("ownerUserModal");
 
+        if (!modal) {
+            showMessage(
+                "پنجره جزئیات در HTML وجود ندارد.",
+                "error"
+            );
+            return;
+        }
 
         setText(
             "detailName",
-            user.full_name ||
-            "—"
+            user.full_name || "—"
         );
-
 
         setText(
             "detailEmail",
-            user.email ||
-            "—"
+            user.email || "—"
         );
-
 
         setText(
             "detailPhone",
-            user.phone ||
-            "—"
+            user.phone || "—"
         );
-
 
         setText(
             "detailRole",
-            roleLabel(
-                user.role
-            )
+            roleLabel(user.role)
         );
-
 
         setText(
             "detailUserType",
-            userTypeLabel(
-                user.user_type
-            )
+            userTypeLabel(user.user_type)
         );
-
 
         setText(
             "detailActivity",
@@ -1069,49 +694,45 @@
             )
         );
 
-
         setText(
             "detailOrganization",
-            user.organization_name ||
-            "—"
+            user.organization_name
         );
-
 
         setText(
             "detailLicense",
-            user.license_number ||
-            "—"
+            user.license_number
         );
-
 
         setText(
             "detailProvince",
-            user.province ||
-            "—"
+            user.province
         );
-
 
         setText(
             "detailCity",
-            user.city ||
-            "—"
+            user.city
         );
-
 
         setText(
             "detailSpecialty",
-            user.specialty ||
-            "—"
+            user.specialty
         );
-
 
         setText(
             "detailStatus",
-            statusLabel(
-                user.status
-            )
+            statusLabel(user.status)
         );
 
+        setText(
+            "detailCreated",
+            formatDate(user.created_at)
+        );
+
+        setText(
+            "detailLastSeen",
+            formatDate(user.last_seen_at)
+        );
 
         setText(
             "detailVerified",
@@ -1120,238 +741,160 @@
                 : "تأیید نشده"
         );
 
-
-        setText(
-            "detailNotes",
-            user.notes ||
-            "—"
-        );
-
-
-        setText(
-            "detailCreated",
-            formatDate(
-                user.created_at
-            )
-        );
-
-
-        setText(
-            "detailLastSeen",
-            formatDate(
-                user.last_seen_at
-            )
-        );
-
-
         setText(
             "detailCode",
             user.professional_code ||
             "کد ندارد"
         );
 
-
         setText(
             "detailCodeStatus",
             user.professional_code_active
                 ? "فعال"
-                : user.professional_code
-                    ? "غیرفعال"
-                    : "کد ندارد"
+                : "غیرفعال"
         );
 
+        const codeSection =
+            $("professionalCodeSection");
 
-        setText(
-            "detailCodeUpdated",
-            formatDate(
-                user.professional_code_updated_at
-            )
-        );
-
-
-        const modal =
-            $("ownerUserModal");
-
-
-        if (!modal) {
-            return;
+        if (codeSection) {
+            codeSection.style.display =
+                user.user_type
+                    ? "block"
+                    : "none";
         }
 
-
-        modal.classList.add(
-            "show"
-        );
-
-
-        modal.setAttribute(
-            "aria-hidden",
-            "false"
-        );
-
+        modal.style.display = "flex";
 
         document.body.classList.add(
             "modal-open"
         );
-
-
-        updateCodeButtons();
     }
 
-
     function closeDetails() {
-
         const modal =
             $("ownerUserModal");
 
+        if (!modal) return;
 
-        if (!modal) {
-            return;
-        }
-
-
-        modal.classList.remove(
-            "show"
-        );
-
-
-        modal.setAttribute(
-            "aria-hidden",
-            "true"
-        );
-
+        modal.style.display = "none";
 
         document.body.classList.remove(
             "modal-open"
         );
 
-
-        selectedUser =
-            null;
+        selectedUser = null;
     }
-
 
     /* =====================================================
        PROFESSIONAL CODE
     ===================================================== */
 
-    function updateCodeButtons() {
+    async function loadProfessionalCode() {
+        if (!selectedUser) return;
 
-        const generate =
-            $("generateProfessionalCodeBtn");
+        try {
+            const {
+                data,
+                error
+            } = await supabaseClient.rpc(
+                "owner_get_professional_code",
+                {
+                    p_user_id:
+                        selectedUser.user_id
+                }
+            );
 
-        const toggle =
-            $("toggleProfessionalCodeBtn");
+            if (error) throw error;
 
+            let result = data;
 
-        if (!selectedUser) {
-
-            if (generate) {
-                generate.disabled = true;
+            if (Array.isArray(data)) {
+                result = data[0] || null;
             }
 
-            if (toggle) {
-                toggle.disabled = true;
+            if (result) {
+                selectedUser.professional_code =
+                    result.access_code ||
+                    result.professional_code ||
+                    null;
+
+                selectedUser.professional_code_active =
+                    result.is_active === true;
+
+                setText(
+                    "detailCode",
+                    selectedUser.professional_code ||
+                    "کد ندارد"
+                );
+
+                setText(
+                    "detailCodeStatus",
+                    selectedUser.professional_code_active
+                        ? "فعال"
+                        : "غیرفعال"
+                );
             }
 
-            return;
-        }
-
-
-        if (generate) {
-
-            generate.disabled =
-                !selectedUser.user_type;
-
-        }
-
-
-        if (toggle) {
-
-            toggle.disabled =
-                !selectedUser.professional_code;
-
-            toggle.textContent =
-                selectedUser.professional_code_active
-                    ? "غیرفعال کردن کد"
-                    : "فعال کردن کد";
+        } catch (error) {
+            console.error(
+                "LOAD PROFESSIONAL CODE ERROR:",
+                error
+            );
         }
     }
 
+    async function generateCode() {
+        if (!selectedUser) return;
 
-    async function generateProfessionalCode() {
-
-        if (!selectedUser) {
-            return;
-        }
-
-
-        if (
-            !selectedUser.user_type
-        ) {
-
+        if (!selectedUser.user_type) {
             showMessage(
                 "این کاربر هنوز پروفایل حرفه‌ای ندارد.",
                 "error"
             );
-
             return;
         }
-
 
         const button =
             $("generateProfessionalCodeBtn");
 
-
         if (button) {
-
-            button.disabled =
-                true;
-
+            button.disabled = true;
             button.textContent =
                 "در حال تولید...";
         }
 
-
         try {
-
             const {
                 data,
                 error
-            } =
-                await supabaseClient
-                    .rpc(
-                        "owner_generate_professional_code",
-                        {
-                            p_user_id:
-                                selectedUser.user_id
-                        }
-                    );
+            } = await supabaseClient.rpc(
+                "owner_generate_professional_code",
+                {
+                    p_user_id:
+                        selectedUser.user_id
+                }
+            );
 
+            if (error) throw error;
 
-            if (error) {
-                throw error;
+            let code = data;
+
+            if (
+                data &&
+                typeof data === "object"
+            ) {
+                code =
+                    data.access_code ||
+                    data.professional_code ||
+                    data.code;
             }
 
-
-            const code =
-                typeof data === "object" &&
-                data !== null
-                    ? (
-                        data.access_code ||
-                        data.professional_code ||
-                        data.code ||
-                        ""
-                    )
-                    : data;
-
-
             if (!code) {
-
                 throw new Error(
                     "کد حرفه‌ای از سرور دریافت نشد."
                 );
             }
-
 
             selectedUser.professional_code =
                 code;
@@ -1359,272 +902,66 @@
             selectedUser.professional_code_active =
                 true;
 
-
             setText(
                 "detailCode",
                 code
             );
-
 
             setText(
                 "detailCodeStatus",
                 "فعال"
             );
 
-
-            setText(
-                "detailCodeUpdated",
-                formatDate(
-                    new Date()
-                )
-            );
-
-
-            updateCodeButtons();
-
-
             renderTable();
-
 
             showMessage(
                 "کد حرفه‌ای با موفقیت ایجاد شد."
             );
 
-
         } catch (error) {
-
             console.error(
-                "PROFESSIONAL CODE ERROR:",
+                "GENERATE CODE ERROR:",
                 error
             );
 
-
             showMessage(
-                error &&
-                error.message
-                    ? error.message
-                    : "تولید کد حرفه‌ای ناموفق بود.",
+                error.message ||
+                "تولید کد حرفه‌ای ناموفق بود.",
                 "error"
             );
 
-
         } finally {
-
             if (button) {
-
-                button.disabled =
-                    !selectedUser ||
-                    !selectedUser.user_type;
-
+                button.disabled = false;
                 button.textContent =
                     "تولید / تغییر کد";
             }
         }
     }
 
-
-    async function toggleProfessionalCode() {
-
-        if (!selectedUser) {
-            return;
-        }
-
-
-        if (
-            !selectedUser.professional_code
-        ) {
-
-            showMessage(
-                "برای این کاربر هنوز کدی وجود ندارد.",
-                "error"
-            );
-
-            return;
-        }
-
-
-        const targetState =
-            !Boolean(
-                selectedUser.professional_code_active
-            );
-
-
-        const button =
-            $("toggleProfessionalCodeBtn");
-
-
-        if (button) {
-            button.disabled = true;
-        }
-
-
-        try {
-
-            /*
-             * ابتدا تلاش می‌کنیم RPC اختصاصی را اجرا کنیم.
-             */
-
-            const {
-                data,
-                error
-            } =
-                await supabaseClient
-                    .rpc(
-                        "owner_set_professional_code_status",
-                        {
-                            p_user_id:
-                                selectedUser.user_id,
-
-                            p_is_active:
-                                targetState
-                        }
-                    );
-
-
-            if (error) {
-                throw error;
-            }
-
-
-            selectedUser.professional_code_active =
-                targetState;
-
-
-            if (
-                data &&
-                typeof data ===
-                "object"
-            ) {
-
-                if (
-                    data.is_active !==
-                    undefined
-                ) {
-
-                    selectedUser.professional_code_active =
-                        data.is_active;
-                }
-            }
-
-
-            setText(
-                "detailCodeStatus",
-                selectedUser.professional_code_active
-                    ? "فعال"
-                    : "غیرفعال"
-            );
-
-
-            updateCodeButtons();
-
-
-            showMessage(
-                selectedUser.professional_code_active
-                    ? "کد حرفه‌ای فعال شد."
-                    : "کد حرفه‌ای غیرفعال شد."
-            );
-
-
-        } catch (error) {
-
-            console.error(
-                "TOGGLE PROFESSIONAL CODE ERROR:",
-                error
-            );
-
-
-            showMessage(
-                error &&
-                error.message
-                    ? error.message
-                    : "تغییر وضعیت کد ناموفق بود.",
-                "error"
-            );
-
-
-            updateCodeButtons();
-        }
-    }
-
-
-    /* =====================================================
-       REFRESH
-    ===================================================== */
-
-    async function refreshUsers() {
-
-        try {
-
-            await verifyOwner();
-
-            await loadUsers();
-
-            showMessage(
-                "اطلاعات کاربران بروزرسانی شد."
-            );
-
-        } catch (error) {
-
-            console.error(
-                "REFRESH ERROR:",
-                error
-            );
-
-
-            showMessage(
-                error &&
-                error.message
-                    ? error.message
-                    : "بروزرسانی ناموفق بود.",
-                "error"
-            );
-        }
-    }
-
-
     /* =====================================================
        LOGOUT
     ===================================================== */
 
     async function logout() {
-
         try {
-
-            const {
-                error
-            } =
-                await supabaseClient
-                    .auth
-                    .signOut();
-
-
-            if (error) {
-                throw error;
-            }
-
+            await supabaseClient.auth.signOut();
 
             window.location.href =
                 "login.html";
 
-
         } catch (error) {
-
             console.error(
                 "LOGOUT ERROR:",
                 error
             );
 
-
             showMessage(
-                error &&
-                error.message
-                    ? error.message
-                    : "خروج ناموفق بود.",
+                "خروج از سامانه ناموفق بود.",
                 "error"
             );
         }
     }
-
 
     /* =====================================================
        EVENTS
@@ -1632,200 +969,147 @@
 
     function bindEvents() {
 
-        if (initialized) {
-            return;
-        }
-
-
-        initialized = true;
-
-
-        const refresh =
-            $("refreshButton");
-
-
-        if (refresh) {
-
-            refresh.addEventListener(
-                "click",
-                refreshUsers
-            );
-        }
-
-
-        const search =
-            $("userSearch");
-
-
-        if (search) {
-
-            search.addEventListener(
-                "input",
-                applyFilters
-            );
-        }
-
-
-        const roleFilter =
-            $("roleFilter");
-
-
-        if (roleFilter) {
-
-            roleFilter.addEventListener(
-                "change",
-                applyFilters
-            );
-        }
-
-
-        const statusFilter =
-            $("statusFilter");
-
-
-        if (statusFilter) {
-
-            statusFilter.addEventListener(
-                "change",
-                applyFilters
-            );
-        }
-
-
-        const logout =
-            $("logoutButton");
-
-
-        if (logout) {
-
-            logout.addEventListener(
-                "click",
-                logout
-            );
-        }
-
-
-        const generate =
-            $("generateProfessionalCodeBtn");
-
-
-        if (generate) {
-
-            generate.addEventListener(
-                "click",
-                generateProfessionalCode
-            );
-        }
-
-
-        const toggle =
-            $("toggleProfessionalCodeBtn");
-
-
-        if (toggle) {
-
-            toggle.addEventListener(
-                "click",
-                toggleProfessionalCode
-            );
-        }
-
-
-        const close =
-            $("closeOwnerModal");
-
-
-        if (close) {
-
-            close.addEventListener(
-                "click",
-                closeDetails
-            );
-        }
-
-
-        const modal =
-            $("ownerUserModal");
-
-
-        if (modal) {
-
-            modal.addEventListener(
-                "click",
-                function (event) {
-
-                    if (
-                        event.target ===
-                        modal
-                    ) {
-
-                        closeDetails();
-                    }
-                }
-            );
-        }
-
-
         document.addEventListener(
             "click",
             function (event) {
 
                 const button =
                     event.target.closest(
-                        "[data-action='details']"
+                        "[data-action]"
                     );
 
+                if (!button) return;
 
-                if (!button) {
-                    return;
+                const action =
+                    button.dataset.action;
+
+                const userId =
+                    button.dataset.userId;
+
+                if (action === "details") {
+                    openDetails(userId);
                 }
-
-
-                openDetails(
-                    button.dataset.userId
-                );
             }
         );
 
+        const closeButton =
+            $("closeOwnerModal");
+
+        if (closeButton) {
+            closeButton.addEventListener(
+                "click",
+                closeDetails
+            );
+        }
+
+        const modal =
+            $("ownerUserModal");
+
+        if (modal) {
+            modal.addEventListener(
+                "click",
+                function (event) {
+
+                    if (
+                        event.target === modal
+                    ) {
+                        closeDetails();
+                    }
+                }
+            );
+        }
+
+        const generateButton =
+            $("generateProfessionalCodeBtn");
+
+        if (generateButton) {
+            generateButton.addEventListener(
+                "click",
+                generateCode
+            );
+        }
+
+        const search =
+            $("userSearch") ||
+            $("ownerSearch");
+
+        if (search) {
+            search.addEventListener(
+                "input",
+                filterUsers
+            );
+        }
+
+        const roleFilter =
+            $("roleFilter");
+
+        if (roleFilter) {
+            roleFilter.addEventListener(
+                "change",
+                filterUsers
+            );
+        }
+
+        const statusFilter =
+            $("statusFilter");
+
+        if (statusFilter) {
+            statusFilter.addEventListener(
+                "change",
+                filterUsers
+            );
+        }
+
+        const refresh =
+            $("refreshButton");
+
+        if (refresh) {
+            refresh.addEventListener(
+                "click",
+                loadUsers
+            );
+        }
+
+        const logout =
+            $("logoutButton");
+
+        if (logout) {
+            logout.addEventListener(
+                "click",
+                logout
+            );
+        }
 
         document.addEventListener(
             "keydown",
             function (event) {
-
                 if (
-                    event.key ===
-                    "Escape"
+                    event.key === "Escape"
                 ) {
-
                     closeDetails();
                 }
             }
         );
     }
 
-
     /* =====================================================
        RENDER ALL
     ===================================================== */
 
     function renderAll() {
-
         renderStats();
-        applyFilters();
+        renderTable();
     }
-
 
     /* =====================================================
        INIT
     ===================================================== */
 
     async function init() {
-
         try {
+            await verifyOwner();
 
             bindEvents();
-
-            await verifyOwner();
 
             await loadUsers();
 
@@ -1836,41 +1120,28 @@
                 error
             );
 
-
             showMessage(
-                error &&
-                error.message
-                    ? error.message
-                    : "خطا در بارگذاری پنل مالک.",
+                error.message ||
+                "خطا در بارگذاری پنل مالک.",
                 "error"
-            );
-
-
-            renderEmpty(
-                error &&
-                error.message
-                    ? error.message
-                    : "خطا در بارگذاری پنل مالک."
             );
         }
     }
 
+    /* =====================================================
+       START
+    ===================================================== */
 
     if (
         document.readyState ===
         "loading"
     ) {
-
         document.addEventListener(
             "DOMContentLoaded",
             init,
-            {
-                once:true
-            }
+            { once: true }
         );
-
     } else {
-
         init();
     }
 

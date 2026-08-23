@@ -1699,266 +1699,357 @@
    */
 
   async function generateCode(){
+
   if(!selected){
-    notify("ابتدا یک کاربر را انتخاب کنید.","error");
+    notify(
+      "ابتدا یک کاربر را انتخاب کنید.",
+      "error"
+    );
     return;
   }
 
-  const btn=$("generateCode");
-  btn.disabled=true;
+  const btn = $("generateCode");
+
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = "در حال تولید...";
+  }
 
   try{
 
-    client=client||await getClient();
+    client = client || await getClient();
 
-    // بررسی Session واقعی
-    const {data:sessionData,error:sessionError}=await client.auth.getSession();
+    /* =====================================================
+       1 — بررسی نشست کاربر
+    ===================================================== */
 
-    if(sessionError){
-      throw sessionError;
-    }
+    const sessionResult =
+      await client.auth.getSession();
 
-    if(!sessionData?.session?.user){
-      throw new Error("نشست ورود مالک پیدا نشد.");
-    }
+    if(sessionResult.error){
 
-    const sessionUser=sessionData.session.user;
-
-    console.log("OWNER CODE TEST",{
-      currentSessionUser:sessionUser.id,
-      selectedUser:selected.id
-    });
-
-    // بررسی مالک بودن Session
-    const {data:ownerCheck,error:ownerError}=await client
-      .from("profiles")
-      .select("id,full_name,email,role,status,is_active")
-      .eq("id",sessionUser.id)
-      .maybeSingle();
-
-    if(ownerError){
-      throw ownerError;
-    }
-
-    console.log("OWNER PROFILE",ownerCheck);
-
-    if(
-      !ownerCheck ||
-      ownerCheck.role!=="owner" ||
-      ownerCheck.status!=="active" ||
-      ownerCheck.is_active!==true
-    ){
-      throw new Error("نشست فعلی مربوط به مالک فعال سامانه نیست.");
-    }
-
-    // RPC اصلی
-    const {data,error}=await client.rpc(
-      "owner_generate_professional_code",
-      {
-        p_user_id:selected.id
-      }
-    );
-
-    console.log("OWNER GENERATE CODE RPC RESULT",{
-      data,
-      error
-    });
-
-    if(error){
-
-      console.error(
-        "OWNER GENERATE CODE FULL ERROR",
-        JSON.stringify(error,null,2)
+      throw new Error(
+        "خطا در بررسی نشست ورود: " +
+        sessionResult.error.message
       );
 
-      throw error;
     }
 
-    if(!data){
-      throw new Error("تابع تولید کد اجرا شد اما کدی از پایگاه داده دریافت نشد.");
+    const session =
+      sessionResult?.data?.session;
+
+    if(!session?.user){
+
+      throw new Error(
+        "نشست ورود پیدا نشد. لطفاً از حساب مالک خارج شوید و دوباره وارد شوید."
+      );
+
     }
 
-    // بروزرسانی اطلاعات
+    /* =====================================================
+       2 — بررسی مالک بودن حساب فعلی
+    ===================================================== */
+
+    const ownerResult =
+      await client
+        .from("profiles")
+        .select(
+          "id,full_name,email,role,status,is_active"
+        )
+        .eq("id",session.user.id)
+        .maybeSingle();
+
+    if(ownerResult.error){
+
+      throw new Error(
+        "خطا در بررسی حساب مالک: " +
+        ownerResult.error.message
+      );
+
+    }
+
+    const owner =
+      ownerResult.data;
+
+    if(!owner){
+
+      throw new Error(
+        "پروفایل حساب فعلی در پایگاه داده پیدا نشد."
+      );
+
+    }
+
+    if(owner.role !== "owner"){
+
+      throw new Error(
+        "حساب فعلی نقش مالک سامانه را ندارد."
+      );
+
+    }
+
+    if(owner.status !== "active"){
+
+      throw new Error(
+        "حساب مالک در وضعیت فعال نیست."
+      );
+
+    }
+
+    if(owner.is_active !== true){
+
+      throw new Error(
+        "حساب مالک غیرفعال است."
+      );
+
+    }
+
+    /* =====================================================
+       3 — بررسی شناسه کاربر هدف
+    ===================================================== */
+
+    const uid =
+      selected.user_id ||
+      selected.id;
+
+    if(!uid){
+
+      throw new Error(
+        "شناسه کاربر انتخاب‌شده پیدا نشد."
+      );
+
+    }
+
+    /* =====================================================
+       4 — اجرای RPC تولید کد
+    ===================================================== */
+
+    const result =
+      await client.rpc(
+        "owner_generate_professional_code",
+        {
+          p_user_id: uid
+        }
+      );
+
+    /* =====================================================
+       5 — اگر Supabase خطا داد،
+             خطای واقعی را روی صفحه نشان بده
+    ===================================================== */
+
+    if(result.error){
+
+      const e = result.error;
+
+      let realError = "";
+
+      if(e.message)
+        realError +=
+          "پیام: " + e.message;
+
+      if(e.details)
+        realError +=
+          "\nجزئیات: " + e.details;
+
+      if(e.hint)
+        realError +=
+          "\nراهنما: " + e.hint;
+
+      if(e.code)
+        realError +=
+          "\nکد خطا: " + e.code;
+
+      throw new Error(
+        "خطای واقعی پایگاه داده:\n\n" +
+        realError
+      );
+
+    }
+
+    /* =====================================================
+       6 — بررسی نتیجه RPC
+    ===================================================== */
+
+    const code =
+      result.data;
+
+    if(!code){
+
+      throw new Error(
+        "تابع پایگاه داده اجرا شد اما هیچ کد حرفه‌ای برنگرداند."
+      );
+
+    }
+
+    /* =====================================================
+       7 — دریافت دوباره اطلاعات کاربران
+    ===================================================== */
+
     await loadUsers();
 
-    const fresh=users.find(
-      x=>String(x.id)===String(selected.id)
-    );
+    const fresh =
+      users.find(
+        x =>
+          String(x.id) ===
+          String(uid)
+      );
 
     if(fresh){
+
+      selected = fresh;
+
       openModal(fresh);
+
     }
 
+    /* =====================================================
+       8 — موفقیت
+    ===================================================== */
+
     notify(
-      `کد حرفه‌ای ${String(data)} با موفقیت تولید و ذخیره شد.`,
+      "کد حرفه‌ای با موفقیت تولید و ذخیره شد: " +
+      String(code),
       "success"
     );
 
-  }catch(e){
+  }
+
+  catch(e){
 
     console.error(
-      "GENERATE PROFESSIONAL CODE ERROR",
+      "OWNER GENERATE CODE ERROR",
       e
     );
 
-    const raw=String(
-      e?.message ||
-      e?.details ||
-      e?.hint ||
-      e ||
-      ""
-    );
+    /*
+       خطای واقعی را فارسی/قابل فهم می‌کنیم،
+       ولی اطلاعات مهم Supabase را حذف نمی‌کنیم.
+    */
 
-    let message="تولید کد حرفه‌ای انجام نشد.";
+    const raw =
+      String(
+        e?.message ||
+        e?.details ||
+        e ||
+        ""
+      );
+
+    let message =
+      raw;
+
+    /* ---------------------------------------------
+       تابع پیدا نشد
+    --------------------------------------------- */
 
     if(
       /could not find the function/i.test(raw) ||
-      /function .* does not exist/i.test(raw)
+      /function .* does not exist/i.test(raw) ||
+      /PGRST202/i.test(raw)
     ){
-      message=
-        "تابع تولید کد حرفه‌ای در API سامانه شناسایی نشده است. Schema Cache پایگاه داده باید Reload شود.";
+
+      message =
+        "تابع «تولید کد حرفه‌ای» توسط API سامانه شناسایی نشد.\n\n" +
+        "احتمالاً Schema Cache مربوط به Supabase به‌روز نشده است.\n\n" +
+        "جزئیات فنی:\n" +
+        raw;
+
     }
+
+    /* ---------------------------------------------
+       دسترسی
+    --------------------------------------------- */
+
     else if(
-      /دسترسی غیرمجاز برای تولید کد حرفه‌ای/i.test(raw)
+      /دسترسی غیرمجاز/i.test(raw) ||
+      /permission denied/i.test(raw) ||
+      /not authorized/i.test(raw)
     ){
-      message=
-        "نشست فعلی مالک فعال سامانه شناسایی نشده است.";
+
+      message =
+        "دسترسی مالک برای تولید کد تأیید نشد.\n\n" +
+        "جزئیات:\n" +
+        raw;
+
     }
+
+    /* ---------------------------------------------
+       کاربر پیدا نشد
+    --------------------------------------------- */
+
     else if(
       /کاربر موردنظر پیدا نشد/i.test(raw)
     ){
-      message=
-        "کاربر موردنظر در پایگاه داده پیدا نشد.";
-    }
-    else if(
-      /شناسه کاربر ارسال نشده/i.test(raw)
-    ){
-      message=
-        "شناسه کاربر برای تولید کد ارسال نشده است.";
-    }
-    else if(
-      /duplicate|unique/i.test(raw)
-    ){
-      message=
-        "کد حرفه‌ای تکراری ایجاد شده است. دوباره تلاش کنید.";
-    }
-    else if(
-      /^[\u0600-\u06ff\s،؛:()._\-0-9]+$/.test(raw) &&
-      raw.length<300
-    ){
-      message=raw;
+
+      message =
+        "کاربر انتخاب‌شده در پایگاه داده پیدا نشد.\n\n" +
+        raw;
+
     }
 
-    notify(message,"error");
+    /* ---------------------------------------------
+       شناسه کاربر
+    --------------------------------------------- */
 
-  }finally{
+    else if(
+      /شناسه کاربر/i.test(raw)
+    ){
 
-    btn.disabled=false;
+      message =
+        "شناسه کاربر برای تولید کد معتبر نیست.\n\n" +
+        raw;
+
+    }
+
+    /* ---------------------------------------------
+       خطای اتصال
+    --------------------------------------------- */
+
+    else if(
+      /Failed to fetch/i.test(raw) ||
+      /Load failed/i.test(raw) ||
+      /network/i.test(raw)
+    ){
+
+      message =
+        "ارتباط با سرویس پایگاه داده برقرار نشد.\n\n" +
+        "لطفاً اتصال اینترنت را بررسی کنید.\n\n" +
+        "جزئیات:\n" +
+        raw;
+
+    }
+
+    /* ---------------------------------------------
+       خطای عمومی
+    --------------------------------------------- */
+
+    else if(
+      !message ||
+      message === "undefined"
+    ){
+
+      message =
+        "تولید کد حرفه‌ای انجام نشد.";
+
+    }
+
+    notify(
+      message,
+      "error"
+    );
 
   }
+
+  finally{
+
+    if(btn){
+
+      btn.disabled = false;
+      btn.textContent = "تولید کد";
+
+    }
+
+  }
+
 }
-  /*
-   * ---------------------------------------------------------
-   * فعال / غیرفعال کردن کد حرفه‌ای
-   * ---------------------------------------------------------
-   */
-
-  async function toggleCode() {
-
-    if (!selected) return;
-
-    if (
-      !selected.professional_code
-    ) {
-
-      notify(
-        "ابتدا برای این کاربر کد حرفه‌ای تولید کنید.",
-        "error"
-      );
-
-      return;
-    }
-
-    const btn =
-      $("toggleCode");
-
-    if (btn) {
-      btn.disabled = true;
-    }
-
-    try {
-
-      const next =
-        !selected.professional_code_active;
-
-      const data =
-        await rpc(
-          "owner_set_professional_code_status",
-          {
-            p_user_id:
-              selected.id,
-
-            p_is_active:
-              next
-          }
-        );
-
-      if (
-        !Array.isArray(data) ||
-        data.length === 0
-      ) {
-
-        throw new Error(
-          "وضعیت کد حرفه‌ای از پایگاه داده دریافت نشد."
-        );
-      }
-
-      /*
-       * دریافت اطلاعات تازه
-       */
-      await loadUsers();
-
-      const fresh =
-        users.find(
-          x =>
-            String(x.id) ===
-            String(selected.id)
-        );
-
-      if (fresh) {
-        openModal(fresh);
-      }
-
-      notify(
-        next
-          ? "کد حرفه‌ای با موفقیت فعال شد."
-          : "کد حرفه‌ای با موفقیت غیرفعال شد.",
-        "success"
-      );
-
-    } catch (e) {
-
-      console.error(
-        "OWNER TOGGLE CODE ERROR:",
-        e
-      );
-
-      notify(
-        faError(
-          e,
-          "تغییر وضعیت کد حرفه‌ای انجام نشد."
-        ),
-        "error"
-      );
-
-    } finally {
-
-      if (btn) {
-        btn.disabled = false;
-      }
-    }
-  }
-
   /*
    * ---------------------------------------------------------
    * دکمه سریع تولید کد

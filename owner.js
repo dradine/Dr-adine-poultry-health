@@ -1,7 +1,7 @@
 /* =========================================================
    ADINEH OWNER MANAGEMENT
-   FINAL OWNER.JS
-   ========================================================= */
+   OWNER PANEL — FINAL JSONB VERSION
+========================================================= */
 
 (function () {
     "use strict";
@@ -11,9 +11,9 @@
 
     const $ = (id) => document.getElementById(id);
 
-    /* =====================================================
+    /* -----------------------------------------------------
        HELPERS
-    ===================================================== */
+    ----------------------------------------------------- */
 
     function esc(value) {
         if (value === null || value === undefined) return "";
@@ -27,7 +27,11 @@
     }
 
     function faNumber(value) {
-        if (value === null || value === undefined || value === "") {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
             return "—";
         }
 
@@ -40,29 +44,76 @@
     function formatDate(value) {
         if (!value) return "—";
 
-        const date = new Date(value);
-
-        if (isNaN(date.getTime())) {
-            return "—";
-        }
-
         try {
+            const d = new Date(value);
+
+            if (isNaN(d.getTime())) return "—";
+
             return new Intl.DateTimeFormat("fa-IR", {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
                 hour: "2-digit",
                 minute: "2-digit"
-            }).format(date);
+            }).format(d);
+
         } catch {
             return "—";
         }
     }
 
+    function setText(id, value) {
+        const el = $(id);
+
+        if (!el) return;
+
+        el.textContent =
+            value === null ||
+            value === undefined ||
+            value === ""
+                ? "—"
+                : value;
+    }
+
+    function showMessage(message, type = "success") {
+
+        const box =
+            $("message") ||
+            $("ownerStatus");
+
+        if (!box) return;
+
+        box.textContent = message;
+
+        box.className =
+            "message " +
+            (type === "error"
+                ? "error"
+                : type === "info"
+                    ? "info"
+                    : "success");
+
+        if (box.classList.contains("hidden")) {
+            box.classList.remove("hidden");
+        }
+
+        clearTimeout(box._messageTimer);
+
+        box._messageTimer =
+            setTimeout(() => {
+                box.classList.add("hidden");
+            }, 5000);
+    }
+
+    /* -----------------------------------------------------
+       LABELS
+    ----------------------------------------------------- */
+
     function roleLabel(role) {
+
         const map = {
-            owner: "مالک سامانه",
-            admin: "مدیر سامانه",
+            owner: "مالک",
+            admin: "مدیر",
             user: "کاربر"
         };
 
@@ -70,6 +121,7 @@
     }
 
     function userTypeLabel(type) {
+
         const map = {
             veterinarian:
                 "🩺 دامپزشک",
@@ -80,10 +132,19 @@
             poultry_operator:
                 "🐔 بهره‌بردار واحد طیور",
 
+            farm_operator:
+                "🐔 بهره‌بردار واحد طیور",
+
             poultry_manager:
                 "👨‍💼 مدیر واحد طیور",
 
+            farm_manager:
+                "👨‍💼 مدیر واحد طیور",
+
             veterinary_lab:
+                "🔬 آزمایشگاه تشخیص دامپزشکی",
+
+            diagnostic_lab:
                 "🔬 آزمایشگاه تشخیص دامپزشکی",
 
             poultry_technical_expert:
@@ -92,19 +153,13 @@
             organization_manager:
                 "🏢 مدیر / نماینده مجموعه",
 
-            farm_operator:
-                "🐔 بهره‌بردار واحد طیور",
-
-            farm_manager:
-                "👨‍💼 مدیر واحد طیور",
-
-            diagnostic_lab:
-                "🔬 آزمایشگاه تشخیص دامپزشکی",
-
             company_manager:
                 "🏢 مدیر / نماینده مجموعه",
 
             other:
+                "سایر",
+
+            user:
                 "سایر"
         };
 
@@ -112,6 +167,7 @@
     }
 
     function statusLabel(status) {
+
         const map = {
             active: "فعال",
             pending: "در انتظار تأیید",
@@ -124,33 +180,37 @@
     }
 
     function statusClass(status) {
-        const map = {
-            active: "active",
-            pending: "pending",
-            suspended: "suspended",
-            blocked: "blocked",
-            removed: "removed"
-        };
 
-        return map[status] || "pending";
+        return (
+            "badge " +
+            (
+                status === "active"
+                    ? "active"
+                    : status === "pending"
+                        ? "pending"
+                        : status === "suspended"
+                            ? "suspended"
+                            : status === "blocked"
+                                ? "blocked"
+                                : status === "removed"
+                                    ? "removed"
+                                    : ""
+            )
+        );
     }
 
-    function activityText(value) {
-        if (
-            value === null ||
-            value === undefined ||
-            value === ""
-        ) {
-            return "—";
-        }
+    function activityText(activityTypes) {
 
-        let list = value;
+        if (!activityTypes) return "—";
 
-        if (typeof value === "string") {
+        let list = activityTypes;
+
+        if (typeof activityTypes === "string") {
+
             try {
-                list = JSON.parse(value);
+                list = JSON.parse(activityTypes);
             } catch {
-                return value;
+                return activityTypes;
             }
         }
 
@@ -158,9 +218,7 @@
             return String(list);
         }
 
-        if (!list.length) {
-            return "—";
-        }
+        if (!list.length) return "—";
 
         const map = {
             broiler: "گوشتی",
@@ -172,84 +230,32 @@
         };
 
         return list
-            .map(item => map[item] || item)
+            .map(x => map[x] || x)
             .join("، ");
     }
 
-    function setText(id, value) {
-        const element = $(id);
-
-        if (!element) return;
-
-        element.textContent =
-            value === null ||
-            value === undefined ||
-            value === ""
-                ? "—"
-                : value;
-    }
-
-    function showMessage(message, type = "success") {
-        const box = $("message");
-
-        if (!box) return;
-
-        box.textContent = message;
-
-        box.className =
-            "message " +
-            (type === "error"
-                ? "error"
-                : type === "info"
-                ? "info"
-                : "success");
-
-        clearTimeout(showMessage.timer);
-
-        showMessage.timer = setTimeout(() => {
-            box.className = "message hidden";
-        }, 5000);
-    }
-
-    function setLoading(isLoading) {
-        const tbody = $("usersTableBody");
-
-        if (!tbody) return;
-
-        if (isLoading) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="loading">
-                        در حال بارگذاری کاربران...
-                    </td>
-                </tr>
-            `;
-        }
-    }
-
-
-    /* =====================================================
+    /* -----------------------------------------------------
        AUTH
-    ===================================================== */
+    ----------------------------------------------------- */
 
     async function getCurrentUser() {
+
         if (
-            typeof supabaseClient === "undefined" ||
-            !supabaseClient
+            typeof supabaseClient ===
+            "undefined"
         ) {
             throw new Error(
-                "اتصال به سامانه پایگاه داده برقرار نیست."
+                "Supabase Client پیدا نشد."
             );
         }
 
         const {
             data,
             error
-        } = await supabaseClient.auth.getUser();
+        } =
+            await supabaseClient.auth.getUser();
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
         if (!data || !data.user) {
             throw new Error(
@@ -261,99 +267,105 @@
     }
 
     async function verifyOwner() {
+
         const authUser =
             await getCurrentUser();
 
         const {
             data,
             error
-        } = await supabaseClient
-            .from("profiles")
-            .select(`
-                id,
-                full_name,
-                email,
-                role,
-                status,
-                is_active
-            `)
-            .eq("id", authUser.id)
-            .maybeSingle();
+        } =
+            await supabaseClient
+                .from("profiles")
+                .select(`
+                    id,
+                    full_name,
+                    email,
+                    role,
+                    status,
+                    is_active
+                `)
+                .eq("id", authUser.id)
+                .maybeSingle();
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
         if (!data) {
             throw new Error(
-                "پروفایل مالک در سامانه پیدا نشد."
+                "پروفایل مالک پیدا نشد."
             );
         }
 
-        if (data.role !== "owner") {
+        if (
+            data.role !== "owner" ||
+            data.status !== "active" ||
+            data.is_active !== true
+        ) {
             throw new Error(
-                "این حساب مالک سامانه نیست."
+                "این صفحه فقط برای مالک سامانه قابل دسترسی است."
             );
         }
 
-        if (data.status !== "active") {
-            throw new Error(
-                "وضعیت حساب مالک فعال نیست."
-            );
-        }
-
-        if (data.is_active !== true) {
-            throw new Error(
-                "حساب مالک غیرفعال است."
-            );
-        }
-
-        const identity = $("ownerIdentity");
+        const identity =
+            $("ownerIdentity");
 
         if (identity) {
             identity.textContent =
-                `ورود با حساب مالک: ${
+                "مالک سامانه: " +
+                (
                     data.full_name ||
                     data.email ||
-                    "مالک سامانه"
-                }`;
+                    "مالک"
+                );
         }
 
         return data;
     }
 
-
-    /* =====================================================
+    /* -----------------------------------------------------
        LOAD USERS
-    ===================================================== */
+    ----------------------------------------------------- */
 
     async function loadUsers() {
+
         setLoading(true);
 
         try {
+
             const {
                 data,
                 error
-            } = await supabaseClient.rpc(
-                "owner_get_user_directory"
-            );
+            } =
+                await supabaseClient.rpc(
+                    "owner_get_user_directory"
+                );
 
-            if (error) {
-                throw error;
+            if (error) throw error;
+
+            if (data === null) {
+                users = [];
+            }
+            else if (Array.isArray(data)) {
+                users = data;
+            }
+            else if (
+                typeof data === "string"
+            ) {
+                try {
+                    users = JSON.parse(data);
+                } catch {
+                    users = [];
+                }
+            }
+            else {
+                users = [];
             }
 
-            users =
-                Array.isArray(data)
-                    ? data
-                    : [];
+            if (!Array.isArray(users)) {
+                users = [];
+            }
 
-            renderStats();
-            applyFilters();
-
-            showMessage(
-                `اطلاعات ${faNumber(users.length)} کاربر دریافت شد.`,
-                "success"
-            );
+            renderAll();
 
         } catch (error) {
 
@@ -367,51 +379,79 @@
             renderStats();
 
             renderEmpty(
-                "دریافت اطلاعات کاربران ناموفق بود."
+                error.message ||
+                "خطا در دریافت اطلاعات کاربران."
             );
 
             showMessage(
-                error?.message ||
-                "خطا در دریافت اطلاعات کاربران.",
+                error.message ||
+                "دریافت اطلاعات کاربران ناموفق بود.",
                 "error"
             );
 
+        } finally {
+
+            setLoading(false);
         }
     }
 
+    function setLoading(isLoading) {
 
-    /* =====================================================
+        const tbody =
+            $("usersTableBody") ||
+            $("ownerUsersTable");
+
+        if (!tbody) return;
+
+        if (isLoading) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="loading">
+                        در حال بارگذاری کاربران...
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    /* -----------------------------------------------------
        STATS
-    ===================================================== */
+    ----------------------------------------------------- */
 
     function renderStats() {
-        const total = users.length;
+
+        const total =
+            users.length;
 
         const active =
             users.filter(
-                user => user.status === "active"
+                x => x.status === "active"
             ).length;
 
         const pending =
             users.filter(
-                user => user.status === "pending"
+                x => x.status === "pending"
             ).length;
 
         const specialists =
-            users.filter(user => {
+            users.filter(
+                x =>
+                    x.user_type ===
+                        "veterinarian" ||
 
-                const type =
-                    user.user_type;
+                    x.user_type ===
+                        "technical_veterinarian" ||
 
-                return (
-                    type === "veterinarian" ||
-                    type === "technical_veterinarian" ||
-                    type === "veterinary_lab" ||
-                    type === "diagnostic_lab" ||
-                    type === "poultry_technical_expert"
-                );
+                    x.user_type ===
+                        "veterinary_lab" ||
 
-            }).length;
+                    x.user_type ===
+                        "diagnostic_lab" ||
+
+                    x.user_type ===
+                        "poultry_technical_expert"
+            ).length;
 
         setText(
             "statTotal",
@@ -432,23 +472,84 @@
             "statSpecialists",
             faNumber(specialists)
         );
+
+        /* compatibility with previous HTML */
+
+        setText(
+            "statVeterinarians",
+            faNumber(
+                users.filter(
+                    x =>
+                        x.user_type ===
+                            "veterinarian" ||
+                        x.user_type ===
+                            "technical_veterinarian"
+                ).length
+            )
+        );
+
+        setText(
+            "statLabs",
+            faNumber(
+                users.filter(
+                    x =>
+                        x.user_type ===
+                            "veterinary_lab" ||
+                        x.user_type ===
+                            "diagnostic_lab"
+                ).length
+            )
+        );
+
+        setText(
+            "statOperators",
+            faNumber(
+                users.filter(
+                    x =>
+                        x.user_type ===
+                            "poultry_operator" ||
+                        x.user_type ===
+                            "farm_operator"
+                ).length
+            )
+        );
+
+        setText(
+            "statManagers",
+            faNumber(
+                users.filter(
+                    x =>
+                        x.user_type ===
+                            "poultry_manager" ||
+                        x.user_type ===
+                            "farm_manager" ||
+                        x.user_type ===
+                            "organization_manager" ||
+                        x.user_type ===
+                            "company_manager"
+                ).length
+            )
+        );
     }
 
-
-    /* =====================================================
+    /* -----------------------------------------------------
        TABLE
-    ===================================================== */
+    ----------------------------------------------------- */
 
-    function renderUsers(list) {
+    function renderTable(list = users) {
+
         const tbody =
-            $("usersTableBody");
+            $("usersTableBody") ||
+            $("ownerUsersTable");
 
         if (!tbody) return;
 
         if (!list.length) {
+
             renderEmpty(
-                "کاربری با این مشخصات پیدا نشد."
+                "هیچ کاربری مطابق فیلترها پیدا نشد."
             );
+
             return;
         }
 
@@ -457,27 +558,27 @@
 
                 const code =
                     user.professional_code
-                        ? "••••••"
+                        ? "••••••••"
                         : "ندارد";
 
                 return `
                     <tr>
 
                         <td>
-                            <span class="user-name">
+                            <strong class="user-name">
                                 ${esc(
                                     user.full_name ||
                                     "بدون نام"
                                 )}
-                            </span>
+                            </strong>
 
                             ${
                                 user.role === "owner"
                                     ? `
-                                    <span class="badge owner">
-                                        مالک
-                                    </span>
-                                    `
+                                        <span class="badge owner">
+                                            مالک
+                                        </span>
+                                      `
                                     : ""
                             }
                         </td>
@@ -489,11 +590,9 @@
                         </td>
 
                         <td>
-                            ${
-                                user.phone
-                                    ? esc(user.phone)
-                                    : "—"
-                            }
+                            ${esc(
+                                user.phone || "—"
+                            )}
                         </td>
 
                         <td>
@@ -506,20 +605,20 @@
                             ${
                                 user.activity_types
                                     ? `
-                                    <span class="muted">
-                                        ${esc(
-                                            activityText(
-                                                user.activity_types
-                                            )
-                                        )}
-                                    </span>
-                                    `
+                                        <span class="muted">
+                                            ${esc(
+                                                activityText(
+                                                    user.activity_types
+                                                )
+                                            )}
+                                        </span>
+                                      `
                                     : ""
                             }
                         </td>
 
                         <td>
-                            <span class="badge ${statusClass(
+                            <span class="${statusClass(
                                 user.status
                             )}">
                                 ${esc(
@@ -569,10 +668,11 @@
             }).join("");
     }
 
-
     function renderEmpty(message) {
+
         const tbody =
-            $("usersTableBody");
+            $("usersTableBody") ||
+            $("ownerUsersTable");
 
         if (!tbody) return;
 
@@ -588,114 +688,20 @@
         `;
     }
 
-
-    /* =====================================================
-       FILTERS
-    ===================================================== */
-
-    function applyFilters() {
-        const searchInput =
-            $("userSearch");
-
-        const roleFilter =
-            $("roleFilter");
-
-        const statusFilter =
-            $("statusFilter");
-
-        const query =
-            searchInput
-                ? searchInput.value
-                    .trim()
-                    .toLowerCase()
-                : "";
-
-        const role =
-            roleFilter
-                ? roleFilter.value
-                : "all";
-
-        const status =
-            statusFilter
-                ? statusFilter.value
-                : "all";
-
-        const filtered =
-            users.filter(user => {
-
-                const searchable = [
-                    user.full_name,
-                    user.email,
-                    user.phone,
-                    user.organization_name,
-                    user.license_number,
-                    user.province,
-                    user.city,
-                    user.specialty,
-                    user.user_type,
-                    activityText(
-                        user.activity_types
-                    )
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase();
-
-                const matchesSearch =
-                    !query ||
-                    searchable.includes(query);
-
-                let matchesRole = true;
-
-                if (role !== "all") {
-
-                    if (
-                        role === "owner" ||
-                        role === "user"
-                    ) {
-                        matchesRole =
-                            user.role === role;
-                    } else {
-                        matchesRole =
-                            user.user_type === role;
-                    }
-                }
-
-                const matchesStatus =
-                    status === "all" ||
-                    user.status === status;
-
-                return (
-                    matchesSearch &&
-                    matchesRole &&
-                    matchesStatus
-                );
-            });
-
-        renderUsers(filtered);
-    }
-
-
-    /* =====================================================
-       DETAILS MODAL
-    ===================================================== */
+    /* -----------------------------------------------------
+       DETAILS
+    ----------------------------------------------------- */
 
     function openDetails(userId) {
 
         const user =
             users.find(
-                item =>
-                    String(item.user_id) ===
+                x =>
+                    String(x.user_id) ===
                     String(userId)
             );
 
-        if (!user) {
-            showMessage(
-                "اطلاعات کاربر پیدا نشد.",
-                "error"
-            );
-            return;
-        }
+        if (!user) return;
 
         selectedUser = user;
 
@@ -703,41 +709,35 @@
             $("ownerUserModal");
 
         if (!modal) {
-            showMessage(
-                "بخش جزئیات در HTML وجود ندارد.",
-                "error"
-            );
+
+            showUserDetailsFallback(user);
+
             return;
         }
 
         setText(
             "detailName",
-            user.full_name ||
-            "بدون نام"
+            user.full_name || "—"
         );
 
         setText(
             "detailEmail",
-            user.email
+            user.email || "—"
         );
 
         setText(
             "detailPhone",
-            user.phone
+            user.phone || "—"
         );
 
         setText(
             "detailRole",
-            roleLabel(
-                user.role
-            )
+            roleLabel(user.role)
         );
 
         setText(
             "detailUserType",
-            userTypeLabel(
-                user.user_type
-            )
+            userTypeLabel(user.user_type)
         );
 
         setText(
@@ -749,44 +749,53 @@
 
         setText(
             "detailOrganization",
-            user.organization_name
+            user.organization_name || "—"
         );
 
         setText(
             "detailLicense",
-            user.license_number
+            user.license_number || "—"
         );
 
         setText(
             "detailProvince",
-            user.province
+            user.province || "—"
         );
 
         setText(
             "detailCity",
-            user.city
+            user.city || "—"
         );
 
         setText(
             "detailSpecialty",
-            user.specialty
-        );
-
-        setText(
-            "detailNotes",
-            user.notes
+            user.specialty || "—"
         );
 
         setText(
             "detailStatus",
-            statusLabel(
-                user.status
-            )
+            statusLabel(user.status)
         );
 
         setText(
-            "detailActive",
-            user.is_active
+            "detailCreated",
+            formatDate(user.created_at)
+        );
+
+        setText(
+            "detailLastSeen",
+            formatDate(user.last_seen_at)
+        );
+
+        setText(
+            "detailCode",
+            user.professional_code ||
+            "کد ندارد"
+        );
+
+        setText(
+            "detailCodeStatus",
+            user.professional_code_active
                 ? "فعال"
                 : "غیرفعال"
         );
@@ -799,71 +808,61 @@
         );
 
         setText(
-            "detailCreated",
-            formatDate(
-                user.created_at
-            )
+            "detailNotes",
+            user.notes || "—"
         );
 
-        setText(
-            "detailUpdated",
-            formatDate(
-                user.updated_at
-            )
-        );
-
-        setText(
-            "detailLastSeen",
-            formatDate(
-                user.last_seen_at
-            )
-        );
-
-        setText(
-            "detailApproved",
-            formatDate(
-                user.approved_at
-            )
-        );
-
-        setText(
-            "detailCode",
-            user.professional_code ||
-            "کد حرفه‌ای ثبت نشده"
-        );
-
-        setText(
-            "detailCodeStatus",
-            user.professional_code_active
-                ? "فعال"
-                : "غیرفعال"
-        );
-
-        const codeSection =
+        const section =
             $("professionalCodeSection");
 
-        if (codeSection) {
-            codeSection.style.display =
+        if (section) {
+            section.style.display =
                 user.user_type
                     ? "block"
                     : "none";
         }
 
-        modal.style.display = "flex";
+        modal.style.display =
+            "flex";
 
         document.body.classList.add(
             "modal-open"
         );
     }
 
+    function showUserDetailsFallback(user) {
+
+        const information = [
+            `نام: ${user.full_name || "—"}`,
+            `ایمیل: ${user.email || "—"}`,
+            `شماره تماس: ${user.phone || "—"}`,
+            `نقش: ${roleLabel(user.role)}`,
+            `نوع کاربری: ${userTypeLabel(user.user_type)}`,
+            `فعالیت: ${activityText(user.activity_types)}`,
+            `مجموعه: ${user.organization_name || "—"}`,
+            `شماره مجوز: ${user.license_number || "—"}`,
+            `استان: ${user.province || "—"}`,
+            `شهر: ${user.city || "—"}`,
+            `تخصص: ${user.specialty || "—"}`,
+            `وضعیت: ${statusLabel(user.status)}`,
+            `کد حرفه‌ای: ${user.professional_code || "ندارد"}`,
+            `تأیید حرفه‌ای: ${user.is_verified ? "بله" : "خیر"}`
+        ];
+
+        alert(
+            information.join("\n")
+        );
+    }
 
     function closeDetails() {
+
         const modal =
             $("ownerUserModal");
 
         if (!modal) return;
 
-        modal.style.display = "none";
+        modal.style.display =
+            "none";
 
         document.body.classList.remove(
             "modal-open"
@@ -872,16 +871,13 @@
         selectedUser = null;
     }
 
-
-    /* =====================================================
+    /* -----------------------------------------------------
        PROFESSIONAL CODE
-    ===================================================== */
+    ----------------------------------------------------- */
 
     async function generateCode() {
 
-        if (!selectedUser) {
-            return;
-        }
+        if (!selectedUser) return;
 
         if (!selectedUser.user_type) {
 
@@ -897,7 +893,9 @@
             $("generateProfessionalCodeBtn");
 
         if (button) {
+
             button.disabled = true;
+
             button.textContent =
                 "در حال تولید...";
         }
@@ -907,17 +905,16 @@
             const {
                 data,
                 error
-            } = await supabaseClient.rpc(
-                "owner_generate_professional_code",
-                {
-                    p_user_id:
-                        selectedUser.user_id
-                }
-            );
+            } =
+                await supabaseClient.rpc(
+                    "owner_generate_professional_code",
+                    {
+                        p_user_id:
+                            selectedUser.user_id
+                    }
+                );
 
-            if (error) {
-                throw error;
-            }
+            if (error) throw error;
 
             selectedUser.professional_code =
                 data;
@@ -935,22 +932,23 @@
                 "فعال"
             );
 
-            applyFilters();
+            renderTable(
+                getFilteredUsers()
+            );
 
             showMessage(
-                "کد حرفه‌ای با موفقیت ایجاد / تغییر کرد.",
-                "success"
+                "کد حرفه‌ای با موفقیت ایجاد شد."
             );
 
         } catch (error) {
 
             console.error(
-                "PROFESSIONAL CODE ERROR:",
+                "GENERATE CODE ERROR:",
                 error
             );
 
             showMessage(
-                error?.message ||
+                error.message ||
                 "تولید کد حرفه‌ای ناموفق بود.",
                 "error"
             );
@@ -958,113 +956,116 @@
         } finally {
 
             if (button) {
+
                 button.disabled = false;
+
                 button.textContent =
                     "تولید / تغییر کد";
             }
         }
     }
 
+    /* -----------------------------------------------------
+       FILTERS
+    ----------------------------------------------------- */
 
-    /* =====================================================
-       LOGOUT
-    ===================================================== */
-
-    async function logout() {
-
-        try {
-
-            const {
-                error
-            } = await supabaseClient.auth.signOut();
-
-            if (error) {
-                throw error;
-            }
-
-            window.location.href =
-                "login.html";
-
-        } catch (error) {
-
-            console.error(
-                "LOGOUT ERROR:",
-                error
-            );
-
-            showMessage(
-                error?.message ||
-                "خروج از سامانه ناموفق بود.",
-                "error"
-            );
-        }
-    }
-
-
-    /* =====================================================
-       EVENTS
-    ===================================================== */
-
-    function bindEvents() {
+    function getFilteredUsers() {
 
         const search =
             $("userSearch");
 
-        if (search) {
-            search.addEventListener(
-                "input",
-                applyFilters
-            );
-        }
-
-        const roleFilter =
+        const role =
             $("roleFilter");
 
-        if (roleFilter) {
-            roleFilter.addEventListener(
-                "change",
-                applyFilters
-            );
-        }
-
-        const statusFilter =
+        const status =
             $("statusFilter");
 
-        if (statusFilter) {
-            statusFilter.addEventListener(
-                "change",
-                applyFilters
-            );
-        }
+        const query =
+            search
+                ? search.value
+                    .trim()
+                    .toLowerCase()
+                : "";
 
-        const refresh =
-            $("refreshButton");
+        const roleValue =
+            role
+                ? role.value
+                : "all";
 
-        if (refresh) {
-            refresh.addEventListener(
-                "click",
-                async function () {
+        const statusValue =
+            status
+                ? status.value
+                : "all";
 
-                    refresh.disabled = true;
+        return users.filter(user => {
 
-                    try {
-                        await loadUsers();
-                    } finally {
-                        refresh.disabled = false;
-                    }
+            const searchable = [
+                user.full_name,
+                user.email,
+                user.phone,
+                user.organization_name,
+                user.license_number,
+                user.city,
+                user.province,
+                user.specialty,
+                user.user_type
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            const searchOK =
+                !query ||
+                searchable.includes(query);
+
+            let roleOK =
+                roleValue === "all";
+
+            if (!roleOK) {
+
+                if (
+                    roleValue === "owner"
+                ) {
+                    roleOK =
+                        user.role === "owner";
                 }
-            );
-        }
+                else if (
+                    roleValue === "user"
+                ) {
+                    roleOK =
+                        user.role === "user";
+                }
+                else {
+                    roleOK =
+                        user.user_type ===
+                        roleValue;
+                }
+            }
 
-        const logout =
-            $("logoutButton");
+            const statusOK =
+                statusValue === "all" ||
+                user.status === statusValue;
 
-        if (logout) {
-            logout.addEventListener(
-                "click",
-                logout
+            return (
+                searchOK &&
+                roleOK &&
+                statusOK
             );
-        }
+        });
+    }
+
+    function applyFilters() {
+
+        renderTable(
+            getFilteredUsers()
+        );
+    }
+
+    /* -----------------------------------------------------
+       EVENTS
+    ----------------------------------------------------- */
+
+    function bindEvents() {
 
         document.addEventListener(
             "click",
@@ -1080,13 +1081,15 @@
                 const action =
                     button.dataset.action;
 
-                if (action === "details") {
+                if (
+                    action ===
+                    "details"
+                ) {
 
                     openDetails(
                         button.dataset.userId
                     );
                 }
-
             }
         );
 
@@ -1094,6 +1097,7 @@
             $("closeOwnerModal");
 
         if (closeButton) {
+
             closeButton.addEventListener(
                 "click",
                 closeDetails
@@ -1115,19 +1119,96 @@
                     ) {
                         closeDetails();
                     }
-
                 }
             );
         }
 
-        const generateButton =
+        const search =
+            $("userSearch");
+
+        if (search) {
+
+            search.addEventListener(
+                "input",
+                applyFilters
+            );
+        }
+
+        const roleFilter =
+            $("roleFilter");
+
+        if (roleFilter) {
+
+            roleFilter.addEventListener(
+                "change",
+                applyFilters
+            );
+        }
+
+        const statusFilter =
+            $("statusFilter");
+
+        if (statusFilter) {
+
+            statusFilter.addEventListener(
+                "change",
+                applyFilters
+            );
+        }
+
+        const refresh =
+            $("refreshButton");
+
+        if (refresh) {
+
+            refresh.addEventListener(
+                "click",
+                loadUsers
+            );
+        }
+
+        const generate =
             $("generateProfessionalCodeBtn");
 
-        if (generateButton) {
+        if (generate) {
 
-            generateButton.addEventListener(
+            generate.addEventListener(
                 "click",
                 generateCode
+            );
+        }
+
+        const logout =
+            $("logoutButton");
+
+        if (logout) {
+
+            logout.addEventListener(
+                "click",
+                async function () {
+
+                    try {
+
+                        await supabaseClient
+                            .auth
+                            .signOut();
+
+                        window.location.href =
+                            "login.html";
+
+                    } catch (error) {
+
+                        console.error(
+                            "LOGOUT ERROR:",
+                            error
+                        );
+
+                        showMessage(
+                            "خروج از سامانه ناموفق بود.",
+                            "error"
+                        );
+                    }
+                }
             );
         }
 
@@ -1141,15 +1222,13 @@
                 ) {
                     closeDetails();
                 }
-
             }
         );
     }
 
-
-    /* =====================================================
+    /* -----------------------------------------------------
        INIT
-    ===================================================== */
+    ----------------------------------------------------- */
 
     async function init() {
 
@@ -1169,13 +1248,17 @@
             );
 
             showMessage(
-                error?.message ||
+                error.message ||
                 "خطا در دسترسی به پنل مالک.",
                 "error"
             );
+
+            renderEmpty(
+                error.message ||
+                "دسترسی به پنل مالک امکان‌پذیر نیست."
+            );
         }
     }
-
 
     if (
         document.readyState ===
@@ -1185,9 +1268,7 @@
         document.addEventListener(
             "DOMContentLoaded",
             init,
-            {
-                once: true
-            }
+            { once: true }
         );
 
     } else {

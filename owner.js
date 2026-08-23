@@ -17,22 +17,117 @@ function normalize(r){return{id:r.id||r.user_id,user_id:r.user_id||r.id,full_nam
 async function getClient(){for(let i=0;i<100;i++){if(window.supabaseClient?.auth)return window.supabaseClient;try{if(typeof supabaseClient!=="undefined"&&supabaseClient?.auth)return supabaseClient}catch(_){}await sleep(80)}throw new Error("اتصال Supabase آماده نشد.");}
 async function getUser(){const {data,error}=await client.auth.getUser();if(error)throw error;if(!data?.user)throw new Error("جلسه ورود پیدا نشد. دوباره وارد سامانه شوید.");return data.user;}
 async function verifyOwner(u){const {data,error}=await client.from("profiles").select("id,email,full_name,role,status,is_active").eq("id",u.id).maybeSingle();if(error)throw error;if(!data||data.role!=="owner"||data.status!=="active"||data.is_active!==true)throw new Error("این حساب مالک فعال سامانه نیست.");const e=$("ownerIdentity");if(e)e.textContent=`مالک: ${data.full_name||"دکتر ادینه"} | ${data.email||u.email||"—"}`;}
-async function rpc(name,args={}){const {data,error}=await client.rpc(name,args);if(error)throw error;return data;}
+function faError(error, fallback="انجام عملیات ناموفق بود."){
+  const raw=String(error?.message||error?.details||error?.hint||error||"");
+  const map=[
+    [/column .*full_name.*user_activity_logs/i,"ثبت فعالیت سامانه با ساختار پایگاه داده هماهنگ نیست. لطفاً migration بخش مالک را اجرا کنید."],
+    [/not found|does not exist|could not find the function/i,"عملیات موردنظر در پایگاه داده سامانه پیدا نشد."],
+    [/permission denied|row-level security|rls/i,"دسترسی لازم برای انجام این عملیات وجود ندارد."],
+    [/jwt|session|auth/i,"نشست ورود شما معتبر نیست. لطفاً دوباره وارد سامانه شوید."],
+    [/duplicate|already exists|unique/i,"این اطلاعات قبلاً ثبت شده است."],
+    [/owner/i,"این عملیات فقط برای مالک فعال سامانه مجاز است."],
+    [/کاربر موردنظر پیدا نشد/i,"کاربر موردنظر پیدا نشد."],
+    [/کد حرفه‌ای/i,raw],
+    [/نام و نام خانوادگی/i,raw]
+  ];
+  for(const [re,msg] of map) if(re.test(raw)) return msg;
+  if(/^[\u0600-\u06ff\s،؛:()._\-0-9]+$/.test(raw)&&raw.length<220) return raw;
+  return fallback;
+}
+async function rpc(name,args={}){const {data,error}=await client.rpc(name,args);if(error){console.error("RPC",name,error);throw new Error(faError(error));}return data;}
 async function loadDirectory(){const data=await rpc("owner_get_user_directory");return Array.isArray(data)?data.map(normalize).filter(x=>x.id):[];}
-async function loadDirectFallback(){const {data,error}=await client.from("profiles").select("id,full_name,email,phone,role,status,is_active,created_at,updated_at,last_seen_at,approved_at").order("created_at",{ascending:false});if(error)throw error;const rows=data||[],ids=rows.map(x=>x.id).filter(Boolean),pm=new Map(),cm=new Map();if(ids.length){const [p,c]=await Promise.all([client.from("professional_profiles").select("user_id,user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified").in("user_id",ids),client.from("professional_access_codes").select("user_id,access_code,is_active,created_at,updated_at").in("user_id",ids)]);(p.data||[]).forEach(x=>pm.set(x.user_id,x));(c.data||[]).forEach(x=>cm.set(x.user_id,x));}return rows.map(x=>normalize({...x,...(pm.get(x.id)||{}),...(cm.get(x.id)||{})}));}
-async function loadUsers(){if(busy)return;busy=true;const b=$("usersTableBody");if(b)b.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px">در حال بارگذاری اطلاعات کاربران...</td></tr>';clearNotify();try{client=await getClient();const u=await getUser();await verifyOwner(u);try{users=await loadDirectory();}catch(e){console.warn("owner_get_user_directory failed",e);users=await loadDirectFallback();}render();await loadStatistics();await loadActivity();notify(`اطلاعات ${fa(users.length)} کاربر بارگذاری شد.`,"success");}catch(e){console.error("OWNER LOAD",e);users=[];render();notify(e?.message||"خطا در دریافت اطلاعات پنل مدیریت.","error");}finally{busy=false;}}
-async function loadStatistics(){try{const d=await rpc("owner_get_statistics");const r=Array.isArray(d)?d[0]:d;if(!r)return;$("statTotal").textContent=fa(r.total_users);$("statActive").textContent=fa(r.active_users);$("statPending").textContent=fa(r.pending_users);$("statSuspended").textContent=fa(r.suspended_users);$("statBlocked").textContent=fa(Number(r.blocked_users||0)+Number(r.removed_users||0));$("statSpecialists").textContent=fa(Number(r.veterinarians||0)+Number(r.technical_veterinarians||0)+Number(r.laboratories||0)+Number(r.technical_experts||0));}catch(e){console.warn("STATISTICS",e);renderStatsLocal();}}
-function renderStatsLocal(){$("statTotal").textContent=fa(users.length);$("statActive").textContent=fa(users.filter(x=>x.status==="active"&&x.is_active).length);$("statPending").textContent=fa(users.filter(x=>x.status==="pending").length);$("statSuspended").textContent=fa(users.filter(x=>x.status==="suspended").length);$("statBlocked").textContent=fa(users.filter(x=>["blocked","removed"].includes(x.status)).length);$("statSpecialists").textContent=fa(users.filter(x=>["veterinarian","technical_veterinarian","veterinary_lab","diagnostic_lab","poultry_technical_expert"].includes(x.user_type)).length);}
+async function loadUsers(){if(busy)return;busy=true;const b=$("usersTableBody");if(b)b.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px">در حال بارگذاری اطلاعات کاربران...</td></tr>';clearNotify();try{client=await getClient();const u=await getUser();await verifyOwner(u);users=await loadDirectory();render();await loadStatistics();await loadActivity();notify(`اطلاعات ${fa(users.length)} کاربر بارگذاری شد.`,"success");}catch(e){console.error("OWNER LOAD",e);users=[];render();notify(faError(e,"خطا در دریافت اطلاعات پنل مدیریت."),"error");}finally{busy=false;}}
+async function loadStatistics(){try{const d=await rpc("owner_get_statistics");const r=Array.isArray(d)?d[0]:d;if(!r)return;$("statTotal").textContent=fa(r.total_users);$("statActive").textContent=fa(r.active_users);$("statPending").textContent=fa(r.pending_users);$("statSuspended").textContent=fa(r.suspended_users);$("statBlocked").textContent=fa(Number(r.blocked_users||0)+Number(r.removed_users||0));$("statSpecialists").textContent=fa(Number(r.veterinarians||0)+Number(r.technical_veterinarians||0)+Number(r.operators||0)+Number(r.managers||0)+Number(r.laboratories||0)+Number(r.technical_experts||0));}catch(e){console.warn("STATISTICS",e);renderStatsLocal();}}
+function renderStatsLocal(){$("statTotal").textContent=fa(users.length);$("statActive").textContent=fa(users.filter(x=>x.status==="active"&&x.is_active).length);$("statPending").textContent=fa(users.filter(x=>x.status==="pending").length);$("statSuspended").textContent=fa(users.filter(x=>x.status==="suspended").length);$("statBlocked").textContent=fa(users.filter(x=>["blocked","removed"].includes(x.status)).length);$("statSpecialists").textContent=fa(users.filter(x=>["veterinarian","technical_veterinarian","poultry_operator","farm_operator","poultry_manager","farm_manager","veterinary_lab","diagnostic_lab","poultry_technical_expert","organization_manager","company_manager"].includes(x.user_type)).length);}
 async function loadActivity(){const box=$("activityList");if(!box)return;try{const d=await rpc("owner_get_activity");const a=Array.isArray(d)?d:[];box.innerHTML=a.length?a.slice(0,30).map(x=>`<div class="activity-item"><strong>${esc(x.full_name||"کاربر")}</strong> — ${esc(x.action||"فعالیت")}${x.page?`<span>صفحه: ${esc(x.page)}</span>`:""}<span>${dateFa(x.created_at)}${x.details?` | ${esc(typeof x.details==="string"?x.details:JSON.stringify(x.details))}`:""}</span></div>`).join(""):'<div class="muted">فعالیتی ثبت نشده است.</div>';}catch(e){box.innerHTML='<div class="muted">اطلاعات فعالیت در دسترس نیست.</div>';}}
 function filtered(){const q=String($("userSearch")?.value||"").trim().toLowerCase(),r=$("roleFilter")?.value||"",s=$("statusFilter")?.value||"";return users.filter(u=>{const hay=[u.full_name,u.email,u.phone,u.user_type,u.organization_name,u.license_number,u.province,u.city,u.specialty].join(" ").toLowerCase();return(!q||hay.includes(q))&&(!r||u.role===r)&&(!s||u.status===s)});}
-function render(){renderStatsLocal();const b=$("usersTableBody");if(!b)return;const list=filtered();if(!list.length){b.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:#75827c">کاربری مطابق فیلترها پیدا نشد.</td></tr>';return;}b.innerHTML=list.map(u=>`<tr><td><strong class="name">${esc(u.full_name||"بدون نام")}</strong><span class="muted">${esc(text(roleLabels,u.role))}</span></td><td>${esc(u.email||"—")}<span class="muted" dir="ltr">${esc(u.phone||"—")}</span></td><td><span class="badge">${esc(text(typeLabels,u.user_type))}</span><span class="muted">${activityText(u.activity_types)}</span></td><td>${u.is_verified?'<span class="badge verified">تأیید حرفه‌ای</span>':'<span class="muted">تأیید نشده</span>'}<span class="muted">${u.professional_code_active?'کد فعال':'کد غیرفعال / ندارد'}</span></td><td><span class="badge ${esc(u.status)}">${esc(text(statusLabels,u.status))}</span></td><td>${dateFa(u.created_at)}</td><td>${dateFa(u.last_seen_at||u.updated_at)}</td><td><div class="actions"><button class="action" data-action="open" data-id="${esc(u.id)}">جزئیات</button></div></td></tr>`).join("");}
+function render(){renderStatsLocal();const b=$("usersTableBody");if(!b)return;const list=filtered();if(!list.length){b.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;color:#75827c">کاربری مطابق فیلترها پیدا نشد.</td></tr>';return;}b.innerHTML=list.map(u=>`<tr><td><strong class="name">${esc(u.full_name||"بدون نام")}</strong><span class="muted">${esc(text(roleLabels,u.role))}</span></td><td>${esc(u.email||"—")}<span class="muted" dir="ltr">${esc(u.phone||"—")}</span></td><td><span class="badge">${esc(text(typeLabels,u.user_type))}</span><span class="muted">${activityText(u.activity_types)}</span></td><td>${u.is_verified?'<span class="badge verified">تأیید حرفه‌ای</span>':'<span class="muted">تأیید نشده</span>'}<span class="muted">${u.professional_code_active?'کد فعال':'کد غیرفعال / ندارد'}</span></td><td><span class="badge ${esc(u.status)}">${esc(text(statusLabels,u.status))}</span></td><td>${dateFa(u.created_at)}</td><td>${dateFa(u.last_seen_at||u.updated_at)}</td><td><div class="actions"><button class="action" data-action="open" data-id="${esc(u.id)}">جزئیات</button><button class="action" data-action="code" data-id="${esc(u.id)}">کد</button><button class="action" data-action="status" data-id="${esc(u.id)}">وضعیت</button></div></td></tr>`).join("");}
 function setVal(id,v){const e=$(id);if(e)e.value=v==null?"":v;}
 function openModal(u){selected=u;setVal("editFullName",u.full_name);setVal("editEmail",u.email);setVal("editPhone",u.phone);setVal("editRole",u.role);setVal("editStatus",u.status);setVal("editActive",u.is_active?"true":"false");setVal("editUserType",u.user_type||"other");setVal("editOrganization",u.organization_name);setVal("editLicense",u.license_number);setVal("editProvince",u.province);setVal("editCity",u.city);setVal("editSpecialty",u.specialty);setVal("editNotes",u.notes);setVal("editVerified",u.is_verified?"true":"false");const acts=Array.isArray(u.activity_types)?u.activity_types:[];document.querySelectorAll("#editActivities input").forEach(c=>c.checked=acts.includes(c.value));$("currentCode").textContent=u.professional_code||"کد ندارد";$("codeState").textContent=u.professional_code_active?"فعال":"غیرفعال";$("codeState").className="badge "+(u.professional_code_active?"active":"removed");$("createdState").textContent=dateFa(u.created_at);$("seenState").textContent=dateFa(u.last_seen_at||u.updated_at);$("modalSubtitle").textContent=`${u.full_name||"بدون نام"} | ${u.email||"بدون ایمیل"}`;$("userModal").classList.remove("hidden");document.body.classList.add("modal-open");}
 function closeModal(){$("userModal").classList.add("hidden");document.body.classList.remove("modal-open");selected=null;}
-async function saveUser(){if(!selected)return;const btn=$("saveUser");btn.disabled=true;try{const uid=selected.id,full=$("editFullName").value.trim();if(!full)throw new Error("نام کاربر نمی‌تواند خالی باشد.");if(selected.role!=="owner"&&$("editRole").value==="owner")throw new Error("ایجاد مالک دیگر از پنل مدیریت مجاز نیست.");if(selected.id===(await getUser()).id&&($("editRole").value!=="owner"||$("editStatus").value!=="active"||$("editActive").value!=="true"))throw new Error("وضعیت یا نقش مالک اصلی قابل تغییر نیست.");await rpc("owner_set_user_role",{p_user_id:uid,p_role:$("editRole").value});await rpc("owner_set_user_status",{target_user_id:uid,new_status:$("editStatus").value});const {error:pe}=await client.from("profiles").update({full_name:full,email:$("editEmail").value.trim()||null,phone:$("editPhone").value.trim()||null,is_active:$("editActive").value==="true"}).eq("id",uid);if(pe)throw pe;const acts=[...document.querySelectorAll("#editActivities input:checked")].map(x=>x.value);await rpc("owner_update_professional_profile",{p_user_id:uid,p_user_type:$("editUserType").value,p_activity_types:acts,p_organization_name:$("editOrganization").value.trim()||null,p_license_number:$("editLicense").value.trim()||null,p_province:$("editProvince").value.trim()||null,p_city:$("editCity").value.trim()||null,p_specialty:$("editSpecialty").value.trim()||null,p_notes:$("editNotes").value.trim()||null,p_is_verified:$("editVerified").value==="true"});notify("اطلاعات کاربر با موفقیت ذخیره شد.","success");await loadUsers();const fresh=users.find(x=>x.id===uid);if(fresh)openModal(fresh);}catch(e){console.error("SAVE",e);notify(e?.message||"ذخیره اطلاعات ناموفق بود.","error");}finally{btn.disabled=false;}}
-async function generateCode(){if(!selected)return;const btn=$("generateCode");btn.disabled=true;try{const code=await rpc("owner_generate_professional_code",{p_user_id:selected.id});if(!code)throw new Error("کد از سرور دریافت نشد.");selected.professional_code=String(code);selected.access_code=String(code);selected.professional_code_active=true;$("currentCode").textContent=String(code);$("codeState").textContent="فعال";$("codeState").className="badge active";render();notify("کد حرفه‌ای با موفقیت ایجاد / تغییر کرد.","success");}catch(e){console.error("CODE",e);notify(e?.message||"تولید کد حرفه‌ای ناموفق بود.","error");}finally{btn.disabled=false;}}
-async function toggleCode(){if(!selected||!selected.professional_code)return notify("ابتدا برای این کاربر کد حرفه‌ای تولید کنید.","error");const btn=$("toggleCode");btn.disabled=true;try{const d=await rpc("owner_set_professional_code_status",{p_user_id:selected.id,p_is_active:!selected.professional_code_active});const row=Array.isArray(d)?d[0]:d;selected.professional_code_active=!!row?.is_active;$("codeState").textContent=selected.professional_code_active?"فعال":"غیرفعال";$("codeState").className="badge "+(selected.professional_code_active?"active":"removed");render();notify(selected.professional_code_active?"کد فعال شد.":"کد غیرفعال شد.","success");}catch(e){console.error("TOGGLE CODE",e);notify(e?.message||"تغییر وضعیت کد ناموفق بود.","error");}finally{btn.disabled=false;}}
-function bind(){if(initialized)return;initialized=true;$("usersTableBody").addEventListener("click",e=>{const b=e.target.closest('[data-action="open"]');if(!b)return;const u=users.find(x=>String(x.id)===String(b.dataset.id));if(u)openModal(u);});$("userSearch").addEventListener("input",render);$("roleFilter").addEventListener("change",render);$("statusFilter").addEventListener("change",render);$("refreshButton").addEventListener("click",loadUsers);$("refreshUsers").addEventListener("click",loadUsers);$("saveUser").addEventListener("click",saveUser);$("generateCode").addEventListener("click",generateCode);$("toggleCode").addEventListener("click",toggleCode);$("closeModal").addEventListener("click",closeModal);$("closeModal2").addEventListener("click",closeModal);$("userModal").addEventListener("click",e=>{if(e.target===$("userModal"))closeModal();});$("logoutButton").addEventListener("click",async()=>{try{client=client||await getClient();await client.auth.signOut();location.href="login.html";}catch(e){notify(e.message||"خروج ناموفق بود.","error");}});document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));b.classList.add("active");$("tab-"+b.dataset.tab).classList.add("active");}));document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("userModal").classList.contains("hidden"))closeModal();});}
+async function saveUser(){
+  if(!selected)return;
+  const btn=$("saveUser");
+  btn.disabled=true;
+  try{
+    const uid=selected.id;
+    const full=$("editFullName").value.trim();
+    const role=$("editRole").value;
+    const status=$("editStatus").value;
+    const active=$("editActive").value==="true";
+    const current=await getUser();
+    if(!full)throw new Error("نام و نام خانوادگی نمی‌تواند خالی باشد.");
+    if(selected.role!=="owner"&&role==="owner")throw new Error("ایجاد مالک دیگر از پنل مدیریت مجاز نیست.");
+    if(uid===current.id&&(role!=="owner"||status!=="active"||!active))throw new Error("وضعیت یا نقش مالک اصلی قابل تغییر نیست.");
+    if((status==="active")!==active)throw new Error("فعال بودن حساب باید با وضعیت حساب هماهنگ باشد.");
+    const acts=[...document.querySelectorAll("#editActivities input:checked")].map(x=>x.value);
+    await rpc("owner_save_user",{
+      p_user_id:uid,
+      p_full_name:full,
+      p_phone:$("editPhone").value.trim()||null,
+      p_email:$("editEmail").value.trim()||null,
+      p_role:role,
+      p_status:status,
+      p_is_active:active,
+      p_user_type:$("editUserType").value,
+      p_activity_types:acts,
+      p_organization_name:$("editOrganization").value.trim()||null,
+      p_license_number:$("editLicense").value.trim()||null,
+      p_province:$("editProvince").value.trim()||null,
+      p_city:$("editCity").value.trim()||null,
+      p_specialty:$("editSpecialty").value.trim()||null,
+      p_notes:$("editNotes").value.trim()||null,
+      p_is_verified:$("editVerified").value==="true"
+    });
+    notify("تغییرات با موفقیت و به‌صورت کامل ذخیره شد.","success");
+    await loadUsers();
+    const fresh=users.find(x=>String(x.id)===String(uid));
+    if(fresh)openModal(fresh);
+  }catch(e){
+    console.error("SAVE",e);
+    notify(faError(e,"ذخیره تغییرات انجام نشد."),"error");
+  }finally{btn.disabled=false;}
+}
+async function generateCode(){
+  if(!selected)return;
+  const btn=$("generateCode");btn.disabled=true;
+  try{
+    const uid=selected.id;
+    const code=await rpc("owner_generate_professional_code",{p_user_id:uid});
+    if(!code)throw new Error("کد از سرور دریافت نشد.");
+    await loadUsers();
+    const fresh=users.find(x=>String(x.id)===String(uid));
+    if(fresh)openModal(fresh);
+    notify("کد حرفه‌ای با موفقیت در پایگاه داده ذخیره شد.","success");
+  }catch(e){
+    console.error("CODE",e);
+    notify(faError(e,"تولید کد حرفه‌ای انجام نشد."),"error");
+  }finally{btn.disabled=false;}
+}
+async function toggleCode(){
+  if(!selected||!selected.professional_code)return notify("ابتدا برای این کاربر کد حرفه‌ای تولید کنید.","error");
+  const btn=$("toggleCode");btn.disabled=true;
+  try{
+    const uid=selected.id;
+    await rpc("owner_set_professional_code_status",{p_user_id:uid,p_is_active:!selected.professional_code_active});
+    await loadUsers();
+    const fresh=users.find(x=>String(x.id)===String(uid));
+    if(fresh)openModal(fresh);
+    notify("وضعیت کد حرفه‌ای با موفقیت ذخیره شد.","success");
+  }catch(e){
+    console.error("TOGGLE CODE",e);
+    notify(faError(e,"تغییر وضعیت کد انجام نشد."),"error");
+  }finally{btn.disabled=false;}
+}
+async function quickCode(uid){
+  const u=users.find(x=>String(x.id)===String(uid));if(!u)return;
+  selected=u;await generateCode();
+}
+function quickStatus(uid){
+  const u=users.find(x=>String(x.id)===String(uid));if(u)openModal(u);
+  const e=$("editStatus");if(e)e.focus();
+}
+function bind(){if(initialized)return;initialized=true;$("usersTableBody").addEventListener("click",async e=>{const b=e.target.closest("[data-action]");if(!b)return;const u=users.find(x=>String(x.id)===String(b.dataset.id));if(!u)return;const action=b.dataset.action;if(action==="open")openModal(u);else if(action==="code")await quickCode(u.id);else if(action==="status")quickStatus(u.id);});$("userSearch").addEventListener("input",render);$("roleFilter").addEventListener("change",render);$("statusFilter").addEventListener("change",render);$("refreshButton").addEventListener("click",loadUsers);$("refreshUsers").addEventListener("click",loadUsers);$("saveUser").addEventListener("click",saveUser);$("generateCode").addEventListener("click",generateCode);$("toggleCode").addEventListener("click",toggleCode);$("closeModal").addEventListener("click",closeModal);$("closeModal2").addEventListener("click",closeModal);$("userModal").addEventListener("click",e=>{if(e.target===$("userModal"))closeModal();});$("logoutButton").addEventListener("click",async()=>{try{client=client||await getClient();await client.auth.signOut();location.href="login.html";}catch(e){notify(faError(e,"خروج از سامانه ناموفق بود."),"error");}});document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));b.classList.add("active");$("tab-"+b.dataset.tab).classList.add("active");}));document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("userModal").classList.contains("hidden"))closeModal();});}
 async function init(){try{bind();await loadUsers();}catch(e){console.error(e);notify(e.message||"خطای راه‌اندازی پنل مالک.","error");}}
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();

@@ -65,7 +65,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             email,
                             {
                                 redirectTo:
-                                    redirectTo:
     "https://dradine.github.io/Adine-poultry-health-center/update-password.html?v=20260819"
                             }
                         );

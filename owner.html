@@ -49,9 +49,10 @@ body.modal-open{
 }
 
 .owner-header-inner{
-    max-width:1250px;
+    max-width:1280px;
     margin:auto;
-    padding:15px 18px;
+    padding:14px 18px;
+
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -62,15 +63,17 @@ body.modal-open{
     display:flex;
     align-items:center;
     gap:12px;
+    min-width:0;
 }
 
 .brand-mark{
-    width:42px;
-    height:42px;
+    width:44px;
+    height:44px;
     border-radius:12px;
     background:#fff;
     object-fit:contain;
     padding:4px;
+    flex:none;
 }
 
 .brand-title h1{
@@ -79,9 +82,15 @@ body.modal-open{
 }
 
 .brand-title p{
-    font-size:12px;
+    font-size:11px;
     margin:4px 0 0;
     opacity:.8;
+}
+
+.owner-header-actions{
+    display:flex;
+    align-items:center;
+    gap:8px;
 }
 
 /* =========================================================
@@ -89,19 +98,32 @@ body.modal-open{
 ========================================================= */
 
 .owner-main{
-    max-width:1250px;
+    max-width:1280px;
     margin:auto;
-    padding:22px 16px 40px;
+    padding:22px 16px 50px;
 }
+
+/* =========================================================
+   HERO
+========================================================= */
 
 .hero{
     background:#fff;
     border-radius:20px;
     padding:20px;
     margin-bottom:16px;
+
     box-shadow:
         0 7px 25px rgba(20,60,45,.07);
+
     border:1px solid #e5ebe8;
+}
+
+.hero-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
 }
 
 .hero h2{
@@ -116,6 +138,13 @@ body.modal-open{
     line-height:1.9;
 }
 
+.owner-identity{
+    margin-top:10px;
+    font-size:12px;
+    color:#496158;
+    line-height:1.8;
+}
+
 /* =========================================================
    STATS
 ========================================================= */
@@ -123,9 +152,10 @@ body.modal-open{
 .stats{
     display:grid;
     grid-template-columns:
-        repeat(4,1fr);
-    gap:12px;
-    margin-top:16px;
+        repeat(6,1fr);
+
+    gap:10px;
+    margin-top:18px;
 }
 
 .stat{
@@ -139,6 +169,7 @@ body.modal-open{
     display:block;
     font-size:22px;
     color:#173f35;
+    margin-bottom:5px;
 }
 
 .stat span{
@@ -147,8 +178,51 @@ body.modal-open{
 }
 
 /* =========================================================
-   TOOLBAR
+   MESSAGE
 ========================================================= */
+
+.owner-status{
+    display:none;
+}
+
+.owner-status.success{
+    display:block;
+    padding:12px 14px;
+    border-radius:12px;
+    margin-bottom:14px;
+    font-size:13px;
+    line-height:1.8;
+
+    background:#e7f6ec;
+    color:#17603f;
+}
+
+.owner-status.error{
+    display:block;
+    padding:12px 14px;
+    border-radius:12px;
+    margin-bottom:14px;
+    font-size:13px;
+    line-height:1.8;
+
+    background:#ffebee;
+    color:#a51f2a;
+}
+
+/* =========================================================
+   TABLE CARD
+========================================================= */
+
+.table-card{
+    background:#fff;
+    border-radius:20px;
+    padding:16px;
+
+    box-shadow:
+        0 7px 25px rgba(20,60,45,.07);
+
+    border:1px solid #e5ebe8;
+}
 
 .toolbar{
     display:flex;
@@ -160,30 +234,61 @@ body.modal-open{
 
 .search{
     flex:1;
-    min-width:220px;
+    min-width:240px;
+
     border:1px solid #dbe4df;
     border-radius:12px;
+
     padding:11px 13px;
+
     font:inherit;
     background:#fff;
+
+    outline:none;
+}
+
+.search:focus{
+    border-color:#173f35;
+    box-shadow:
+        0 0 0 3px rgba(23,63,53,.08);
 }
 
 .filter{
     border:1px solid #dbe4df;
     border-radius:12px;
+
     padding:11px 12px;
+
     background:#fff;
     font:inherit;
+
+    outline:none;
 }
 
 .btn{
     border:0;
     border-radius:11px;
+
     padding:10px 14px;
+
     font:inherit;
     font-size:13px;
     font-weight:700;
+
     cursor:pointer;
+
+    transition:
+        transform .15s ease,
+        opacity .15s ease;
+}
+
+.btn:active{
+    transform:scale(.98);
+}
+
+.btn:disabled{
+    opacity:.55;
+    cursor:not-allowed;
 }
 
 .btn-primary{
@@ -201,68 +306,33 @@ body.modal-open{
     color:#9b2424;
 }
 
-.btn-warning{
-    background:#fff3d9;
-    color:#8a6100;
-}
-
-.btn-success{
-    background:#e5f7ec;
-    color:#17653d;
-}
-
-.btn:disabled{
-    opacity:.55;
-    cursor:not-allowed;
+.btn-small{
+    padding:7px 10px;
+    font-size:11px;
 }
 
 /* =========================================================
-   MESSAGE
+   LOADING
 ========================================================= */
 
-.message{
-    padding:12px 14px;
-    border-radius:12px;
-    margin-bottom:14px;
-    font-size:13px;
-    line-height:1.8;
-}
-
-.message.hidden{
+.owner-loading{
     display:none;
-}
 
-.message.success{
-    background:#e7f6ec;
-    color:#17603f;
-}
+    text-align:center;
+    padding:18px;
 
-.message.error{
-    background:#ffebee;
-    color:#a51f2a;
-}
-
-.message.info{
-    background:#edf5ff;
-    color:#245d91;
+    color:#697670;
+    font-size:12px;
 }
 
 /* =========================================================
    TABLE
 ========================================================= */
 
-.table-card{
-    background:#fff;
-    border-radius:20px;
-    padding:16px;
-    box-shadow:
-        0 7px 25px rgba(20,60,45,.07);
-    border:1px solid #e5ebe8;
-}
-
 .table-wrap{
     width:100%;
     overflow:auto;
+
     border:1px solid #e6ece9;
     border-radius:14px;
 }
@@ -270,22 +340,29 @@ body.modal-open{
 .users-table{
     width:100%;
     min-width:1100px;
+
     border-collapse:collapse;
 }
 
 .users-table th,
 .users-table td{
     padding:12px 10px;
-    border-bottom:1px solid #e7ece9;
+
+    border-bottom:
+        1px solid #e7ece9;
+
     text-align:right;
     vertical-align:middle;
+
     font-size:12px;
 }
 
 .users-table th{
     background:#f3f7f5;
     color:#274538;
+
     font-size:12px;
+
     position:sticky;
     top:0;
     z-index:2;
@@ -300,83 +377,102 @@ body.modal-open{
     color:#173f35;
 }
 
-.muted{
-    display:block;
-    color:#7a8581;
-    font-size:10px;
-    margin-top:4px;
-    direction:ltr;
-    text-align:right;
-}
-
-.badge{
+.owner-code{
     display:inline-flex;
     align-items:center;
-    gap:5px;
+
     padding:5px 9px;
+
+    border-radius:8px;
+
+    background:#f0f4f2;
+    color:#173f35;
+
+    font-weight:800;
+    letter-spacing:1px;
+}
+
+.status-active{
+    display:inline-flex;
+
+    padding:5px 9px;
+
     border-radius:20px;
+
+    background:#e4f7eb;
+    color:#19703f;
+
     font-size:10px;
     font-weight:800;
-    white-space:nowrap;
 }
 
-.badge.active{
-    background:#e4f7eb;
-    color:#19703f;
-}
+.status-pending{
+    display:inline-flex;
 
-.badge.pending{
+    padding:5px 9px;
+
+    border-radius:20px;
+
     background:#fff5dc;
     color:#9b6a05;
+
+    font-size:10px;
+    font-weight:800;
 }
 
-.badge.suspended{
+.status-warning{
+    display:inline-flex;
+
+    padding:5px 9px;
+
+    border-radius:20px;
+
     background:#fff0df;
     color:#9a5312;
+
+    font-size:10px;
+    font-weight:800;
 }
 
-.badge.blocked,
-.badge.removed{
+.status-danger{
+    display:inline-flex;
+
+    padding:5px 9px;
+
+    border-radius:20px;
+
     background:#ffe7e7;
     color:#a52222;
-}
 
-.badge.owner{
-    background:#e8eaf6;
-    color:#3949ab;
-}
-
-.badge.verified{
-    background:#e4f7eb;
-    color:#19703f;
-}
-
-.badge.unverified{
-    background:#f0f2f1;
-    color:#68756f;
-}
-
-.actions{
-    display:flex;
-    gap:5px;
-    flex-wrap:wrap;
-}
-
-.actions .btn{
-    padding:7px 9px;
     font-size:10px;
+    font-weight:800;
 }
 
-.loading{
-    text-align:center!important;
-    color:#6c7772;
-    padding:28px!important;
+.status-neutral{
+    display:inline-flex;
+
+    padding:5px 9px;
+
+    border-radius:20px;
+
+    background:#edf0ef;
+    color:#596762;
+
+    font-size:10px;
+    font-weight:800;
 }
 
-.empty{
-    text-align:center!important;
+/* =========================================================
+   EMPTY
+========================================================= */
+
+.owner-empty{
+    text-align:center !important;
     color:#6c7772;
-    padding:35px!important;
+
+    padding:35px !important;
+
+    line-height:2;
 }
 
 /* =========================================================
@@ -386,114 +482,172 @@ body.modal-open{
 .owner-modal{
     position:fixed;
     inset:0;
+
+    background:
+        rgba(10,28,22,.55);
+
     z-index:1000;
+
     display:none;
+
     align-items:center;
     justify-content:center;
-    padding:20px;
-    background:
-        rgba(10,30,24,.55);
-    backdrop-filter:blur(4px);
-}
 
-.owner-modal.show{
-    display:flex;
+    padding:18px;
+
+    backdrop-filter:
+        blur(3px);
 }
 
 .owner-modal-card{
     width:min(920px,100%);
-    max-height:92vh;
+
+    max-height:
+        calc(100vh - 36px);
+
     overflow:auto;
+
     background:#fff;
+
     border-radius:22px;
+
     box-shadow:
-        0 20px 70px rgba(0,0,0,.25);
+        0 20px 60px rgba(0,0,0,.25);
 }
 
-.modal-header{
+.owner-modal-header{
     position:sticky;
     top:0;
-    z-index:3;
+
+    z-index:5;
+
     background:#173f35;
     color:#fff;
-    padding:17px 20px;
+
+    padding:16px 18px;
+
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:10px;
+
+    gap:12px;
 }
 
-.modal-header h3{
+.owner-modal-header h3{
     margin:0;
     font-size:17px;
 }
 
+.owner-modal-header p{
+    margin:4px 0 0;
+
+    font-size:11px;
+
+    opacity:.78;
+}
+
 .modal-close{
-    width:38px;
-    height:38px;
+    width:36px;
+    height:36px;
+
     border:0;
     border-radius:10px;
-    background:rgba(255,255,255,.13);
+
+    background:
+        rgba(255,255,255,.12);
+
     color:#fff;
-    font-size:22px;
+
+    font-size:20px;
+
     cursor:pointer;
 }
 
-.modal-body{
-    padding:20px;
-}
-
 /* =========================================================
-   DETAIL GRID
+   DETAILS
 ========================================================= */
 
+.owner-modal-body{
+    padding:18px;
+}
+
 .detail-section{
-    border:1px solid #e4ebe7;
-    border-radius:16px;
-    padding:15px;
+    border:1px solid #e5ebe8;
+
+    border-radius:15px;
+
     margin-bottom:14px;
-    background:#fff;
+
+    overflow:hidden;
 }
 
 .detail-section-title{
-    display:flex;
-    align-items:center;
-    gap:8px;
+    background:#f4f7f5;
+
+    padding:11px 14px;
+
+    font-size:13px;
     font-weight:800;
+
     color:#173f35;
-    margin-bottom:13px;
-    padding-bottom:10px;
-    border-bottom:1px solid #e8eeeb;
 }
 
 .detail-grid{
     display:grid;
+
     grid-template-columns:
         repeat(2,1fr);
-    gap:10px;
+
+    gap:0;
 }
 
 .detail-item{
-    background:#f7faf8;
-    border-radius:11px;
-    padding:11px;
-    min-height:62px;
+    padding:12px 14px;
+
+    border-bottom:
+        1px solid #edf1ef;
+
+    min-width:0;
+}
+
+.detail-item:nth-child(odd){
+    border-left:
+        1px solid #edf1ef;
 }
 
 .detail-label{
     display:block;
-    color:#718078;
+
     font-size:10px;
-    margin-bottom:6px;
+
+    color:#7a8581;
+
+    margin-bottom:5px;
 }
 
 .detail-value{
     display:block;
-    color:#24342e;
+
+    color:#263a33;
+
     font-size:12px;
+
     font-weight:700;
-    line-height:1.7;
+
+    line-height:1.8;
+
     word-break:break-word;
+}
+
+.detail-value.code{
+    direction:ltr;
+    text-align:right;
+
+    font-size:17px;
+
+    letter-spacing:1px;
+
+    color:#173f35;
 }
 
 /* =========================================================
@@ -501,88 +655,100 @@ body.modal-open{
 ========================================================= */
 
 .professional-code-box{
-    border:1px solid #dce9e3;
+    padding:15px;
+
     background:
         linear-gradient(
             135deg,
-            #f8fcfa,
-            #eef7f2
+            #f5faf7,
+            #edf5f1
         );
-    border-radius:16px;
-    padding:16px;
+
+    border:1px solid #dce9e2;
+
+    border-radius:14px;
 }
 
-.code-display{
+.professional-code-row{
     display:flex;
+
     align-items:center;
     justify-content:space-between;
-    gap:10px;
+
+    gap:15px;
+
     flex-wrap:wrap;
-    background:#fff;
-    border:1px dashed #b9ccc3;
-    border-radius:13px;
-    padding:13px;
-    margin-bottom:12px;
 }
 
-.code-value{
-    font-size:21px;
+.professional-code-value{
+    font-size:20px;
+
     font-weight:900;
+
     letter-spacing:2px;
+
     color:#173f35;
+
     direction:ltr;
 }
 
-.code-actions{
+.professional-code-status{
+    display:inline-flex;
+
+    padding:5px 9px;
+
+    border-radius:20px;
+
+    background:#e4f7eb;
+
+    color:#19703f;
+
+    font-size:10px;
+
+    font-weight:800;
+}
+
+.professional-code-actions{
+    margin-top:12px;
+
     display:flex;
-    gap:7px;
+
+    gap:8px;
+
     flex-wrap:wrap;
 }
 
-.code-meta{
-    display:grid;
-    grid-template-columns:
-        repeat(2,1fr);
-    gap:8px;
-    margin-top:10px;
-}
-
-.code-meta-item{
-    background:#fff;
-    border-radius:10px;
-    padding:9px;
-}
-
-.code-meta-item span{
-    display:block;
-    font-size:10px;
-    color:#718078;
-}
-
-.code-meta-item strong{
-    display:block;
-    font-size:11px;
-    margin-top:4px;
-    color:#24342e;
-}
-
 /* =========================================================
-   ERROR
+   VERIFIED
 ========================================================= */
 
-.error-box{
-    color:#a51f2a;
-    background:#fff5f5;
-    padding:14px;
-    border-radius:12px;
-    margin:10px 0;
-    font-size:12px;
-    line-height:1.9;
+.verified-badge{
+    display:inline-flex;
+
+    padding:5px 9px;
+
+    border-radius:20px;
+
+    background:#e8f1ff;
+
+    color:#245d91;
+
+    font-size:10px;
+
+    font-weight:800;
 }
 
 /* =========================================================
    MOBILE
 ========================================================= */
+
+@media(max-width:900px){
+
+    .stats{
+        grid-template-columns:
+            repeat(3,1fr);
+    }
+}
 
 @media(max-width:700px){
 
@@ -594,17 +760,40 @@ body.modal-open{
         font-size:16px;
     }
 
+    .brand-title p{
+        font-size:10px;
+    }
+
+    .brand-mark{
+        width:40px;
+        height:40px;
+    }
+
     .owner-main{
         padding:14px 10px 30px;
+    }
+
+    .hero{
+        padding:16px;
+    }
+
+    .hero-top{
+        display:block;
     }
 
     .stats{
         grid-template-columns:
             repeat(2,1fr);
+
+        gap:8px;
     }
 
-    .hero{
-        padding:16px;
+    .stat{
+        padding:11px;
+    }
+
+    .stat b{
+        font-size:20px;
     }
 
     .table-card{
@@ -626,8 +815,8 @@ body.modal-open{
         min-width:0;
     }
 
-    .btn{
-        white-space:nowrap;
+    .toolbar .btn{
+        flex:1;
     }
 
     .owner-modal{
@@ -635,11 +824,13 @@ body.modal-open{
     }
 
     .owner-modal-card{
-        max-height:95vh;
+        max-height:
+            calc(100vh - 16px);
+
         border-radius:18px;
     }
 
-    .modal-body{
+    .owner-modal-body{
         padding:12px;
     }
 
@@ -647,12 +838,16 @@ body.modal-open{
         grid-template-columns:1fr;
     }
 
-    .code-meta{
-        grid-template-columns:1fr;
+    .detail-item:nth-child(odd){
+        border-left:0;
     }
 
-    .code-value{
-        font-size:18px;
+    .professional-code-row{
+        display:block;
+    }
+
+    .professional-code-status{
+        margin-top:8px;
     }
 }
 </style>
@@ -669,11 +864,12 @@ body.modal-open{
             <img
                 class="brand-mark"
                 src="IMG_4309.png"
-                alt="آدینه"
+                alt="مرکز تخصصی سلامت طیور آدینه"
             >
 
             <div>
                 <h1>مدیریت سامانه</h1>
+
                 <p>
                     مرکز تخصصی سلامت طیور آدینه
                 </p>
@@ -681,13 +877,17 @@ body.modal-open{
 
         </div>
 
-        <button
-            id="logoutButton"
-            class="btn btn-secondary"
-            type="button"
-        >
-            خروج
-        </button>
+        <div class="owner-header-actions">
+
+            <button
+                id="logoutButton"
+                class="btn btn-secondary"
+                type="button"
+            >
+                خروج
+            </button>
+
+        </div>
 
     </div>
 
@@ -696,36 +896,119 @@ body.modal-open{
 
 <main class="owner-main">
 
+
+    <!-- =====================================================
+         HERO
+    ====================================================== -->
+
     <section class="hero">
 
-        <h2>
-            مدیریت کاربران و دسترسی‌ها
-        </h2>
+        <div class="hero-top">
 
-        <p id="ownerIdentity">
-            در حال بررسی دسترسی مالک...
-        </p>
+            <div>
+
+                <h2>
+                    مدیریت کاربران و دسترسی‌ها
+                </h2>
+
+                <p>
+                    مشاهده، بررسی و مدیریت اطلاعات کاربران،
+                    نقش‌ها، وضعیت حساب و اطلاعات حرفه‌ای.
+                </p>
+
+                <div
+                    id="ownerIdentity"
+                    class="owner-identity"
+                >
+                    در حال بررسی دسترسی مالک...
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             STATS
+        ================================================== -->
 
         <div class="stats">
 
             <div class="stat">
-                <b id="statTotal">—</b>
-                <span>کل کاربران</span>
+
+                <b id="statTotal">
+                    —
+                </b>
+
+                <span>
+                    کل کاربران
+                </span>
+
             </div>
 
-            <div class="stat">
-                <b id="statActive">—</b>
-                <span>کاربران فعال</span>
-            </div>
 
             <div class="stat">
-                <b id="statPending">—</b>
-                <span>در انتظار تأیید</span>
+
+                <b id="statActive">
+                    —
+                </b>
+
+                <span>
+                    کاربران فعال
+                </span>
+
             </div>
 
+
             <div class="stat">
-                <b id="statSpecialists">—</b>
-                <span>متخصصان و کاربران فنی</span>
+
+                <b id="statVeterinarians">
+                    —
+                </b>
+
+                <span>
+                    دامپزشکان
+                </span>
+
+            </div>
+
+
+            <div class="stat">
+
+                <b id="statLabs">
+                    —
+                </b>
+
+                <span>
+                    آزمایشگاه‌ها
+                </span>
+
+            </div>
+
+
+            <div class="stat">
+
+                <b id="statOperators">
+                    —
+                </b>
+
+                <span>
+                    بهره‌برداران
+                </span>
+
+            </div>
+
+
+            <div class="stat">
+
+                <b id="statManagers">
+                    —
+                </b>
+
+                <span>
+                    مدیران
+                </span>
+
             </div>
 
         </div>
@@ -733,111 +1016,50 @@ body.modal-open{
     </section>
 
 
+    <!-- =====================================================
+         STATUS
+    ====================================================== -->
+
     <div
-        id="message"
-        class="message hidden"
+        id="ownerStatus"
+        class="owner-status"
     ></div>
 
 
+    <!-- =====================================================
+         USERS TABLE
+    ====================================================== -->
+
     <section class="table-card">
+
 
         <div class="toolbar">
 
             <input
-                id="userSearch"
+                id="ownerSearch"
                 class="search"
                 type="search"
-                placeholder="جستجو بر اساس نام، ایمیل یا شماره تماس..."
+                placeholder="جستجو بر اساس نام، ایمیل، شماره تماس یا نوع کاربری..."
                 autocomplete="off"
             >
 
-            <select
-                id="roleFilter"
-                class="filter"
-            >
-                <option value="all">
-                    همه نقش‌ها
-                </option>
-
-                <option value="owner">
-                    مالک
-                </option>
-
-                <option value="veterinarian">
-                    دامپزشک
-                </option>
-
-                <option value="technical_veterinarian">
-                    دامپزشک مسئول فنی
-                </option>
-
-                <option value="farm_operator">
-                    بهره‌بردار واحد طیور
-                </option>
-
-                <option value="farm_manager">
-                    مدیر واحد طیور
-                </option>
-
-                <option value="diagnostic_lab">
-                    آزمایشگاه تشخیص دامپزشکی
-                </option>
-
-                <option value="poultry_technical_expert">
-                    کارشناس فنی طیور
-                </option>
-
-                <option value="company_manager">
-                    مدیر / نماینده مجموعه
-                </option>
-
-                <option value="user">
-                    سایر
-                </option>
-
-            </select>
-
-
-            <select
-                id="statusFilter"
-                class="filter"
-            >
-
-                <option value="all">
-                    همه وضعیت‌ها
-                </option>
-
-                <option value="active">
-                    فعال
-                </option>
-
-                <option value="pending">
-                    در انتظار تأیید
-                </option>
-
-                <option value="suspended">
-                    موقتاً غیرفعال
-                </option>
-
-                <option value="blocked">
-                    مسدود
-                </option>
-
-                <option value="removed">
-                    اخراج‌شده
-                </option>
-
-            </select>
-
 
             <button
-                id="refreshButton"
+                id="refreshOwnerUsers"
                 class="btn btn-primary"
                 type="button"
             >
                 ↻ بروزرسانی
             </button>
 
+        </div>
+
+
+        <div
+            id="ownerLoading"
+            class="owner-loading"
+        >
+            در حال دریافت اطلاعات کاربران...
         </div>
 
 
@@ -849,27 +1071,46 @@ body.modal-open{
 
                     <tr>
 
-                        <th>کاربر</th>
-                        <th>ایمیل</th>
-                        <th>تماس</th>
-                        <th>نوع کاربری</th>
-                        <th>وضعیت</th>
-                        <th>تاریخ ثبت‌نام</th>
-                        <th>آخرین فعالیت</th>
-                        <th>عملیات</th>
+                        <th>
+                            کاربر
+                        </th>
+
+                        <th>
+                            ایمیل
+                        </th>
+
+                        <th>
+                            شماره تماس
+                        </th>
+
+                        <th>
+                            نوع کاربری
+                        </th>
+
+                        <th>
+                            کد حرفه‌ای
+                        </th>
+
+                        <th>
+                            وضعیت
+                        </th>
+
+                        <th>
+                            عملیات
+                        </th>
 
                     </tr>
 
                 </thead>
 
 
-                <tbody id="usersTableBody">
+                <tbody id="ownerUsersTable">
 
                     <tr>
 
                         <td
-                            colspan="8"
-                            class="loading"
+                            colspan="7"
+                            class="owner-empty"
                         >
                             در حال بارگذاری کاربران...
                         </td>
@@ -887,23 +1128,37 @@ body.modal-open{
 </main>
 
 
-<!-- =======================================================
+<!-- =========================================================
      USER DETAILS MODAL
-======================================================= -->
+========================================================= -->
 
 <div
     id="ownerUserModal"
     class="owner-modal"
-    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="ownerModalTitle"
 >
 
     <div class="owner-modal-card">
 
-        <div class="modal-header">
 
-            <h3>
-                جزئیات کامل کاربر
-            </h3>
+        <!-- HEADER -->
+
+        <div class="owner-modal-header">
+
+            <div>
+
+                <h3 id="ownerModalTitle">
+                    جزئیات کاربر
+                </h3>
+
+                <p>
+                    اطلاعات حساب و پروفایل حرفه‌ای
+                </p>
+
+            </div>
+
 
             <button
                 id="closeOwnerModal"
@@ -917,95 +1172,134 @@ body.modal-open{
         </div>
 
 
-        <div class="modal-body">
+        <!-- BODY -->
+
+        <div class="owner-modal-body">
 
 
-            <!-- اطلاعات پایه -->
+            <!-- =================================================
+                 ACCOUNT INFORMATION
+            ================================================== -->
 
             <section class="detail-section">
 
                 <div class="detail-section-title">
-                    👤 اطلاعات حساب کاربری
+                    اطلاعات حساب کاربری
                 </div>
+
 
                 <div class="detail-grid">
 
+
                     <div class="detail-item">
+
                         <span class="detail-label">
                             نام و نام خانوادگی
                         </span>
+
                         <span
                             id="detailName"
                             class="detail-value"
                         >
                             —
                         </span>
+
                     </div>
 
 
                     <div class="detail-item">
+
                         <span class="detail-label">
                             ایمیل
                         </span>
+
                         <span
                             id="detailEmail"
                             class="detail-value"
-                            dir="ltr"
                         >
                             —
                         </span>
+
                     </div>
 
 
                     <div class="detail-item">
+
                         <span class="detail-label">
                             شماره تماس
                         </span>
+
                         <span
                             id="detailPhone"
                             class="detail-value"
                         >
                             —
                         </span>
+
                     </div>
 
 
                     <div class="detail-item">
+
                         <span class="detail-label">
                             نقش سامانه
                         </span>
+
                         <span
                             id="detailRole"
                             class="detail-value"
                         >
                             —
                         </span>
+
                     </div>
 
 
                     <div class="detail-item">
-                        <span class="detail-label">
-                            نوع کاربری
-                        </span>
-                        <span
-                            id="detailUserType"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-                    </div>
 
-
-                    <div class="detail-item">
                         <span class="detail-label">
                             وضعیت حساب
                         </span>
+
                         <span
                             id="detailStatus"
                             class="detail-value"
                         >
                             —
                         </span>
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <span class="detail-label">
+                            تاریخ ثبت‌نام
+                        </span>
+
+                        <span
+                            id="detailCreated"
+                            class="detail-value"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <span class="detail-label">
+                            آخرین فعالیت
+                        </span>
+
+                        <span
+                            id="detailLastSeen"
+                            class="detail-value"
+                        >
+                            —
+                        </span>
+
                     </div>
 
                 </div>
@@ -1013,20 +1307,40 @@ body.modal-open{
             </section>
 
 
-            <!-- پروفایل حرفه‌ای -->
+            <!-- =================================================
+                 PROFESSIONAL PROFILE
+            ================================================== -->
 
             <section class="detail-section">
 
                 <div class="detail-section-title">
-                    🩺 اطلاعات حرفه‌ای
+                    اطلاعات حرفه‌ای
                 </div>
 
+
                 <div class="detail-grid">
+
 
                     <div class="detail-item">
 
                         <span class="detail-label">
-                            زمینه فعالیت
+                            نوع کاربری حرفه‌ای
+                        </span>
+
+                        <span
+                            id="detailUserType"
+                            class="detail-value"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <span class="detail-label">
+                            فعالیت
                         </span>
 
                         <span
@@ -1042,7 +1356,7 @@ body.modal-open{
                     <div class="detail-item">
 
                         <span class="detail-label">
-                            نام سازمان / مجموعه
+                            نام مجموعه / سازمان
                         </span>
 
                         <span
@@ -1063,22 +1377,6 @@ body.modal-open{
 
                         <span
                             id="detailLicense"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-
-                    </div>
-
-
-                    <div class="detail-item">
-
-                        <span class="detail-label">
-                            تخصص
-                        </span>
-
-                        <span
-                            id="detailSpecialty"
                             class="detail-value"
                         >
                             —
@@ -1122,7 +1420,23 @@ body.modal-open{
                     <div class="detail-item">
 
                         <span class="detail-label">
-                            وضعیت تأیید پروفایل
+                            تخصص
+                        </span>
+
+                        <span
+                            id="detailSpecialty"
+                            class="detail-value"
+                        >
+                            —
+                        </span>
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <span class="detail-label">
+                            وضعیت احراز حرفه‌ای
                         </span>
 
                         <span
@@ -1134,28 +1448,14 @@ body.modal-open{
 
                     </div>
 
-
-                    <div class="detail-item">
-
-                        <span class="detail-label">
-                            توضیحات
-                        </span>
-
-                        <span
-                            id="detailNotes"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
-
-                    </div>
-
                 </div>
 
             </section>
 
 
-            <!-- کد حرفه‌ای -->
+            <!-- =================================================
+                 PROFESSIONAL ACCESS CODE
+            ================================================== -->
 
             <section
                 id="professionalCodeSection"
@@ -1163,25 +1463,27 @@ body.modal-open{
             >
 
                 <div class="detail-section-title">
-                    🔐 کد حرفه‌ای سامانه
+                    کد دسترسی حرفه‌ای
                 </div>
 
 
-                <div class="professional-code-box">
+                <div
+                    class="professional-code-box"
+                >
 
-                    <div class="code-display">
+                    <div
+                        class="professional-code-row"
+                    >
 
                         <div>
 
-                            <span
-                                class="detail-label"
-                            >
+                            <span class="detail-label">
                                 کد حرفه‌ای
                             </span>
 
                             <div
                                 id="detailCode"
-                                class="code-value"
+                                class="professional-code-value"
                             >
                                 کد ندارد
                             </div>
@@ -1189,105 +1491,35 @@ body.modal-open{
                         </div>
 
 
-                        <div class="code-actions">
+                        <div>
 
-                            <button
-                                id="generateProfessionalCodeBtn"
-                                class="btn btn-primary"
-                                type="button"
-                            >
-                                تولید / تغییر کد
-                            </button>
-
-                            <button
-                                id="toggleProfessionalCodeBtn"
-                                class="btn btn-warning"
-                                type="button"
-                            >
-                                تغییر وضعیت کد
-                            </button>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="code-meta">
-
-                        <div class="code-meta-item">
-
-                            <span>
+                            <span class="detail-label">
                                 وضعیت کد
                             </span>
 
-                            <strong
+                            <span
                                 id="detailCodeStatus"
+                                class="professional-code-status"
                             >
-                                —
-                            </strong>
-
-                        </div>
-
-
-                        <div class="code-meta-item">
-
-                            <span>
-                                آخرین بروزرسانی
+                                غیرفعال
                             </span>
 
-                            <strong
-                                id="detailCodeUpdated"
-                            >
-                                —
-                            </strong>
-
                         </div>
 
                     </div>
 
-                </div>
 
-            </section>
+                    <div
+                        class="professional-code-actions"
+                    >
 
-
-            <!-- سوابق حساب -->
-
-            <section class="detail-section">
-
-                <div class="detail-section-title">
-                    🕒 سوابق حساب
-                </div>
-
-                <div class="detail-grid">
-
-                    <div class="detail-item">
-
-                        <span class="detail-label">
-                            تاریخ ثبت‌نام
-                        </span>
-
-                        <span
-                            id="detailCreated"
-                            class="detail-value"
+                        <button
+                            id="generateProfessionalCodeBtn"
+                            class="btn btn-primary"
+                            type="button"
                         >
-                            —
-                        </span>
-
-                    </div>
-
-
-                    <div class="detail-item">
-
-                        <span class="detail-label">
-                            آخرین فعالیت
-                        </span>
-
-                        <span
-                            id="detailLastSeen"
-                            class="detail-value"
-                        >
-                            —
-                        </span>
+                            تولید / تغییر کد
+                        </button>
 
                     </div>
 
@@ -1303,10 +1535,67 @@ body.modal-open{
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- =========================================================
+     SCRIPTS
+========================================================= -->
+
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
+
 <script src="config.js"></script>
+
 <script src="auth.js"></script>
+
 <script src="owner.js"></script>
+
+
+<!-- =========================================================
+     LOGOUT FALLBACK
+========================================================= -->
+
+<script>
+(function(){
+
+    const button =
+        document.getElementById(
+            "logoutButton"
+        );
+
+    if(!button) return;
+
+    button.addEventListener(
+        "click",
+        async function(){
+
+            try{
+
+                if(
+                    typeof supabaseClient !==
+                    "undefined"
+                ){
+
+                    await supabaseClient.auth.signOut();
+
+                }
+
+            }catch(error){
+
+                console.error(
+                    "LOGOUT ERROR:",
+                    error
+                );
+
+            }
+
+            window.location.href =
+                "login.html";
+
+        }
+    );
+
+})();
+</script>
 
 </body>
 </html>

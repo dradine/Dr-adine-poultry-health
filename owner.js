@@ -81,7 +81,28 @@
 
   async function loadViaRpc(){
     const {data,error}=await client.rpc("owner_get_user_directory");
-    if(error)throw error; return Array.isArray(data)?data.map(normalize).filter(x=>x.id):[];
+    if(error)throw error;
+    const users=Array.isArray(data)?data.map(normalize).filter(x=>x.id):[];
+    if(!users.length)return users;
+
+    const ids=users.map(x=>x.id).filter(Boolean);
+    const [profilesRes,professionalRes,codesRes]=await Promise.all([
+      client.from("profiles").select("id,email,full_name,phone,role,status,is_active,created_at,updated_at,last_seen_at").in("id",ids),
+      client.from("professional_profiles").select("user_id,user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified").in("user_id",ids),
+      client.from("professional_access_codes").select("user_id,access_code,is_active,created_at,updated_at").in("user_id",ids)
+    ]);
+
+    if(profilesRes.error)throw profilesRes.error;
+    const pm=new Map((profilesRes.data||[]).map(x=>[x.id,x]));
+    const prm=new Map((professionalRes.data||[]).map(x=>[x.user_id,x]));
+    const cm=new Map((codesRes.data||[]).map(x=>[x.user_id,x]));
+
+    return users.map(u=>normalize({
+      ...u,
+      ...(pm.get(u.id)||{}),
+      ...(prm.get(u.id)||{}),
+      ...(cm.get(u.id)||{})
+    }));
   }
   async function loadDirect(){
     const {data,error}=await client.from("profiles").select("id,email,full_name,phone,role,status,is_active,created_at,updated_at,last_seen_at").order("created_at",{ascending:false});
@@ -162,18 +183,64 @@
   }
   function closeModal(){const m=$("ownerEditModal");if(m)m.hidden=true;document.body.classList.remove("owner-modal-open");selectedUser=null;}
 
+  async function callRpc(name,args){
+    const {data,error}=await client.rpc(name,args);
+    if(error){
+      const msg=error?.message||error?.details||error?.hint||"خطای پایگاه داده";
+      throw new Error(msg);
+    }
+    return data;
+  }
+
   async function saveUser(){
-    if(!selectedUser||!client)return;const btn=$("saveUserButton");if(btn)btn.disabled=true;
+    if(!selectedUser||!client)return;
+    const btn=$("saveUserButton");if(btn)btn.disabled=true;
     try{
-      const uid=selectedUser.id, full=$("editFullName")?.value.trim()||"";if(!full)throw new Error("نام کاربر نمی‌تواند خالی باشد.");
-      const profile={full_name:full,email:$("editEmail")?.value.trim()||null,phone:$("editPhone")?.value.trim()||null,role:$("editRole")?.value,status:$("editStatus")?.value,is_active:$("editActive")?.value==="true"};
-      const {error:pe}=await client.from("profiles").update(profile).eq("id",uid);if(pe)throw pe;
+      const uid=selectedUser.id;
+      const full=$("editFullName")?.value.trim()||"";
+      const email=$("editEmail")?.value.trim()||null;
+      const phone=$("editPhone")?.value.trim()||null;
+      const role=$("editRole")?.value||"user";
+      const status=$("editStatus")?.value||"pending";
       const acts=[...document.querySelectorAll("#editActivities input[type=checkbox]:checked")].map(x=>x.value);
-      const professional={user_id:uid,user_type:$("editUserType")?.value||"other",activity_types:acts,organization_name:$("editOrganization")?.value.trim()||null,license_number:$("editLicense")?.value.trim()||null,province:$("editProvince")?.value.trim()||null,city:$("editCity")?.value.trim()||null,specialty:$("editSpecialty")?.value.trim()||null,notes:$("editNotes")?.value.trim()||null,is_verified:$("editVerified")?.value==="true"};
-      const {error:ue}=await client.from("professional_profiles").upsert(professional,{onConflict:"user_id"});if(ue)throw ue;
-      notify("اطلاعات کاربر با موفقیت ذخیره شد.","success");await loadUsers();const fresh=allUsers.find(x=>String(x.id)===String(uid));if(fresh)openModal(fresh);
-    }catch(e){console.error("SAVE USER",e);notify(e?.message||"ذخیره اطلاعات ناموفق بود.","error");}
-    finally{if(btn)btn.disabled=false;}
+      const professional={
+        p_user_id:uid,
+        p_user_type:$("editUserType")?.value||"other",
+        p_activity_types:acts,
+        p_organization_name:$("editOrganization")?.value.trim()||null,
+        p_license_number:$("editLicense")?.value.trim()||null,
+        p_province:$("editProvince")?.value.trim()||null,
+        p_city:$("editCity")?.value.trim()||null,
+        p_specialty:$("editSpecialty")?.value.trim()||null,
+        p_notes:$("editNotes")?.value.trim()||null,
+        p_is_verified:$("editVerified")?.value==="true"
+      };
+
+      if(!full)throw new Error("نام کاربر نمی‌تواند خالی باشد.");
+      if(selectedUser.role!==role){
+        await callRpc("owner_set_user_role",{p_user_id:uid,p_role:role});
+      }
+      if(selectedUser.status!==status){
+        await callRpc("owner_set_user_status",{target_user_id:uid,new_status:status});
+      }
+      await callRpc("owner_update_user_basic",{
+        p_user_id:uid,
+        p_full_name:full,
+        p_phone:phone,
+        p_email:email
+      });
+      await callRpc("owner_update_professional_profile",professional);
+
+      notify("تغییرات با موفقیت در پایگاه داده ذخیره شد.","success");
+      await loadUsers();
+      const fresh=allUsers.find(x=>String(x.id)===String(uid));
+      if(fresh)openModal(fresh);
+    }catch(e){
+      console.error("SAVE USER",e);
+      notify(e?.message||"ذخیره تغییرات انجام نشد.","error");
+    }finally{
+      if(btn)btn.disabled=false;
+    }
   }
   async function generateCode(){
     if(!selectedUser)return;const btn=$("generateCodeButton");if(btn)btn.disabled=true;
@@ -185,11 +252,24 @@
     finally{if(btn)btn.disabled=false;}
   }
   async function toggleCode(){
-    if(!selectedUser||!client)return;const btn=$("toggleCodeButton");if(btn)btn.disabled=true;const next=!selectedUser.professional_code_active;
-    try{const {error}=await client.from("professional_access_codes").update({is_active:next}).eq("user_id",selectedUser.id);if(error)throw error;
-      selectedUser.professional_code_active=next;if($("codeState"))$("codeState").textContent=next?"فعال":"غیرفعال";notify(next?"کد فعال شد.":"کد غیرفعال شد.","success");render();
-    }catch(e){console.error("TOGGLE CODE",e);notify(e?.message||"تغییر وضعیت کد ناموفق بود.","error");}
-    finally{if(btn)btn.disabled=false;}
+    if(!selectedUser||!client)return;
+    const btn=$("toggleCodeButton");if(btn)btn.disabled=true;
+    const next=!selectedUser.professional_code_active;
+    try{
+      await callRpc("owner_set_professional_code_status",{
+        p_user_id:selectedUser.id,
+        p_is_active:next
+      });
+      selectedUser.professional_code_active=next;
+      if($("codeState"))$("codeState").textContent=next?"فعال":"غیرفعال";
+      await loadUsers();
+      const fresh=allUsers.find(x=>String(x.id)===String(selectedUser.id));
+      if(fresh)openModal(fresh);
+      notify(next?"کد فعال شد.":"کد غیرفعال شد.","success");
+    }catch(e){
+      console.error("TOGGLE CODE",e);
+      notify(e?.message||"تغییر وضعیت کد ناموفق بود.","error");
+    }finally{if(btn)btn.disabled=false;}
   }
   function bind(){
     if(initialized)return;initialized=true;

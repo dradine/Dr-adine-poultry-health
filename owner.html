@@ -1,65 +1,45 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>مدیریت کاربران | مرکز تخصصی سلامت طیور آدینه</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .owner-page{min-height:100vh;background:#f5f8f6;color:#193b31}
-        .owner-header{background:#123b2a;color:#fff;padding:18px 16px;box-shadow:0 3px 18px rgba(0,0,0,.08)}
-        .owner-header-inner{max-width:1250px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px}
-        .owner-header h1{margin:0;font-size:21px}.owner-header p{margin:5px 0 0;opacity:.78;font-size:12px}
-        .owner-main{max-width:1250px;margin:auto;padding:22px 16px 45px}
-        .owner-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-        .owner-stat{background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,.05);border:1px solid #e8efeb}
-        .owner-stat span{display:block;color:#718078;font-size:12px;margin-bottom:7px}.owner-stat strong{font-size:24px;color:#173f35}
-        .owner-card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 5px 25px rgba(0,0,0,.06);margin-bottom:16px}
-        .owner-toolbar{display:grid;grid-template-columns:1.7fr 1fr 1fr auto;gap:10px;align-items:center}
-        .owner-toolbar input,.owner-toolbar select{width:100%;box-sizing:border-box;border:1px solid #dfe7e3;border-radius:11px;padding:11px 12px;font:inherit;background:#fff;min-height:44px}
-        .owner-table-wrap{width:100%;overflow:auto;margin-top:15px}.users-table{min-width:1120px}
-        .users-table th{white-space:nowrap}.users-table td{vertical-align:top}.user-name{font-weight:800;color:#173f35}.user-sub{font-size:11px;color:#7a8782;margin-top:4px;line-height:1.7}.activity-line{max-width:230px;white-space:normal}
-        .role-badge{display:inline-block;background:#edf4f0;border-radius:9px;padding:5px 8px;font-size:11px;font-weight:700}.access-code{font-family:monospace;font-size:18px;letter-spacing:3px;font-weight:900}.code-toggle{border:0;background:transparent;color:#1d6a52;cursor:pointer;font:inherit;font-size:11px;margin-right:7px}.muted{color:#a0aaa5}
-        .action-details{background:#eaf2ef;color:#245443}.action-remove{background:#f9e5e5;color:#9a2727}.owner-lock{color:#17603f}
-        .loading-cell,.empty-cell,.error-cell{text-align:center!important;padding:30px!important}.error-cell{color:#a52222}.owner-modal-backdrop{position:fixed;inset:0;background:rgba(10,28,22,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999}.owner-modal{width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 20px 70px rgba(0,0,0,.25)}
-        .owner-modal-head{display:flex;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid #e7ece9}.owner-modal-head h3{margin:0}.owner-modal-head p{margin:5px 0 0;color:#748079;font-size:12px}.modal-close{border:0;background:#f0f3f1;border-radius:10px;width:38px;height:38px;font-size:25px;cursor:pointer}.detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:18px 20px}.detail-grid>div{background:#f7f9f8;border-radius:11px;padding:11px}.detail-grid span{display:block;color:#7b8782;font-size:11px;margin-bottom:5px}.detail-grid strong{font-size:13px;word-break:break-word}.detail-wide{grid-column:1/-1}.modal-code{font-family:monospace;letter-spacing:3px;font-size:19px!important}.owner-modal-foot{padding:15px 20px;border-top:1px solid #e7ece9;display:flex;justify-content:flex-start}
-        @media(max-width:800px){.owner-stats{grid-template-columns:repeat(2,1fr)}.owner-toolbar{grid-template-columns:1fr 1fr}.owner-toolbar .refresh{grid-column:1/-1}.detail-grid{grid-template-columns:1fr}.detail-wide{grid-column:auto}}
-        @media(max-width:480px){.owner-main{padding:14px 10px 35px}.owner-stats{gap:8px}.owner-stat{padding:12px}.owner-stat strong{font-size:20px}.owner-toolbar{grid-template-columns:1fr}.owner-toolbar .refresh{grid-column:auto}.owner-header h1{font-size:18px}}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<title>مدیریت سامانه | مرکز تخصصی سلامت طیور آدینه</title>
+<style>
+html,body{margin:0;padding:0;background:#f4f7f5;color:#20362d;font-family:Tahoma,Arial,sans-serif;font-size:14px}
+*{box-sizing:border-box}.owner-page{min-height:100vh}.owner-header{background:#173f35;color:#fff;box-shadow:0 3px 15px #0002}.owner-header-inner{width:min(1180px,calc(100% - 24px));margin:auto;padding:14px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}.owner-title{font-size:19px;font-weight:800}.owner-sub{font-size:11px;opacity:.78;margin-top:4px}.owner-main{width:min(1180px,calc(100% - 24px));margin:auto;padding:18px 0 35px}.owner-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}.owner-stat,.owner-card{background:#fff;border:1px solid #e2eae6;border-radius:15px;box-shadow:0 5px 20px #173f3510}.owner-stat{padding:13px}.owner-stat span{display:block;color:#74817b;font-size:11px;margin-bottom:5px}.owner-stat strong{font-size:22px;color:#173f35}.owner-card{padding:14px}.owner-toolbar{display:grid;grid-template-columns:1.8fr 1fr 1fr auto;gap:8px}.owner-toolbar input,.owner-toolbar select{height:42px;width:100%;border:1px solid #d8e2dd;border-radius:10px;background:#fff;padding:8px 10px;font:inherit;font-size:12px}.owner-btn,.owner-action{border:0;border-radius:10px;padding:9px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}.owner-btn{background:#173f35;color:#fff}.owner-btn.secondary{background:#eaf1ed;color:#173f35}.owner-btn.danger{background:#ffe9e9;color:#982323}.owner-btn:disabled{opacity:.55}.owner-message{margin-bottom:10px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.8}.owner-message.success{background:#e8f6ed;color:#17633e}.owner-message.error{background:#ffeded;color:#a32626}.owner-message.info{background:#edf4fb;color:#2c608c}.owner-table-wrap{overflow:auto;margin-top:12px;border:1px solid #e3eae7;border-radius:12px}.owner-table{width:100%;min-width:0;border-collapse:collapse}.owner-table th,.owner-table td{padding:10px;border-bottom:1px solid #e9eeec;text-align:right;font-size:11px;vertical-align:middle;white-space:nowrap}.owner-table th{background:#f1f6f3;color:#365448}.owner-table tr:last-child td{border-bottom:0}.owner-name{display:block;color:#173f35;font-size:12px}.owner-table small{display:block;color:#7b8782;font-size:10px;margin-top:4px;line-height:1.5}.type-badge,.status{display:inline-block;border-radius:20px;padding:4px 8px;font-weight:700}.type-badge{background:#edf4f0;color:#315c4b}.status-active{background:#e4f7eb;color:#19703f}.status-pending{background:#fff5dc;color:#936606}.status-suspended{background:#fff0df;color:#9a5312}.status-blocked,.status-removed{background:#ffe7e7;color:#a52222}.code-preview{font-family:monospace;font-weight:800;letter-spacing:2px}.owner-action{background:#e7f0ec;color:#225642}.owner-loading,.owner-empty{padding:32px!important;text-align:center!important;color:#75827c}.owner-modal-backdrop{position:fixed;inset:0;background:#102a2180;z-index:10000;display:flex;align-items:center;justify-content:center;padding:12px;overflow:auto}.owner-modal{width:min(760px,100%);max-height:calc(100dvh - 24px);overflow:auto;background:#fff;border-radius:18px;box-shadow:0 20px 70px #0005}.owner-modal-head{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid #e5ebe8;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}.owner-modal-head h2{font-size:17px;margin:0;color:#173f35}.owner-modal-head p{font-size:11px;color:#78847f;margin:4px 0 0}.modal-close{border:0;background:#eef2f0;width:36px;height:36px;border-radius:9px;font-size:23px;cursor:pointer}.edit-section{padding:14px 16px;border-bottom:1px solid #e8eeeb}.edit-section h3{font-size:13px;margin:0 0 10px;color:#244c3d}.edit-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.field label{display:block;font-size:10px;color:#6e7c75;margin-bottom:4px}.field input,.field select,.field textarea{width:100%;border:1px solid #dbe4df;border-radius:9px;padding:9px;background:#fff;font:inherit;font-size:12px}.field textarea{min-height:72px;resize:vertical}.wide{grid-column:1/-1}.checks{display:flex;flex-wrap:wrap;gap:8px}.check{background:#f4f7f5;border:1px solid #e0e8e4;border-radius:9px;padding:7px 9px;font-size:11px}.code-box{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f5f8f6;border-radius:11px;padding:10px}.current-code{font-family:monospace;font-weight:900;letter-spacing:2px;font-size:18px}.state{font-size:11px;color:#527065}.owner-modal-foot{position:sticky;bottom:0;background:#fff;border-top:1px solid #e5ebe8;padding:12px 16px;display:flex;gap:8px;justify-content:flex-start}
+body.owner-modal-open{overflow:hidden}
+@media(max-width:700px){.owner-stats{grid-template-columns:repeat(2,1fr)}.owner-toolbar{grid-template-columns:1fr 1fr}.owner-toolbar input{grid-column:1/-1}.owner-toolbar .refresh{grid-column:1/-1}.edit-grid{grid-template-columns:1fr}.wide{grid-column:auto}.owner-main,.owner-header-inner{width:calc(100% - 18px)}.owner-title{font-size:16px}}
+@media(max-width:430px){.owner-toolbar{grid-template-columns:1fr}.owner-toolbar input,.owner-toolbar .refresh{grid-column:auto}.owner-stat strong{font-size:19px}}
+
+@media(max-width:700px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  .owner-header-inner,.owner-main{width:calc(100% - 16px);max-width:none}
+  .owner-main{padding:12px 0 28px}
+  .owner-stats{gap:8px}
+  .owner-card{padding:10px}
+  .owner-table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .owner-table{min-width:760px}
+  .owner-modal-backdrop{padding:8px;align-items:flex-start}
+  .owner-modal{width:100%;max-height:calc(100dvh - 16px);margin:0;border-radius:14px}
+  .edit-grid{gap:8px}
+  .field input,.field select,.field textarea,.owner-toolbar input,.owner-toolbar select{font-size:16px!important}
+}
+</style>
 </head>
 <body class="owner-page">
-<header class="owner-header">
-    <div class="owner-header-inner">
-        <div><h1>مدیریت کاربران</h1><p>مرکز مدیریت حساب‌ها، نقش‌ها و اطلاعات حرفه‌ای</p></div>
-        <button id="logoutButton" type="button" class="action-button action-block">خروج</button>
-    </div>
-</header>
+<header class="owner-header"><div class="owner-header-inner"><div><div class="owner-title">مدیریت سامانه</div><div class="owner-sub" id="ownerIdentity">در حال بررسی مالک...</div></div><button id="logoutButton" class="owner-btn secondary" type="button">خروج</button></div></header>
 <main class="owner-main">
-    <section class="owner-stats">
-        <div class="owner-stat"><span>کل کاربران</span><strong id="statTotal">۰</strong></div>
-        <div class="owner-stat"><span>کاربران فعال</span><strong id="statActive">۰</strong></div>
-        <div class="owner-stat"><span>متخصصان</span><strong id="statSpecialists">۰</strong></div>
-        <div class="owner-stat"><span>در انتظار تأیید</span><strong id="statPending">۰</strong></div>
-    </section>
-    <section class="owner-card">
-        <div id="message" class="message hidden"></div>
-        <div class="owner-toolbar">
-            <input id="userSearch" type="search" placeholder="جستجو: نام، ایمیل، تلفن، کد حرفه‌ای..." autocomplete="off">
-            <select id="roleFilter"><option value="">همه نوع‌های کاربری</option><option value="veterinarian">دامپزشک</option><option value="technical_veterinarian">دامپزشک مسئول فنی</option><option value="farm_operator">بهره‌بردار واحد طیور</option><option value="farm_manager">مدیر واحد طیور</option><option value="diagnostic_lab">آزمایشگاه تشخیص دامپزشکی</option><option value="poultry_technical_expert">کارشناس فنی طیور</option><option value="company_manager">مدیر / نماینده مجموعه</option><option value="other">سایر</option></select>
-            <select id="statusFilter"><option value="">همه وضعیت‌ها</option><option value="active">فعال</option><option value="pending">در انتظار تأیید</option><option value="suspended">موقتاً غیرفعال</option><option value="blocked">مسدود</option><option value="removed">بایگانی</option></select>
-            <button id="refreshUsers" class="action-button action-active refresh" type="button">↻ بروزرسانی</button>
-        </div>
-        <div class="owner-table-wrap">
-            <table class="users-table">
-                <thead><tr><th>کاربر</th><th>تماس</th><th>نوع کاربری و فعالیت</th><th>کد حرفه‌ای</th><th>وضعیت</th><th>ثبت‌نام</th><th>آخرین فعالیت</th><th>عملیات</th></tr></thead>
-                <tbody id="usersTableBody"><tr><td colspan="8" class="loading-cell">در حال بارگذاری...</td></tr></tbody>
-            </table>
-        </div>
-    </section>
+<section class="owner-stats"><div class="owner-stat"><span>کل کاربران</span><strong id="statTotal">۰</strong></div><div class="owner-stat"><span>کاربران فعال</span><strong id="statActive">۰</strong></div><div class="owner-stat"><span>در انتظار تأیید</span><strong id="statPending">۰</strong></div><div class="owner-stat"><span>متخصصان</span><strong id="statSpecialists">۰</strong></div></section>
+<section class="owner-card"><div id="ownerMessage" class="owner-message info" hidden></div><div class="owner-toolbar"><input id="userSearch" type="search" placeholder="جستجو نام، ایمیل، تلفن، کد، پروانه..."><select id="roleFilter"><option value="">همه نوع‌های کاربری</option><option value="veterinarian">دامپزشک</option><option value="technical_veterinarian">دامپزشک مسئول فنی</option><option value="poultry_operator">بهره‌بردار واحد طیور</option><option value="poultry_manager">مدیر واحد طیور</option><option value="veterinary_lab">آزمایشگاه تشخیص دامپزشکی</option><option value="poultry_technical_expert">کارشناس فنی طیور</option><option value="organization_manager">مدیر / نماینده مجموعه</option><option value="other">سایر</option></select><select id="statusFilter"><option value="">همه وضعیت‌ها</option><option value="active">فعال</option><option value="pending">در انتظار تأیید</option><option value="suspended">موقتاً غیرفعال</option><option value="blocked">مسدود</option><option value="removed">بایگانی</option></select><button id="refreshUsers" class="owner-btn refresh" type="button">↻ بروزرسانی</button></div>
+<div class="owner-table-wrap"><table class="owner-table"><thead><tr><th>کاربر</th><th>تماس</th><th>نوع و فعالیت</th><th>کد حرفه‌ای</th><th>وضعیت</th><th>ثبت‌نام</th><th>آخرین فعالیت</th><th>عملیات</th></tr></thead><tbody id="usersTableBody"><tr><td colspan="8" class="owner-loading">در حال بارگذاری...</td></tr></tbody></table></div></section>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<script src="auth.js"></script>
-<script src="owner.js"></script>
-</body>
-</html>
+<div id="ownerEditModal" class="owner-modal-backdrop" hidden><div class="owner-modal" role="dialog" aria-modal="true"><div class="owner-modal-head"><div><h2>جزئیات و ویرایش کاربر</h2><p>اطلاعات حساب، اطلاعات حرفه‌ای و کد دسترسی</p></div><button id="closeOwnerModal" class="modal-close" type="button">×</button></div>
+<section class="edit-section"><h3>اطلاعات حساب</h3><div class="edit-grid"><div class="field"><label>نام و نام خانوادگی</label><input id="editFullName"></div><div class="field"><label>ایمیل</label><input id="editEmail" type="email" dir="ltr"></div><div class="field"><label>شماره تماس</label><input id="editPhone" dir="ltr"></div><div class="field"><label>نقش سامانه</label><select id="editRole"><option value="user">کاربر</option><option value="admin">مدیر سامانه</option><option value="owner">مالک سامانه</option></select></div><div class="field"><label>وضعیت</label><select id="editStatus"><option value="pending">در انتظار تأیید</option><option value="active">فعال</option><option value="suspended">موقتاً غیرفعال</option><option value="blocked">مسدود</option><option value="removed">بایگانی / حذف‌شده</option></select></div><div class="field"><label>حساب فعال</label><select id="editActive"><option value="true">فعال</option><option value="false">غیرفعال</option></select></div><div class="field"><label>وضعیت تأیید حرفه‌ای</label><select id="editVerified"><option value="true">تأیید شده</option><option value="false">تأیید نشده</option></select></div></div></section>
+<section class="edit-section"><h3>پروفایل حرفه‌ای</h3><div class="edit-grid"><div class="field"><label>نوع کاربری</label><select id="editUserType"><option value="other">سایر</option><option value="veterinarian">دامپزشک</option><option value="technical_veterinarian">دامپزشک مسئول فنی</option><option value="poultry_operator">بهره‌بردار واحد طیور</option><option value="poultry_manager">مدیر واحد طیور</option><option value="veterinary_lab">آزمایشگاه تشخیص دامپزشکی</option><option value="poultry_technical_expert">کارشناس فنی طیور</option><option value="organization_manager">مدیر / نماینده مجموعه</option></select></div><div class="field"><label>نام مجموعه</label><input id="editOrganization"></div><div class="field"><label>شماره پروانه / مجوز</label><input id="editLicense"></div><div class="field"><label>استان</label><input id="editProvince"></div><div class="field"><label>شهر</label><input id="editCity"></div><div class="field"><label>تخصص</label><input id="editSpecialty"></div><div class="field wide"><label>نوع فعالیت</label><div id="editActivities" class="checks"><label class="check"><input type="checkbox" value="broiler"> گوشتی</label><label class="check"><input type="checkbox" value="layer"> تخم‌گذار</label><label class="check"><input type="checkbox" value="breeder"> مادر</label><label class="check"><input type="checkbox" value="pullet"> پولت</label><label class="check"><input type="checkbox" value="hatchery"> جوجه‌کشی</label><label class="check"><input type="checkbox" value="other"> سایر</label></div></div><div class="field wide"><label>یادداشت</label><textarea id="editNotes"></textarea></div></div></section>
+<section class="edit-section"><h3>کد حرفه‌ای</h3><div class="code-box"><span class="current-code" id="currentCode">کد ندارد</span><span class="state" id="codeState">—</span><span class="state">اعتبار حرفه‌ای: <b id="verifiedState">—</b></span><button id="generateCodeButton" class="owner-btn" type="button">تولید / تغییر کد</button><button id="toggleCodeButton" class="owner-btn secondary" type="button">فعال / غیرفعال</button></div></section>
+<section class="edit-section"><div class="edit-grid"><div><small>تاریخ ثبت‌نام</small><strong id="createdState">—</strong></div><div><small>آخرین فعالیت</small><strong id="seenState">—</strong></div></div></section>
+<div class="owner-modal-foot"><button id="saveUserButton" class="owner-btn" type="button">ذخیره تغییرات</button><button id="cancelEditButton" class="owner-btn secondary" type="button">بستن</button></div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="auth.js"></script><script src="owner.js"></script>
+</body></html>

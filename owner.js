@@ -1,24 +1,39 @@
 /* =========================================================
    ADINEH OWNER MANAGEMENT
-   OWNER.JS
-   نسخه هماهنگ با HTML فعلی پنل مدیریت
+   OWNER PANEL — COMPLETE USER DIRECTORY
 ========================================================= */
 
 (function () {
+
     "use strict";
 
-    let allUsers = [];
+
+    /* =====================================================
+       STATE
+    ===================================================== */
+
+    let users = [];
     let filteredUsers = [];
     let selectedUser = null;
 
-    const $ = (id) => document.getElementById(id);
+    let isLoading = false;
+    let initialized = false;
+
 
     /* =====================================================
-       ابزارهای عمومی
+       HELPERS
     ===================================================== */
 
+    const $ = (id) =>
+        document.getElementById(id);
+
+
     function esc(value) {
-        if (value === null || value === undefined) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
             return "";
         }
 
@@ -30,7 +45,9 @@
             .replace(/'/g, "&#039;");
     }
 
+
     function faNumber(value) {
+
         if (
             value === null ||
             value === undefined ||
@@ -41,154 +58,52 @@
 
         return String(value).replace(
             /\d/g,
-            (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]
+            d => "۰۱۲۳۴۵۶۷۸۹"[d]
         );
     }
 
+
     function formatDate(value) {
+
         if (!value) {
             return "—";
         }
 
         try {
-            const date = new Date(value);
 
-            if (Number.isNaN(date.getTime())) {
+            const d =
+                new Date(value);
+
+            if (
+                Number.isNaN(
+                    d.getTime()
+                )
+            ) {
                 return "—";
             }
 
-            return new Intl.DateTimeFormat("fa-IR", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit"
-            }).format(date);
+            return new Intl.DateTimeFormat(
+                "fa-IR",
+                {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            ).format(d);
 
-        } catch (error) {
+        } catch {
+
             return "—";
         }
     }
 
-    function roleLabel(role) {
-
-        const map = {
-            owner: "مالک سامانه",
-            admin: "مدیر سامانه",
-            user: "کاربر"
-        };
-
-        return map[role] || role || "—";
-    }
-
-    function userTypeLabel(type) {
-
-        const map = {
-            veterinarian:
-                "🩺 دامپزشک",
-
-            technical_veterinarian:
-                "🩺 دامپزشک مسئول فنی",
-
-            poultry_operator:
-                "🐔 بهره‌بردار واحد طیور",
-
-            poultry_manager:
-                "👨‍💼 مدیر واحد طیور",
-
-            veterinary_lab:
-                "🔬 آزمایشگاه تشخیص دامپزشکی",
-
-            poultry_technical_expert:
-                "📊 کارشناس فنی طیور",
-
-            organization_manager:
-                "🏢 مدیر / نماینده مجموعه",
-
-            other:
-                "سایر"
-        };
-
-        return map[type] || type || "—";
-    }
-
-    function activityText(value) {
-
-        if (!value) {
-            return "—";
-        }
-
-        let list = value;
-
-        if (typeof value === "string") {
-
-            try {
-                list = JSON.parse(value);
-            } catch {
-                return value;
-            }
-        }
-
-        if (!Array.isArray(list)) {
-            return String(list);
-        }
-
-        if (!list.length) {
-            return "—";
-        }
-
-        const map = {
-            broiler: "گوشتی",
-            layer: "تخمگذار",
-            breeder: "مادر",
-            pullet: "پولت",
-            hatchery: "جوجه‌کشی",
-            other: "سایر"
-        };
-
-        return list
-            .map(item => map[item] || item)
-            .join("، ");
-    }
-
-    function statusLabel(status) {
-
-        const map = {
-            active: "فعال",
-            pending: "در انتظار تأیید",
-            suspended: "موقتاً غیرفعال",
-            blocked: "مسدود",
-            removed: "اخراج‌شده"
-        };
-
-        return map[status] || status || "—";
-    }
-
-    function statusClass(status) {
-
-        switch (status) {
-
-            case "active":
-                return "active";
-
-            case "pending":
-                return "pending";
-
-            case "suspended":
-                return "suspended";
-
-            case "blocked":
-            case "removed":
-                return "blocked";
-
-            default:
-                return "";
-        }
-    }
 
     function setText(id, value) {
 
-        const element = $(id);
+        const element =
+            $(id);
 
         if (!element) {
             return;
@@ -199,11 +114,232 @@
             value === undefined ||
             value === ""
                 ? "—"
-                : value;
+                : String(value);
     }
 
+
     /* =====================================================
-       پیام
+       LABELS
+    ===================================================== */
+
+    function roleLabel(role) {
+
+        const map = {
+
+            owner:
+                "مالک",
+
+            admin:
+                "مدیر",
+
+            user:
+                "کاربر"
+
+        };
+
+        return (
+            map[role] ||
+            role ||
+            "—"
+        );
+    }
+
+
+    function userTypeLabel(type) {
+
+        const map = {
+
+            veterinarian:
+                "🩺 دامپزشک",
+
+            technical_veterinarian:
+                "🩺 دامپزشک مسئول فنی",
+
+            poultry_operator:
+                "🐔 بهره‌بردار واحد طیور",
+
+            farm_operator:
+                "🐔 بهره‌بردار واحد طیور",
+
+            poultry_manager:
+                "👨‍💼 مدیر واحد طیور",
+
+            farm_manager:
+                "👨‍💼 مدیر واحد طیور",
+
+            veterinary_lab:
+                "🔬 آزمایشگاه تشخیص دامپزشکی",
+
+            diagnostic_lab:
+                "🔬 آزمایشگاه تشخیص دامپزشکی",
+
+            poultry_technical_expert:
+                "📊 کارشناس فنی طیور",
+
+            organization_manager:
+                "🏢 مدیر / نماینده مجموعه",
+
+            company_manager:
+                "🏢 مدیر / نماینده مجموعه",
+
+            other:
+                "سایر"
+
+        };
+
+        return (
+            map[type] ||
+            type ||
+            "—"
+        );
+    }
+
+
+    function statusLabel(status) {
+
+        const map = {
+
+            active:
+                "فعال",
+
+            pending:
+                "در انتظار تأیید",
+
+            suspended:
+                "موقتاً غیرفعال",
+
+            blocked:
+                "مسدود",
+
+            removed:
+                "اخراج‌شده"
+
+        };
+
+        return (
+            map[status] ||
+            status ||
+            "—"
+        );
+    }
+
+
+    function statusClass(status) {
+
+        if (
+            status === "active"
+        ) {
+            return "active";
+        }
+
+        if (
+            status === "pending"
+        ) {
+            return "pending";
+        }
+
+        if (
+            status === "suspended"
+        ) {
+            return "suspended";
+        }
+
+        if (
+            status === "blocked"
+        ) {
+            return "blocked";
+        }
+
+        if (
+            status === "removed"
+        ) {
+            return "removed";
+        }
+
+        return "pending";
+    }
+
+
+    function activityText(activityTypes) {
+
+        if (!activityTypes) {
+            return "—";
+        }
+
+        let list =
+            activityTypes;
+
+
+        if (
+            typeof activityTypes ===
+            "string"
+        ) {
+
+            try {
+
+                list =
+                    JSON.parse(
+                        activityTypes
+                    );
+
+            } catch {
+
+                return activityTypes;
+            }
+        }
+
+
+        if (
+            !Array.isArray(list)
+        ) {
+
+            return String(list);
+        }
+
+
+        if (
+            !list.length
+        ) {
+
+            return "—";
+        }
+
+
+        const map = {
+
+            broiler:
+                "گوشتی",
+
+            layer:
+                "تخمگذار",
+
+            breeder:
+                "مادر",
+
+            pullet:
+                "پولت",
+
+            hatchery:
+                "جوجه‌کشی",
+
+            other:
+                "سایر"
+
+        };
+
+
+        return list
+            .map(
+                item =>
+                    map[item] ||
+                    item
+            )
+            .join("، ");
+    }
+
+
+    /* =====================================================
+       MESSAGE
     ===================================================== */
 
     function showMessage(
@@ -211,36 +347,51 @@
         type = "success"
     ) {
 
-        const box = $("message");
+        const box =
+            $("message");
 
         if (!box) {
             return;
         }
 
-        box.textContent = message;
+        box.textContent =
+            message || "";
 
         box.className =
             "message " +
-            (type || "success");
+            (
+                type === "error"
+                    ? "error"
+                    : type === "info"
+                        ? "info"
+                        : "success"
+            );
 
-        box.classList.remove("hidden");
+        box.classList.remove(
+            "hidden"
+        );
 
-        clearTimeout(
+
+        window.clearTimeout(
             showMessage.timer
         );
 
+
         showMessage.timer =
-            setTimeout(() => {
+            window.setTimeout(
+                () => {
 
-                box.classList.add(
-                    "hidden"
-                );
+                    box.className =
+                        "message hidden";
 
-            }, 5000);
+                },
+                5000
+            );
     }
 
+
     /* =====================================================
-       کاربر فعلی
+       AUTH
     ===================================================== */
 
     async function getCurrentUser() {
@@ -249,41 +400,47 @@
             typeof supabaseClient ===
             "undefined"
         ) {
+
             throw new Error(
-                "Supabase Client پیدا نشد."
+                "اتصال Supabase برقرار نشده است."
             );
         }
+
 
         const {
             data,
             error
         } =
-            await supabaseClient.auth.getUser();
+            await supabaseClient
+                .auth
+                .getUser();
+
 
         if (error) {
             throw error;
         }
 
+
         if (
             !data ||
             !data.user
         ) {
+
             throw new Error(
                 "کاربر وارد سامانه نشده است."
             );
         }
 
+
         return data.user;
     }
 
-    /* =====================================================
-       بررسی مالک
-    ===================================================== */
 
     async function verifyOwner() {
 
         const authUser =
             await getCurrentUser();
+
 
         const {
             data,
@@ -291,7 +448,8 @@
         } =
             await supabaseClient
                 .from("profiles")
-                .select(`
+                .select(
+                    `
                     id,
                     full_name,
                     email,
@@ -299,64 +457,69 @@
                     role,
                     status,
                     is_active
-                `)
+                    `
+                )
                 .eq(
                     "id",
                     authUser.id
                 )
                 .maybeSingle();
 
+
         if (error) {
             throw error;
         }
 
+
         if (!data) {
+
             throw new Error(
-                "پروفایل مالک پیدا نشد."
+                "پروفایل مالک در سامانه پیدا نشد."
             );
         }
+
 
         if (
             data.role !== "owner" ||
             data.status !== "active" ||
             data.is_active !== true
         ) {
+
             throw new Error(
-                "این صفحه فقط برای مالک سامانه قابل دسترسی است."
+                "این صفحه فقط برای مالک فعال سامانه قابل دسترسی است."
             );
         }
 
+
         setText(
             "ownerIdentity",
-            `مالک سامانه: ${
+            "ورود موفق — " +
+            (
                 data.full_name ||
                 data.email ||
-                "مالک"
-            }`
+                "مالک سامانه"
+            )
         );
+
 
         return data;
     }
 
+
     /* =====================================================
-       دریافت کاربران
+       LOAD USERS
     ===================================================== */
 
     async function loadUsers() {
 
-        const tbody =
-            $("usersTableBody");
-
-        if (tbody) {
-
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="loading">
-                        در حال بارگذاری کاربران...
-                    </td>
-                </tr>
-            `;
+        if (isLoading) {
+            return;
         }
+
+        isLoading = true;
+
+        setLoading(true);
+
 
         try {
 
@@ -364,25 +527,29 @@
                 data,
                 error
             } =
-                await supabaseClient.rpc(
-                    "owner_get_user_directory"
-                );
+                await supabaseClient
+                    .rpc(
+                        "owner_get_user_directory"
+                    );
+
 
             if (error) {
                 throw error;
             }
 
-            allUsers =
+
+            users =
                 Array.isArray(data)
                     ? data
                     : [];
 
+
             filteredUsers =
-                [...allUsers];
+                [...users];
 
-            renderStats();
 
-            applyFilters();
+            renderAll();
+
 
         } catch (error) {
 
@@ -391,63 +558,113 @@
                 error
             );
 
-            if (tbody) {
 
-                tbody.innerHTML = `
-                    <tr>
-                        <td
-                            colspan="8"
-                            class="empty"
-                        >
-                            خطا در دریافت اطلاعات کاربران
-                        </td>
-                    </tr>
-                `;
-            }
+            users = [];
+            filteredUsers = [];
+
+
+            renderStats();
+            renderEmpty(
+                error &&
+                error.message
+                    ? error.message
+                    : "خطا در دریافت کاربران"
+            );
+
 
             showMessage(
-                error.message ||
-                "دریافت اطلاعات کاربران ناموفق بود.",
+                error &&
+                error.message
+                    ? error.message
+                    : "دریافت اطلاعات کاربران ناموفق بود.",
                 "error"
             );
+
+
+        } finally {
+
+            isLoading = false;
+
+            setLoading(false);
         }
     }
 
+
+    function setLoading(
+        loading
+    ) {
+
+        const button =
+            $("refreshButton");
+
+        if (!button) {
+            return;
+        }
+
+        button.disabled =
+            loading;
+
+        button.textContent =
+            loading
+                ? "در حال بروزرسانی..."
+                : "↻ بروزرسانی";
+    }
+
+
     /* =====================================================
-       آمار
+       STATS
     ===================================================== */
 
     function renderStats() {
 
         const total =
-            allUsers.length;
+            users.length;
+
 
         const active =
-            allUsers.filter(
+            users.filter(
                 user =>
                     user.status ===
                     "active"
             ).length;
 
+
         const pending =
-            allUsers.filter(
+            users.filter(
                 user =>
                     user.status ===
                     "pending"
             ).length;
 
+
         const specialists =
-            allUsers.filter(
-                user =>
-                    [
-                        "veterinarian",
-                        "technical_veterinarian",
-                        "veterinary_lab",
-                        "poultry_technical_expert"
-                    ].includes(
-                        user.user_type
-                    )
+            users.filter(
+                user => {
+
+                    const type =
+                        user.user_type;
+
+                    return (
+
+                        type ===
+                            "veterinarian" ||
+
+                        type ===
+                            "technical_veterinarian" ||
+
+                        type ===
+                            "poultry_technical_expert" ||
+
+                        type ===
+                            "veterinary_lab" ||
+
+                        type ===
+                            "diagnostic_lab"
+
+                    );
+                }
             ).length;
+
 
         setText(
             "statTotal",
@@ -466,126 +683,15 @@
 
         setText(
             "statSpecialists",
-            faNumber(specialists)
+            faNumber(
+                specialists
+            )
         );
     }
 
-    /* =====================================================
-       فیلتر
-    ===================================================== */
-
-    function applyFilters() {
-
-        const searchInput =
-            $("userSearch");
-
-        const roleFilter =
-            $("roleFilter");
-
-        const statusFilter =
-            $("statusFilter");
-
-        const search =
-            searchInput
-                ? searchInput.value
-                    .trim()
-                    .toLowerCase()
-                : "";
-
-        const role =
-            roleFilter
-                ? roleFilter.value
-                : "all";
-
-        const status =
-            statusFilter
-                ? statusFilter.value
-                : "all";
-
-        filteredUsers =
-            allUsers.filter(user => {
-
-                const searchable = [
-                    user.full_name,
-                    user.email,
-                    user.phone,
-                    user.organization_name,
-                    user.license_number,
-                    user.province,
-                    user.city,
-                    user.specialty,
-                    user.user_type,
-                    user.role
-                ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .toLowerCase();
-
-                const matchesSearch =
-                    !search ||
-                    searchable.includes(search);
-
-                let matchesRole = true;
-
-                if (role !== "all") {
-
-                    if (
-                        [
-                            "veterinarian",
-                            "technical_veterinarian",
-                            "farm_operator",
-                            "farm_manager",
-                            "diagnostic_lab",
-                            "poultry_technical_expert",
-                            "company_manager"
-                        ].includes(role)
-                    ) {
-
-                        const typeMap = {
-                            farm_operator:
-                                "poultry_operator",
-
-                            farm_manager:
-                                "poultry_manager",
-
-                            diagnostic_lab:
-                                "veterinary_lab",
-
-                            company_manager:
-                                "organization_manager"
-                        };
-
-                        const wanted =
-                            typeMap[role] ||
-                            role;
-
-                        matchesRole =
-                            user.user_type ===
-                            wanted;
-
-                    } else {
-
-                        matchesRole =
-                            user.role === role;
-                    }
-                }
-
-                const matchesStatus =
-                    status === "all" ||
-                    user.status === status;
-
-                return (
-                    matchesSearch &&
-                    matchesRole &&
-                    matchesStatus
-                );
-            });
-
-        renderTable();
-    }
 
     /* =====================================================
-       جدول
+       TABLE
     ===================================================== */
 
     function renderTable() {
@@ -597,499 +703,312 @@
             return;
         }
 
-        if (!filteredUsers.length) {
 
-            tbody.innerHTML = `
-                <tr>
-                    <td
-                        colspan="8"
-                        class="empty"
-                    >
-                        کاربری با این مشخصات پیدا نشد.
-                    </td>
-                </tr>
-            `;
+        if (
+            !filteredUsers.length
+        ) {
+
+            renderEmpty(
+                "کاربری مطابق فیلتر انتخاب‌شده پیدا نشد."
+            );
 
             return;
         }
+
 
         tbody.innerHTML =
             filteredUsers
                 .map(
-                    user =>
-                        renderUserRow(user)
+                    renderUserRow
                 )
                 .join("");
     }
 
-    function renderUserRow(user) {
 
-        const isOwner =
-            user.role === "owner";
-
-        const userName =
-            user.full_name ||
-            "بدون نام";
+    function renderUserRow(
+        user
+    ) {
 
         const code =
             user.professional_code
-                ? "کد حرفه‌ای دارد"
+                ? "دارای کد"
                 : "بدون کد";
 
+
         return `
-            <tr>
 
-                <td>
-                    <span class="user-name">
-                        ${esc(userName)}
-                    </span>
+        <tr>
 
-                    ${
-                        isOwner
-                            ? `
-                                <span
-                                    class="badge owner"
-                                    style="margin-top:5px"
-                                >
-                                    مالک
-                                </span>
-                              `
+            <td>
+
+                <span class="user-name">
+
+                    ${esc(
+                        user.full_name ||
+                        "بدون نام"
+                    )}
+
+                </span>
+
+                <span class="muted">
+
+                    ${esc(
+                        user.role
+                            ? roleLabel(
+                                user.role
+                            )
                             : ""
-                    }
-                </td>
-
-                <td>
-                    ${esc(
-                        user.email ||
-                        "—"
                     )}
-                </td>
 
-                <td>
-                    ${esc(
-                        user.phone ||
-                        "—"
-                    )}
-                </td>
+                </span>
 
-                <td>
+            </td>
+
+
+            <td>
+
+                ${esc(
+                    user.email ||
+                    "—"
+                )}
+
+            </td>
+
+
+            <td>
+
+                ${esc(
+                    user.phone ||
+                    "—"
+                )}
+
+            </td>
+
+
+            <td>
+
+                ${esc(
+                    userTypeLabel(
+                        user.user_type
+                    )
+                )}
+
+                <span class="muted">
+
+                    ${esc(code)}
+
+                </span>
+
+            </td>
+
+
+            <td>
+
+                <span
+                    class="badge ${statusClass(
+                        user.status
+                    )}"
+                >
+
                     ${esc(
-                        userTypeLabel(
-                            user.user_type
+                        statusLabel(
+                            user.status
                         )
                     )}
 
-                    <span class="muted">
-                        ${esc(code)}
-                    </span>
-                </td>
+                </span>
 
-                <td>
-                    <span
-                        class="badge ${statusClass(
-                            user.status
+            </td>
+
+
+            <td>
+
+                ${esc(
+                    formatDate(
+                        user.created_at
+                    )
+                )}
+
+            </td>
+
+
+            <td>
+
+                ${esc(
+                    formatDate(
+                        user.last_seen_at
+                    )
+                )}
+
+            </td>
+
+
+            <td>
+
+                <div class="actions">
+
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        data-action="details"
+                        data-user-id="${esc(
+                            user.user_id
                         )}"
                     >
-                        ${esc(
-                            statusLabel(
-                                user.status
-                            )
-                        )}
-                    </span>
-                </td>
+                        جزئیات
+                    </button>
 
-                <td>
-                    ${esc(
-                        formatDate(
-                            user.created_at
-                        )
-                    )}
-                </td>
+                </div>
 
-                <td>
-                    ${esc(
-                        formatDate(
-                            user.last_seen_at
-                        )
-                    )}
-                </td>
+            </td>
 
-                <td>
-                    <div class="actions">
+        </tr>
 
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            data-action="details"
-                            data-user-id="${esc(
-                                user.user_id
-                            )}"
-                        >
-                            جزئیات
-                        </button>
-
-                    </div>
-                </td>
-
-            </tr>
         `;
     }
 
-    /* =====================================================
-       ساخت پنجره جزئیات
-       
-       چون HTML فعلی مودال ندارد،
-       اینجا یک بار ساخته می‌شود.
-    ===================================================== */
 
-    function ensureModal() {
+    function renderEmpty(
+        message
+    ) {
 
-        if ($("ownerUserModal")) {
+        const tbody =
+            $("usersTableBody");
+
+        if (!tbody) {
             return;
         }
 
-        const modal =
-            document.createElement(
-                "div"
-            );
 
-        modal.id =
-            "ownerUserModal";
+        tbody.innerHTML = `
 
-        modal.innerHTML = `
-            <div
-                style="
-                    position:fixed;
-                    inset:0;
-                    background:rgba(0,0,0,.48);
-                    z-index:9999;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    padding:15px;
-                "
-                data-modal-backdrop
-            >
+            <tr>
 
-                <div
-                    style="
-                        width:min(760px,100%);
-                        max-height:92vh;
-                        overflow:auto;
-                        background:#fff;
-                        border-radius:20px;
-                        box-shadow:0 20px 60px rgba(0,0,0,.25);
-                    "
-                    dir="rtl"
+                <td
+                    colspan="8"
+                    class="empty"
                 >
 
-                    <div
-                        style="
-                            padding:18px;
-                            border-bottom:1px solid #e6ece9;
-                            display:flex;
-                            align-items:center;
-                            justify-content:space-between;
-                            gap:10px;
-                        "
-                    >
+                    ${esc(
+                        message
+                    )}
 
-                        <div>
-                            <strong
-                                id="detailTitle"
-                                style="
-                                    color:#173f35;
-                                    font-size:18px;
-                                "
-                            >
-                                جزئیات کاربر
-                            </strong>
+                </td>
 
-                            <div
-                                id="detailSubtitle"
-                                style="
-                                    margin-top:5px;
-                                    color:#7a8581;
-                                    font-size:11px;
-                                "
-                            >
-                            </div>
-                        </div>
+            </tr>
 
-                        <button
-                            id="closeOwnerModal"
-                            type="button"
-                            class="btn btn-secondary"
-                        >
-                            بستن
-                        </button>
-
-                    </div>
-
-
-                    <div
-                        style="
-                            padding:18px;
-                            display:grid;
-                            grid-template-columns:
-                                repeat(
-                                    auto-fit,
-                                    minmax(210px,1fr)
-                                );
-                            gap:10px;
-                        "
-                    >
-
-                        ${detailItem(
-                            "نام و نام خانوادگی",
-                            "detailName"
-                        )}
-
-                        ${detailItem(
-                            "ایمیل",
-                            "detailEmail"
-                        )}
-
-                        ${detailItem(
-                            "شماره تماس",
-                            "detailPhone"
-                        )}
-
-                        ${detailItem(
-                            "نقش سامانه",
-                            "detailRole"
-                        )}
-
-                        ${detailItem(
-                            "نوع کاربری",
-                            "detailUserType"
-                        )}
-
-                        ${detailItem(
-                            "فعالیت",
-                            "detailActivity"
-                        )}
-
-                        ${detailItem(
-                            "نام مجموعه / سازمان",
-                            "detailOrganization"
-                        )}
-
-                        ${detailItem(
-                            "شماره پروانه / مجوز",
-                            "detailLicense"
-                        )}
-
-                        ${detailItem(
-                            "استان",
-                            "detailProvince"
-                        )}
-
-                        ${detailItem(
-                            "شهر",
-                            "detailCity"
-                        )}
-
-                        ${detailItem(
-                            "تخصص",
-                            "detailSpecialty"
-                        )}
-
-                        ${detailItem(
-                            "وضعیت حساب",
-                            "detailStatus"
-                        )}
-
-                        ${detailItem(
-                            "تأیید حرفه‌ای",
-                            "detailVerified"
-                        )}
-
-                        ${detailItem(
-                            "تاریخ ثبت‌نام",
-                            "detailCreated"
-                        )}
-
-                        ${detailItem(
-                            "آخرین فعالیت",
-                            "detailLastSeen"
-                        )}
-
-                    </div>
-
-
-                    <div
-                        id="professionalCodeSection"
-                        style="
-                            margin:0 18px 18px;
-                            padding:16px;
-                            border-radius:16px;
-                            background:#f5f8f6;
-                            border:1px solid #e0e9e4;
-                        "
-                    >
-
-                        <div
-                            style="
-                                font-weight:800;
-                                color:#173f35;
-                                margin-bottom:10px;
-                            "
-                        >
-                            🔐 کد حرفه‌ای
-                        </div>
-
-                        <div
-                            style="
-                                display:flex;
-                                align-items:center;
-                                gap:10px;
-                                flex-wrap:wrap;
-                            "
-                        >
-
-                            <div
-                                id="detailCode"
-                                style="
-                                    flex:1;
-                                    min-width:180px;
-                                    padding:11px;
-                                    background:#fff;
-                                    border:1px solid #dce6e1;
-                                    border-radius:10px;
-                                    font-weight:800;
-                                    letter-spacing:1px;
-                                "
-                            >
-                                —
-                            </div>
-
-                            <div
-                                id="detailCodeStatus"
-                                style="
-                                    padding:8px 11px;
-                                    border-radius:10px;
-                                    background:#e7f6ec;
-                                    color:#17603f;
-                                    font-size:11px;
-                                    font-weight:800;
-                                "
-                            >
-                                —
-                            </div>
-
-                        </div>
-
-
-                        <div
-                            style="
-                                display:flex;
-                                gap:8px;
-                                flex-wrap:wrap;
-                                margin-top:12px;
-                            "
-                        >
-
-                            <button
-                                id="generateProfessionalCodeBtn"
-                                type="button"
-                                class="btn btn-primary"
-                            >
-                                تولید / تغییر کد
-                            </button>
-
-                        </div>
-
-                    </div>
-
-
-                    <div
-                        style="
-                            padding:0 18px 18px;
-                        "
-                    >
-
-                        <div
-                            style="
-                                padding:12px;
-                                border-radius:12px;
-                                background:#f7faf8;
-                                color:#65736d;
-                                font-size:11px;
-                                line-height:1.9;
-                            "
-                        >
-                            کد حرفه‌ای برای شناسایی و دسترسی
-                            حرفه‌ای کاربر استفاده می‌شود.
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-
-        bindModalEvents();
-    }
-
-    function detailItem(
-        label,
-        id
-    ) {
-
-        return `
-            <div
-                style="
-                    padding:11px;
-                    border:1px solid #e6ece9;
-                    border-radius:12px;
-                    background:#fafcfb;
-                "
-            >
-
-                <div
-                    style="
-                        font-size:10px;
-                        color:#7a8581;
-                        margin-bottom:5px;
-                    "
-                >
-                    ${esc(label)}
-                </div>
-
-                <div
-                    id="${esc(id)}"
-                    style="
-                        font-size:12px;
-                        color:#24342e;
-                        font-weight:700;
-                        line-height:1.8;
-                        word-break:break-word;
-                    "
-                >
-                    —
-                </div>
-
-            </div>
         `;
     }
+
 
     /* =====================================================
-       باز کردن جزئیات
+       FILTERS
     ===================================================== */
 
-    function openDetails(userId) {
+    function applyFilters() {
+
+        const search =
+            (
+                $("userSearch") &&
+                $("userSearch").value
+                    ? $("userSearch").value
+                    : ""
+            )
+            .trim()
+            .toLowerCase();
+
+
+        const role =
+            $("roleFilter")
+                ? $("roleFilter").value
+                : "all";
+
+
+        const status =
+            $("statusFilter")
+                ? $("statusFilter").value
+                : "all";
+
+
+        filteredUsers =
+            users.filter(
+                user => {
+
+                    const searchable =
+                        [
+
+                            user.full_name,
+
+                            user.email,
+
+                            user.phone,
+
+                            user.user_type,
+
+                            user.organization_name,
+
+                            user.license_number,
+
+                            user.province,
+
+                            user.city,
+
+                            user.specialty
+
+                        ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .toLowerCase();
+
+
+                    const searchOK =
+                        !search ||
+                        searchable.includes(
+                            search
+                        );
+
+
+                    const roleOK =
+                        role === "all" ||
+                        user.role === role ||
+                        user.user_type === role;
+
+
+                    const statusOK =
+                        status === "all" ||
+                        user.status === status;
+
+
+                    return (
+                        searchOK &&
+                        roleOK &&
+                        statusOK
+                    );
+                }
+            );
+
+
+        renderTable();
+    }
+
+
+    /* =====================================================
+       DETAILS
+    ===================================================== */
+
+    function openDetails(
+        userId
+    ) {
 
         const user =
-            allUsers.find(
+            users.find(
                 item =>
                     String(
                         item.user_id
-                    ) === String(userId)
+                    ) ===
+                    String(userId)
             );
+
 
         if (!user) {
 
@@ -1101,37 +1020,31 @@
             return;
         }
 
+
         selectedUser =
             user;
 
-        ensureModal();
-
-        setText(
-            "detailTitle",
-            user.full_name ||
-            "جزئیات کاربر"
-        );
-
-        setText(
-            "detailSubtitle",
-            user.email ||
-            ""
-        );
 
         setText(
             "detailName",
-            user.full_name
+            user.full_name ||
+            "—"
         );
+
 
         setText(
             "detailEmail",
-            user.email
+            user.email ||
+            "—"
         );
+
 
         setText(
             "detailPhone",
-            user.phone
+            user.phone ||
+            "—"
         );
+
 
         setText(
             "detailRole",
@@ -1140,12 +1053,14 @@
             )
         );
 
+
         setText(
             "detailUserType",
             userTypeLabel(
                 user.user_type
             )
         );
+
 
         setText(
             "detailActivity",
@@ -1154,30 +1069,41 @@
             )
         );
 
+
         setText(
             "detailOrganization",
-            user.organization_name
+            user.organization_name ||
+            "—"
         );
+
 
         setText(
             "detailLicense",
-            user.license_number
+            user.license_number ||
+            "—"
         );
+
 
         setText(
             "detailProvince",
-            user.province
+            user.province ||
+            "—"
         );
+
 
         setText(
             "detailCity",
-            user.city
+            user.city ||
+            "—"
         );
+
 
         setText(
             "detailSpecialty",
-            user.specialty
+            user.specialty ||
+            "—"
         );
+
 
         setText(
             "detailStatus",
@@ -1186,12 +1112,21 @@
             )
         );
 
+
         setText(
             "detailVerified",
             user.is_verified
                 ? "تأیید شده"
                 : "تأیید نشده"
         );
+
+
+        setText(
+            "detailNotes",
+            user.notes ||
+            "—"
+        );
+
 
         setText(
             "detailCreated",
@@ -1200,6 +1135,7 @@
             )
         );
 
+
         setText(
             "detailLastSeen",
             formatDate(
@@ -1207,133 +1143,151 @@
             )
         );
 
+
         setText(
             "detailCode",
             user.professional_code ||
-            "کد حرفه‌ای ثبت نشده"
+            "کد ندارد"
         );
+
 
         setText(
             "detailCodeStatus",
             user.professional_code_active
                 ? "فعال"
-                : "غیرفعال"
+                : user.professional_code
+                    ? "غیرفعال"
+                    : "کد ندارد"
         );
 
-        const section =
-            $("professionalCodeSection");
 
-        if (section) {
+        setText(
+            "detailCodeUpdated",
+            formatDate(
+                user.professional_code_updated_at
+            )
+        );
 
-            section.style.display =
-                user.user_type
-                    ? "block"
-                    : "none";
-        }
 
         const modal =
             $("ownerUserModal");
 
-        if (modal) {
 
-            modal.style.display =
-                "block";
+        if (!modal) {
+            return;
         }
 
-        document.body.style.overflow =
-            "hidden";
+
+        modal.classList.add(
+            "show"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        document.body.classList.add(
+            "modal-open"
+        );
+
+
+        updateCodeButtons();
     }
 
-    /* =====================================================
-       بستن جزئیات
-    ===================================================== */
 
     function closeDetails() {
 
         const modal =
             $("ownerUserModal");
 
-        if (modal) {
 
-            modal.style.display =
-                "none";
+        if (!modal) {
+            return;
         }
 
-        document.body.style.overflow =
-            "";
+
+        modal.classList.remove(
+            "show"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+
+        document.body.classList.remove(
+            "modal-open"
+        );
+
 
         selectedUser =
             null;
     }
 
+
     /* =====================================================
-       رویدادهای مودال
+       PROFESSIONAL CODE
     ===================================================== */
 
-    function bindModalEvents() {
-
-        const close =
-            $("closeOwnerModal");
-
-        if (close) {
-
-            close.addEventListener(
-                "click",
-                closeDetails
-            );
-        }
-
-        const modal =
-            $("ownerUserModal");
-
-        if (modal) {
-
-            modal.addEventListener(
-                "click",
-                event => {
-
-                    if (
-                        event.target
-                            .hasAttribute(
-                                "data-modal-backdrop"
-                            )
-                    ) {
-                        closeDetails();
-                    }
-
-                }
-            );
-        }
+    function updateCodeButtons() {
 
         const generate =
             $("generateProfessionalCodeBtn");
 
-        if (generate) {
+        const toggle =
+            $("toggleProfessionalCodeBtn");
 
-            generate.addEventListener(
-                "click",
-                generateProfessionalCode
-            );
-        }
-    }
-
-    /* =====================================================
-       تولید کد حرفه‌ای
-    ===================================================== */
-
-    async function generateProfessionalCode() {
 
         if (!selectedUser) {
 
-            showMessage(
-                "کاربری انتخاب نشده است.",
-                "error"
-            );
+            if (generate) {
+                generate.disabled = true;
+            }
+
+            if (toggle) {
+                toggle.disabled = true;
+            }
 
             return;
         }
 
-        if (!selectedUser.user_type) {
+
+        if (generate) {
+
+            generate.disabled =
+                !selectedUser.user_type;
+
+        }
+
+
+        if (toggle) {
+
+            toggle.disabled =
+                !selectedUser.professional_code;
+
+            toggle.textContent =
+                selectedUser.professional_code_active
+                    ? "غیرفعال کردن کد"
+                    : "فعال کردن کد";
+        }
+    }
+
+
+    async function generateProfessionalCode() {
+
+        if (!selectedUser) {
+            return;
+        }
+
+
+        if (
+            !selectedUser.user_type
+        ) {
 
             showMessage(
                 "این کاربر هنوز پروفایل حرفه‌ای ندارد.",
@@ -1343,8 +1297,10 @@
             return;
         }
 
+
         const button =
             $("generateProfessionalCodeBtn");
+
 
         if (button) {
 
@@ -1355,37 +1311,47 @@
                 "در حال تولید...";
         }
 
+
         try {
 
             const {
                 data,
                 error
             } =
-                await supabaseClient.rpc(
-                    "owner_generate_professional_code",
-                    {
-                        p_user_id:
-                            selectedUser.user_id
-                    }
-                );
+                await supabaseClient
+                    .rpc(
+                        "owner_generate_professional_code",
+                        {
+                            p_user_id:
+                                selectedUser.user_id
+                        }
+                    );
+
 
             if (error) {
                 throw error;
             }
 
+
             const code =
-                typeof data === "string"
-                    ? data
-                    : data?.access_code ||
-                      data?.professional_code ||
-                      null;
+                typeof data === "object" &&
+                data !== null
+                    ? (
+                        data.access_code ||
+                        data.professional_code ||
+                        data.code ||
+                        ""
+                    )
+                    : data;
+
 
             if (!code) {
 
                 throw new Error(
-                    "کد ایجاد شد اما مقدار کد از سرور دریافت نشد."
+                    "کد حرفه‌ای از سرور دریافت نشد."
                 );
             }
+
 
             selectedUser.professional_code =
                 code;
@@ -1393,21 +1359,37 @@
             selectedUser.professional_code_active =
                 true;
 
+
             setText(
                 "detailCode",
                 code
             );
+
 
             setText(
                 "detailCodeStatus",
                 "فعال"
             );
 
+
+            setText(
+                "detailCodeUpdated",
+                formatDate(
+                    new Date()
+                )
+            );
+
+
+            updateCodeButtons();
+
+
             renderTable();
+
 
             showMessage(
                 "کد حرفه‌ای با موفقیت ایجاد شد."
             );
+
 
         } catch (error) {
 
@@ -1416,18 +1398,23 @@
                 error
             );
 
+
             showMessage(
-                error.message ||
-                "تولید کد حرفه‌ای ناموفق بود.",
+                error &&
+                error.message
+                    ? error.message
+                    : "تولید کد حرفه‌ای ناموفق بود.",
                 "error"
             );
+
 
         } finally {
 
             if (button) {
 
                 button.disabled =
-                    false;
+                    !selectedUser ||
+                    !selectedUser.user_type;
 
                 button.textContent =
                     "تولید / تغییر کد";
@@ -1435,14 +1422,240 @@
         }
     }
 
+
+    async function toggleProfessionalCode() {
+
+        if (!selectedUser) {
+            return;
+        }
+
+
+        if (
+            !selectedUser.professional_code
+        ) {
+
+            showMessage(
+                "برای این کاربر هنوز کدی وجود ندارد.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        const targetState =
+            !Boolean(
+                selectedUser.professional_code_active
+            );
+
+
+        const button =
+            $("toggleProfessionalCodeBtn");
+
+
+        if (button) {
+            button.disabled = true;
+        }
+
+
+        try {
+
+            /*
+             * ابتدا تلاش می‌کنیم RPC اختصاصی را اجرا کنیم.
+             */
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient
+                    .rpc(
+                        "owner_set_professional_code_status",
+                        {
+                            p_user_id:
+                                selectedUser.user_id,
+
+                            p_is_active:
+                                targetState
+                        }
+                    );
+
+
+            if (error) {
+                throw error;
+            }
+
+
+            selectedUser.professional_code_active =
+                targetState;
+
+
+            if (
+                data &&
+                typeof data ===
+                "object"
+            ) {
+
+                if (
+                    data.is_active !==
+                    undefined
+                ) {
+
+                    selectedUser.professional_code_active =
+                        data.is_active;
+                }
+            }
+
+
+            setText(
+                "detailCodeStatus",
+                selectedUser.professional_code_active
+                    ? "فعال"
+                    : "غیرفعال"
+            );
+
+
+            updateCodeButtons();
+
+
+            showMessage(
+                selectedUser.professional_code_active
+                    ? "کد حرفه‌ای فعال شد."
+                    : "کد حرفه‌ای غیرفعال شد."
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "TOGGLE PROFESSIONAL CODE ERROR:",
+                error
+            );
+
+
+            showMessage(
+                error &&
+                error.message
+                    ? error.message
+                    : "تغییر وضعیت کد ناموفق بود.",
+                "error"
+            );
+
+
+            updateCodeButtons();
+        }
+    }
+
+
     /* =====================================================
-       بروزرسانی
+       REFRESH
     ===================================================== */
 
-    function bindMainEvents() {
+    async function refreshUsers() {
+
+        try {
+
+            await verifyOwner();
+
+            await loadUsers();
+
+            showMessage(
+                "اطلاعات کاربران بروزرسانی شد."
+            );
+
+        } catch (error) {
+
+            console.error(
+                "REFRESH ERROR:",
+                error
+            );
+
+
+            showMessage(
+                error &&
+                error.message
+                    ? error.message
+                    : "بروزرسانی ناموفق بود.",
+                "error"
+            );
+        }
+    }
+
+
+    /* =====================================================
+       LOGOUT
+    ===================================================== */
+
+    async function logout() {
+
+        try {
+
+            const {
+                error
+            } =
+                await supabaseClient
+                    .auth
+                    .signOut();
+
+
+            if (error) {
+                throw error;
+            }
+
+
+            window.location.href =
+                "login.html";
+
+
+        } catch (error) {
+
+            console.error(
+                "LOGOUT ERROR:",
+                error
+            );
+
+
+            showMessage(
+                error &&
+                error.message
+                    ? error.message
+                    : "خروج ناموفق بود.",
+                "error"
+            );
+        }
+    }
+
+
+    /* =====================================================
+       EVENTS
+    ===================================================== */
+
+    function bindEvents() {
+
+        if (initialized) {
+            return;
+        }
+
+
+        initialized = true;
+
+
+        const refresh =
+            $("refreshButton");
+
+
+        if (refresh) {
+
+            refresh.addEventListener(
+                "click",
+                refreshUsers
+            );
+        }
+
 
         const search =
             $("userSearch");
+
 
         if (search) {
 
@@ -1452,157 +1665,167 @@
             );
         }
 
-        const role =
+
+        const roleFilter =
             $("roleFilter");
 
-        if (role) {
 
-            role.addEventListener(
+        if (roleFilter) {
+
+            roleFilter.addEventListener(
                 "change",
                 applyFilters
             );
         }
 
-        const status =
+
+        const statusFilter =
             $("statusFilter");
 
-        if (status) {
 
-            status.addEventListener(
+        if (statusFilter) {
+
+            statusFilter.addEventListener(
                 "change",
                 applyFilters
             );
         }
 
-        const refresh =
-            $("refreshButton");
-
-        if (refresh) {
-
-            refresh.addEventListener(
-                "click",
-                async () => {
-
-                    refresh.disabled =
-                        true;
-
-                    refresh.textContent =
-                        "در حال بروزرسانی...";
-
-                    try {
-
-                        await loadUsers();
-
-                    } finally {
-
-                        refresh.disabled =
-                            false;
-
-                        refresh.textContent =
-                            "↻ بروزرسانی";
-                    }
-                }
-            );
-        }
 
         const logout =
             $("logoutButton");
+
 
         if (logout) {
 
             logout.addEventListener(
                 "click",
-                async () => {
+                logout
+            );
+        }
 
-                    try {
 
-                        const {
-                            error
-                        } =
-                            await supabaseClient
-                                .auth
-                                .signOut();
+        const generate =
+            $("generateProfessionalCodeBtn");
 
-                        if (error) {
-                            throw error;
-                        }
 
-                        window.location.href =
-                            "login.html";
+        if (generate) {
 
-                    } catch (error) {
+            generate.addEventListener(
+                "click",
+                generateProfessionalCode
+            );
+        }
 
-                        console.error(
-                            "LOGOUT ERROR:",
-                            error
-                        );
 
-                        showMessage(
-                            error.message ||
-                            "خروج ناموفق بود.",
-                            "error"
-                        );
+        const toggle =
+            $("toggleProfessionalCodeBtn");
+
+
+        if (toggle) {
+
+            toggle.addEventListener(
+                "click",
+                toggleProfessionalCode
+            );
+        }
+
+
+        const close =
+            $("closeOwnerModal");
+
+
+        if (close) {
+
+            close.addEventListener(
+                "click",
+                closeDetails
+            );
+        }
+
+
+        const modal =
+            $("ownerUserModal");
+
+
+        if (modal) {
+
+            modal.addEventListener(
+                "click",
+                function (event) {
+
+                    if (
+                        event.target ===
+                        modal
+                    ) {
+
+                        closeDetails();
                     }
                 }
             );
         }
 
+
         document.addEventListener(
             "click",
-            event => {
+            function (event) {
 
                 const button =
                     event.target.closest(
-                        "[data-action]"
+                        "[data-action='details']"
                     );
+
 
                 if (!button) {
                     return;
                 }
 
-                const action =
-                    button.dataset.action;
 
-                const userId =
-                    button.dataset.userId;
-
-                if (
-                    action ===
-                    "details"
-                ) {
-
-                    openDetails(
-                        userId
-                    );
-                }
+                openDetails(
+                    button.dataset.userId
+                );
             }
         );
 
+
         document.addEventListener(
             "keydown",
-            event => {
+            function (event) {
 
                 if (
                     event.key ===
                     "Escape"
                 ) {
+
                     closeDetails();
                 }
             }
         );
     }
 
+
     /* =====================================================
-       شروع
+       RENDER ALL
+    ===================================================== */
+
+    function renderAll() {
+
+        renderStats();
+        applyFilters();
+    }
+
+
+    /* =====================================================
+       INIT
     ===================================================== */
 
     async function init() {
 
         try {
 
-            await verifyOwner();
+            bindEvents();
 
-            bindMainEvents();
+            await verifyOwner();
 
             await loadUsers();
 
@@ -1613,13 +1836,25 @@
                 error
             );
 
+
             showMessage(
-                error.message ||
-                "خطا در راه‌اندازی پنل مالک.",
+                error &&
+                error.message
+                    ? error.message
+                    : "خطا در بارگذاری پنل مالک.",
                 "error"
+            );
+
+
+            renderEmpty(
+                error &&
+                error.message
+                    ? error.message
+                    : "خطا در بارگذاری پنل مالک."
             );
         }
     }
+
 
     if (
         document.readyState ===
@@ -1628,7 +1863,10 @@
 
         document.addEventListener(
             "DOMContentLoaded",
-            init
+            init,
+            {
+                once:true
+            }
         );
 
     } else {

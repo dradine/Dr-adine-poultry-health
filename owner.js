@@ -1,424 +1,277 @@
 /* =========================================================
-   ADINEH OWNER MANAGEMENT — STABLE / ROBUST
-   - Waits for Supabase session
-   - Verifies owner from current auth user
-   - Uses owner_get_user_directory as primary source
-   - Falls back to direct owner-readable tables
-   - Keeps phone + professional profile + access code
+   ADINEH OWNER MANAGEMENT — FINAL STABLE
 ========================================================= */
 (function () {
     "use strict";
 
     let allUsers = [];
     let loading = false;
+    let bound = false;
 
     const $ = id => document.getElementById(id);
 
-    const els = {
-        tbody: () => $("usersTableBody"),
-        message: () => $("message"),
-        identity: () => $("ownerIdentity"),
-        search: () => $("userSearch"),
-        role: () => $("roleFilter"),
-        status: () => $("statusFilter"),
-        refresh: () => $("refreshUsers"),
-        logout: () => $("logoutButton")
-    };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    function esc(value) {
-        const div = document.createElement("div");
-        div.textContent = value == null ? "" : String(value);
-        return div.innerHTML;
+    function esc(v) {
+        if (v == null) return "";
+        const d = document.createElement("div");
+        d.textContent = String(v);
+        return d.innerHTML;
     }
 
-    function message(text, type) {
-        const box = els.message();
-        if (!box) return;
-        box.textContent = text || "";
-        box.className = "message " + (type || "info");
-        box.classList.remove("hidden");
+    function msg(text, type = "info") {
+        const el = $("message");
+        if (!el) return;
+        el.textContent = text || "";
+        el.className = "message " + type;
+        el.classList.remove("hidden");
     }
 
-    function clearMessage() {
-        const box = els.message();
-        if (!box) return;
-        box.textContent = "";
-        box.className = "message hidden";
+    function clearMsg() {
+        const el = $("message");
+        if (!el) return;
+        el.textContent = "";
+        el.className = "message hidden";
     }
 
-    function dateText(value) {
-        if (!value) return "—";
-        const d = new Date(value);
+    function dateText(v) {
+        if (!v) return "—";
+        const d = new Date(v);
         if (Number.isNaN(d.getTime())) return "—";
-        try {
-            return d.toLocaleString("fa-IR", { dateStyle: "short", timeStyle: "short" });
-        } catch (_) {
-            return d.toLocaleString("fa-IR");
-        }
+        try { return d.toLocaleString("fa-IR", { dateStyle: "short", timeStyle: "short" }); }
+        catch (_) { return d.toLocaleString("fa-IR"); }
     }
 
-    function roleText(role) {
-        return ({ owner: "مالک سامانه", admin: "مدیر سامانه", user: "کاربر" })[role] || role || "—";
+    function roleText(v) {
+        return ({ owner:"مالک سامانه", admin:"مدیر سامانه", user:"کاربر" })[v] || v || "—";
     }
 
-    function typeText(type) {
+    function typeText(v) {
         return ({
-            veterinarian: "🩺 دامپزشک",
-            technical_veterinarian: "🩺 دامپزشک مسئول فنی",
-            poultry_operator: "🐔 بهره‌بردار واحد طیور",
-            farm_operator: "🐔 بهره‌بردار واحد طیور",
-            poultry_manager: "👨‍💼 مدیر واحد طیور",
-            farm_manager: "👨‍💼 مدیر واحد طیور",
-            veterinary_lab: "🔬 آزمایشگاه تشخیص دامپزشکی",
-            diagnostic_lab: "🔬 آزمایشگاه تشخیص دامپزشکی",
-            poultry_technical_expert: "📊 کارشناس فنی طیور",
-            organization_manager: "🏢 مدیر / نماینده مجموعه",
-            company_manager: "🏢 مدیر / نماینده مجموعه",
-            other: "سایر"
-        })[type] || type || "ثبت نشده";
+            veterinarian:"🩺 دامپزشک",
+            technical_veterinarian:"🩺 دامپزشک مسئول فنی",
+            poultry_operator:"🐔 بهره‌بردار واحد طیور",
+            farm_operator:"🐔 بهره‌بردار واحد طیور",
+            poultry_manager:"👨‍💼 مدیر واحد طیور",
+            farm_manager:"👨‍💼 مدیر واحد طیور",
+            veterinary_lab:"🔬 آزمایشگاه تشخیص دامپزشکی",
+            diagnostic_lab:"🔬 آزمایشگاه تشخیص دامپزشکی",
+            poultry_technical_expert:"📊 کارشناس فنی طیور",
+            organization_manager:"🏢 مدیر / نماینده مجموعه",
+            company_manager:"🏢 مدیر / نماینده مجموعه",
+            other:"سایر"
+        })[v] || v || "ثبت نشده";
     }
 
-    function statusText(status) {
-        return ({
-            pending: "در انتظار تأیید",
-            active: "فعال",
-            suspended: "موقتاً غیرفعال",
-            blocked: "مسدود",
-            removed: "بایگانی / حذف‌شده"
-        })[status] || status || "نامشخص";
+    function statusText(v) {
+        return ({ pending:"در انتظار تأیید", active:"فعال", suspended:"موقتاً غیرفعال", blocked:"مسدود", removed:"بایگانی / حذف‌شده" })[v] || v || "نامشخص";
     }
 
-    function activityText(value) {
-        if (!value) return "—";
-        let list = value;
-        if (typeof value === "string") {
-            try { list = JSON.parse(value); } catch (_) { return esc(value); }
-        }
-        if (!Array.isArray(list)) return esc(list);
-        const map = {
-            broiler: "گوشتی",
-            layer: "تخم‌گذار",
-            breeder: "مادر",
-            pullet: "پولت",
-            hatchery: "جوجه‌کشی",
-            other: "سایر"
-        };
-        return list.length ? list.map(x => esc(map[x] || x)).join("، ") : "—";
+    function activityText(v) {
+        if (!v) return "—";
+        let a = v;
+        if (typeof v === "string") { try { a = JSON.parse(v); } catch (_) { return esc(v); } }
+        if (!Array.isArray(a)) return esc(a);
+        const map = {broiler:"گوشتی",layer:"تخم‌گذار",breeder:"مادر",pullet:"پولت",hatchery:"جوجه‌کشی",other:"سایر"};
+        return a.length ? a.map(x => esc(map[x] || x)).join("، ") : "—";
     }
 
-    function specialist(user) {
-        return ["veterinarian", "technical_veterinarian", "veterinary_lab", "diagnostic_lab", "poultry_technical_expert"].includes(user.user_type);
+    function isSpecialist(u) {
+        return ["veterinarian","technical_veterinarian","veterinary_lab","diagnostic_lab","poultry_technical_expert"].includes(u.user_type);
     }
 
-    function normalize(row) {
+    function normalize(r) {
         return {
-            id: row.id || row.user_id,
-            user_id: row.user_id || row.id,
-            email: row.email || "",
-            full_name: row.full_name || "",
-            phone: row.phone || "",
-            role: row.role || "user",
-            status: row.status || "pending",
-            is_active: row.is_active,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-            last_seen_at: row.last_seen_at,
-            user_type: row.user_type || row.profile_user_type || null,
-            activity_types: row.activity_types || [],
-            organization_name: row.organization_name || null,
-            license_number: row.license_number || null,
-            province: row.province || null,
-            city: row.city || null,
-            specialty: row.specialty || null,
-            notes: row.notes || null,
-            is_verified: row.is_verified === true,
-            access_code: row.access_code || row.professional_code || null,
-            professional_code: row.professional_code || row.access_code || null,
-            professional_code_active: row.professional_code_active ?? row.code_is_active ?? row.is_active_code ?? false,
-            code_created_at: row.code_created_at || null,
-            code_updated_at: row.code_updated_at || null
+            id:r.id || r.user_id,
+            user_id:r.user_id || r.id,
+            email:r.email || "",
+            full_name:r.full_name || "",
+            phone:r.phone || "",
+            role:r.role || "user",
+            status:r.status || "pending",
+            is_active:r.is_active,
+            created_at:r.created_at,
+            updated_at:r.updated_at,
+            last_seen_at:r.last_seen_at,
+            user_type:r.user_type || r.profile_user_type || null,
+            activity_types:r.activity_types || [],
+            organization_name:r.organization_name || null,
+            license_number:r.license_number || null,
+            province:r.province || null,
+            city:r.city || null,
+            specialty:r.specialty || null,
+            notes:r.notes || null,
+            is_verified:r.is_verified === true,
+            access_code:r.access_code || r.professional_code || null,
+            professional_code:r.professional_code || r.access_code || null,
+            professional_code_active:r.professional_code_active ?? r.code_is_active ?? r.is_active_code ?? false,
+            code_created_at:r.code_created_at || null,
+            code_updated_at:r.code_updated_at || null
         };
     }
 
-    async function waitForSupabase() {
-        for (let i = 0; i < 40; i++) {
-            if (window.supabaseClient && supabaseClient.auth) return true;
-            await new Promise(r => setTimeout(r, 150));
+    async function getClient() {
+        for (let i=0;i<60;i++) {
+            if (window.supabaseClient && window.supabaseClient.auth) return window.supabaseClient;
+            try { if (typeof supabaseClient !== "undefined" && supabaseClient?.auth) return supabaseClient; } catch (_) {}
+            await sleep(150);
         }
-        throw new Error("اتصال سامانه آماده نشد. لطفاً صفحه را دوباره باز کنید.");
+        throw new Error("اتصال Supabase آماده نشد.");
     }
 
-    async function getAuthUser() {
-        await waitForSupabase();
-        const { data, error } = await supabaseClient.auth.getUser();
-        if (error) throw error;
-        if (!data || !data.user) throw new Error("جلسه ورود کاربر پیدا نشد. لطفاً دوباره وارد شوید.");
-        return data.user;
+    async function getSession(client) {
+        for (let i=0;i<20;i++) {
+            const {data,error} = await client.auth.getSession();
+            if (error) throw error;
+            if (data?.session?.user) return data.session.user;
+            await sleep(250);
+        }
+        throw new Error("جلسه ورود پیدا نشد. ابتدا وارد سامانه شوید و سپس صفحه مدیریت را باز کنید.");
     }
 
-    async function verifyOwner() {
-        const authUser = await getAuthUser();
-        let profile = null;
-
-        const result = await supabaseClient
-            .from("profiles")
+    async function verifyOwner(client, authUser) {
+        const {data,error} = await client.from("profiles")
             .select("id,email,full_name,phone,role,status,is_active")
-            .eq("id", authUser.id)
-            .maybeSingle();
-
-        if (!result.error) profile = result.data;
-
-        const isOwner = profile &&
-            profile.role === "owner" &&
-            profile.status === "active" &&
-            profile.is_active === true;
-
-        if (!isOwner) {
+            .eq("id",authUser.id).maybeSingle();
+        if (error) throw error;
+        if (!data) throw new Error("پروفایل مالک برای حساب واردشده پیدا نشد.");
+        if (data.role !== "owner" || data.status !== "active" || data.is_active !== true)
             throw new Error("این حساب به عنوان مالک فعال سامانه شناخته نشد.");
-        }
-
-        const identity = els.identity();
-        if (identity) {
-            identity.textContent = `مالک: ${profile.full_name || authUser.email || "—"}  |  ${profile.email || authUser.email || "—"}`;
-        }
-
-        return { authUser, profile };
+        const identity=$("ownerIdentity");
+        if(identity) identity.textContent=`مالک: ${data.full_name || "دکتر ادینه"} | ${data.email || authUser.email || "—"}`;
+        return data;
     }
 
-    async function loadViaRpc() {
-        const { data, error } = await supabaseClient.rpc("owner_get_user_directory");
-        if (error) throw error;
-        if (!Array.isArray(data)) return [];
-        return data.map(normalize).filter(x => x.id);
+    async function rpcUsers(client) {
+        const {data,error}=await client.rpc("owner_get_user_directory");
+        if(error) throw error;
+        if(!Array.isArray(data)) return [];
+        return data.map(normalize).filter(x=>x.id);
     }
 
-    async function loadViaTables() {
-        const { data: profiles, error } = await supabaseClient
-            .from("profiles")
+    async function tableUsers(client) {
+        const {data:profiles,error}=await client.from("profiles")
             .select("id,email,full_name,phone,role,status,is_active,created_at,updated_at,last_seen_at")
-            .order("created_at", { ascending: false });
-        if (error) throw error;
-
-        const rows = profiles || [];
-        const ids = rows.map(x => x.id).filter(Boolean);
-        const professional = new Map();
-        const codes = new Map();
-
-        if (ids.length) {
-            const [p, c] = await Promise.all([
-                supabaseClient.from("professional_profiles").select("user_id,user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified").in("user_id", ids),
-                supabaseClient.from("professional_access_codes").select("user_id,access_code,is_active,created_at,updated_at").in("user_id", ids)
-            ]);
-            if (!p.error) (p.data || []).forEach(x => professional.set(x.user_id, x));
-            if (!c.error) (c.data || []).forEach(x => codes.set(x.user_id, x));
+            .order("created_at",{ascending:false});
+        if(error) throw error;
+        const rows=profiles||[];
+        const ids=rows.map(x=>x.id).filter(Boolean);
+        const profMap=new Map(), codeMap=new Map();
+        if(ids.length){
+            const p=await client.from("professional_profiles")
+                .select("user_id,user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified").in("user_id",ids);
+            const c=await client.from("professional_access_codes")
+                .select("user_id,access_code,is_active,created_at,updated_at").in("user_id",ids);
+            if(!p.error)(p.data||[]).forEach(x=>profMap.set(x.user_id,x));
+            if(!c.error)(c.data||[]).forEach(x=>codeMap.set(x.user_id,x));
         }
-
-        return rows.map(p => normalize({
-            ...p,
-            ...(professional.get(p.id) || {}),
-            ...(codes.get(p.id) || {})
-        }));
+        return rows.map(x=>normalize({...x,...(profMap.get(x.id)||{}),...(codeMap.get(x.id)||{})}));
     }
 
     async function loadUsers() {
-        if (loading) return;
-        loading = true;
-        const tbody = els.tbody();
-        if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">در حال دریافت اطلاعات کامل کاربران...</td></tr>`;
-
+        if(loading) return;
+        loading=true;
+        const tbody=$("usersTableBody");
+        if(tbody) tbody.innerHTML='<tr><td colspan="8" class="loading-cell">در حال دریافت اطلاعات کاربران...</td></tr>';
         try {
-            await verifyOwner();
-
-            let users = [];
-            let rpcError = null;
-            try {
-                users = await loadViaRpc();
-            } catch (e) {
-                rpcError = e;
-                console.warn("OWNER DIRECTORY RPC FAILED:", e);
-            }
-
-            if (!users.length) {
-                try {
-                    users = await loadViaTables();
-                } catch (e) {
-                    if (rpcError) throw new Error(`RPC: ${rpcError.message || rpcError} | جدول‌ها: ${e.message || e}`);
-                    throw e;
+            const client=await getClient();
+            const authUser=await getSession(client);
+            await verifyOwner(client,authUser);
+            let users=[];
+            let rpcError=null;
+            try { users=await rpcUsers(client); }
+            catch(e){ rpcError=e; console.warn("owner_get_user_directory failed",e); }
+            if(!users.length) {
+                try { users=await tableUsers(client); }
+                catch(e){
+                    const a=rpcError?.message||"RPC ناموفق";
+                    throw new Error(a+" | دریافت مستقیم جداول: "+(e?.message||e));
                 }
             }
-
-            allUsers = users;
+            allUsers=users;
             renderUsers();
-            clearMessage();
-            message(`اطلاعات ${allUsers.length.toLocaleString("fa-IR")} کاربر بارگذاری شد.`, "success");
-        } catch (error) {
-            console.error("OWNER LOAD USERS ERROR:", error);
-            allUsers = [];
-            updateStats([]);
-            if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="error-cell"><strong>اطلاعات کاربران لود نشد</strong><br><small>${esc(error?.message || "خطای نامشخص")}</small></td></tr>`;
-            message(error?.message || "خطا در دریافت اطلاعات کاربران.", "error");
-        } finally {
-            loading = false;
-        }
+            clearMsg();
+            msg(`اطلاعات ${allUsers.length.toLocaleString("fa-IR")} کاربر بارگذاری شد.`,"success");
+        } catch(e){
+            console.error("OWNER LOAD ERROR",e);
+            allUsers=[]; updateStats([]);
+            if(tbody) tbody.innerHTML=`<tr><td colspan="8" class="error-cell"><strong>اطلاعات کاربران لود نشد</strong><br><small>${esc(e?.message||"خطای نامشخص")}</small></td></tr>`;
+            msg(e?.message||"خطا در دریافت اطلاعات کاربران.","error");
+        } finally { loading=false; }
     }
 
-    function updateStats(users) {
-        const total = $("statTotal");
-        const active = $("statActive");
-        const specialists = $("statSpecialists");
-        const pending = $("statPending");
-        const set = (el, n) => { if (el) el.textContent = Number(n || 0).toLocaleString("fa-IR"); };
-        set(total, users.length);
-        set(active, users.filter(u => u.status === "active" && u.is_active !== false).length);
-        set(specialists, users.filter(specialist).length);
-        set(pending, users.filter(u => u.status === "pending").length);
+    function updateStats(users){
+        const set=(id,n)=>{const e=$(id);if(e)e.textContent=Number(n||0).toLocaleString("fa-IR");};
+        set("statTotal",users.length);
+        set("statActive",users.filter(x=>x.status==="active"&&x.is_active!==false).length);
+        set("statPending",users.filter(x=>x.status==="pending").length);
+        set("statSpecialists",users.filter(isSpecialist).length);
     }
 
-    function filteredUsers() {
-        const q = String(els.search()?.value || "").trim().toLowerCase();
-        const type = els.role()?.value || "";
-        const status = els.status()?.value || "";
-        return allUsers.filter(u => {
-            const hay = [u.full_name,u.email,u.phone,u.user_type,u.organization_name,u.access_code,u.license_number,u.province,u.city,u.specialty].join(" ").toLowerCase();
-            return (!q || hay.includes(q)) && (!type || u.user_type === type) && (!status || u.status === status);
+    function filtered(){
+        const q=String($("userSearch")?.value||"").trim().toLowerCase();
+        const t=$("roleFilter")?.value||"";
+        const s=$("statusFilter")?.value||"";
+        return allUsers.filter(u=>{
+            const hay=[u.full_name,u.email,u.phone,u.user_type,u.organization_name,u.access_code,u.license_number,u.province,u.city,u.specialty].join(" ").toLowerCase();
+            return (!q||hay.includes(q))&&(!t||u.user_type===t)&&(!s||u.status===s);
         });
     }
 
-    function actionButtons(user) {
-        if (user.role === "owner") return `<strong class="owner-lock">مالک</strong>`;
-        let html = `<button type="button" class="action-button action-details" data-action="details" data-id="${esc(user.id)}">جزئیات</button>`;
-        if (user.status !== "active") html += `<button type="button" class="action-button action-active" data-action="status" data-id="${esc(user.id)}" data-status="active">فعال‌سازی</button>`;
-        if (user.status !== "suspended") html += `<button type="button" class="action-button action-suspend" data-action="status" data-id="${esc(user.id)}" data-status="suspended">تعلیق</button>`;
-        if (user.status !== "blocked") html += `<button type="button" class="action-button action-block" data-action="status" data-id="${esc(user.id)}" data-status="blocked">مسدود</button>`;
-        if (user.status !== "removed") html += `<button type="button" class="action-button action-remove" data-action="status" data-id="${esc(user.id)}" data-status="removed">بایگانی</button>`;
-        return html;
-    }
-
-    function renderUsers() {
-        const tbody = els.tbody();
-        if (!tbody) return;
+    function renderUsers(){
+        const tbody=$("usersTableBody"); if(!tbody)return;
         updateStats(allUsers);
-        const users = filteredUsers();
-        if (!users.length) {
-            tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">کاربری مطابق فیلترهای انتخاب‌شده پیدا نشد.</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = users.map(user => `
-            <tr>
-                <td><div class="user-name">${esc(user.full_name || "—")}</div><div class="user-sub">${esc(roleText(user.role))}</div></td>
-                <td><div>${esc(user.email || "—")}</div><div class="user-sub">${esc(user.phone || "شماره ثبت نشده")}</div></td>
-                <td><span class="role-badge">${esc(typeText(user.user_type))}</span><div class="user-sub activity-line">${activityText(user.activity_types)}</div></td>
-                <td>${specialist(user) ? (user.access_code ? `<span class="access-code" data-code="${esc(user.access_code)}">••••</span><button type="button" class="code-toggle" data-action="toggle-code" data-id="${esc(user.id)}">نمایش</button>` : `<span class="muted">ثبت نشده</span>`) : `<span class="muted">—</span>`}</td>
-                <td><span class="status-badge status-${esc(user.status || "unknown")}">${esc(statusText(user.status))}</span></td>
-                <td>${dateText(user.created_at)}</td>
-                <td>${dateText(user.last_seen_at || user.updated_at)}</td>
-                <td><div class="user-actions">${actionButtons(user)}</div></td>
-            </tr>
-        `).join("");
+        const users=filtered();
+        if(!users.length){tbody.innerHTML='<tr><td colspan="8" class="empty-cell">کاربری مطابق فیلترها پیدا نشد.</td></tr>';return;}
+        tbody.innerHTML=users.map(u=>`<tr>
+<td><div class="user-name">${esc(u.full_name||"بدون نام")}</div><div class="user-sub">${esc(roleText(u.role))}</div></td>
+<td><div>${esc(u.email||"—")}</div><div class="user-sub" dir="ltr">${esc(u.phone||"شماره ثبت نشده")}</div></td>
+<td><span class="role-badge">${esc(typeText(u.user_type))}</span><div class="user-sub">${activityText(u.activity_types)}</div></td>
+<td>${isSpecialist(u)&&u.access_code?`<span class="access-code" data-code="${esc(u.access_code)}">••••</span><button class="code-toggle" data-action="toggle-code" data-id="${esc(u.id)}">نمایش</button>`:`<span class="muted">${isSpecialist(u)?"ثبت نشده":"—"}</span>`}</td>
+<td><span class="status-badge status-${esc(u.status)}">${esc(statusText(u.status))}</span></td>
+<td>${dateText(u.created_at)}</td><td>${dateText(u.last_seen_at||u.updated_at)}</td>
+<td><button type="button" class="action-button action-details" data-action="details" data-id="${esc(u.id)}">جزئیات</button></td>
+</tr>`).join("");
     }
 
-    function showDetails(user) {
-        const old = $("ownerDetailsModal");
-        if (old) old.remove();
-        const modal = document.createElement("div");
-        modal.id = "ownerDetailsModal";
-        modal.className = "owner-modal-backdrop";
-        modal.innerHTML = `
-            <div class="owner-modal" role="dialog" aria-modal="true">
-                <div class="owner-modal-head"><div><h3>جزئیات کامل کاربر</h3><p>${esc(user.full_name || "—")}</p></div><button type="button" class="modal-close" data-close>×</button></div>
-                <div class="detail-grid">
-                    <div><span>نام و نام خانوادگی</span><strong>${esc(user.full_name || "—")}</strong></div>
-                    <div><span>ایمیل</span><strong dir="ltr">${esc(user.email || "—")}</strong></div>
-                    <div><span>شماره تماس</span><strong dir="ltr">${esc(user.phone || "ثبت نشده")}</strong></div>
-                    <div><span>نقش سامانه</span><strong>${esc(roleText(user.role))}</strong></div>
-                    <div><span>نوع کاربری</span><strong>${esc(typeText(user.user_type))}</strong></div>
-                    <div><span>کد حرفه‌ای</span><strong class="modal-code">${esc(user.access_code || "ثبت نشده")}</strong></div>
-                    <div class="detail-wide"><span>نوع فعالیت</span><strong>${activityText(user.activity_types)}</strong></div>
-                    <div><span>مجموعه</span><strong>${esc(user.organization_name || "—")}</strong></div>
-                    <div><span>شماره پروانه</span><strong>${esc(user.license_number || "—")}</strong></div>
-                    <div><span>استان</span><strong>${esc(user.province || "—")}</strong></div>
-                    <div><span>شهر</span><strong>${esc(user.city || "—")}</strong></div>
-                    <div><span>تخصص</span><strong>${esc(user.specialty || "—")}</strong></div>
-                    <div><span>تأیید حرفه‌ای</span><strong>${user.is_verified ? "تأیید شده" : "تأیید نشده"}</strong></div>
-                    <div><span>وضعیت حساب</span><strong>${esc(statusText(user.status))}</strong></div>
-                    <div><span>فعال بودن حساب</span><strong>${user.is_active === true ? "فعال" : "غیرفعال"}</strong></div>
-                    <div><span>تاریخ ثبت‌نام</span><strong>${dateText(user.created_at)}</strong></div>
-                    <div><span>آخرین فعالیت</span><strong>${dateText(user.last_seen_at || user.updated_at)}</strong></div>
-                    <div><span>ایجاد کد حرفه‌ای</span><strong>${dateText(user.code_created_at)}</strong></div>
-                    <div><span>آخرین تغییر کد</span><strong>${dateText(user.code_updated_at)}</strong></div>
-                    <div class="detail-wide"><span>یادداشت</span><strong>${esc(user.notes || "—")}</strong></div>
-                </div>
-                <div class="owner-modal-foot"><button type="button" class="action-button action-active" data-close>بستن</button></div>
-            </div>`;
-        document.body.appendChild(modal);
-        modal.addEventListener("click", e => { if (e.target === modal || e.target.closest("[data-close]")) modal.remove(); });
+    function details(u){
+        const old=$("ownerDetailsModal"); if(old)old.remove();
+        const m=document.createElement("div"); m.id="ownerDetailsModal"; m.className="owner-modal-backdrop";
+        m.innerHTML=`<div class="owner-modal"><div class="owner-modal-head"><div><h3>جزئیات کامل کاربر</h3><p>${esc(u.full_name||"—")}</p></div><button class="modal-close" data-close>×</button></div><div class="detail-grid">
+<div><span>نام</span><strong>${esc(u.full_name||"—")}</strong></div><div><span>ایمیل</span><strong dir="ltr">${esc(u.email||"—")}</strong></div><div><span>شماره تماس</span><strong dir="ltr">${esc(u.phone||"ثبت نشده")}</strong></div><div><span>نقش سامانه</span><strong>${esc(roleText(u.role))}</strong></div>
+<div><span>نوع کاربری</span><strong>${esc(typeText(u.user_type))}</strong></div><div><span>کد حرفه‌ای</span><strong class="modal-code">${esc(u.access_code||"ثبت نشده")}</strong></div><div class="detail-wide"><span>نوع فعالیت</span><strong>${activityText(u.activity_types)}</strong></div>
+<div><span>مجموعه</span><strong>${esc(u.organization_name||"—")}</strong></div><div><span>شماره پروانه</span><strong>${esc(u.license_number||"—")}</strong></div><div><span>استان</span><strong>${esc(u.province||"—")}</strong></div><div><span>شهر</span><strong>${esc(u.city||"—")}</strong></div><div><span>تخصص</span><strong>${esc(u.specialty||"—")}</strong></div><div><span>تأیید حرفه‌ای</span><strong>${u.is_verified?"تأیید شده":"تأیید نشده"}</strong></div><div><span>وضعیت</span><strong>${esc(statusText(u.status))}</strong></div><div><span>فعال</span><strong>${u.is_active===true?"بله":"خیر"}</strong></div><div><span>ثبت‌نام</span><strong>${dateText(u.created_at)}</strong></div><div><span>آخرین فعالیت</span><strong>${dateText(u.last_seen_at||u.updated_at)}</strong></div><div><span>ایجاد کد</span><strong>${dateText(u.code_created_at)}</strong></div><div><span>آخرین تغییر کد</span><strong>${dateText(u.code_updated_at)}</strong></div><div class="detail-wide"><span>یادداشت</span><strong>${esc(u.notes||"—")}</strong></div>
+</div><div class="owner-modal-foot"><button class="action-button action-active" data-close>بستن</button></div></div>`;
+        document.body.appendChild(m);
+        m.addEventListener("click",e=>{if(e.target===m||e.target.closest("[data-close]"))m.remove();});
     }
 
-    async function changeStatus(button) {
-        const userId = button.dataset.id;
-        const newStatus = button.dataset.status;
-        if (!userId || !newStatus) return;
-        const text = { active:"آیا این کاربر فعال شود؟", suspended:"آیا دسترسی این کاربر موقتاً غیرفعال شود؟", blocked:"آیا این کاربر مسدود شود؟", removed:"آیا این کاربر بایگانی شود؟" }[newStatus] || "آیا مطمئن هستید؟";
-        if (!window.confirm(text)) return;
-        button.disabled = true;
-        try {
-            const { error } = await supabaseClient.rpc("owner_set_user_status", { target_user_id: userId, new_status: newStatus });
-            if (error) throw error;
-            message("وضعیت کاربر با موفقیت تغییر کرد.", "success");
-            await loadUsers();
-        } catch (e) {
-            console.error("STATUS ERROR:", e);
-            message(e?.message || "تغییر وضعیت انجام نشد.", "error");
-        } finally { button.disabled = false; }
-    }
-
-    function bind() {
-        const tbody = els.tbody();
-        if (tbody) tbody.addEventListener("click", async e => {
-            const button = e.target.closest("button[data-action]");
-            if (!button) return;
-            const action = button.dataset.action;
-            const user = allUsers.find(u => String(u.id) === String(button.dataset.id));
-            if (action === "details" && user) return showDetails(user);
-            if (action === "toggle-code") {
-                const code = button.parentElement?.querySelector(".access-code");
-                if (!code) return;
-                const hidden = code.textContent === "••••";
-                code.textContent = hidden ? code.dataset.code : "••••";
-                button.textContent = hidden ? "مخفی" : "نمایش";
-                return;
+    function bind(){
+        if(bound)return; bound=true;
+        $("usersTableBody")?.addEventListener("click",e=>{
+            const b=e.target.closest("button[data-action]");if(!b)return;
+            const u=allUsers.find(x=>String(x.id)===String(b.dataset.id));if(!u)return;
+            if(b.dataset.action==="details")details(u);
+            if(b.dataset.action==="toggle-code"){
+                const c=b.parentElement?.querySelector(".access-code");if(!c)return;
+                const hidden=c.textContent==="••••";c.textContent=hidden?c.dataset.code:"••••";b.textContent=hidden?"مخفی":"نمایش";
             }
-            if (action === "status") await changeStatus(button);
         });
-
-        [els.search(), els.role(), els.status()].forEach(el => {
-            if (!el) return;
-            el.addEventListener("input", renderUsers);
-            el.addEventListener("change", renderUsers);
-        });
-        const refresh = els.refresh();
-        if (refresh) refresh.addEventListener("click", loadUsers);
-        const logout = els.logout();
-        if (logout) logout.addEventListener("click", async () => {
-            logout.disabled = true;
-            try {
-                if (window.AdineAuth?.signOut) await AdineAuth.signOut();
-                else await supabaseClient.auth.signOut();
-            } catch (e) { console.error(e); logout.disabled = false; }
+        $("userSearch")?.addEventListener("input",renderUsers);
+        $("roleFilter")?.addEventListener("change",renderUsers);
+        $("statusFilter")?.addEventListener("change",renderUsers);
+        $("refreshUsers")?.addEventListener("click",loadUsers);
+        $("logoutButton")?.addEventListener("click",async()=>{
+            const b=$("logoutButton");if(b)b.disabled=true;
+            try{const c=await getClient(); if(window.AdineAuth?.signOut)await window.AdineAuth.signOut();else await c.auth.signOut();}
+            catch(e){console.error(e);if(b)b.disabled=false;}
         });
     }
 
-    async function init() {
-        try {
-            await waitForSupabase();
-            bind();
-            await loadUsers();
-        } catch (e) {
-            console.error("OWNER INIT ERROR:", e);
-            message(e?.message || "خطا در راه‌اندازی پنل مالک.", "error");
-        }
+    async function init(){
+        try{await getClient();bind();await loadUsers();}
+        catch(e){console.error("OWNER INIT",e);msg(e?.message||"خطا در راه‌اندازی پنل مالک","error");}
     }
 
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
-    else init();
+    if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();

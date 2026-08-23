@@ -1698,96 +1698,165 @@
    * ---------------------------------------------------------
    */
 
-  async function generateCode() {
-
-    if (!selected) return;
-
-    const btn =
-      $("generateCode");
-
-    if (btn) {
-      btn.disabled = true;
-    }
-
-    try {
-
-      const uid =
-        selected.id;
-
-      const code =
-        await rpc(
-          "owner_generate_professional_code",
-          {
-            p_user_id: uid
-          }
-        );
-
-      if (
-        !code ||
-        typeof code !== "string"
-      ) {
-
-        throw new Error(
-          "کد حرفه‌ای از پایگاه داده دریافت نشد."
-        );
-      }
-
-      /*
-       * ابتدا وضعیت محلی
-       */
-      selected.professional_code =
-        code;
-
-      selected.access_code =
-        code;
-
-      selected.professional_code_active =
-        true;
-
-      /*
-       * سپس دریافت مجدد از DB
-       */
-      await loadUsers();
-
-      const fresh =
-        users.find(
-          x =>
-            String(x.id) ===
-            String(uid)
-        );
-
-      if (fresh) {
-        openModal(fresh);
-      }
-
-      notify(
-        "کد حرفه‌ای با موفقیت ایجاد و ذخیره شد.",
-        "success"
-      );
-
-    } catch (e) {
-
-      console.error(
-        "OWNER GENERATE CODE ERROR:",
-        e
-      );
-
-      notify(
-        faError(
-          e,
-          "تولید کد حرفه‌ای انجام نشد."
-        ),
-        "error"
-      );
-
-    } finally {
-
-      if (btn) {
-        btn.disabled = false;
-      }
-    }
+  async function generateCode(){
+  if(!selected){
+    notify("ابتدا یک کاربر را انتخاب کنید.","error");
+    return;
   }
 
+  const btn=$("generateCode");
+  btn.disabled=true;
+
+  try{
+
+    client=client||await getClient();
+
+    // بررسی Session واقعی
+    const {data:sessionData,error:sessionError}=await client.auth.getSession();
+
+    if(sessionError){
+      throw sessionError;
+    }
+
+    if(!sessionData?.session?.user){
+      throw new Error("نشست ورود مالک پیدا نشد.");
+    }
+
+    const sessionUser=sessionData.session.user;
+
+    console.log("OWNER CODE TEST",{
+      currentSessionUser:sessionUser.id,
+      selectedUser:selected.id
+    });
+
+    // بررسی مالک بودن Session
+    const {data:ownerCheck,error:ownerError}=await client
+      .from("profiles")
+      .select("id,full_name,email,role,status,is_active")
+      .eq("id",sessionUser.id)
+      .maybeSingle();
+
+    if(ownerError){
+      throw ownerError;
+    }
+
+    console.log("OWNER PROFILE",ownerCheck);
+
+    if(
+      !ownerCheck ||
+      ownerCheck.role!=="owner" ||
+      ownerCheck.status!=="active" ||
+      ownerCheck.is_active!==true
+    ){
+      throw new Error("نشست فعلی مربوط به مالک فعال سامانه نیست.");
+    }
+
+    // RPC اصلی
+    const {data,error}=await client.rpc(
+      "owner_generate_professional_code",
+      {
+        p_user_id:selected.id
+      }
+    );
+
+    console.log("OWNER GENERATE CODE RPC RESULT",{
+      data,
+      error
+    });
+
+    if(error){
+
+      console.error(
+        "OWNER GENERATE CODE FULL ERROR",
+        JSON.stringify(error,null,2)
+      );
+
+      throw error;
+    }
+
+    if(!data){
+      throw new Error("تابع تولید کد اجرا شد اما کدی از پایگاه داده دریافت نشد.");
+    }
+
+    // بروزرسانی اطلاعات
+    await loadUsers();
+
+    const fresh=users.find(
+      x=>String(x.id)===String(selected.id)
+    );
+
+    if(fresh){
+      openModal(fresh);
+    }
+
+    notify(
+      `کد حرفه‌ای ${String(data)} با موفقیت تولید و ذخیره شد.`,
+      "success"
+    );
+
+  }catch(e){
+
+    console.error(
+      "GENERATE PROFESSIONAL CODE ERROR",
+      e
+    );
+
+    const raw=String(
+      e?.message ||
+      e?.details ||
+      e?.hint ||
+      e ||
+      ""
+    );
+
+    let message="تولید کد حرفه‌ای انجام نشد.";
+
+    if(
+      /could not find the function/i.test(raw) ||
+      /function .* does not exist/i.test(raw)
+    ){
+      message=
+        "تابع تولید کد حرفه‌ای در API سامانه شناسایی نشده است. Schema Cache پایگاه داده باید Reload شود.";
+    }
+    else if(
+      /دسترسی غیرمجاز برای تولید کد حرفه‌ای/i.test(raw)
+    ){
+      message=
+        "نشست فعلی مالک فعال سامانه شناسایی نشده است.";
+    }
+    else if(
+      /کاربر موردنظر پیدا نشد/i.test(raw)
+    ){
+      message=
+        "کاربر موردنظر در پایگاه داده پیدا نشد.";
+    }
+    else if(
+      /شناسه کاربر ارسال نشده/i.test(raw)
+    ){
+      message=
+        "شناسه کاربر برای تولید کد ارسال نشده است.";
+    }
+    else if(
+      /duplicate|unique/i.test(raw)
+    ){
+      message=
+        "کد حرفه‌ای تکراری ایجاد شده است. دوباره تلاش کنید.";
+    }
+    else if(
+      /^[\u0600-\u06ff\s،؛:()._\-0-9]+$/.test(raw) &&
+      raw.length<300
+    ){
+      message=raw;
+    }
+
+    notify(message,"error");
+
+  }finally{
+
+    btn.disabled=false;
+
+  }
+}
   /*
    * ---------------------------------------------------------
    * فعال / غیرفعال کردن کد حرفه‌ای

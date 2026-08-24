@@ -1,1 +1,81 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پنل حرفه‌ای | آدینه</title><link rel="stylesheet" href="app.css"><style>.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.farm-card{border:1px solid #e4e9e6;border-radius:16px;padding:16px;background:#fff}.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eef5f1}.pending{background:#fff4d8}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.alert{padding:12px;border-radius:12px;background:#fff4d8;margin-bottom:14px}.lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}</style></head><body><header class="topbar"><div class="brand"><img src="IMG_4309.png" alt="آدینه"><span>پنل حرفه‌ای</span></div><button class="btn btn-secondary" onclick="AdineAuth.signOut()">خروج</button></header><main class="page"><div class="container"><h1 class="page-title" id="title">پنل حرفه‌ای</h1><p id="sub" class="page-description"></p><div id="message"></div><section class="card"><h2 class="card-title">درخواست‌های جدید</h2><div id="pending"></div></section><section class="card"><h2 class="card-title">فارم‌های تحت نظارت</h2><div id="farms" class="grid"></div></section><section id="labPanel" class="card" style="display:none"><h2 class="card-title">ثبت نتیجه آزمایش</h2><form id="labForm"><div class="lab-grid"><select id="labFarm" required></select><input id="labTitle" placeholder="عنوان گزارش" required><input id="labDate" type="date"><input id="labDisease" placeholder="بیماری / عامل"><input id="labResult" placeholder="نتیجه"><input id="labName" placeholder="نام آزمایشگاه"><input id="labFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></div><textarea id="labNotes" placeholder="توضیحات" style="width:100%;margin-top:10px"></textarea><button class="btn btn-primary" style="margin-top:10px">ثبت نتیجه</button></form><div id="labList" style="margin-top:16px"></div></section></div></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="auth.js"></script><script src="access-control.js"></script><script src="professional.js"></script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<title>مرکز مدیریت متخصصان | آدینه</title>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="professional-panel.css">
+</head>
+<body class="professional-page">
+<header class="pro-topbar">
+  <div class="pro-brand"><img src="IMG_4309.png" alt="مرکز سلامت طیور آدینه"><div><strong>مرکز سلامت طیور آدینه</strong><span>مرکز مدیریت متخصصان</span></div></div>
+  <button id="logoutBtn" class="pro-btn pro-btn-light">خروج</button>
+</header>
+<main class="pro-main">
+  <section class="pro-hero">
+    <div><div class="eyebrow">حساب حرفه‌ای</div><h1 id="welcomeName">در حال بارگذاری…</h1><p id="welcomeRole">—</p></div>
+    <div class="pro-code"><span>کد حرفه‌ای</span><strong id="accessCode">—</strong><small>شناسه ثابت شما</small></div>
+  </section>
+
+  <div id="pageMessage" class="pro-message" hidden></div>
+
+  <section class="pro-stats" id="stats">
+    <div class="pro-stat"><span>کل فارم‌های تحت پوشش</span><strong id="statTotal">۰</strong></div>
+    <div class="pro-stat good"><span>فعال</span><strong id="statActive">۰</strong></div>
+    <div class="pro-stat muted"><span>غیرفعال</span><strong id="statInactive">۰</strong></div>
+    <div class="pro-stat preparing"><span>در حال آماده‌سازی</span><strong id="statPreparing">۰</strong></div>
+  </section>
+
+  <nav class="pro-tabs" aria-label="بخش‌های پنل">
+    <button class="active" data-tab="farms">فارم‌های تحت پوشش</button>
+    <button data-tab="lists">لیست‌های منتخب</button>
+    <button data-tab="profile">اطلاعات حساب</button>
+    <button data-tab="support">پشتیبانی</button>
+  </nav>
+
+  <section id="tab-farms" class="pro-tab active">
+    <div class="section-head"><div><h2>فارم‌های تحت پوشش</h2><p>فارم‌ها به‌صورت خودکار بر اساس نوع تولید دسته‌بندی شده‌اند.</p></div><button id="refreshBtn" class="pro-btn pro-btn-outline">↻ بروزرسانی</button></div>
+    <div id="farmGroups" class="farm-groups"></div>
+    <div id="emptyFarms" class="pro-empty" hidden>هنوز فارم فعالی تحت پوشش شما قرار نگرفته است.</div>
+  </section>
+
+  <section id="tab-lists" class="pro-tab">
+    <div class="section-head"><div><h2>لیست‌های منتخب</h2><p>حداکثر ۵ لیست بسازید و فارم‌ها را برای مدیریت شخصی دسته‌بندی کنید.</p></div><button id="newListBtn" class="pro-btn pro-btn-primary">+ لیست جدید</button></div>
+    <div id="listsGrid" class="lists-grid"></div>
+  </section>
+
+  <section id="tab-profile" class="pro-tab">
+    <div class="section-head"><div><h2>اطلاعات حساب</h2><p>اطلاعات ثبت‌نامی خود را ویرایش کنید. کد حرفه‌ای قابل تغییر نیست.</p></div></div>
+    <form id="profileForm" class="profile-form">
+      <div class="form-grid">
+        <label>نام و نام خانوادگی<input id="pFullName" required></label>
+        <label>شماره تماس<input id="pPhone" dir="ltr"></label>
+        <label>ایمیل<input id="pEmail" type="email" dir="ltr"></label>
+        <label>نوع کاربری<input id="pUserType" readonly></label>
+        <label>سازمان / مجموعه<input id="pOrg"></label>
+        <label>شماره پروانه<input id="pLicense"></label>
+        <label>استان<input id="pProvince"></label>
+        <label>شهر<input id="pCity"></label>
+        <label>تخصص<input id="pSpecialty"></label>
+        <label class="full">نوع فعالیت‌ها<textarea id="pActivities" rows="2" placeholder="مثلاً پایش فارم، واکسیناسیون، آزمایشگاه…"></textarea></label>
+        <label class="full">توضیحات<textarea id="pNotes" rows="3"></textarea></label>
+        <label>کد حرفه‌ای<input id="pCodeReadonly" readonly></label>
+      </div>
+      <div class="form-actions"><button class="pro-btn pro-btn-primary" type="submit">ذخیره اطلاعات</button><span id="profileSaveMessage"></span></div>
+    </form>
+  </section>
+
+  <section id="tab-support" class="pro-tab">
+    <div class="support-card"><div class="support-icon">☎</div><div><h2>پشتیبانی مرکز سلامت طیور آدینه</h2><p>برای مشکلات فنی، حساب کاربری یا دسترسی فارم با پشتیبانی تماس بگیرید.</p><div class="support-links"><a href="tel:0913541707">۰۹۱۳۵۴۱۷۰۷</a><a href="mailto:dradine.vet@gmail.com">dradine.vet@gmail.com</a><span>شبکه‌های اجتماعی: <b>adine poultry health</b></span></div></div></div>
+  </section>
+</main>
+<div id="listModal" class="pro-modal" hidden><div class="pro-modal-box"><button class="modal-close" data-close>×</button><h3 id="modalTitle">لیست جدید</h3><div id="modalBody"></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="access-control.js"></script>
+<script src="professional.js"></script>
+</body>
+</html>

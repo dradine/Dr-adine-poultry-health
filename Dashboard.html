@@ -200,6 +200,15 @@
                 <div class="dashboard-grid">
 
 
+                    <!-- PROFESSIONAL MESSAGES -->
+                    <a class="menu-card" href="professional-messages.html">
+                        <div class="menu-icon">💬</div>
+                        <div class="menu-content">
+                            <h3>پیام‌های متخصصان</h3>
+                            <p>ارتباط و دریافت فایل از دامپزشک و متخصص فارم</p>
+                        </div>
+                    </a>
+
                     <!-- PROFESSIONALS -->
 
                     <a
@@ -663,14 +672,12 @@ document.addEventListener(
                 if (!auth) return;
                 const type = String(auth.profile?.user_type || '').trim().toLowerCase();
                 const role = String(auth.profile?.role || '').trim().toLowerCase();
-                const professionalTypes = [
-                    'veterinarian',
-                    'technical_veterinarian',
-                    'veterinary_lab',
-                    'diagnostic_lab',
+                const mainFarmTypes = [
+                    'poultry_operator',
+                    'poultry_manager',
                     'poultry_technical_expert'
                 ];
-                if (professionalTypes.includes(type) && !['owner','admin'].includes(role)) {
+                if (!mainFarmTypes.includes(type) && !['owner','admin'].includes(role)) {
                     window.location.replace('professional.html');
                     return;
                 }

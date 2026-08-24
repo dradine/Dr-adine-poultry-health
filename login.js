@@ -613,22 +613,20 @@ document.addEventListener("DOMContentLoaded", function () {
                         .trim()
                         .toLowerCase();
 
-                const professionalTypes = [
-                    "veterinarian",
-                    "technical_veterinarian",
-                    "veterinary_lab",
-                    "diagnostic_lab",
+                const mainFarmTypes = [
+                    "poultry_operator",
+                    "poultry_manager",
                     "poultry_technical_expert"
                 ];
 
-                // مسیر ورود باید دقیقاً با نوع حرفه‌ای واقعی حساب هماهنگ باشد.
-                // owner/admin فقط پنل مدیریت؛ متخصصان فقط پنل متخصصان؛ سایر کاربران داشبورد فارم.
+                // سه گروه اصلی وارد برنامه مرغداری می‌شوند؛ مالک وارد مدیریت می‌شود؛
+                // سایر حساب‌ها وارد مرکز مدیریت متخصصان/سایر کاربران می‌شوند.
                 if (role === "owner" || role === "admin") {
                     window.location.replace("owner.html");
-                } else if (professionalTypes.includes(userType)) {
-                    window.location.replace("professional.html");
-                } else {
+                } else if (mainFarmTypes.includes(userType)) {
                     window.location.replace("Dashboard.html");
+                } else {
+                    window.location.replace("professional.html");
                 }
 
 

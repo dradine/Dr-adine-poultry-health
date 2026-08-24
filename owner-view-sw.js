@@ -6,4 +6,23 @@ function clearTarget(){return openDB().then(db=>new Promise((resolve,reject)=>{c
 self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 self.addEventListener('message',e=>{if(e.data?.type==='OWNER_VIEW_START'&&e.data.target)e.waitUntil(setTarget(e.data.target));if(e.data?.type==='OWNER_VIEW_STOP')e.waitUntil(clearTarget());});
-self.addEventListener('fetch',event=>{if(event.request.mode!=='navigate')return;event.respondWith((async()=>{const target=await getTarget();let request=event.request;if(target){const url=new URL(request.url);const isOwner=url.pathname.endsWith('/owner.html')||url.pathname.endsWith('/login.html');if(!isOwner){url.searchParams.set('owner_view',target);request=new Request(url.toString(),request);}}const response=await fetch(request);const ct=response.headers.get('content-type')||'';if(!ct.includes('text/html'))return response;let html=await response.text();if(!html.includes('owner-view.js'))html=html.replace(/<\/body>/i,'<script src="owner-view.js"></script></body>');const headers=new Headers(response.headers);headers.delete('content-length');headers.delete('content-encoding');headers.delete('etag');return new Response(html,{status:response.status,statusText:response.statusText,headers});})()});
+self.addEventListener('fetch', event => {
+    if (event.request.mode !== 'navigate') return;
+    event.respondWith((async () => {
+        const target = await getTarget();
+        let request = event.request;
+        if (target) {
+            const url = new URL(request.url);
+            const isOwner = url.pathname.endsWith('/owner.html') || url.pathname.endsWith('/login.html');
+            if (!isOwner) { url.searchParams.set('owner_view', target); request = new Request(url.toString(), request); }
+        }
+        const response = await fetch(request);
+        const ct = response.headers.get('content-type') || '';
+        if (!ct.includes('text/html')) return response;
+        let html = await response.text();
+        if (!html.includes('owner-view.js')) html = html.replace(/<\/body>/i, '<script src="owner-view.js"></script></body>');
+        const headers = new Headers(response.headers);
+        headers.delete('content-length'); headers.delete('content-encoding'); headers.delete('etag');
+        return new Response(html, { status: response.status, statusText: response.statusText, headers });
+    })());
+});

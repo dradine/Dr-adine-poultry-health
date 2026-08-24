@@ -1,101 +1,115 @@
-/* ADINEH - PROFESSIONAL PANEL */
+/* ADINEH PROFESSIONAL PANEL - FARM ACCESS */
 document.addEventListener('DOMContentLoaded', async () => {
-  const auth = await AdineAuth.requireAuth();
-  if (!auth) return;
+    const auth = await AdineAuth.requireAuth();
+    if (!auth) return;
 
-  const p = auth.profile || {};
-  const userType = String(p.user_type || '').toLowerCase();
-  const isLab = userType === 'veterinary_lab';
-
-  document.getElementById('title').textContent = `پنل ${AdineAccess.roleLabel(p)}`;
-  document.getElementById('sub').textContent = `${p.full_name || ''} | ${p.phone || '—'}`;
-  if (isLab) document.getElementById('labPanel').style.display = 'block';
-
-  const typeLabels = {
-    veterinarian: 'دامپزشک',
-    technical_veterinarian: 'دامپزشک مسئول فنی',
-    poultry_technical_expert: 'کارشناس فنی طیور',
-    veterinary_lab: 'آزمایشگاه تشخیص دامپزشکی'
-  };
-
-  const esc = v => AdineAccess.esc(v ?? '');
-
-  async function load() {
-    const { data, error } = await supabaseClient.rpc('get_my_farm_access');
-    if (error) {
-      document.getElementById('pending').innerHTML = `<div class="alert">خطا در دریافت درخواست‌ها: ${esc(error.message)}</div>`;
-      document.getElementById('farms').innerHTML = '<div class="alert">دریافت فارم‌ها انجام نشد.</div>';
-      return;
+    const p = auth.profile || {};
+    const type = String(p.user_type || '').trim().toLowerCase();
+    const professionalTypes = ['veterinarian','technical_veterinarian','veterinary_lab','diagnostic_lab','poultry_technical_expert'];
+    if (!professionalTypes.includes(type)) {
+        window.location.replace('Dashboard.html');
+        return;
     }
 
-    const rows = data || [];
-    const pending = rows.filter(x => x.connection_status === 'pending');
-    document.getElementById('pending').innerHTML = pending.length
-      ? pending.map(x => `
-          <div class="alert">
-            <strong>${esc(x.farm_name || 'فارم')}</strong>
-            <div>${esc(typeLabels[x.professional_type] || x.professional_type || 'متخصص')}</div>
-            <div class="actions">
-              <button class="btn btn-primary" data-accept="${esc(x.connection_id)}">تأیید دسترسی</button>
-              <button class="btn btn-secondary" data-reject="${esc(x.connection_id)}">رد درخواست</button>
-            </div>
-          </div>
-        `).join('')
-      : 'درخواست جدیدی ندارید.';
+    const title = document.getElementById('title');
+    const sub = document.getElementById('sub');
+    const isLab = ['veterinary_lab','diagnostic_lab'].includes(type);
+    if (title) title.textContent = `پنل ${AdineAccess.roleLabel(p)}`;
+    if (sub) sub.textContent = `${p.full_name || ''} | ${p.phone || '—'}`;
 
-    const active = rows.filter(x => x.connection_status === 'active');
-    document.getElementById('farms').innerHTML = active.length
-      ? active.map(x => `
-          <article class="farm-card">
-            <h3>${esc(x.farm_name || 'فارم')}</h3>
-            <span class="badge">${esc(x.farm_type || 'نوع نامشخص')}</span>
-            <p>کد فارم: ${esc(x.farm_code || '—')}</p>
-            <p>نوع ارتباط: ${esc(typeLabels[x.professional_type] || x.professional_type || 'متخصص')}</p>
-            <div class="actions">
-              <button class="btn btn-primary" data-open="${esc(x.farm_id)}">ورود به پایش هفتگی</button>
-              <button class="btn btn-secondary" data-health="${esc(x.farm_id)}">سلامت و بیماری</button>
-              <button class="btn btn-secondary" data-report="${esc(x.farm_id)}">گزارش</button>
-            </div>
-          </article>
-        `).join('')
-      : 'هنوز فارم فعالی برای شما ثبت نشده است.';
+    if (isLab) document.getElementById('labPanel')?.style.setProperty('display','block');
 
-  }
+    async function load() {
+        const { data, error } = await supabaseClient.rpc('get_my_farm_access');
+        if (error) {
+            document.getElementById('farms').innerHTML = '<div class="alert">خطا در دریافت فارم‌ها</div>';
+            document.getElementById('pending').textContent = 'خطا در دریافت درخواست‌ها.';
+            return;
+        }
 
-  document.addEventListener('click', async e => {
-    const accept = e.target.closest('[data-accept]');
-    const reject = e.target.closest('[data-reject]');
+        const rows = data || [];
+        const pend = rows.filter(x => x.connection_status === 'pending');
+        document.getElementById('pending').innerHTML = pend.length
+            ? pend.map(x => `
+                <div class="alert">
+                    <strong>${AdineAccess.esc(x.farm_name)}</strong>
+                    — ${AdineAccess.esc(AdineAccess.roleLabel({user_type:x.professional_type}))}
+                    <div class="actions">
+                        <button class="btn btn-primary" data-accept="${x.connection_id}">تأیید درخواست</button>
+                        <button class="btn btn-secondary" data-reject="${x.connection_id}">رد درخواست</button>
+                    </div>
+                </div>`).join('')
+            : 'درخواست جدیدی ندارید.';
 
-    if (accept || reject) {
-      const id = (accept || reject).dataset.accept || reject.dataset.reject;
-      let result;
+        const active = rows.filter(x => x.connection_status === 'active');
+        document.getElementById('farms').innerHTML = active.length
+            ? active.map(x => `
+                <article class="farm-card">
+                    <h3>${AdineAccess.esc(x.farm_name)}</h3>
+                    <span class="badge">${AdineAccess.esc(x.farm_type || 'نوع نامشخص')}</span>
+                    <p>کد فارم: ${AdineAccess.esc(x.farm_code || '—')}</p>
+                    <div class="actions">
+                        <button class="btn btn-primary" data-open="${x.farm_id}">ورود به فارم</button>
+                        <button class="btn btn-secondary" data-health="${x.farm_id}">سلامت و بیماری</button>
+                        <button class="btn btn-secondary" data-report="${x.farm_id}">گزارش</button>
+                    </div>
+                </article>`).join('')
+            : 'هنوز فارم فعالی برای شما ثبت نشده است.';
 
-      if (accept) {
-        result = await supabaseClient.rpc('approve_professional_access', {
-          p_access_id: id
-        });
-      } else {
-        const reason = prompt('دلیل رد درخواست (اختیاری):', '') ?? '';
-        result = await supabaseClient.rpc('reject_professional_access', {
-          p_access_id: id,
-          p_reason: reason.trim() || null
-        });
-      }
-
-      if (result.error) alert(result.error.message);
-      else alert(accept ? 'دسترسی فعال شد.' : 'درخواست رد شد.');
-      await load();
-      return;
+        const sel = document.getElementById('labFarm');
+        if (sel) sel.innerHTML = active.map(x => `<option value="${x.farm_id}">${AdineAccess.esc(x.farm_name)}</option>`).join('');
+        if (isLab) await loadLabs(active.map(x => x.farm_id));
     }
 
-    const open = e.target.closest('[data-open]');
-    const health = e.target.closest('[data-health]');
-    const report = e.target.closest('[data-report]');
+    document.addEventListener('click', async e => {
+        const accept = e.target.closest('[data-accept]');
+        const reject = e.target.closest('[data-reject]');
 
-    if (open) AdineAccess.openFarm(open.dataset.open, 'weekly.html');
-    if (health) AdineAccess.openFarm(health.dataset.health, 'health.html');
-    if (report) AdineAccess.openFarm(report.dataset.report, 'reports.html');
-  });
+        if (accept || reject) {
+            const id = accept?.dataset.accept || reject?.dataset.reject;
+            const result = accept
+                ? await supabaseClient.rpc('approve_professional_access', { p_access_id: id })
+                : await supabaseClient.rpc('reject_professional_access', { p_access_id: id, p_reason: 'رد درخواست توسط متخصص' });
+            if (result.error) alert(result.error.message);
+            else alert(accept ? 'درخواست تأیید شد.' : 'درخواست رد شد.');
+            await load();
+            return;
+        }
 
-  await load();
+        const open = e.target.closest('[data-open]');
+        const health = e.target.closest('[data-health]');
+        const report = e.target.closest('[data-report]');
+        if (open) await AdineAccess.openFarm(open.dataset.open, 'professional-farm.html');
+        if (health) await AdineAccess.openFarm(health.dataset.health, 'health.html');
+        if (report) await AdineAccess.openFarm(report.dataset.report, 'reports.html');
+    });
+
+    async function loadLabs(ids) {
+        // نتیجه آزمایش‌ها در نسخه فعلی از lab_tests خوانده می‌شود؛ جدول lab_reports در ساختار فعلی پروژه وجود ندارد.
+        if (!ids.length) {
+            document.getElementById('labList').textContent = 'نتیجه‌ای ثبت نشده است.';
+            return;
+        }
+        const { data, error } = await supabaseClient
+            .from('lab_tests')
+            .select('*')
+            .in('farm_id', ids)
+            .order('created_at', { ascending: false });
+        if (error) {
+            document.getElementById('labList').textContent = 'خطا در دریافت نتایج آزمایش.';
+            return;
+        }
+        document.getElementById('labList').innerHTML = (data || []).map(x => `
+            <div class="farm-card">
+                <strong>${AdineAccess.esc(x.test_name || x.title || 'آزمایش')}</strong>
+                <p>${AdineAccess.esc(x.result || x.result_text || '—')}</p>
+            </div>`).join('') || 'نتیجه‌ای ثبت نشده است.';
+    }
+
+    document.getElementById('labForm')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        alert('ثبت نتیجه آزمایش از مسیر lab_tests انجام می‌شود و این فرم فایل‌محور در نسخه فعلی غیرفعال است.');
+    });
+
+    await load();
 });

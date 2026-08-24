@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123b2a">
+<title>مدیریت فارم | آدینه</title>
+<link rel="stylesheet" href="app.css">
+<style>
+.workspace{display:grid;gap:16px}.farm-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.flock-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.flock-card{border:1px solid #e3e9e6;border-radius:16px;padding:16px;background:#fff}.meta{color:#68756f;font-size:13px;line-height:1.9}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.empty,.error{padding:16px;border-radius:14px;background:#f7f9f8}.error{background:#fff0f0;color:#8b2525}.badge{display:inline-block;padding:5px 9px;border-radius:20px;background:#eef5f1;margin-bottom:8px}.btn[disabled]{opacity:.55;pointer-events:none}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="brand"><img src="IMG_4309.png" alt="آدینه"><span>مدیریت فارم</span></div><button id="back" class="btn btn-secondary" type="button">بازگشت به پنل متخصص</button></header>
+<main class="page"><div class="container workspace">
+<section class="card"><div class="farm-head"><div><h1 id="farmName" class="page-title">در حال دریافت فارم…</h1><p id="farmMeta" class="page-description"></p></div><span id="accessBadge" class="badge">در حال بررسی دسترسی</span></div></section>
+<section class="card"><h2 class="card-title">گله‌های این فارم</h2><p class="page-description">ابتدا گله موردنظر را انتخاب کنید؛ سپس گزارش هفتگی، سلامت و گزارش جامع همان گله را باز کنید.</p><div id="flocks" class="flock-grid"></div></section>
+<div id="message"></div>
+</div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app-core.js"></script>
+<script src="auth.js"></script>
+<script src="access-control.js"></script>
+<script src="professional-farm.js"></script>
+</body>
+</html>

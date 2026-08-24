@@ -598,6 +598,8 @@
 <script src="supabase-config.js"></script>
 
 <script src="app-core.js"></script>
+<script src="auth.js"></script>
+<script src="access-control.js"></script>
 
 <script src="poultry-icons.js"></script>
 
@@ -654,6 +656,36 @@ document.addEventListener(
 
         async function loadAccount() {
 
+            // متخصصان نباید وارد داشبورد مدیریتی مرغدار شوند.
+            // این مسیر فقط برای حساب‌های بهره‌بردار/مدیر واحد است.
+            try {
+                const auth = await AdineAuth.requireAuth();
+                if (!auth) return;
+                const type = String(auth.profile?.user_type || '').trim().toLowerCase();
+                const role = String(auth.profile?.role || '').trim().toLowerCase();
+                const professionalTypes = [
+                    'veterinarian',
+                    'technical_veterinarian',
+                    'veterinary_lab',
+                    'diagnostic_lab',
+                    'poultry_technical_expert'
+                ];
+                if (professionalTypes.includes(type) && !['owner','admin'].includes(role)) {
+                    window.location.replace('professional.html');
+                    return;
+                }
+                if (role === 'owner' || role === 'admin') {
+                    // مالک/مدیر از مسیر owner.html مدیریت می‌شود؛ مگر اینکه owner_view عمداً فعال شده باشد.
+                    const ownerView = new URLSearchParams(window.location.search).get('owner_view');
+                    if (!ownerView && window.location.pathname.toLowerCase().endsWith('dashboard.html')) {
+                        window.location.replace('owner.html');
+                        return;
+                    }
+                }
+            } catch (routeError) {
+                console.error('Dashboard role routing:', routeError);
+                return;
+            }
 
             retryButton.hidden =
                 true;

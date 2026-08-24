@@ -555,7 +555,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================= */
                 if (profile && profile.profile_completed !== true && window.supabaseClient?.rpc) {
                     try {
-                        const md = user.user_metadata || {};
+                        const md = data.user.user_metadata || {};
                         await window.supabaseClient.rpc("complete_profile_registration", {
                             p_full_name: md.full_name || profile.full_name || "",
                             p_phone: md.phone || profile.phone || "",
@@ -613,7 +613,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (role === "owner" || role === "admin") {
                     window.location.replace("owner.html");
-                } else if (["veterinarian","technical_veterinarian","veterinary_lab"].includes(String(profile.user_type||"").toLowerCase())) {
+                } else if (["veterinarian","technical_veterinarian","veterinary_lab","diagnostic_lab","poultry_technical_expert"].includes(String(profile.user_type||"").toLowerCase())) {
                     window.location.replace("professional.html");
                 } else {
                     window.location.replace("Dashboard.html");

@@ -63,9 +63,16 @@
     for(let i=0;i<100;i++){
       if(window.supabaseClient?.auth)return window.supabaseClient;
       try{if(typeof supabaseClient!=="undefined"&&supabaseClient?.auth)return supabaseClient}catch(_){ }
+      const cfg=window.SUPABASE_CONFIG||window.supabaseConfig||window.__SUPABASE_CONFIG__||{};
+      const url=cfg.url||cfg.supabaseUrl||window.SUPABASE_URL||window.supabaseUrl;
+      const key=cfg.anonKey||cfg.key||cfg.supabaseAnonKey||window.SUPABASE_ANON_KEY||window.supabaseAnonKey;
+      if(url&&key&&window.supabase?.createClient){
+        window.supabaseClient=window.supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+        return window.supabaseClient;
+      }
       await sleep(100);
     }
-    throw new Error("اتصال Supabase آماده نشد.");
+    throw new Error("اتصال Supabase آماده نشد. config.js را بررسی کنید.");
   }
   async function getAuthUser(){
     const {data,error}=await client.auth.getUser();
@@ -81,28 +88,7 @@
 
   async function loadViaRpc(){
     const {data,error}=await client.rpc("owner_get_user_directory");
-    if(error)throw error;
-    const users=Array.isArray(data)?data.map(normalize).filter(x=>x.id):[];
-    if(!users.length)return users;
-
-    const ids=users.map(x=>x.id).filter(Boolean);
-    const [profilesRes,professionalRes,codesRes]=await Promise.all([
-      client.from("profiles").select("id,email,full_name,phone,role,status,is_active,created_at,updated_at,last_seen_at").in("id",ids),
-      client.from("professional_profiles").select("user_id,user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified").in("user_id",ids),
-      client.from("professional_access_codes").select("user_id,access_code,is_active,created_at,updated_at").in("user_id",ids)
-    ]);
-
-    if(profilesRes.error)throw profilesRes.error;
-    const pm=new Map((profilesRes.data||[]).map(x=>[x.id,x]));
-    const prm=new Map((professionalRes.data||[]).map(x=>[x.user_id,x]));
-    const cm=new Map((codesRes.data||[]).map(x=>[x.user_id,x]));
-
-    return users.map(u=>normalize({
-      ...u,
-      ...(pm.get(u.id)||{}),
-      ...(prm.get(u.id)||{}),
-      ...(cm.get(u.id)||{})
-    }));
+    if(error)throw error; return Array.isArray(data)?data.map(normalize).filter(x=>x.id):[];
   }
   async function loadDirect(){
     const {data,error}=await client.from("profiles").select("id,email,full_name,phone,role,status,is_active,created_at,updated_at,last_seen_at").order("created_at",{ascending:false});
@@ -116,7 +102,10 @@
       if(p.error)console.warn("professional_profiles",p.error); if(c.error)console.warn("professional_access_codes",c.error);
       (p.data||[]).forEach(x=>pm.set(x.user_id,x));(c.data||[]).forEach(x=>cm.set(x.user_id,x));
     }
-    return rows.map(x=>normalize({...x,...(pm.get(x.id)||{}),...(cm.get(x.id)||{})}));
+    return rows.map(x=>{
+      const pp=pm.get(x.id)||{}, cc=cm.get(x.id)||{};
+      return normalize({...x,...pp,...cc,user_type:x.user_type||pp.user_type||"other",activity_types:x.activity_types||pp.activity_types||[]});
+    });
   }
   async function loadUsers(){
     if(busy)return;busy=true;const body=$("usersTableBody");
@@ -153,17 +142,10 @@
       <td><span class="code-preview">${u.professional_code?"••••":"ندارد"}</span></td>
       <td><span class="status status-${esc(u.status)}">${esc(statusText(u.status))}</span></td>
       <td>${dateText(u.created_at)}</td><td>${dateText(u.last_seen_at||u.updated_at)}</td>
-      <td><div class="owner-actions"><button type="button" class="owner-action" data-action="details" data-id="${esc(u.id)}">جزئیات و ویرایش</button><button type="button" class="owner-action secondary" data-action="view" data-id="${esc(u.id)}">مشاهده سامانه</button></div></td>
+      <td><button type="button" class="owner-action" data-action="details" data-id="${esc(u.id)}">جزئیات و ویرایش</button></td>
     </tr>`).join("");
   }
 
-
-  function startOwnerView(uid){
-    if(!uid)return;
-    try{sessionStorage.setItem("adineh_owner_view_target",uid)}catch(_){}
-    try{localStorage.removeItem("adine_poultry_current_selection")}catch(_){}
-    location.href="Dashboard.html?owner_view="+encodeURIComponent(uid);
-  }
   function setVal(id,v){const e=$(id);if(e)e.value=v==null?"":v;}
   function openModal(u){
     selectedUser=u;const m=$("ownerEditModal");if(!m)return;
@@ -183,29 +165,37 @@
   }
   function closeModal(){const m=$("ownerEditModal");if(m)m.hidden=true;document.body.classList.remove("owner-modal-open");selectedUser=null;}
 
-  async function callRpc(name,args){
-    const {data,error}=await client.rpc(name,args);
-    if(error){
-      const msg=error?.message||error?.details||error?.hint||"خطای پایگاه داده";
-      throw new Error(msg);
-    }
-    return data;
-  }
+  const PROFESSIONAL_TYPES = new Set([
+    "veterinarian","technical_veterinarian","veterinary_lab",
+    "diagnostic_lab","poultry_technical_expert"
+  ]);
 
   async function saveUser(){
     if(!selectedUser||!client)return;
-    const btn=$("saveUserButton");if(btn)btn.disabled=true;
+    const btn=$("saveUserButton"); if(btn)btn.disabled=true;
     try{
       const uid=selectedUser.id;
       const full=$("editFullName")?.value.trim()||"";
-      const email=$("editEmail")?.value.trim()||null;
-      const phone=$("editPhone")?.value.trim()||null;
-      const role=$("editRole")?.value||"user";
-      const status=$("editStatus")?.value||"pending";
+      if(!full)throw new Error("نام کاربر نمی‌تواند خالی باشد.");
+
+      const nextUserType=$("editUserType")?.value||"other";
+      const nextRole=$("editRole")?.value||"user";
+      const nextStatus=$("editStatus")?.value||"pending";
+      const nextActive=$("editActive")?.value==="true";
+      const nextVerified=$("editVerified")?.value==="true";
       const acts=[...document.querySelectorAll("#editActivities input[type=checkbox]:checked")].map(x=>x.value);
-      const professional={
+
+      // IMPORTANT: user_type belongs to profiles. professional_profiles is only
+      // for professional user types accepted by its CHECK constraint.
+      const payload={
         p_user_id:uid,
-        p_user_type:$("editUserType")?.value||"other",
+        p_full_name:full,
+        p_email:$("editEmail")?.value.trim()||null,
+        p_phone:$("editPhone")?.value.trim()||null,
+        p_role:nextRole,
+        p_status:nextStatus,
+        p_is_active:nextActive,
+        p_user_type:nextUserType,
         p_activity_types:acts,
         p_organization_name:$("editOrganization")?.value.trim()||null,
         p_license_number:$("editLicense")?.value.trim()||null,
@@ -213,34 +203,27 @@
         p_city:$("editCity")?.value.trim()||null,
         p_specialty:$("editSpecialty")?.value.trim()||null,
         p_notes:$("editNotes")?.value.trim()||null,
-        p_is_verified:$("editVerified")?.value==="true"
+        p_is_verified:nextVerified
       };
 
-      if(!full)throw new Error("نام کاربر نمی‌تواند خالی باشد.");
-      if(selectedUser.role!==role){
-        await callRpc("owner_set_user_role",{p_user_id:uid,p_role:role});
-      }
-      if(selectedUser.status!==status){
-        await callRpc("owner_set_user_status",{target_user_id:uid,new_status:status});
-      }
-      await callRpc("owner_update_user_basic",{
-        p_user_id:uid,
-        p_full_name:full,
-        p_phone:phone,
-        p_email:email
-      });
-      await callRpc("owner_update_professional_profile",professional);
+      const {data,error}=await client.rpc("owner_save_user_management",payload);
+      if(error)throw error;
 
-      notify("تغییرات با موفقیت در پایگاه داده ذخیره شد.","success");
+      const fresh=Array.isArray(data)?data[0]:data;
+      if(fresh){
+        const normalized=normalize(fresh);
+        const idx=allUsers.findIndex(x=>String(x.id)===String(uid));
+        if(idx>=0)allUsers[idx]=normalized;
+        selectedUser=normalized;
+      }
+      notify("اطلاعات کاربر با موفقیت ذخیره شد.","success");
       await loadUsers();
-      const fresh=allUsers.find(x=>String(x.id)===String(uid));
-      if(fresh)openModal(fresh);
+      const loaded=allUsers.find(x=>String(x.id)===String(uid));
+      if(loaded)openModal(loaded);
     }catch(e){
       console.error("SAVE USER",e);
-      notify(e?.message||"ذخیره تغییرات انجام نشد.","error");
-    }finally{
-      if(btn)btn.disabled=false;
-    }
+      notify(e?.message||"ذخیره اطلاعات ناموفق بود.","error");
+    }finally{if(btn)btn.disabled=false;}
   }
   async function generateCode(){
     if(!selectedUser)return;const btn=$("generateCodeButton");if(btn)btn.disabled=true;
@@ -252,28 +235,15 @@
     finally{if(btn)btn.disabled=false;}
   }
   async function toggleCode(){
-    if(!selectedUser||!client)return;
-    const btn=$("toggleCodeButton");if(btn)btn.disabled=true;
-    const next=!selectedUser.professional_code_active;
-    try{
-      await callRpc("owner_set_professional_code_status",{
-        p_user_id:selectedUser.id,
-        p_is_active:next
-      });
-      selectedUser.professional_code_active=next;
-      if($("codeState"))$("codeState").textContent=next?"فعال":"غیرفعال";
-      await loadUsers();
-      const fresh=allUsers.find(x=>String(x.id)===String(selectedUser.id));
-      if(fresh)openModal(fresh);
-      notify(next?"کد فعال شد.":"کد غیرفعال شد.","success");
-    }catch(e){
-      console.error("TOGGLE CODE",e);
-      notify(e?.message||"تغییر وضعیت کد ناموفق بود.","error");
-    }finally{if(btn)btn.disabled=false;}
+    if(!selectedUser||!client)return;const btn=$("toggleCodeButton");if(btn)btn.disabled=true;const next=!selectedUser.professional_code_active;
+    try{const {error}=await client.from("professional_access_codes").update({is_active:next}).eq("user_id",selectedUser.id);if(error)throw error;
+      selectedUser.professional_code_active=next;if($("codeState"))$("codeState").textContent=next?"فعال":"غیرفعال";notify(next?"کد فعال شد.":"کد غیرفعال شد.","success");render();
+    }catch(e){console.error("TOGGLE CODE",e);notify(e?.message||"تغییر وضعیت کد ناموفق بود.","error");}
+    finally{if(btn)btn.disabled=false;}
   }
   function bind(){
     if(initialized)return;initialized=true;
-    $("usersTableBody")?.addEventListener("click",e=>{const b=e.target.closest("[data-action]");if(!b)return;const u=allUsers.find(x=>String(x.id)===String(b.dataset.id));if(!u)return;if(b.dataset.action==="details")openModal(u);if(b.dataset.action==="view")startOwnerView(u.id);});
+    $("usersTableBody")?.addEventListener("click",e=>{const b=e.target.closest("[data-action=details]");if(!b)return;const u=allUsers.find(x=>String(x.id)===String(b.dataset.id));if(u)openModal(u);});
     $("userSearch")?.addEventListener("input",render);$("roleFilter")?.addEventListener("change",render);$("statusFilter")?.addEventListener("change",render);
     $("refreshUsers")?.addEventListener("click",loadUsers);$("saveUserButton")?.addEventListener("click",saveUser);$("generateCodeButton")?.addEventListener("click",generateCode);$("toggleCodeButton")?.addEventListener("click",toggleCode);
     $("closeOwnerModal")?.addEventListener("click",closeModal);$("cancelEditButton")?.addEventListener("click",closeModal);

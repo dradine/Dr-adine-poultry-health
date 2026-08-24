@@ -604,16 +604,28 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================= */
 
                 const role =
-                    String(
-                        profile.role || ""
-                    )
-                    .trim()
-                    .toLowerCase();
+                    String(profile.role || "")
+                        .trim()
+                        .toLowerCase();
 
+                const userType =
+                    String(profile.user_type || "")
+                        .trim()
+                        .toLowerCase();
 
+                const professionalTypes = [
+                    "veterinarian",
+                    "technical_veterinarian",
+                    "veterinary_lab",
+                    "diagnostic_lab",
+                    "poultry_technical_expert"
+                ];
+
+                // مسیر ورود باید دقیقاً با نوع حرفه‌ای واقعی حساب هماهنگ باشد.
+                // owner/admin فقط پنل مدیریت؛ متخصصان فقط پنل متخصصان؛ سایر کاربران داشبورد فارم.
                 if (role === "owner" || role === "admin") {
                     window.location.replace("owner.html");
-                } else if (["veterinarian","technical_veterinarian","veterinary_lab","diagnostic_lab","poultry_technical_expert"].includes(String(profile.user_type||"").toLowerCase())) {
+                } else if (professionalTypes.includes(userType)) {
                     window.location.replace("professional.html");
                 } else {
                     window.location.replace("Dashboard.html");

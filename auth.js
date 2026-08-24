@@ -96,7 +96,37 @@
                     return null;
                 }
 
-                return data || null;
+                if (!data) {
+                    return null;
+                }
+
+                // نوع کاربری حرفه‌ای در ساختار جدید در professional_profiles نگهداری می‌شود.
+                // برای جلوگیری از اختلاف بین login/dashboard/professional، آن را به پروفایل جاری merge می‌کنیم.
+                try {
+                    const { data: professional, error: professionalError } =
+                        await supabaseClient
+                            .from("professional_profiles")
+                            .select("user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified")
+                            .eq("user_id", user.id)
+                            .maybeSingle();
+
+                    if (professionalError) {
+                        // نبودن ردیف حرفه‌ای برای کاربران غیرحرفه‌ای خطای دسترسی محسوب نمی‌شود.
+                        console.warn("getProfile professional profile:", professionalError);
+                    }
+
+                    if (professional) {
+                        return {
+                            ...data,
+                            ...professional,
+                            user_type: professional.user_type || data.user_type || null
+                        };
+                    }
+                } catch (professionalError) {
+                    console.warn("getProfile professional profile exception:", professionalError);
+                }
+
+                return data;
 
             } catch (error) {
 

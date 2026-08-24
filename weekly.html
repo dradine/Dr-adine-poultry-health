@@ -113,10 +113,26 @@
     </section>
 
 
-    <section class="card">
+    <section class="weekly-command-card">
+    <div class="weekly-command-head">
+        <div>
+            <span class="weekly-eyebrow">ADINE FLOCK CONTROL</span>
+            <h2>پایش هفتگی حرفه‌ای</h2>
+            <p>ثبت‌ها بر اساس نوع گله تنظیم می‌شوند و گزارش نهایی، روند گله را با استاندارد سویه و شاخص‌های مدیریتی مقایسه می‌کند.</p>
+        </div>
+        <div class="weekly-command-badges"><span>رشد</span><span>دان و آب</span><span>سلامت</span><span>محیط</span><span>کیفیت</span></div>
+    </div>
+    <div class="weekly-principles"><div><b>۱</b><span>هر هفته یک نقطه داده قابل مقایسه بسازید.</span></div><div><b>۲</b><span>انحراف از استاندارد را همان هفته ببینید.</span></div><div><b>۳</b><span>هشدارها را قبل از افت تولید دنبال کنید.</span></div></div>
+</section>
+
+<section class="weekly-quick-rule">
+  <strong>ثبت سریع:</strong> تاریخ، تلفات، وزن متوسط، دان و آب؛ بقیه شاخص‌ها را سامانه محاسبه می‌کند. اطلاعات تکمیلی اختیاری است.
+</section>
+
+<section class="card">
 
         <div class="section-title">
-            ثبت پایش هفتگی
+            ثبت سریع هفتگی
         </div>
 
 
@@ -153,6 +169,25 @@
                     placeholder="مثلاً ۱۲"
                     autocomplete="off"
                 >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="averageWeightDirect">
+                    وزن متوسط گله <span>(گرم)</span>
+                </label>
+
+                <input
+                    id="averageWeightDirect"
+                    type="text"
+                    inputmode="decimal"
+                    placeholder="مثلاً ۱۸۵۰"
+                    autocomplete="off"
+                >
+
+                <small class="quick-entry-help">اگر وقت نمونه‌گیری ندارید، میانگین ثبت‌شده گله را وارد کنید؛ برای محاسبه یکنواختی و CV، نمونه وزن لازم است.</small>
 
             </div>
 
@@ -406,7 +441,7 @@
             <textarea
                 id="weeklyNotes"
                 rows="4"
-                placeholder="توضیحات مربوط به وضعیت گله، مدیریت، علائم، کیفیت دان، آب، تهویه و سایر موارد..."
+                placeholder="اگر نکته مهمی درباره گله، سلامت، دان، آب یا مدیریت وجود دارد، کوتاه بنویسید (اختیاری)."
             ></textarea>
 
         </div>
@@ -1659,6 +1694,15 @@ function goToWeeklyReport(){
 
 </nav>
 
+
+
+<style>
+.weekly-command-card{background:linear-gradient(135deg,#102a43,#1f4e79);color:#fff;border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:0 10px 30px rgba(16,42,67,.16)}
+.weekly-command-head{display:flex;justify-content:space-between;gap:20px;align-items:center}.weekly-command-head h2{margin:6px 0;font-size:25px}.weekly-command-head p{margin:0;line-height:1.9;color:#dbeafe;max-width:780px}.weekly-eyebrow{font-size:11px;letter-spacing:1.8px;color:#93c5fd;font-weight:800}.weekly-command-badges{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}.weekly-command-badges span{padding:8px 11px;border:1px solid rgba(255,255,255,.2);border-radius:999px;font-size:12px;background:rgba(255,255,255,.08)}
+.weekly-principles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}.weekly-principles div{display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.08);padding:11px;border-radius:12px}.weekly-principles b{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#17324d}.weekly-principles span{font-size:12px;line-height:1.7;color:#e5edf7}
+.weekly-metric-group{margin-top:16px;padding:16px;border:1px solid #e5e7eb;border-radius:16px;background:#fbfcfe}.weekly-metric-group-title{font-weight:900;margin-bottom:13px;color:#17324d}.advanced-group{background:#fff}.weekly-special-field small{display:block;color:#7a8494;font-size:10px;line-height:1.6;margin-top:5px}.required-star{color:#c58a00;margin-left:2px}.weekly-special-note{margin-top:8px;font-size:11px;color:#e5edf7;line-height:1.7}
+@media(max-width:800px){.weekly-command-head{flex-direction:column;align-items:flex-start}.weekly-command-badges{justify-content:flex-start}.weekly-principles{grid-template-columns:1fr}.weekly-command-card{padding:18px}}
+</style>
 
 </body>
 </html>

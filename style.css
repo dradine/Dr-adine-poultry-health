@@ -1154,3 +1154,12 @@ body {
     }
 
 }
+
+/* V6 weekly quick-entry UX */
+.weekly-quick-rule{margin:0 0 16px;padding:13px 16px;border:1px solid #dbe7f2;border-radius:14px;background:#f8fbff;color:#38526b;font-size:12px;line-height:1.9}
+.weekly-quick-rule strong{color:#17324d}
+.quick-entry-help{display:block;margin-top:5px;color:#7a8494;font-size:10px;line-height:1.7}
+.weekly-advanced-toggle-wrap{margin-top:12px;display:flex;justify-content:flex-start}
+.weekly-advanced-toggle{font-size:12px}
+.weekly-special-field small{font-size:10px;line-height:1.7}
+@media(max-width:700px){.weekly-quick-rule{font-size:11px;padding:11px}.weekly-advanced-toggle{width:100%}}

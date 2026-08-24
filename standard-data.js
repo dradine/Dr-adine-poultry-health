@@ -515,7 +515,7 @@ const STANDARD_SOURCES = {
     hyline: "Official Hy-Line technical resources",
     cobb: "Official Cobb technical resources",
     lohmann: "Official Lohmann Breeders technical resources",
-    management: "استاندارد مدیریتی مرکز تخصصی سلامت طیور آدینه"
+    management: "استاندارد مدیریتی"
 };
 
 function normalizeStandardKey(value) {
@@ -682,4 +682,90 @@ if (typeof window !== "undefined") {
     window.getStandardMetricAtAge = getStandardMetricAtAge;
     window.getStandardLabelAtAge = getStandardLabelAtAge;
     window.getStandardMeta = getStandardMeta;
+}
+
+/* =========================================================
+   ADINE STANDARD FRAMEWORK V4 — 2026.2
+   Metric-level source hierarchy:
+   1) Official genetic/strain performance standard
+   2) Derived metric from official values
+   3) Management standard based on technical literature and clinic review
+   4) No standard (never invent a target)
+   ========================================================= */
+const STANDARD_FRAMEWORK_VERSION = "2026.2";
+const MANAGEMENT_SOURCE_LABEL = "استاندارد مدیریتی پایش آدینه — نسخه ۲۰۲۶.۲";
+
+const MANAGEMENT_METRIC_RULES = {
+  broiler: {
+    mortality: { target: 0.35, direction:"lower", good:0.50, warning:0.80, source:"مدیریتی/تحلیل عملکرد" },
+    uniformity10: { target:80, direction:"higher", good:80, warning:70, source:"مدیریتی با اتکا به اصول یکنواختی گله" },
+    cv: { target:10, direction:"lower", good:10, warning:12, source:"مدیریتی با اتکا به اصول یکنواختی گله" },
+    relative_humidity_pct: { target:60, direction:"range", min:50, max:70, warningMin:40, warningMax:80, source:"مدیریتی/محیط سالن" },
+    ammonia_ppm: { target:10, direction:"lower", good:10, warning:20, source:"مدیریتی/کیفیت هوای سالن" },
+    co2_ppm: { target:2000, direction:"lower", good:2500, warning:3000, source:"مدیریتی/تهویه" },
+    litter_moisture_pct: { target:25, direction:"lower", good:30, warning:35, source:"مدیریتی/کیفیت بستر" }
+  },
+  pullet: {
+    mortality: { target:0.20, direction:"lower", good:0.30, warning:0.50, source:"مدیریتی/پایش پرورش" },
+    uniformity10: { target:85, direction:"higher", good:85, warning:80, source:"مدیریتی با اتکا به راهنماهای سویه" },
+    cv: { target:8, direction:"lower", good:10, warning:12, source:"مدیریتی با اتکا به راهنماهای سویه" },
+    relative_humidity_pct: { target:60, direction:"range", min:50, max:70, warningMin:40, warningMax:80, source:"مدیریتی/محیط سالن" },
+    ammonia_ppm: { target:10, direction:"lower", good:10, warning:20, source:"مدیریتی/کیفیت هوا" },
+    co2_ppm: { target:2000, direction:"lower", good:2500, warning:3000, source:"مدیریتی/تهویه" }
+  },
+  layer: {
+    mortality: { target:0.15, direction:"lower", good:0.20, warning:0.40, source:"مدیریتی/پایش گله" },
+    uniformity10: { target:90, direction:"higher", good:90, warning:80, source:"مدیریتی با اتکا به راهنماهای سویه" },
+    cv: { target:8, direction:"lower", good:10, warning:12, source:"مدیریتی با اتکا به راهنماهای سویه" },
+    haugh_unit: { target:85, direction:"higher", good:80, warning:70, source:"مدیریتی/کیفیت تخم" },
+    dirty_eggs_pct: { target:2, direction:"lower", good:3, warning:5, source:"مدیریتی/کیفیت تولید" },
+    cracked_eggs_pct: { target:1.5, direction:"lower", good:2, warning:4, source:"مدیریتی/کیفیت تولید" },
+    floor_eggs_pct: { target:1, direction:"lower", good:2, warning:4, source:"مدیریتی/مدیریت لانه" },
+    relative_humidity_pct: { target:60, direction:"range", min:50, max:70, warningMin:40, warningMax:80, source:"مدیریتی/محیط سالن" },
+    ammonia_ppm: { target:10, direction:"lower", good:10, warning:20, source:"مدیریتی/کیفیت هوا" }
+  },
+  breeder: {
+    mortality: { target:0.20, direction:"lower", good:0.30, warning:0.50, source:"مدیریتی/پایش گله مادر" },
+    uniformity10: { target:80, direction:"higher", good:80, warning:70, source:"مدیریتی با اتکا به اصول مدیریت مادر" },
+    cv: { target:10, direction:"lower", good:10, warning:12, source:"مدیریتی با اتکا به اصول مدیریت مادر" },
+    fertility_pct: { target:90, direction:"higher", good:90, warning:85, source:"مدیریتی/هچری" },
+    hatchability_pct: { target:87, direction:"higher", good:87, warning:82, source:"مدیریتی/هچری" },
+    hatching_egg_pct: { target:95, direction:"higher", good:95, warning:90, source:"مدیریتی/تخم قابل جوجه کشی" },
+    floor_eggs_pct: { target:1, direction:"lower", good:2, warning:4, source:"مدیریتی/مدیریت لانه" },
+    dirty_eggs_pct: { target:2, direction:"lower", good:3, warning:5, source:"مدیریتی/کیفیت تخم" },
+    relative_humidity_pct: { target:60, direction:"range", min:50, max:70, warningMin:40, warningMax:80, source:"مدیریتی/محیط سالن" },
+    ammonia_ppm: { target:10, direction:"lower", good:10, warning:20, source:"مدیریتی/کیفیت هوا" }
+  }
+};
+
+function getManagementMetricRule(type, metric){
+  const t = normalizeStandardProductionTypeV4(type);
+  return MANAGEMENT_METRIC_RULES[t]?.[metric] || null;
+}
+function normalizeStandardProductionTypeV4(v){
+  const s=String(v||"").toLowerCase().replace(/[‌\s-]+/g,"");
+  if(s.includes("broiler")||s.includes("گوشتی")) return "broiler";
+  if(s.includes("pullet")||s.includes("پولت")) return "pullet";
+  if(s.includes("layer")||s.includes("تخمگذار")||s.includes("تخمگذار")) return "layer";
+  if(s.includes("breeder")||s.includes("مادر")) return "breeder";
+  return "broiler";
+}
+function getMetricStandardV4(type, metric, ageDays, geneticsId, strain){
+  const standard=getStandard(type, geneticsId, strain);
+  const official=getStandardMetricAtAge(standard, metric, ageDays);
+  if(official?.value!==null && official?.value!==undefined){
+    return {...official, standardKind: official.sourceType === "management-standard" ? "management" : "official"};
+  }
+  const rule=getManagementMetricRule(type, metric);
+  if(rule){
+    return {value:rule.target, sourceType:"management-standard", sourceLabel:`${MANAGEMENT_SOURCE_LABEL} — ${rule.source}`, standardKind:"management", rule};
+  }
+  return {value:null, sourceType:null, sourceLabel:null, standardKind:"none"};
+}
+
+if(typeof window!=="undefined"){
+  window.STANDARD_FRAMEWORK_VERSION=STANDARD_FRAMEWORK_VERSION;
+  window.MANAGEMENT_METRIC_RULES=MANAGEMENT_METRIC_RULES;
+  window.getManagementMetricRule=getManagementMetricRule;
+  window.getMetricStandardV4=getMetricStandardV4;
 }

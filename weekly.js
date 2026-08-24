@@ -1073,29 +1073,32 @@ function getWeights() {
    CALCULATE
 ========================================================= */
 
+function getDirectAverageWeight(){
+    const el=document.getElementById("averageWeightDirect");
+    if(!el) return null;
+    const raw=String(el.value||"").replace(/,/g,"").replace(/٬/g,"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));
+    const n=Number(raw);
+    return Number.isFinite(n)&&n>0?n:null;
+}
+
+function buildDirectWeightStatistics(mean){
+    return {count:0,mean:Number(mean),sd:null,cv:null,uniformity10:null,uniformity15:null,min:null,max:null,lower10:null,upper10:null,lower15:null,upper15:null,samplingStatus:"میانگین مستقیم ثبت شد؛ برای CV و یکنواختی نمونه وزن لازم است"};
+}
+
 function calculateWeekly() {
 
     const weights =
         getWeights();
 
 
-    if (
-        weights.length < 2
-    ) {
-
-        alert(
-            "حداقل دو وزن برای محاسبه لازم است."
-        );
-
+    if (weights.length < 2 && getDirectAverageWeight()===null) {
+        alert("یا وزن متوسط گله را وارد کنید، یا حداقل دو وزن نمونه‌ای ثبت کنید.");
         return;
-
     }
 
-
-    const result =
-        calculateWeightStatistics(
-            weights
-        );
+    const result = weights.length >= 2
+        ? calculateWeightStatistics(weights)
+        : buildDirectWeightStatistics(getDirectAverageWeight());
 
 
     renderResults(
@@ -2001,6 +2004,9 @@ function cancelEditWeeklyRecord() {
 ========================================================= */
 
 function clearWeeklyForm() {
+    const directWeight=document.getElementById("averageWeightDirect");
+    if(directWeight) directWeight.value="";
+
 
     editingRecordId =
         null;
@@ -2533,23 +2539,14 @@ async function saveWeeklyRecord() {
             getWeights();
 
 
-        if (
-            weights.length < 2
-        ) {
-
-            alert(
-                "برای ذخیره گزارش حداقل دو وزن وارد کنید."
-            );
-
+        if (weights.length < 2 && getDirectAverageWeight()===null) {
+            alert("یا وزن متوسط گله را وارد کنید، یا حداقل دو وزن نمونه‌ای ثبت کنید.");
             return;
-
         }
 
-
-        const stats =
-            calculateWeightStatistics(
-                weights
-            );
+        const stats = weights.length >= 2
+            ? calculateWeightStatistics(weights)
+            : buildDirectWeightStatistics(getDirectAverageWeight());
 
 
         const liveBirds =
@@ -2612,6 +2609,21 @@ async function saveWeeklyRecord() {
 
         if (Number.isFinite(Number(stats.mean))) {
             productionMetrics.measured_weight_g = stats.mean;
+        }
+
+        // Mirror core weekly totals into specialized metrics so the
+        // type-specific report can use one coherent dataset.
+        if (feedTotal !== null && feedTotal > 0) {
+            productionMetrics.weekly_feed_total_kg = feedTotal;
+        }
+        if (waterTotal !== null && waterTotal >= 0) {
+            productionMetrics.weekly_water_total_liter = waterTotal;
+        }
+        if (feedTotal !== null && feedTotal > 0 && waterTotal !== null && waterTotal >= 0) {
+            productionMetrics.water_feed_ratio = Number((waterTotal / feedTotal).toFixed(3));
+        }
+        if (mortality !== null && liveBirds !== null && liveBirds > 0) {
+            productionMetrics.weekly_mortality_pct = Number((mortality / (liveBirds + mortality) * 100).toFixed(3));
         }
 
         const existingForCumulative =

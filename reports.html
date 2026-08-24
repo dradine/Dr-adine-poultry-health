@@ -38,6 +38,7 @@
     <script src="app-core.js"></script>
 
     <script src="standard-data.js"></script>
+    <script src="internal-benchmark.js"></script>
 
     <script src="standards.js"></script>
 
@@ -156,6 +157,26 @@
     </section>
 
 
+
+    <section id="standardFrameworkCard" class="card standard-framework-card">
+        <div class="section-title">مبنای استاندارد و مقایسه</div>
+        <div class="standard-framework-grid">
+            <div><strong>۱. استاندارد رسمی</strong><span>اگر برای سویه و شاخص موردنظر مرجع رسمی معتبر وجود داشته باشد، همان مبناست.</span></div>
+            <div><strong>۲. استاندارد مدیریتی</strong><span>اگر مرجع رسمی برای آن شاخص وجود نداشته باشد، هدف مدیریتی مستند و نسخه‌گذاری‌شده استفاده می‌شود.</span></div>
+            <div><strong>۳. بدون استاندارد</strong><span>برای شاخصی که مبنای قابل دفاع نداریم، عدد ساختگی تولید نمی‌شود و فقط روند آن گزارش می‌شود.</span></div>
+        </div>
+        <div class="standard-framework-note">نوع مبنا کنار شاخص/نمودار نمایش داده می‌شود تا «استاندارد رسمی» با «هدف مدیریتی» اشتباه نشود. نسخه مبنای مدیریتی: ۲۰۲۶.۲</div>
+    </section>
+
+    <section id="executiveReportCard" class="card executive-report-card" style="display:none;">
+        <div class="executive-head">
+            <div><span class="executive-eyebrow">ADINE FLOCK INTELLIGENCE</span><h2>داشبورد مدیریتی گله</h2><p id="executiveHeadline">در حال تحلیل روند...</p></div>
+            <div id="executiveGrade" class="executive-grade">—</div>
+        </div>
+        <div id="executiveKpis" class="executive-kpis"></div>
+        <div id="executiveAlerts" class="executive-alerts"></div>
+        <div class="executive-grid"><div><h3>روند هفته‌های اخیر</h3><div id="executiveTrend"></div></div><div><h3>مهم‌ترین اقدام پیشنهادی</h3><div id="executiveAction"></div></div></div>
+    </section>
 
     <!-- =====================================================
          LOADING
@@ -472,12 +493,12 @@
     >
         <div class="farm-score-head">
             <div>
-                <div class="section-title" style="margin-bottom:5px;">امتیاز نهایی فارم — سیستم ارزیابی آدینه</div>
+                <div class="section-title" style="margin-bottom:5px;">امتیاز نهایی فارم — سیستم ارزیابی</div>
                 <div id="farmScoreSubtitle" class="farm-score-subtitle"></div>
             </div>
             <div class="farm-score-main">
                 <div id="farmScoreValue" class="farm-score-value">—</div>
-                <div id="farmScoreStars" class="farm-score-stars" aria-label="امتیاز ستاره‌ای">☆☆☆☆☆☆☆</div>
+                <div id="farmScoreStars" class="farm-score-stars" aria-label="امتیاز ستاره‌ای">☆☆☆☆☆</div>
                 <div id="farmScoreGrade" class="farm-score-grade">—</div>
             </div>
         </div>
@@ -498,8 +519,21 @@
 
         <div id="farmScoreAlerts" class="farm-score-alerts"></div>
 
+        <div id="internalBenchmarkCard" class="internal-benchmark-card" style="display:none;">
+            <div class="internal-benchmark-head">
+                <div>
+                    <div class="internal-benchmark-title">🏆 جایگاه فارم شما در بین فارم‌های مشابه</div>
+                    <div id="internalBenchmarkSubtitle" class="internal-benchmark-subtitle"></div>
+                </div>
+                <div id="internalBenchmarkBadge" class="internal-benchmark-badge">—</div>
+            </div>
+            <div id="internalBenchmarkSummary" class="internal-benchmark-summary"></div>
+            <div id="internalBenchmarkRows" class="internal-benchmark-rows"></div>
+            <div class="internal-benchmark-note">مقایسه کاملاً ناشناس است و هر فارم فقط یک بار در جامعه مقایسه وزن می‌گیرد. جامعه بر اساس نوع گله و در صورت امکان ژنتیک و سویه، با سن نزدیک انتخاب می‌شود. بنچمارک جایگزین استاندارد رسمی یا استاندارد مدیریتی نیست.</div>
+        </div>
+
         <div class="farm-score-note">
-            این امتیاز «شاخص داخلی ارزیابی آدینه» برای مقایسه روندی فارم است؛ جایگزین تشخیص دامپزشکی یا استاندارد رسمی سویه نیست. هرجا استاندارد ژنتیکی معتبر در سامانه موجود باشد، همان استاندارد مبنای امتیازدهی قرار می‌گیرد؛ در غیر این صورت شاخص مدیریتی با برچسب مشخص استفاده می‌شود.
+            این امتیاز شاخص داخلی ارزیابی عملکرد فارم است و جایگزین تشخیص دامپزشکی یا استاندارد رسمی سویه نیست. هر شاخص با منبع مشخص سنجیده می‌شود: استاندارد ژنتیکی رسمی، استاندارد مدیریتی، یا در صورت نبود مبنای معتبر «بدون استاندارد». بنچمارک داخلی نیز فقط از گله‌های مشابه و به‌صورت ناشناس محاسبه می‌شود.
         </div>
     </section>
 
@@ -1450,7 +1484,9 @@ tbody tr:hover {
 .farm-score-alert.danger{background:#fff1f0;color:#b42318}
 .farm-score-alert.success{background:#ecfdf3;color:#067647}
 .farm-score-note{margin-top:14px;padding:10px 12px;border-radius:10px;background:#f8fafc;color:#667085;font-size:11px;line-height:1.9}
-@media(max-width:900px){.farm-score-breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}.farm-score-head{align-items:flex-start}}
+.standard-framework-card{border:1px solid #e4ebe8;background:linear-gradient(180deg,#fbfdfc,#fff)}
+.standard-framework-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.standard-framework-grid>div{border:1px solid #e6ece9;border-radius:14px;padding:14px;background:#fff}.standard-framework-grid strong{display:block;color:#173f35;font-size:13px;margin-bottom:6px}.standard-framework-grid span{display:block;color:#667085;font-size:12px;line-height:1.9}.standard-framework-note{margin-top:12px;padding:10px 12px;border-radius:10px;background:#f5f8f7;color:#667085;font-size:11px;line-height:1.9}
+@media(max-width:900px){.standard-framework-grid{grid-template-columns:1fr}.farm-score-breakdown{grid-template-columns:repeat(2,minmax(0,1fr))}.farm-score-head{align-items:flex-start}}
 @media(max-width:600px){.farm-score-head{flex-direction:column}.farm-score-main{width:100%}.farm-score-grid{grid-template-columns:1fr}.farm-score-breakdown{grid-template-columns:1fr}.farm-score-value{font-size:40px}}
 @media print{#farmScoreCard{display:block!important;break-inside:avoid}.farm-score-actions{display:none}}
 </style>
@@ -5409,31 +5445,41 @@ async function healthSaveEventVisibility(
         return scoreClamp((Number(target)/Number(actual))*100);
     }
     function scoreStarCount(score){
-        if(score>=93) return 7;
-        if(score>=85) return 6;
-        if(score>=75) return 5;
-        if(score>=65) return 4;
-        if(score>=55) return 3;
-        if(score>=40) return 2;
+        if(score>=90) return 5;
+        if(score>=80) return 4;
+        if(score>=70) return 3;
+        if(score>=60) return 2;
         return 1;
     }
     function scoreGrade(score){
-        if(score>=93) return 'ممتاز — فارم الگو';
-        if(score>=85) return 'خیلی خوب';
-        if(score>=75) return 'خوب';
-        if(score>=65) return 'قابل قبول — نیازمند بهبود';
-        if(score>=55) return 'هشدار مدیریتی';
-        if(score>=40) return 'ضعیف — نیازمند اقدام';
-        return 'بحرانی — اقدام فوری';
+        if(score>=90) return 'عالی';
+        if(score>=80) return 'خوب';
+        if(score>=70) return 'قابل قبول';
+        if(score>=60) return 'مرز هشدار';
+        if(score>=45) return 'ضعیف';
+        return 'خیلی ضعیف';
     }
     function scoreTypeLabel(type){
         return ({broiler:'گوشتی',layer:'تخم‌گذار',pullet:'پولت',breeder:'مرغ مادر'})[type] || type;
     }
     function scoreMetricStandard(metric, age){
         try{
+            if(typeof getMetricStandardV4==='function'){
+                const m=getMetricStandardV4(executiveType(),metric,age,reportFlock?.genetics||reportFlock?.breed||'',reportFlock?.strain||reportFlock?.flock_strain||'');
+                if(m && m.value!=null) return Number(m.value);
+            }
             const m=typeof getReportStandardMeta==='function' ? getReportStandardMeta(reportStandard,metric,age) : null;
             return m && m.value!=null ? Number(m.value) : null;
         }catch(_){ return null; }
+    }
+    function scoreMetricSource(metric, age){
+        try{
+            if(typeof getMetricStandardV4==='function'){
+                const m=getMetricStandardV4(executiveType(),metric,age,reportFlock?.genetics||reportFlock?.breed||'',reportFlock?.strain||reportFlock?.flock_strain||'');
+                if(m?.sourceLabel) return m.sourceLabel;
+            }
+        }catch(_){}
+        return 'مبنای استاندارد در دسترس نیست';
     }
     function scoreLatest(rows){ return rows && rows.length ? rows[rows.length-1] : null; }
     function scoreHealthWindow(rows){
@@ -5465,8 +5511,8 @@ async function healthSaveEventVisibility(
         const live=Number(latest.liveBirds||0), dead=Number(latest.mortality||0);
         if(live<=0 || dead<0) return null;
         const pct=dead/live*100;
-        // Internal weekly-management thresholds, deliberately not presented as genetic standards.
-        const target=type==='layer'||type==='breeder' ? 0.15 : 0.10;
+        const rule=typeof getManagementMetricRule==='function' ? getManagementMetricRule(type,'mortality') : null;
+        const target=rule?.target ?? (type==='layer'||type==='breeder' ? 0.15 : 0.10);
         return scoreLower(pct,target);
     }
     function scoreEnvironment(rows){
@@ -5477,12 +5523,18 @@ async function healthSaveEventVisibility(
         let total=0,n=0;
         vals.forEach(v=>{
             if(Number.isFinite(v.nh)){
-                const s=v.nh<=10?100:v.nh<=20?80:v.nh<=25?60:v.nh<=35?35:0;
+                const rule=typeof getManagementMetricRule==='function' ? getManagementMetricRule(executiveType(),'ammonia_ppm') : null;
+                const good=rule?.good ?? 10, warning=rule?.warning ?? 20;
+                const s=v.nh<=good?100:v.nh<=warning?80:v.nh<=warning+10?55:0;
                 total+=s;n++;
             }
             if(Number.isFinite(v.rh)){
-                const dist=v.rh<50?50-v.rh:v.rh>70?v.rh-70:0;
-                total+=scoreClamp(100-dist*3);n++;
+                const rule=typeof getManagementMetricRule==='function' ? getManagementMetricRule(executiveType(),'relative_humidity_pct') : null;
+                const min=rule?.min ?? 50, max=rule?.max ?? 70, wmin=rule?.warningMin ?? 40, wmax=rule?.warningMax ?? 80;
+                let s=100;
+                if(v.rh<min) s=v.rh>=wmin?80:40;
+                if(v.rh>max) s=v.rh<=wmax?80:40;
+                total+=s;n++;
             }
         });
         return n?scoreClamp(total/n):null;
@@ -5520,6 +5572,7 @@ async function healthSaveEventVisibility(
         const env=scoreEnvironment(rows.slice(-8));
         const coverage=scoreDataCoverage(type,last);
         const std=(metric)=>scoreMetricStandard(metric,age);
+        const src=(metric)=>scoreMetricSource(metric,age);
 
         if(type==='broiler'){
             addScoreMetric(metrics,'رشد و وزن',scoreHigher(last.averageWeight,std('bodyWeight')),25,'وزن واقعی نسبت به هدف سنی');
@@ -5568,12 +5621,13 @@ async function healthSaveEventVisibility(
 
         const totalWeight=metrics.reduce((a,m)=>a+m.weight,0);
         const score=totalWeight?metrics.reduce((a,m)=>a+m.score*m.weight,0)/totalWeight:0;
+        window.__farmTechnicalScore=score;
         const stars=scoreStarCount(score);
-        const starsText='★'.repeat(stars)+'☆'.repeat(7-stars);
+        const starsText='★'.repeat(stars)+'☆'.repeat(5-stars);
         document.getElementById('farmScoreValue').textContent=score.toLocaleString('fa-IR',{maximumFractionDigits:1})+' / ۱۰۰';
         document.getElementById('farmScoreStars').textContent=starsText;
         document.getElementById('farmScoreGrade').textContent=scoreGrade(score);
-        document.getElementById('farmScoreSubtitle').textContent=`${scoreTypeLabel(type)} | سن ${Number.isFinite(age)?age:'—'} روز | مبنای ارزیابی: آخرین پایش + سلامت ۸ هفته اخیر`;
+        document.getElementById('farmScoreSubtitle').textContent=`${scoreTypeLabel(type)} | سن ${Number.isFinite(age)?age:'—'} روز | هر شاخص با استاندارد رسمی سویه یا در نبود آن با استاندارد مدیریتی سنجیده می‌شود.`;
         document.getElementById('farmScoreCoverage').innerHTML=`پوشش داده شاخص‌های اصلی: <strong>${coverage.toLocaleString('fa-IR',{maximumFractionDigits:0})}٪</strong> — ${coverage<60?'برای امتیاز نهایی، ثبت منظم شاخص‌های کلیدی ضروری است.':'اطلاعات کافی برای یک ارزیابی کاربردی وجود دارد.'}`;
         document.getElementById('farmScoreBreakdown').innerHTML=metrics.map(m=>`<div class="farm-score-item"><div class="farm-score-item-top"><span>${m.label}</span><strong>${m.weight}٪</strong></div><div class="farm-score-item-value">${m.score.toLocaleString('fa-IR',{maximumFractionDigits:0})}</div><div class="farm-score-bar"><span style="width:${m.score}%"></span></div><div style="font-size:11px;color:#667085;margin-top:6px;line-height:1.7">${m.detail}${m.source?` | ${m.source}`:''}</div></div>`).join('');
         const sorted=[...metrics].sort((a,b)=>a.score-b.score);
@@ -5589,6 +5643,106 @@ async function healthSaveEventVisibility(
         if(!alerts.length) alerts.push({c:'success',t:'هشدار بحرانی از داده‌های فعلی استخراج نشد؛ روند را هفتگی ادامه دهید.'});
         document.getElementById('farmScoreAlerts').innerHTML=alerts.map(a=>`<div class="farm-score-alert ${a.c}">${a.t}</div>`).join('');
         card.style.display='block';
+        renderInternalBenchmark().catch(()=>{});
+    }
+
+    function applyPeerComponentToFarmScore(){
+        const summary=window.__peerBenchmarkSummary;
+        const base=window.__farmTechnicalScore;
+        if(!summary||summary.score==null||summary.usableCount<2||base==null) return;
+        const finalScore=(base*0.90)+(summary.score*0.10);
+        const value=document.getElementById('farmScoreValue');
+        const grade=document.getElementById('farmScoreGrade');
+        const subtitle=document.getElementById('farmScoreSubtitle');
+        if(value) value.textContent=finalScore.toLocaleString('fa-IR',{maximumFractionDigits:1})+' / ۱۰۰';
+        if(grade) grade.textContent=scoreGrade(finalScore);
+        const stars=document.getElementById('farmScoreStars');
+        if(stars){const n=scoreStarCount(finalScore); stars.textContent='★'.repeat(n)+'☆'.repeat(5-n);}
+        if(subtitle && !subtitle.dataset.peerApplied){subtitle.textContent+=` | امتیاز نهایی = ۹۰٪ عملکرد فنی + ۱۰٪ جایگاه در جامعه همتا`; subtitle.dataset.peerApplied='1';}
+    }
+
+    async function renderInternalBenchmark(){
+        const card=document.getElementById('internalBenchmarkCard');
+        const rowsBox=document.getElementById('internalBenchmarkRows');
+        const subtitle=document.getElementById('internalBenchmarkSubtitle');
+        const badge=document.getElementById('internalBenchmarkBadge');
+        const summary=document.getElementById('internalBenchmarkSummary');
+        if(!card||!rowsBox||!reportFlock||typeof getInternalBenchmark!=='function') return;
+        const last=scoreLatest(reportRecords||[]);
+        if(!last){ card.style.display='none'; return; }
+        const type=executiveType();
+        const age=Number(last.ageDays||0);
+        const metricMap={
+            broiler:[['body_weight','averageWeight'],['fcr','fcr'],['mortality','mortality'],['uniformity','uniformity10']],
+            pullet:[['body_weight','averageWeight'],['uniformity','uniformity10'],['cv','cv'],['mortality','mortality']],
+            layer:[['egg_production','productionMetrics.hen_day_pct'],['egg_weight','productionMetrics.egg_weight_g'],['fcr','fcr'],['mortality','mortality']],
+            breeder:[['egg_production','productionMetrics.hen_day_pct'],['fertility','productionMetrics.fertility_pct'],['hatchability','productionMetrics.hatchability_pct'],['mortality','mortality']]
+        }[type]||[];
+        const out=[];
+        for(const [metric,path] of metricMap){
+            const b=await getInternalBenchmark({flockId:reportFlock.id,metric,ageWindowDays:7});
+            if(!b || !b.sampleAdequate || b.comparableFarms<10) continue;
+            let actual=last;
+            for(const part of path.split('.')) actual=actual?.[part];
+            const av=Number(actual);
+            if(!Number.isFinite(av)) continue;
+            const pos=benchmarkPosition(b);
+            out.push({b,av,pos});
+        }
+        if(!out.length){ card.style.display='none'; return; }
+
+        const usable=out.filter(x=>x.b.peerScoreUsable&&Number.isFinite(x.b.peerScore));
+        const peerScores=usable.map(x=>x.b.peerScore);
+        const avgPeer=peerScores.length?peerScores.reduce((a,b)=>a+b,0)/peerScores.length:null;
+        const topCount=out.filter(x=>x.pos.key==='top25').length;
+        const confidence=out.reduce((best,x)=>{
+            const rank={initial:1,reliable:2,stable:3}[x.b.confidenceLevel]||0;
+            return rank>(best.rank||0)?{rank,label:x.b.confidenceLabel}:best;
+        },{});
+        badge.textContent=avgPeer!=null?`امتیاز جایگاه ${Math.round(avgPeer)} از ۱۰۰`:`${topCount} شاخص در ۲۵٪ برتر`;
+        subtitle.textContent=`سن ${age.toLocaleString('fa-IR')} روز · ${out[0]?.b.cohortLabel||'فارم‌های مشابه'} · ${confidence.label||'مقایسه اولیه'}`;
+        summary.innerHTML=`<div><span>جامعه مقایسه</span><strong>${Math.min(...out.map(x=>x.b.comparableFarms)).toLocaleString('fa-IR')} فارم مستقل</strong></div><div><span>شاخص‌های قابل مقایسه</span><strong>${out.length.toLocaleString('fa-IR')}</strong></div><div><span>در ۲۵٪ برتر</span><strong>${topCount.toLocaleString('fa-IR')} شاخص</strong></div><div><span>امتیاز جایگاه</span><strong>${avgPeer==null?'در انتظار داده بیشتر':Math.round(avgPeer).toLocaleString('fa-IR')+' / ۱۰۰'}</strong></div>`;
+        rowsBox.innerHTML=out.map(({b,av,pos})=>{
+            const range=(b.p25!=null&&b.p75!=null)?`بازه میانی ${executiveFa(b.p25,2)} تا ${executiveFa(b.p75,2)}`:'';
+            const percentile=b.peerPercentile!=null&&b.peerScoreUsable?`جایگاه تقریبی: ${executiveFa(b.peerPercentile,0)}٪ جامعه`:'';
+            const trend=b.selfChangePct==null?'':` · تغییر نسبت به ثبت قبلی ${executiveFa(b.selfChangePct,1)}٪`;
+            return `<div class="internal-benchmark-row"><div class="internal-benchmark-row-main"><strong>${b.label}</strong><small>${b.comparableFarms.toLocaleString('fa-IR')} فارم مستقل · ${b.comparableFlocks.toLocaleString('fa-IR')} گله نماینده · ${b.confidenceLabel}</small></div><div class="internal-benchmark-meter"><div class="internal-meter-track"><span style="width:${Math.max(0,Math.min(100,b.peerScoreUsable&&b.peerScore!=null?b.peerScore:50))}%"></span></div><div class="internal-meter-caption"><span>واقعی <b>${executiveFa(av,2)}</b></span><span>میانه <b>${executiveFa(b.median,2)}</b></span><span>${range}</span></div></div><div class="internal-benchmark-position ${pos.key}"><strong>${pos.label}</strong><small>${percentile}${trend}</small></div></div>`;
+        }).join('');
+        card.style.display='block';
+
+        window.__peerBenchmarkSummary={score:avgPeer,usableCount:usable.length,confidence:confidence.label||null};
+        if(typeof applyPeerComponentToFarmScore==='function') applyPeerComponentToFarmScore();
+    }
+
+    function executiveNum(v){ const n=Number(v); return Number.isFinite(n)?n:null; }
+    function executiveFa(v,d=1){ return v==null?'—':Number(v).toLocaleString('fa-IR',{maximumFractionDigits:d}); }
+    function executiveType(){ return normalizeReportProductionType(reportFlock?.production_type); }
+    function executiveMetric(type,last){
+        const pm=last?.productionMetrics||{};
+        if(type==='broiler') return [
+            ['وزن بدن',last?.averageWeight,'g','higher'],['FCR',last?.fcr,'','lower'],['یکنواختی',last?.uniformity10,'%','higher'],['تلفات',last?.liveBirds>0?(Number(last.mortality||0)/(Number(last.liveBirds||0)+Number(last.mortality||0))*100):null,'%', 'lower']
+        ];
+        if(type==='pullet') return [['وزن بدن',last?.averageWeight,'g','higher'],['یکنواختی',last?.uniformity10,'%','higher'],['CV',last?.cv,'%','lower'],['تلفات',last?.liveBirds>0?(Number(last.mortality||0)/(Number(last.liveBirds||0)+Number(last.mortality||0))*100):null,'%', 'lower']];
+        if(type==='layer') return [['تولید',pm.hen_day_pct,'%','higher'],['وزن تخم',pm.egg_weight_g,'g','higher'],['Egg Mass',pm.egg_mass_kg,'kg','higher'],['تلفات',last?.liveBirds>0?(Number(last.mortality||0)/(Number(last.liveBirds||0)+Number(last.mortality||0))*100):null,'%', 'lower']];
+        return [['تولید',pm.hen_day_pct,'%','higher'],['نطفه‌داری',pm.fertility_pct,'%','higher'],['هچ',pm.hatchability_pct,'%','higher'],['تلفات',last?.liveBirds>0?(Number(last.mortality||0)/(Number(last.liveBirds||0)+Number(last.mortality||0))*100):null,'%', 'lower']];
+    }
+    function executiveStandard(metric,age){
+        try{ const m=typeof getReportStandardMeta==='function'?getReportStandardMeta(reportStandard,metric,age):null; return m?.value!=null?Number(m.value):null; }catch(_){return null;}
+    }
+    function executiveScoreMetric(actual,target,direction){ if(actual==null||target==null||target===0)return null; const a=Number(actual),t=Number(target); if(!Number.isFinite(a)||!Number.isFinite(t))return null; const ratio=direction==='lower'?t/Math.max(a,0.0001):a/t; return Math.max(0,Math.min(100,ratio*100)); }
+    function renderExecutiveDashboard(){
+        const card=document.getElementById('executiveReportCard'); if(!card||!reportFlock||!reportRecords.length)return;
+        const type=executiveType(), last=reportRecords.at(-1), prev=reportRecords.length>1?reportRecords.at(-2):null, age=Number(last.ageDays||0);
+        const map=type==='broiler'?{weight:'bodyWeight',fcr:'fcr',uniformity:'uniformity10'}:type==='pullet'?{weight:'bodyWeight',uniformity:'uniformity10',cv:'cv'}:{};
+        const items=executiveMetric(type,last); let scores=[];
+        items.forEach(([label,val,unit,dir])=>{ let metric=label==='وزن بدن'?'bodyWeight':label==='FCR'?'fcr':label==='یکنواختی'?'uniformity10':label==='CV'?'cv':label==='تولید'?'eggProduction':label==='وزن تخم'?'eggWeight':label==='نطفه‌داری'?'fertility':label==='هچ'?'hatchability':null; const std=metric?executiveStandard(metric,age):null; const sc=executiveScoreMetric(val,std,dir); if(sc!=null)scores.push(sc); });
+        const score=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null;
+        const grade=score==null?'داده ناکافی':scoreGrade(score); document.getElementById('executiveGrade').textContent=score==null?grade:`${grade} · ${executiveFa(score,0)}/۱۰۰`;
+        document.getElementById('executiveHeadline').textContent=`${score==null?'برای ارزیابی دقیق، ثبت منظم شاخص‌های اصلی لازم است.':`این گله در سن ${executiveFa(age,0)} روز، ${grade} ارزیابی شد.`} مبنا: استاندارد سویه + روند واقعی گله.`;
+        document.getElementById('executiveKpis').innerHTML=items.map(([label,val,unit,dir])=>{const metric=label==='وزن بدن'?'bodyWeight':label==='FCR'?'fcr':label==='یکنواختی'?'uniformity10':label==='CV'?'cv':label==='تولید'?'eggProduction':label==='وزن تخم'?'eggWeight':label==='نطفه‌داری'?'fertility':label==='هچ'?'hatchability':null; const std=metric?executiveStandard(metric,age):null; const delta=val!=null&&std!=null?Number(val)-std:null; const cls=delta==null?'neutral':(dir==='lower'?(delta<=0?'good':'bad'):(delta>=0?'good':'bad')); return `<div class="executive-kpi"><span>${label}</span><strong>${executiveFa(val,unit==='%'?1:2)}${unit?` ${unit}`:''}</strong><small class="${cls}">${std!=null?`هدف ${executiveFa(std,unit==='%'?1:2)} ${unit||''} · ${delta==null?'':(delta>=0?'+':'')+executiveFa(delta,unit==='%'?1:2)}`:'استاندارد قابل تطبیق ثبت نشده'}</small></div>`;}).join('');
+        const trendRows=reportRecords.slice(-6); document.getElementById('executiveTrend').innerHTML=trendRows.map((r,i)=>{const pm=r.productionMetrics||{}; const main=type==='broiler'||type==='pullet'?r.averageWeight:type==='layer'?pm.hen_day_pct:pm.hen_day_pct; const label=type==='broiler'||type==='pullet'?'وزن': 'تولید'; return `<div class="executive-trend-row"><span>هفته ${executiveFa(r.weekNumber||r.week_number||'—',0)}</span><b>${label}: ${executiveFa(main,1)}</b><em>${r.uniformity10!=null?`یکنواختی ${executiveFa(r.uniformity10,1)}٪`:''}</em></div>`;}).join('');
+        let action='ثبت هفتگی منظم را ادامه دهید.'; if(items.some(([l,v,u,d])=>v==null))action='اولویت اول: شاخص‌های تخصصی ناقص را ثبت کنید تا ارزیابی از حدس فاصله بگیرد.'; else if(score!=null&&score<60)action='اولویت اول: سه شاخص ضعیف گزارش را بررسی و برای هفته بعد اقدام اصلاحی ثبت کنید.'; else if(prev&&last.averageWeight!=null&&prev.averageWeight!=null&&Number(last.averageWeight)<Number(prev.averageWeight))action='افت وزن نسبت به هفته قبل دیده می‌شود؛ دان، آب، سلامت و شرایط محیطی را همزمان بررسی کنید.';
+        document.getElementById('executiveAction').innerHTML=`<div class="executive-action-box">${action}</div>`; card.style.display='block';
     }
 
     /* =====================================================
@@ -5598,6 +5752,8 @@ async function healthSaveEventVisibility(
     async function renderAll() {
 
     renderFlockInfo();
+
+    renderExecutiveDashboard();
 
     renderSummary();
 
@@ -6217,6 +6373,13 @@ async function healthSaveEventVisibility(
 </nav>
 
     
+
+<style>
+.executive-report-card{border:1px solid #dfe7f1;overflow:hidden}.executive-head{display:flex;justify-content:space-between;align-items:center;gap:18px;padding-bottom:16px;border-bottom:1px solid #e8edf3}.executive-eyebrow{font-size:10px;letter-spacing:1.6px;color:#4f6f8f;font-weight:900}.executive-head h2{margin:6px 0;font-size:22px;color:#17324d}.executive-head p{margin:0;color:#667085;font-size:12px;line-height:1.8}.executive-grade{font-weight:900;font-size:18px;padding:12px 16px;border-radius:14px;background:#eef6ff;color:#17324d;white-space:nowrap}.executive-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.executive-kpi{padding:14px;border:1px solid #e7ebf0;border-radius:14px;background:#fbfcfe}.executive-kpi span{display:block;font-size:11px;color:#667085}.executive-kpi strong{display:block;margin:7px 0;font-size:20px;color:#172033}.executive-kpi small{font-size:10px}.executive-kpi small.good{color:#157347}.executive-kpi small.bad{color:#b42318}.executive-kpi small.neutral{color:#667085}.executive-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-top:16px}.executive-grid h3{font-size:14px;margin:0 0 10px;color:#344054}.executive-trend-row{display:grid;grid-template-columns:70px 1fr 1fr;gap:8px;padding:9px 0;border-bottom:1px dashed #e4e7ec;font-size:11px}.executive-trend-row em{font-style:normal;color:#667085}.executive-action-box{padding:16px;border-radius:14px;background:#f8fafc;line-height:2;font-size:12px;border-right:4px solid #1f4e79}.executive-alerts{margin-top:14px}.executive-alerts:empty{display:none}@media(max-width:900px){.executive-kpis{grid-template-columns:repeat(2,1fr)}.executive-grid{grid-template-columns:1fr}}@media(max-width:600px){.executive-head{align-items:flex-start;flex-direction:column}.executive-kpis{grid-template-columns:1fr 1fr}.executive-trend-row{grid-template-columns:55px 1fr}.executive-trend-row em{grid-column:2}}
+
+.internal-benchmark-card{margin-top:16px;border:1px solid #d9e5ef;border-radius:18px;padding:16px;background:linear-gradient(180deg,#fbfdff,#f7fafc)}.internal-benchmark-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.internal-benchmark-title{font-size:16px;font-weight:950;color:#17324d}.internal-benchmark-subtitle{font-size:11px;color:#667085;margin-top:4px;line-height:1.8}.internal-benchmark-badge{font-size:11px;font-weight:950;padding:9px 12px;border-radius:999px;background:#eef6ff;color:#17517d;white-space:nowrap}.internal-benchmark-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:13px}.internal-benchmark-summary>div{padding:10px;border:1px solid #e1e9f0;background:#fff;border-radius:12px}.internal-benchmark-summary span{display:block;color:#667085;font-size:10px}.internal-benchmark-summary strong{display:block;color:#17324d;font-size:14px;margin-top:4px}.internal-benchmark-rows{display:grid;gap:9px;margin-top:12px}.internal-benchmark-row{display:grid;grid-template-columns:1fr 1.6fr 1fr;align-items:center;gap:12px;padding:12px;background:#fff;border:1px solid #e5ebf0;border-radius:14px}.internal-benchmark-row strong{display:block;font-size:12px;color:#344054}.internal-benchmark-row small{display:block;color:#98a2b3;font-size:10px;margin-top:4px;line-height:1.7}.internal-meter-track{height:8px;background:#edf2f6;border-radius:999px;overflow:hidden}.internal-meter-track span{display:block;height:100%;background:#2f6f8f;border-radius:inherit}.internal-meter-caption{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:#667085}.internal-meter-caption b{color:#17324d}.internal-benchmark-position{padding:9px 10px;border-radius:11px;background:#f7fafc}.internal-benchmark-position strong{font-size:11px}.internal-benchmark-position small{font-size:9px;color:#667085;line-height:1.7}.internal-benchmark-position.top25{background:#ecfdf3;color:#067647}.internal-benchmark-position.aboveMedian{background:#f0fdf4;color:#28734f}.internal-benchmark-position.belowMedian{background:#fff7e8;color:#9a6700}.internal-benchmark-position.bottom25{background:#fff1f0;color:#b42318}.internal-benchmark-note{margin-top:11px;padding:10px 12px;border-radius:11px;background:#f8fafc;color:#667085;font-size:10px;line-height:1.9}@media(max-width:900px){.internal-benchmark-summary{grid-template-columns:repeat(2,1fr)}.internal-benchmark-row{grid-template-columns:1fr 1.4fr}}@media(max-width:600px){.internal-benchmark-summary{grid-template-columns:1fr 1fr}.internal-benchmark-row{grid-template-columns:1fr}.internal-benchmark-head{align-items:flex-start;flex-direction:column}.internal-benchmark-badge{white-space:normal}}
+</style>
+
 </body>
 
 </html>

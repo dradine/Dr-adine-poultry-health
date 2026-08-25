@@ -1,4 +1,5 @@
 /* ADINE PERFORMANCE ENGINE V2 - scientific/industry aligned */
+/* wired through CI into weekly.html and reports.html */
 (function(){'use strict';
 const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
 const r=(v,d=3)=>n(v)==null?null:Number(Number(v).toFixed(d));

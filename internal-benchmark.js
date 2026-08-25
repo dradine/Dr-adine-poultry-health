@@ -3,7 +3,7 @@
    INTERNAL PEER BENCHMARK V6
    ========================================================= */
 "use strict";
-const INTERNAL_BENCHMARK_VERSION="2026.5";
+const INTERNAL_BENCHMARK_VERSION="2026.6";
 function benchmarkMetricLabel(metric){return({body_weight:"وزن بدن",fcr:"FCR",mortality:"تلفات",uniformity:"یکنواختی ±۱۰٪",cv:"CV",egg_production:"تولید تخم",egg_weight:"وزن تخم",fertility:"نطفه‌داری",hatchability:"جوجه‌درآوری"})[metric]||metric}
 function benchmarkDirection(metric){return["fcr","mortality","cv"].includes(metric)?"lower":["uniformity","egg_production","fertility","hatchability"].includes(metric)?"higher":"context"}
 function benchmarkConfidenceLabel(level){return({insufficient:"داده ناکافی",initial:"بنچمارک اولیه",reliable:"بنچمارک قابل اتکا",stable:"بنچمارک پایدار"})[level]||"—"}
@@ -13,4 +13,50 @@ function normalizeBenchmarkRow(row,metric){const num=k=>row[k]==null?null:Number
 function benchmarkErrorCode(error){const message=String(error?.message||error||"");if(/function .* does not exist|42883/i.test(message))return"rpc_missing";if(/permission|denied|not authorized|42501|دسترسی|مجاز نیست/i.test(message))return"access_denied";return"database_error"}
 async function getInternalBenchmark({flockId,metric,ageWindowDays=7}={}){if(!window.supabaseClient||!flockId||!metric)return{ok:false,code:"database_error",message:benchmarkDiagnostic("database_error"),technical:"Supabase client, flockId or metric is missing."};try{const windowDays=Math.max(3,Math.min(14,Number(ageWindowDays)||7));const{data,error}=await supabaseClient.rpc("get_flock_benchmark_v6",{p_flock_id:flockId,p_metric:metric,p_age_window_days:windowDays});if(error){const code=benchmarkErrorCode(error);return{ok:false,code,message:benchmarkDiagnostic(code),technical:error.message||String(error)}}const row=Array.isArray(data)?data[0]:data;if(!row)return{ok:false,code:"metric_unavailable",message:benchmarkDiagnostic("metric_unavailable"),technical:"RPC returned no row."};const result=normalizeBenchmarkRow(row,metric);if(result.diagnosticCode){result.ok=false;result.code=result.diagnosticCode;result.message=result.diagnosticMessage||benchmarkDiagnostic(result.code);return result}if(result.ageMin==null||result.ageMax==null)return{...result,ok:false,code:"age_unavailable",message:benchmarkDiagnostic("age_unavailable")};if(result.comparableFarms<10||result.comparableRecords<10||!result.sampleAdequate)return{...result,ok:false,code:"insufficient_comparable_farms",message:result.sampleNote||benchmarkDiagnostic("insufficient_comparable_farms")};if(result.currentValue==null)return{...result,ok:false,code:"metric_unavailable",message:benchmarkDiagnostic("metric_unavailable")};return{...result,ok:true,code:null,message:null}}catch(error){const code=benchmarkErrorCode(error);return{ok:false,code,message:benchmarkDiagnostic(code),technical:error?.message||String(error)}}}
 async function getFlockMetricHistory({flockId,metric,limit=12}={}){if(!window.supabaseClient||!flockId||!metric)return{ok:false,code:"database_error",message:benchmarkDiagnostic("database_error"),rows:[]};try{const{data,error}=await supabaseClient.rpc("get_flock_metric_history_v6",{p_flock_id:flockId,p_metric:metric,p_limit:Math.max(1,Math.min(52,Number(limit)||12))});if(error){const code=benchmarkErrorCode(error);return{ok:false,code,message:benchmarkDiagnostic(code),technical:error.message||String(error),rows:[]}}const rows=(data||[]).map(r=>({ageDays:r.age_days==null?null:Number(r.age_days),value:r.metric_value==null?null:Number(r.metric_value),createdAt:r.created_at,evaluationDate:r.evaluation_date||null,weekNumber:r.week_number==null?null:Number(r.week_number)})).filter(r=>r.value!=null&&Number.isFinite(r.value));if(!rows.length)return{ok:false,code:"metric_unavailable",message:benchmarkDiagnostic("metric_unavailable"),rows:[]};if(rows.some(r=>r.ageDays==null))return{ok:false,code:"age_unavailable",message:benchmarkDiagnostic("age_unavailable"),rows};return{ok:true,code:null,message:null,rows}}catch(error){const code=benchmarkErrorCode(error);return{ok:false,code,message:benchmarkDiagnostic(code),technical:error?.message||String(error),rows:[]}}}
-window.INTERNAL_BENCHMARK_VERSION=INTERNAL_BENCHMARK_VERSION;window.benchmarkDiagnostic=benchmarkDiagnostic;window.getInternalBenchmark=getInternalBenchmark;window.getFlockMetricHistory=getFlockMetricHistory;window.benchmarkPosition=benchmarkPosition;
+
+/* =========================================================
+   UNIFIED AGE + REPORT ACCESS BRIDGE
+   This bridge is loaded before reports-data.js. A deferred patch
+   replaces the legacy owner_id filter after reports-data.js loads.
+   RLS remains the authoritative database boundary.
+========================================================= */
+function adineParseDate(value){if(!value)return null;const d=value instanceof Date?value:new Date(value);return Number.isNaN(d.getTime())?null:d}
+function adineAgeDays(flock,evaluationDate){const placement=adineParseDate(flock?.placement_date);const evalDate=adineParseDate(evaluationDate);const start=Number(flock?.start_age_days);if(!placement||!evalDate||!Number.isFinite(start))return null;const a=new Date(Date.UTC(placement.getUTCFullYear(),placement.getUTCMonth(),placement.getUTCDate()));const b=new Date(Date.UTC(evalDate.getUTCFullYear(),evalDate.getUTCMonth(),evalDate.getUTCDate()));return Math.max(0,Math.trunc(start+((b-a)/86400000)))}
+function adineRecordAge(record,flock){const derived=adineAgeDays(flock,record?.evaluation_date||record?.record_date);if(derived!=null)return derived;const stored=Number(record?.age_days);return Number.isFinite(stored)?stored:null}
+window.AdineAge={calculate:adineAgeDays,recordAge:adineRecordAge};
+
+function installReportAccessBridge(){
+  if(typeof window==="undefined"||!window.supabaseClient)return;
+  if(typeof window.getReportFlock==="function"){
+    window.getReportFlock=async function(flockId){
+      if(!flockId)return null;
+      const {data,error}=await supabaseClient.from("flocks").select("*, farms(id,name), houses(id,name)").eq("id",flockId).maybeSingle();
+      if(error)throw error;
+      if(!data)return null;
+      if(window.AdineAccess?.canAccessFarm&&data.farm_id){
+        const allowed=await window.AdineAccess.canAccessFarm(data.farm_id);
+        if(!allowed) return null;
+      }
+      window.__adineReportFlockContext=data;
+      return data;
+    };
+  }
+  if(typeof window.normalizeReportRecord==="function"){
+    const legacy=window.normalizeReportRecord;
+    window.normalizeReportRecord=function(record){
+      const normalized=legacy(record);
+      const age=adineRecordAge(record,window.__adineReportFlockContext);
+      if(age!=null)normalized.ageDays=age;
+      return normalized;
+    };
+  }
+}
+if(typeof window!=="undefined"){
+  window.INTERNAL_BENCHMARK_VERSION=INTERNAL_BENCHMARK_VERSION;
+  window.benchmarkDiagnostic=benchmarkDiagnostic;
+  window.getInternalBenchmark=getInternalBenchmark;
+  window.getFlockMetricHistory=getFlockMetricHistory;
+  window.benchmarkPosition=benchmarkPosition;
+  window.setTimeout(installReportAccessBridge,0);
+  window.addEventListener("DOMContentLoaded",installReportAccessBridge,{once:true});
+}

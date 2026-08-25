@@ -33,12 +33,19 @@ jobs:
               repl=needle+'\n    ["dead_bird_avg_weight_g","میانگین وزن پرندگان تلف‌شده","g","number","اختیاری؛ برای محاسبه علمی FCR اصلاح‌شده با تلفات استفاده می‌شود"],'
               if needle not in s: raise SystemExit('broiler specialized anchor not found')
               s=s.replace(needle,repl,1); p.write_text(s,encoding='utf-8')
-          p=Path('weekly.js'); s=p.read_text(encoding='utf-8'); marker='        const payload = {'
+          p=Path('weekly.js'); s=p.read_text(encoding='utf-8')
           if 'const performanceMortalityCorrectedFcr' not in s:
               needle='''        const performanceWeeklyFcrResolved = ["layer","تخمگذار","تخم‌گذار","breeder","مادر","مرغ مادر"].includes(String(performanceType).toLowerCase())\n            ? performanceLayerFcr\n            : performanceWeeklyFcr;\n\n'''
               inject=needle+'''        const performanceMortalityCorrectedFcr = window.AdinePerformance\n            ? window.AdinePerformance.mortalityCorrectedFCR({\n                feedKg: feedTotal,\n                openBirds: performancePrevious?.live_birds,\n                openWeight: performancePrevious?.average_weight_g,\n                closeBirds: liveBirds,\n                closeWeight: stats.mean,\n                deaths: mortality,\n                deadAverageWeightG: productionMetrics?.dead_bird_avg_weight_g\n              })\n            : null;\n        if (performanceMortalityCorrectedFcr != null) {\n            productionMetrics.mortality_corrected_fcr = performanceMortalityCorrectedFcr;\n        }\n\n'''
               if needle not in s: raise SystemExit('performance fcr anchor not found')
               s=s.replace(needle,inject,1); p.write_text(s,encoding='utf-8')
+      - name: Static syntax and whitespace checks
+        run: |
+          node --check performance-engine-v2.js
+          node --check performance-benchmark-v2.js
+          node --check weekly.js
+          node --check weekly-specialized.js
+          git diff --check
       - name: Commit wiring changes
         run: |
           git config user.name 'github-actions[bot]'

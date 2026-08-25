@@ -10,7 +10,6 @@
   --cp-radius:14px;
 }
 
-/* Shared compact rhythm for Farm / Flock / Weekly / Reports. */
 body.cp-compact-page .card,
 body.cp-compact-page .standard-framework-card,
 body.cp-compact-page .executive-report-card{
@@ -36,18 +35,9 @@ body.cp-compact-page .subsection-title{
   border-bottom:1px solid #edf1ef!important;
 }
 
-body.cp-compact-page .form-grid{
-  gap:9px!important;
-}
-
-body.cp-compact-page .form-group{
-  gap:4px!important;
-}
-
-body.cp-compact-page .form-group label{
-  font-size:11px!important;
-  line-height:1.5!important;
-}
+body.cp-compact-page .form-grid{gap:9px!important}
+body.cp-compact-page .form-group{gap:4px!important}
+body.cp-compact-page .form-group label{font-size:11px!important;line-height:1.5!important}
 
 body.cp-compact-page input,
 body.cp-compact-page select,
@@ -60,7 +50,6 @@ body.cp-compact-page .form-group textarea{
   border-radius:9px!important;
   font-size:12px!important;
 }
-
 body.cp-compact-page textarea{min-height:72px!important}
 
 body.cp-compact-page .btn{
@@ -73,75 +62,32 @@ body.cp-compact-page .btn{
 body.cp-compact-page .button-row,
 body.cp-compact-page .form-actions,
 body.cp-compact-page .weight-toolbar,
-body.cp-compact-page .header-actions{
-  gap:7px!important;
-}
+body.cp-compact-page .header-actions{gap:7px!important}
 
-/* Farm + flock pages */
 body.cp-farm-page .page,
-body.cp-flock-page .page{
-  padding:13px 12px 24px!important;
-}
-
+body.cp-flock-page .page{padding:13px 12px 24px!important}
 body.cp-farm-page .container,
-body.cp-flock-page .container{
-  max-width:1080px!important;
-}
-
+body.cp-flock-page .container{max-width:1080px!important}
 body.cp-farm-page .page-title,
-body.cp-flock-page .page-title{
-  font-size:20px!important;
-  margin:0 0 3px!important;
-}
-
+body.cp-flock-page .page-title{font-size:20px!important;margin:0 0 3px!important}
 body.cp-farm-page .page-description,
-body.cp-flock-page .page-description{
-  font-size:11px!important;
-  margin-bottom:10px!important;
-}
-
+body.cp-flock-page .page-description{font-size:11px!important;margin-bottom:10px!important}
 body.cp-farm-page .form-grid,
-body.cp-flock-page .form-grid{
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-}
-
+body.cp-flock-page .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 body.cp-farm-page .form-group.full,
 body.cp-flock-page .form-group.full{grid-column:1/-1!important}
-
 body.cp-farm-page .card:nth-of-type(2),
 body.cp-flock-page .card:nth-of-type(2),
 body.cp-flock-page .card:nth-of-type(4),
-body.cp-flock-page .card:nth-of-type(6){
-  background:#fbfcfb!important;
-}
+body.cp-flock-page .card:nth-of-type(6){background:#fbfcfb!important}
 
-/* Weekly: make the command area an actual compact section header. */
-body.cp-weekly-page .app-container{
-  width:min(1180px,calc(100% - 24px))!important;
-  margin:14px auto 32px!important;
-}
-
-body.cp-weekly-page .page-header{
-  padding:13px 15px!important;
-  margin-bottom:10px!important;
-  border-radius:14px!important;
-}
-
+body.cp-weekly-page .app-container{width:min(1180px,calc(100% - 24px))!important;margin:14px auto 32px!important}
+body.cp-weekly-page .page-header{padding:13px 15px!important;margin-bottom:10px!important;border-radius:14px!important}
 body.cp-weekly-page .page-header h1{font-size:20px!important;margin-bottom:4px!important}
 body.cp-weekly-page .page-header p{font-size:11px!important}
 body.cp-weekly-page .page-header small{font-size:10px!important}
-body.cp-weekly-page .weekly-command-card{
-  margin:0 0 10px!important;
-  padding:12px 14px!important;
-  border-radius:14px!important;
-  box-shadow:0 3px 12px rgba(0,0,0,.035)!important;
-}
-body.cp-weekly-page .weekly-command-head{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:12px!important;
-}
+body.cp-weekly-page .weekly-command-card{margin:0 0 10px!important;padding:12px 14px!important;border-radius:14px!important;box-shadow:0 3px 12px rgba(0,0,0,.035)!important}
+body.cp-weekly-page .weekly-command-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important}
 body.cp-weekly-page .weekly-command-head h2{font-size:15px!important;margin:2px 0!important}
 body.cp-weekly-page .weekly-command-head p{font-size:10px!important;line-height:1.7!important;margin:0!important;max-width:760px}
 body.cp-weekly-page .weekly-eyebrow{font-size:8px!important;letter-spacing:.08em!important}
@@ -154,16 +100,8 @@ body.cp-weekly-page .weekly-quick-rule{padding:7px 10px!important;margin:0 0 10p
 body.cp-weekly-page .metrics-grid{gap:7px!important}
 body.cp-weekly-page .history-container{max-height:none!important}
 
-/* Reports: executive information first, controls compact, report cards dense. */
-body.cp-reports-page .reports-page{
-  width:min(1180px,calc(100% - 24px))!important;
-  margin:14px auto 34px!important;
-}
-body.cp-reports-page .page-header{
-  padding:13px 15px!important;
-  margin-bottom:10px!important;
-  border-radius:14px!important;
-}
+body.cp-reports-page .reports-page{width:min(1180px,calc(100% - 24px))!important;margin:14px auto 34px!important}
+body.cp-reports-page .page-header{padding:13px 15px!important;margin-bottom:10px!important;border-radius:14px!important}
 body.cp-reports-page .page-header h1{font-size:20px!important;margin-bottom:4px!important}
 body.cp-reports-page .page-header p{font-size:11px!important}
 body.cp-reports-page .page-header small{font-size:10px!important}
@@ -182,10 +120,11 @@ body.cp-reports-page table{font-size:10px!important}
 body.cp-reports-page th,
 body.cp-reports-page td{padding:7px 5px!important}
 
-/* Keep the dashboard completely outside this presentation layer. */
 body:not(.cp-compact-page) .card,
 body:not(.cp-compact-page) .menu-card{ }
 
+/* MOBILE-FIRST COMPACT PASS — PRESENTATION ONLY.
+   No JS, IDs, formulas, calculations, storage, alerts or navigation are changed. */
 @media (max-width:760px){
   body.cp-farm-page .form-grid,
   body.cp-flock-page .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
@@ -193,22 +132,80 @@ body:not(.cp-compact-page) .menu-card{ }
   body.cp-weekly-page .weekly-command-badges{justify-content:flex-start!important;margin-top:7px}
   body.cp-weekly-page .weekly-principles{grid-template-columns:1fr!important}
   body.cp-reports-page .executive-grid{grid-template-columns:1fr!important}
+
+  /* Two-column weekly entry: same fields, much less vertical scrolling. */
+  body.cp-weekly-page .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+  body.cp-weekly-page .form-group{min-width:0!important}
+  body.cp-weekly-page .form-group input,
+  body.cp-weekly-page .form-group select,
+  body.cp-weekly-page .form-group textarea{width:100%!important}
+
+  body.cp-weekly-page .weight-toolbar,
+  body.cp-weekly-page .form-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.cp-weekly-page .weight-toolbar .btn,
+  body.cp-weekly-page .form-actions .btn{width:100%!important}
+
+  /* Reports: smaller cards/charts without removing report data. */
+  body.cp-reports-page .card,
+  body.cp-reports-page .standard-framework-card,
+  body.cp-reports-page .executive-report-card{padding:10px!important;margin-bottom:8px!important}
+  body.cp-reports-page .section-title{font-size:13px!important;margin-bottom:7px!important}
+  body.cp-reports-page .chart-wrapper{min-height:190px!important;height:190px!important;margin:8px 0!important}
+  body.cp-reports-page .chart-wrapper canvas{max-height:190px!important}
+
+  /* Wide health table stays complete; only its viewport scrolls horizontally. */
+  body.cp-reports-page .health-report-table-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+  body.cp-reports-page .health-report-table{min-width:780px!important}
+
+  /* Remove non-essential explanatory vertical bulk on phone only. */
+  body.cp-weekly-page .weekly-command-head p{max-height:2.9em!important;overflow:hidden!important}
+  body.cp-weekly-page .weekly-principles{display:none!important}
+  body.cp-weekly-page .weekly-quick-rule{font-size:9px!important;line-height:1.6!important}
 }
 
 @media (max-width:520px){
-  body.cp-compact-page .card{padding:11px!important;margin-bottom:8px!important}
+  body.cp-compact-page .card{padding:10px!important;margin-bottom:7px!important}
   body.cp-farm-page .form-grid,
   body.cp-flock-page .form-grid{grid-template-columns:1fr 1fr!important;gap:7px!important}
   body.cp-farm-page .form-group.full,
   body.cp-flock-page .form-group.full{grid-column:1/-1!important}
   body.cp-weekly-page .app-container,
-  body.cp-reports-page .reports-page{width:calc(100% - 16px)!important}
+  body.cp-reports-page .reports-page{width:calc(100% - 12px)!important}
   body.cp-weekly-page .page-header,
   body.cp-reports-page .page-header{display:block!important}
   body.cp-weekly-page .header-actions,
-  body.cp-reports-page .header-actions{display:grid!important;grid-template-columns:repeat(2,1fr)!important;margin-top:8px}
+  body.cp-reports-page .header-actions{display:grid!important;grid-template-columns:repeat(2,1fr)!important;margin-top:7px}
   body.cp-weekly-page .header-actions .btn,
   body.cp-reports-page .header-actions .btn{width:100%!important}
+
+  body.cp-weekly-page .page-header{padding:10px 11px!important}
+  body.cp-weekly-page .page-header h1,
+  body.cp-reports-page .page-header h1{font-size:17px!important}
+  body.cp-weekly-page .page-header p,
+  body.cp-reports-page .page-header p{font-size:10px!important}
+  body.cp-weekly-page .page-header small,
+  body.cp-reports-page .page-header small{font-size:9px!important}
+
+  body.cp-weekly-page .weekly-command-card{padding:9px 10px!important;margin-bottom:7px!important}
+  body.cp-weekly-page .weekly-command-head h2{font-size:13px!important}
+  body.cp-weekly-page .weekly-eyebrow{font-size:7px!important}
+  body.cp-weekly-page .weekly-command-badges span{font-size:8px!important;padding:3px 6px!important}
+
+  body.cp-weekly-page .form-grid{gap:6px!important}
+  body.cp-weekly-page .form-group label{font-size:10px!important}
+  body.cp-weekly-page input,
+  body.cp-weekly-page select,
+  body.cp-weekly-page textarea{min-height:37px!important;font-size:11px!important;padding:6px 8px!important}
+  body.cp-weekly-page textarea{min-height:62px!important}
+  body.cp-weekly-page .quick-entry-help{font-size:8px!important;line-height:1.45!important}
+  body.cp-weekly-page .weight-toolbar,
+  body.cp-weekly-page .form-actions{gap:6px!important}
+  body.cp-weekly-page .btn{min-height:36px!important;font-size:10px!important;padding:7px 8px!important}
+
+  body.cp-reports-page .executive-grade{min-width:44px!important;height:44px!important;font-size:17px!important}
+  body.cp-reports-page .executive-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.cp-reports-page .chart-wrapper{height:175px!important;min-height:175px!important}
+  body.cp-reports-page .chart-wrapper canvas{max-height:175px!important}
 }
 
 @media (max-width:380px){
@@ -216,9 +213,12 @@ body:not(.cp-compact-page) .menu-card{ }
   body.cp-flock-page .form-grid{grid-template-columns:1fr!important}
   body.cp-farm-page .form-group.full,
   body.cp-flock-page .form-group.full{grid-column:auto!important}
+  body.cp-weekly-page .form-grid{grid-template-columns:1fr 1fr!important}
+  body.cp-weekly-page .header-actions{grid-template-columns:1fr 1fr!important}
+  body.cp-weekly-page .weight-toolbar,
+  body.cp-weekly-page .form-actions{grid-template-columns:1fr 1fr!important}
 }
 
-/* Print: compact, clean and never alter data. */
 @media print{
   body.cp-compact-page{background:#fff!important}
   body.cp-compact-page .bottom-nav,

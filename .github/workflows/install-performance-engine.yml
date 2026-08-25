@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'performance-engine-v2.js'
+      - 'performance-benchmark-v2.js'
       - '.github/workflows/install-performance-engine.yml'
 permissions:
   contents: write
@@ -12,26 +13,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Wire performance engine into weekly and reports pages
+      - name: Wire performance engine, benchmark fallback and weekly persistence
         shell: python
         run: |
           from pathlib import Path
-          for name, anchor in [
-              ('weekly.html','    <script src="weekly-specialized.js"></script>'),
-              ('reports.html','<script src="weekly-engine.js"></script>')
+          for name, anchor, tag in [
+              ('weekly.html','    <script src="weekly-specialized.js"></script>','<script src="performance-engine-v2.js"></script>'),
+              ('reports.html','<script src="weekly-engine.js"></script>','<script src="performance-engine-v2.js"></script>'),
           ]:
-              p=Path(name)
-              s=p.read_text(encoding='utf-8')
-              tag='<script src="performance-engine-v2.js"></script>'
+              p=Path(name); s=p.read_text(encoding='utf-8')
               if tag not in s:
-                  if anchor not in s:
-                      raise SystemExit(f'anchor not found in {name}')
-                  s=s.replace(anchor, anchor+'\n'+tag, 1)
-                  p.write_text(s,encoding='utf-8')
+                  if anchor not in s: raise SystemExit(f'anchor not found in {name}')
+                  s=s.replace(anchor,anchor+'\n'+tag,1); p.write_text(s,encoding='utf-8')
+          p=Path('reports.html'); s=p.read_text(encoding='utf-8'); tag='<script src="performance-benchmark-v2.js"></script>'
+          anchor='<script src="performance-engine-v2.js"></script>'
+          if tag not in s:
+              s=s.replace(anchor,anchor+'\n'+tag,1); p.write_text(s,encoding='utf-8')
+          p=Path('weekly.js'); s=p.read_text(encoding='utf-8')
+          marker='        const payload = {'
+          if 'const performanceWeeklyFcr' not in s:
+              inject='''        const performanceType = currentFlock.production_type || currentFlock.productionType || "broiler";\n        const performancePrevious = [...existingForCumulative].sort((a,b) => Number(a.age_days || 0) - Number(b.age_days || 0)).at(-1) || null;\n        const performanceWeeklyFcr = window.AdinePerformance\n            ? window.AdinePerformance.broilerWeeklyFCR({\n                feedKg: feedTotal,\n                openBirds: performancePrevious?.live_birds,\n                openWeight: performancePrevious?.average_weight_g,\n                closeBirds: liveBirds,\n                closeWeight: stats.mean\n              })\n            : null;\n        const performanceLayerFcr = window.AdinePerformance\n            ? window.AdinePerformance.layerWeekly(feedTotal, productionMetrics?.egg_mass_kg)\n            : null;\n        const performanceWeeklyFcrResolved = ["layer","تخمگذار","تخم‌گذار","breeder","مادر","مرغ مادر"].includes(String(performanceType).toLowerCase())\n            ? performanceLayerFcr\n            : performanceWeeklyFcr;\n\n'''
+              if marker not in s: raise SystemExit('weekly payload marker not found')
+              s=s.replace(marker,inject+marker,1)
+          old='''            cumulative_fcr:\n                typeof calculateWeeklyCumulativeConversion === "function"\n                    ? calculateWeeklyCumulativeConversion(\n                        existingForCumulative,\n                        {\n                            id: recordId,\n                            feed_total_kg: feedTotal,\n                            average_weight_g: stats.mean,\n                            live_birds: liveBirds,\n                            production_metrics: productionMetrics,\n                            week_number: week\n                        },\n                        currentFlock.production_type || currentFlock.productionType\n                    )\n                    : null,\n'''
+          if old in s and '            fcr:\n                performanceWeeklyFcrResolved' not in s:
+              s=s.replace(old,old+'\n            fcr:\n                performanceWeeklyFcrResolved,\n',1)
+          p.write_text(s,encoding='utf-8')
       - name: Commit wiring changes
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add weekly.html reports.html
-          git diff --cached --quiet || git commit -m 'Wire scientific performance engine into weekly reports'
+          git add weekly.html reports.html weekly.js
+          git diff --cached --quiet || git commit -m 'Persist scientific weekly FCR and benchmark fallback'
           git push

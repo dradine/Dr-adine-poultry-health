@@ -2709,6 +2709,31 @@ async function saveWeeklyRecord() {
         if (performanceMortalityCorrectedFcr != null) {
             productionMetrics.mortality_corrected_fcr = performanceMortalityCorrectedFcr;
         }
+        const performanceRowsWithCurrent = [
+            ...existingForCumulative,
+            {
+                id: recordId,
+                age_days: ageDays,
+                feed_total_kg: feedTotal,
+                average_weight_g: stats.mean,
+                live_birds: liveBirds,
+                production_metrics: productionMetrics
+            }
+        ];
+        const performanceCumulativeFcr = window.AdinePerformance
+            ? window.AdinePerformance.typeOf(currentFlock) === "layer" || window.AdinePerformance.typeOf(currentFlock) === "breeder"
+                ? window.AdinePerformance.layerCumulative(performanceRowsWithCurrent)
+                : window.AdinePerformance.broilerCumulativeFCR(performanceRowsWithCurrent, currentFlock)
+            : null;
+        productionMetrics.performance_version = window.AdinePerformance?.version || null;
+        productionMetrics.weekly_fcr_engine = performanceWeeklyFcrResolved;
+        productionMetrics.cumulative_fcr_engine = performanceCumulativeFcr;
+        productionMetrics.cumulative_feed_kg = performanceRowsWithCurrent.reduce((sum, row) => sum + (Number(row.feed_total_kg) || 0), 0);
+        productionMetrics.current_age_days = ageDays;
+        productionMetrics.current_average_weight_g = stats.mean;
+        productionMetrics.current_live_birds = liveBirds;
+        if (performanceCumulativeFcr != null) productionMetrics.cumulative_fcr = performanceCumulativeFcr;
+
 
         const payload = {
 

@@ -1,0 +1,4 @@
+-- Mirrors migration create_poultry_performance_registry_v1 applied to Supabase.
+-- Arian scientific reference values are from Yousefi et al., Veterinary Research Forum 2024; 15(5):243-250.
+-- Official methodology: Aviagen adjusted FCR; Hy-Line calculation definitions; Lohmann current performance guides.
+-- See Supabase migration history for the authoritative applied version.

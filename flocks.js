@@ -130,10 +130,20 @@ async function loadSelectedFarm() {
 
     const params = new URLSearchParams(window.location.search);
     const urlFarmId = params.get("farm") || params.get("farm_id");
+    const storedFarmId = localStorage.getItem("adine_selected_farm");
 
-    if (!selection.farmId && urlFarmId) {
-        setCurrentSelection({ farmId: urlFarmId, houseId: null, flockId: null });
+    // Keep the farm selection consistent across Farms / Flocks / Weekly pages.
+    // Older versions stored the selected farm under a different key, which
+    // caused the Flocks page to open without a farm and appear to be stuck.
+    const recoveredFarmId = urlFarmId || selection.farmId || storedFarmId;
+
+    if (!selection.farmId && recoveredFarmId) {
+        setCurrentSelection({ farmId: recoveredFarmId, houseId: null, flockId: null });
         selection = getCurrentSelection();
+    }
+
+    if (selection.farmId) {
+        localStorage.setItem("adine_selected_farm", selection.farmId);
     }
 
     if (!selection.farmId) {

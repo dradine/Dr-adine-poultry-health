@@ -96,7 +96,21 @@ async function getCurrentProfile(userId = null) {
             return null;
         }
 
-        return data || null;
+        if (!data) return null;
+
+        // user_type/activity_types live in professional_profiles in the real schema.
+        try {
+            const { data: pp } = await supabaseClient
+                .from("professional_profiles")
+                .select("user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified")
+                .eq("user_id", user.id)
+                .maybeSingle();
+            if (pp) return { ...data, ...pp };
+        } catch (e) {
+            console.warn("professional profile merge:", e);
+        }
+
+        return data;
 
     } catch (error) {
 

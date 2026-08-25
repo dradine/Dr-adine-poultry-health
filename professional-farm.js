@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  const auth=await AdineAuth.requireAuth();if(!auth)return;
  const role=String(auth.profile?.role||'').toLowerCase(), type=String(auth.profile?.user_type||'').toLowerCase();
  if(['owner','admin'].includes(role)){location.replace('owner.html');return;}
- if(['poultry_operator','poultry_manager','poultry_technical_expert'].includes(type)){location.replace('Dashboard.html');return;}
+ if(['farm_operator','farm_manager','poultry_technical_expert'].includes(type)){location.replace('Dashboard.html');return;}
  const farmId=new URLSearchParams(location.search).get('farm')||localStorage.getItem('adine_selected_farm');
  const $=id=>document.getElementById(id), esc=v=>AdineAccess.esc(v);
  $('backBtn').onclick=$('backBtn2').onclick=()=>location.href='professional.html';

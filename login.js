@@ -614,8 +614,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         .toLowerCase();
 
                 const mainFarmTypes = [
-                    "poultry_operator",
-                    "poultry_manager",
+                    "farm_operator",
+                    "farm_manager",
                     "poultry_technical_expert"
                 ];
 

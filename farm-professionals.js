@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!auth) return;
     const p = auth.profile || {};
     const role = String(p.user_type || p.role || '').trim().toLowerCase();
-    if (!['poultry_operator','poultry_manager','organization_manager','owner','admin'].includes(role)) {
+    if (!['farm_operator','farm_manager','company_manager','owner','admin'].includes(role)) {
         alert('این بخش برای بهره‌بردار و مدیر واحد است.');
         location.href = 'Dashboard.html';
         return;

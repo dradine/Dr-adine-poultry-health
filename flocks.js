@@ -111,7 +111,7 @@ async function initializeFlocks() {
         );
 
         alert(
-            "خطا در راه‌اندازی بخش سالن و گله."
+            "خطا در راه‌اندازی بخش سالن و گله:\n" + (error?.message || "خطای نامشخص")
         );
 
     }

@@ -5,13 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>پایش هفتگی | مرکز تخصصی سلامت طیور آدینه</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="compact-pages.css?v=20260826-1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script><script src="auth.js"></script><script src="app-core.js"></script><script src="standard-data.js"></script><script src="standards.js"></script><script src="poultry-utils.js"></script><script src="weekly-storage.js"></script><script src="genetics-ui.js"></script><script src="weekly-engine.js"></script><script src="weekly-specialized.js"></script><script src="performance-engine-v2.js"></script><script src="performance-intelligence-v1.js"></script><script src="access-control.js"></script><script src="weekly.js"></script><script src="poultry-icons.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="app-core.js"></script>
+    <script src="standard-data.js"></script>
+    <script src="standards.js"></script>
+    <script src="poultry-utils.js"></script>
+    <script src="weekly-storage.js"></script>
+    <script src="genetics-ui.js"></script>
+    <script src="weekly-engine.js"></script>
+    <script src="weekly-specialized.js"></script>
+    <script src="performance-engine-v2.js"></script>
+    <script src="performance-intelligence-v1.js"></script>
+    <script src="access-control.js"></script>
+    <script src="weekly.js"></script>
+    <script src="poultry-icons.js"></script>
 </head>
 <body>
 <div class="app-container">
@@ -22,6 +35,5 @@
 <section class="card"><div class="section-title">ثبت سریع هفتگی</div><div class="form-grid"><div class="form-group"><label for="evaluationDate">تاریخ ارزیابی</label><input id="evaluationDate" type="text" inputmode="numeric" placeholder="۱۴۰۵/۰۵/۲۹" autocomplete="off" class="jalali-input"></div><div class="form-group"><label for="weekNumber">شماره هفته</label><input id="weekNumber" type="text" inputmode="decimal" placeholder="مثلاً ۱۲" autocomplete="off"></div><div class="form-group"><label for="averageWeightDirect">وزن متوسط گله <span>(گرم)</span></label><input id="averageWeightDirect" type="text" inputmode="decimal" placeholder="مثلاً ۱۸۵۰" autocomplete="off"><small class="quick-entry-help">اگر وقت نمونه‌گیری ندارید، میانگین ثبت‌شده گله را وارد کنید؛ برای محاسبه یکنواختی و CV، نمونه وزن لازم است.</small></div><div class="form-group"><label for="liveBirds">تعداد پرنده زنده</label><input id="liveBirds" type="text" inputmode="decimal" placeholder="تعداد" autocomplete="off"></div><div class="form-group"><label for="mortalityWeek">تلفات هفته</label><input id="mortalityWeek" type="text" inputmode="decimal" placeholder="تعداد" autocomplete="off"></div></div><div class="subsection-title">مصرف دان و آب</div><div class="form-grid"><div class="form-group"><label for="feedTotal">مصرف کل دان <span>(کیلوگرم)</span></label><input id="feedTotal" type="text" inputmode="decimal" placeholder="kg" autocomplete="off"></div><div class="form-group"><label for="waterTotal">مصرف کل آب <span>(لیتر)</span></label><input id="waterTotal" type="text" inputmode="decimal" placeholder="L" autocomplete="off"></div><div class="form-group"><label for="feedPerBird">دان به ازای هر پرنده <span>(گرم)</span></label><input id="feedPerBird" type="text" inputmode="decimal" placeholder="g/bird" autocomplete="off"></div><div class="form-group"><label for="waterPerBird">آب به ازای هر پرنده <span>(میلی‌لیتر)</span></label><input id="waterPerBird" type="text" inputmode="decimal" placeholder="ml/bird" autocomplete="off"></div></div><section id="specializedMetricsCard" class="card" style="display:none;"><div class="section-title">شاخص‌های تخصصی هفتگی</div><div id="specializedMetricsIntro" class="info-box"></div><div id="specializedMetrics"></div></section><div class="subsection-title">وزن‌کشی نمونه‌ای</div><div class="info-box"><strong>روش پایش:</strong> وزن تعدادی از پرندگان به‌صورت نمونه‌ای وارد شود. برای پایش هفتگی دقیق، نمونه مناسب و توزیع‌شده در سالن توصیه می‌شود.</div><div class="weight-toolbar"><button type="button" class="btn btn-secondary" onclick="addWeightInput()">+ افزودن وزن</button><button type="button" class="btn btn-secondary" onclick="addTwentyWeights()">+۲۰ وزن</button><button type="button" class="btn btn-secondary" onclick="addHundredWeights()">+۱۰۰ وزن</button><button type="button" class="btn btn-danger" onclick="clearWeights()">پاک کردن وزن‌ها</button></div><div id="weightsContainer" class="weights-container"></div><div class="form-actions"><button type="button" class="btn btn-primary" onclick="calculateWeekly()">محاسبه پایش</button></div><div id="resultsCard" class="results-card" style="display:none;"><div class="subsection-title">نتایج پایش</div><div id="results" class="metrics-grid"></div><div class="chart-wrapper"><canvas id="weightChart"></canvas></div></div><div class="subsection-title">توضیحات و ملاحظات</div><div class="form-group"><textarea id="weeklyNotes" rows="4" placeholder="اگر نکته مهمی درباره گله، سلامت، دان، آب یا مدیریت وجود دارد، کوتاه بنویسید (اختیاری)."></textarea></div><div class="form-actions"><button type="button" class="btn btn-primary" onclick="saveWeeklyRecord()">ذخیره گزارش هفتگی</button><button type="button" class="btn btn-secondary" onclick="openCurrentReport()">گزارش و ارزیابی هفته</button><button type="button" class="btn btn-secondary" onclick="clearWeeklyForm()">پاک کردن فرم</button></div></section>
 <section class="card"><div class="section-title">سوابق پایش هفتگی</div><div id="weeklyHistory" class="history-container"><p>در حال دریافت سوابق...</p></div></section>
 </div>
-<!-- Existing page-specific presentation rules remain below this point. -->
 </body>
 </html>

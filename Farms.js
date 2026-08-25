@@ -99,6 +99,10 @@ async function initializeFarms() {
         currentUser =
             access.user;
 
+        /* Make the verified server-side profile available to the
+           farm loader. Never infer owner privileges from the URL. */
+        window.__ADINEH_CURRENT_PROFILE__ = access.profile || {};
+
         const params = new URLSearchParams(window.location.search);
         const requestedOwner = params.get("owner_view");
         if (requestedOwner && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedOwner)) {
@@ -148,23 +152,43 @@ async function loadFarms() {
     `;
 
 
+    /*
+       Owner/Admin must be able to inspect ALL farms in the system.
+       In normal user mode we keep the strict owner filter.
+       In owner_view mode we inspect only the selected user's farms.
+       This is intentionally decided from the authenticated profile,
+       not from a client-side URL flag.
+    */
+    let farmQuery =
+        supabaseClient
+            .from("farms")
+            .select("*");
+
+    const profileRole = String(
+        window.__ADINEH_CURRENT_PROFILE__?.role ||
+        ""
+    ).toLowerCase();
+
+    if (ownerViewTarget) {
+        farmQuery = farmQuery.eq(
+            "owner_id",
+            ownerViewTarget
+        );
+    }
+    else if (!['owner', 'admin'].includes(profileRole)) {
+        farmQuery = farmQuery.eq(
+            "owner_id",
+            currentUser.id
+        );
+    }
+
     const {
         data,
         error
-    } =
-        await supabaseClient
-            .from("farms")
-            .select("*")
-            .eq(
-                "owner_id",
-                ownerViewTarget || currentUser.id
-            )
-            .order(
-                "created_at",
-                {
-                    ascending: false
-                }
-            );
+    } = await farmQuery.order(
+        "created_at",
+        { ascending: false }
+    );
 
 
     if (error) {
@@ -465,6 +489,10 @@ function createFarmCard(
                 ${escapeHTML(
                     farm.name
                 )}
+
+                ${String(farm.farm_code || '').startsWith('TEST-BM-ADINEH-')
+                    ? '<span class="benchmark-badge">Benchmark آزمایشی</span>'
+                    : ''}
 
             </h3>
 

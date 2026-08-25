@@ -609,13 +609,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         .toLowerCase();
 
                 const userType =
-                    (window.AdineAuth.canonicalUserType
-                        ? window.AdineAuth.canonicalUserType(profile.user_type)
-                        : String(profile.user_type || "").trim().toLowerCase());
+                    String(profile.user_type || "")
+                        .trim()
+                        .toLowerCase();
 
                 const mainFarmTypes = [
-                    "farm_operator",
-                    "farm_manager",
+                    "poultry_operator",
+                    "poultry_manager",
                     "poultry_technical_expert"
                 ];
 

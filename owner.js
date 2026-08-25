@@ -313,6 +313,9 @@
       if(e.target.closest?.("#generateCodeButton")){e.preventDefault();await generateCode();return;}
       if(e.target.closest?.("#toggleCodeButton")){e.preventDefault();await toggleCode();return;}
       if(e.target.closest?.("#refreshUsers")){e.preventDefault();await loadUsers();return;}
+      if(e.target.closest?.("#refreshFarms")){e.preventDefault();await loadFarms();notify(`لیست ${fa(allFarms.length)} فارم بروزرسانی شد.`,"success");return;}
+      const farmView=e.target.closest?.("[data-farm-view]");
+      if(farmView){e.preventDefault();openFarmView(farmView.dataset.farmView,farmView.dataset.ownerId);return;}
       if(e.target.closest?.("#logoutButton")){e.preventDefault();try{client=client||await getClient();await client.auth.signOut();location.href="login.html"}catch(err){notify(err.message||"خروج ناموفق بود.","error")}return;}
       if(e.target===$("ownerEditModal")){closeModal();}
     },{passive:false});

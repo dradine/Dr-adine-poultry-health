@@ -1163,3 +1163,7 @@ body {
 .weekly-advanced-toggle{font-size:12px}
 .weekly-special-field small{font-size:10px;line-height:1.7}
 @media(max-width:700px){.weekly-quick-rule{font-size:11px;padding:11px}.weekly-advanced-toggle{width:100%}}
+
+
+/* Benchmark test-data marker: visible only for the temporary benchmark farms. */
+.benchmark-badge{display:inline-block;margin-right:8px;padding:4px 8px;border-radius:999px;background:#eef5f2;color:#173f35;border:1px solid #d5e5de;font-size:10px;font-weight:800;vertical-align:middle;white-space:nowrap}

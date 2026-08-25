@@ -5681,7 +5681,7 @@ async function healthSaveEventVisibility(
         const out=[];
         for(const [metric,path] of metricMap){
             const b=await getInternalBenchmark({flockId:reportFlock.id,metric,ageWindowDays:7});
-            if(!b || !b.sampleAdequate || b.comparableFarms<10) continue;
+            if(!b) continue;
             let actual=last;
             for(const part of path.split('.')) actual=actual?.[part];
             const av=Number(actual);
@@ -5691,6 +5691,7 @@ async function healthSaveEventVisibility(
         }
         if(!out.length){ card.style.display='none'; return; }
 
+        const adequate=out.filter(x=>x.b.sampleAdequate&&x.b.comparableFarms>=10);
         const usable=out.filter(x=>x.b.peerScoreUsable&&Number.isFinite(x.b.peerScore));
         const peerScores=usable.map(x=>x.b.peerScore);
         const avgPeer=peerScores.length?peerScores.reduce((a,b)=>a+b,0)/peerScores.length:null;
@@ -5699,10 +5700,15 @@ async function healthSaveEventVisibility(
             const rank={initial:1,reliable:2,stable:3}[x.b.confidenceLevel]||0;
             return rank>(best.rank||0)?{rank,label:x.b.confidenceLabel}:best;
         },{});
-        badge.textContent=avgPeer!=null?`امتیاز جایگاه ${Math.round(avgPeer)} از ۱۰۰`:`${topCount} شاخص در ۲۵٪ برتر`;
+        const minFarms=Math.min(...out.map(x=>x.b.comparableFarms||0));
+        if(avgPeer!=null) badge.textContent=`امتیاز جایگاه ${Math.round(avgPeer)} از ۱۰۰`;
+        else if(adequate.length) badge.textContent=`${topCount} شاخص در ۲۵٪ برتر`;
+        else badge.textContent='داده کافی برای امتیازدهی نیست';
         subtitle.textContent=`سن ${age.toLocaleString('fa-IR')} روز · ${out[0]?.b.cohortLabel||'فارم‌های مشابه'} · ${confidence.label||'مقایسه اولیه'}`;
-        summary.innerHTML=`<div><span>جامعه مقایسه</span><strong>${Math.min(...out.map(x=>x.b.comparableFarms)).toLocaleString('fa-IR')} فارم مستقل</strong></div><div><span>شاخص‌های قابل مقایسه</span><strong>${out.length.toLocaleString('fa-IR')}</strong></div><div><span>در ۲۵٪ برتر</span><strong>${topCount.toLocaleString('fa-IR')} شاخص</strong></div><div><span>امتیاز جایگاه</span><strong>${avgPeer==null?'در انتظار داده بیشتر':Math.round(avgPeer).toLocaleString('fa-IR')+' / ۱۰۰'}</strong></div>`;
-        rowsBox.innerHTML=out.map(({b,av,pos})=>{
+        summary.innerHTML=`<div><span>جامعه مقایسه</span><strong>${minFarms.toLocaleString('fa-IR')} فارم مستقل</strong></div><div><span>شاخص‌های قابل مقایسه</span><strong>${out.length.toLocaleString('fa-IR')}</strong></div><div><span>در ۲۵٪ برتر</span><strong>${adequate.length?topCount.toLocaleString('fa-IR'):'—'}</strong></div><div><span>امتیاز جایگاه</span><strong>${avgPeer==null?'پس از تکمیل جامعه مقایسه':Math.round(avgPeer).toLocaleString('fa-IR')+' / ۱۰۰'}</strong></div>`;
+        if(!adequate.length){
+          rowsBox.innerHTML=`<div class="internal-benchmark-note">بنچمارک داخلی فعال است، اما برای امتیازدهی معتبر حداقل ۱۰ فارم مستقل با نوع گله و سن قابل مقایسه لازم است. اکنون ${minFarms.toLocaleString('fa-IR')} فارم مستقل در جامعه مشابه وجود دارد.</div>`;
+        } else rowsBox.innerHTML=out.map(({b,av,pos})=>{
             const range=(b.p25!=null&&b.p75!=null)?`بازه میانی ${executiveFa(b.p25,2)} تا ${executiveFa(b.p75,2)}`:'';
             const percentile=b.peerPercentile!=null&&b.peerScoreUsable?`جایگاه تقریبی: ${executiveFa(b.peerPercentile,0)}٪ جامعه`:'';
             const trend=b.selfChangePct==null?'':` · تغییر نسبت به ثبت قبلی ${executiveFa(b.selfChangePct,1)}٪`;

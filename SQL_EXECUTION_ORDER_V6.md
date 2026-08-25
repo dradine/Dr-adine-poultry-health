@@ -12,8 +12,3 @@
 
 ## 3) نکته مهم
 بنچمارک داخلی با استاندارد رسمی/مدیریتی جایگزین نمی‌شود. امتیاز جایگاه فقط از جامعه‌ای با حداقل ۲۰ فارم مستقل وارد امتیاز نهایی می‌شود؛ زیر ۲۰ فارم فقط مقایسه اولیه نمایش داده می‌شود.
-
-
-## 3) Owner management patch — V5
-Before testing Owner > User Details, run `OWNER_MANAGEMENT_BENCHMARK_V5.sql` once.
-This patch only adds missing `profiles.user_type` / `profiles.activity_types` columns when absent, backfills compatible professional data, and installs the enum-safe owner save RPC.

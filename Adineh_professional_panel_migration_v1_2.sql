@@ -149,10 +149,12 @@ as $$
           and coalesce(p.status,'active') = 'active'
           and coalesce(p.is_active,true) = true
           and coalesce(p.role,'user') not in ('owner','admin')
-          and not exists (
-              select 1 from public.professional_profiles pp
-              where pp.user_id = p.id
-                and pp.user_type in ('farm_operator','farm_manager','poultry_technical_expert')
+          and coalesce(p.user_type,'other') not in (
+              'poultry_operator',
+              'farm_operator',
+              'poultry_manager',
+              'farm_manager',
+              'poultry_technical_expert'
           )
     );
 $$;
@@ -270,8 +272,8 @@ begin
         'email', p.email,
         'full_name', p.full_name,
         'phone', p.phone,
-        'user_type', pp.user_type,
-        'activity_types', pp.activity_types,
+        'user_type', p.user_type,
+        'activity_types', p.activity_types,
         'organization_name', pp.organization_name,
         'license_number', pp.license_number,
         'province', pp.province,
@@ -292,8 +294,6 @@ create or replace function public.professional_update_my_profile(
     p_full_name text,
     p_phone text,
     p_email text,
-    p_user_type text default null,
-    p_activity_types jsonb default '[]'::jsonb,
     p_organization_name text default null,
     p_license_number text default null,
     p_province text default null,
@@ -326,8 +326,6 @@ begin
 
     insert into public.professional_profiles (
         user_id,
-        user_type,
-        activity_types,
         organization_name,
         license_number,
         province,
@@ -337,8 +335,6 @@ begin
     )
     values (
         uid,
-        coalesce(nullif(trim(p_user_type),''), 'other'),
-        coalesce(p_activity_types, '[]'::jsonb),
         nullif(trim(p_organization_name),''),
         nullif(trim(p_license_number),''),
         nullif(trim(p_province),''),
@@ -347,8 +343,6 @@ begin
         nullif(trim(p_notes),'')
     )
     on conflict (user_id) do update set
-        user_type = excluded.user_type,
-        activity_types = excluded.activity_types,
         organization_name = excluded.organization_name,
         license_number = excluded.license_number,
         province = excluded.province,

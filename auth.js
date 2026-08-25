@@ -10,20 +10,6 @@
 
     window.AdineAuth = {
 
-        canonicalUserType(value) {
-            const x = String(value || '').trim().toLowerCase();
-            const aliases = {
-                poultry_operator: 'farm_operator',
-                poultry_manager: 'farm_manager',
-                poultry_operat: 'farm_operator',
-                poultry_manage: 'farm_manager',
-                veterinary_lab: 'diagnostic_lab',
-                organization_manager: 'company_manager'
-            };
-            return aliases[x] || x || 'other';
-        },
-
-
         async getUser() {
 
             try {
@@ -133,14 +119,14 @@
                         return {
                             ...data,
                             ...professional,
-                            user_type: this.canonicalUserType(professional.user_type || data.user_type || null)
+                            user_type: professional.user_type || data.user_type || null
                         };
                     }
                 } catch (professionalError) {
                     console.warn("getProfile professional profile exception:", professionalError);
                 }
 
-                return { ...data, user_type: this.canonicalUserType(data.user_type) };
+                return data;
 
             } catch (error) {
 

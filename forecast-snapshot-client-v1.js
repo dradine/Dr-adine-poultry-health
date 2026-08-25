@@ -1,0 +1,5 @@
+/* Forecast snapshot adapter. Saves predictions without changing page layout. */
+(function(){'use strict';
+async function saveForecastSnapshot(p){const c=window.supabaseClient||window.supabase;if(!c)return {ok:false,code:'supabase_unavailable'};const row={flock_id:p.flockId,weekly_record_id:p.weeklyRecordId||null,metric_code:p.metricCode,production_type:p.productionType,genetics:p.genetics||null,strain:p.strain||null,age_days:p.ageDays,forecast_horizon_days:p.horizonDays,standard_age_days:p.standardAgeDays||null,standard_value:p.standardValue||null,actual_value:p.actualValue||null,relative_deviation:p.relativeDeviation||null,forecast_value:p.forecastValue||null,lower_bound:p.lowerBound||null,upper_bound:p.upperBound||null,model_version:p.modelVersion||'age-relative-v1',confidence:p.confidence||null};const {data,error}=await c.from('performance_forecast_snapshots').insert(row).select('id').single();if(error)return {ok:false,code:'database_error',message:error.message};return {ok:true,id:data.id}}
+window.AdineForecastSnapshot={save:saveForecastSnapshot};
+})();

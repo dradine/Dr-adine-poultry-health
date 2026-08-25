@@ -2695,6 +2695,21 @@ async function saveWeeklyRecord() {
             ? performanceLayerFcr
             : performanceWeeklyFcr;
 
+        const performanceMortalityCorrectedFcr = window.AdinePerformance
+            ? window.AdinePerformance.mortalityCorrectedFCR({
+                feedKg: feedTotal,
+                openBirds: performancePrevious?.live_birds,
+                openWeight: performancePrevious?.average_weight_g,
+                closeBirds: liveBirds,
+                closeWeight: stats.mean,
+                deaths: mortality,
+                deadAverageWeightG: productionMetrics?.dead_bird_avg_weight_g
+              })
+            : null;
+        if (performanceMortalityCorrectedFcr != null) {
+            productionMetrics.mortality_corrected_fcr = performanceMortalityCorrectedFcr;
+        }
+
         const payload = {
 
             ...(recordId

@@ -125,25 +125,18 @@ async function initializeFlocks() {
 
 async function loadSelectedFarm() {
 
-    let selection =
-        getCurrentSelection();
+    let selection = getCurrentSelection();
 
     const params = new URLSearchParams(window.location.search);
     const urlFarmId = params.get("farm") || params.get("farm_id");
-    const storedFarmId = localStorage.getItem("adine_selected_farm");
+    const legacyFarmId = localStorage.getItem("adine_selected_farm");
 
-    // Keep the farm selection consistent across Farms / Flocks / Weekly pages.
-    // Older versions stored the selected farm under a different key, which
-    // caused the Flocks page to open without a farm and appear to be stuck.
-    const recoveredFarmId = urlFarmId || selection.farmId || storedFarmId;
-
-    if (!selection.farmId && recoveredFarmId) {
-        setCurrentSelection({ farmId: recoveredFarmId, houseId: null, flockId: null });
+    // URL is authoritative when opening a farm from another page.
+    // Fall back to the shared legacy selection for iPhone/PWA navigation.
+    const effectiveFarmId = urlFarmId || selection.farmId || legacyFarmId;
+    if (effectiveFarmId && selection.farmId !== effectiveFarmId) {
+        setCurrentSelection({ farmId: effectiveFarmId, houseId: null, flockId: null });
         selection = getCurrentSelection();
-    }
-
-    if (selection.farmId) {
-        localStorage.setItem("adine_selected_farm", selection.farmId);
     }
 
     if (!selection.farmId) {
@@ -255,14 +248,36 @@ async function renderFarmChooser() {
 
     try {
 
-        let data, error;
-        if (typeof AdineAccess !== "undefined" && !["owner","admin"].includes(String((await AdineAccess.current())?.profile?.role||"").toLowerCase())) {
+        let data = null, error = null;
+        const auth = typeof AdineAccess !== "undefined" ? await AdineAccess.current() : null;
+        const role = String(auth?.profile?.role || "").trim().toLowerCase();
+        const userType = String(auth?.profile?.user_type || "").trim().toLowerCase();
+
+        // OWNED FARMS MUST BE READ DIRECTLY. The professional access RPC is
+        // intended for assigned professional farms and may not contain farms
+        // owned by the current poultry operator/manager.
+        if (auth?.user?.id && !["owner", "admin"].includes(role) &&
+            ["farm_operator", "farm_manager", "poultry_operator", "poultry_manager", "company_manager"].includes(userType)) {
+            const r = await supabaseClient
+                .from("farms")
+                .select("id,name,farm_code,capacity")
+                .eq("owner_id", auth.user.id)
+                .order("created_at", { ascending: false });
+            data = r.data;
+            error = r.error;
+        } else if (["owner", "admin"].includes(role)) {
+            const r = await supabaseClient
+                .from("farms")
+                .select("id,name,farm_code,capacity")
+                .order("created_at", { ascending:false });
+            data = r.data;
+            error = r.error;
+        } else {
             const r = await supabaseClient.rpc("get_my_farm_access");
             error = r.error;
-            data = (r.data||[]).filter(x=>x.connection_status==="active").map(x=>({id:x.farm_id,name:x.farm_name,farm_code:x.farm_code,capacity:null}));
-        } else {
-            const r = await supabaseClient.from("farms").select("id,name,farm_code,capacity").order("created_at", { ascending:false });
-            data=r.data; error=r.error;
+            data = (r.data || [])
+                .filter(x => x.connection_status === "active")
+                .map(x => ({ id:x.farm_id, name:x.farm_name, farm_code:x.farm_code, capacity:null }));
         }
 
         if (error) throw error;

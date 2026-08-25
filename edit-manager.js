@@ -1,7 +1,7 @@
 /* =========================================================
    ADINE EDIT MANAGER
    Farm / House / Flock editing layer.
-   Does not replace existing create/delete logic.
+   UI + UPDATE only; existing create/delete/calculation logic remains intact.
 ========================================================= */
 (function () {
   "use strict";
@@ -17,7 +17,7 @@
       houseSystem: "housing_system", houseNotes: "notes", houseInitialBirdCount: "initial_bird_count"
     },
     flock: {
-      flockName: "name", flockCode: "flock_code", productionType: "production_type",
+      flockHouse: "house_id", flockName: "flock_name", flockCode: "flock_code", productionType: "production_type",
       genetics: "genetics", flockStrain: "strain", flockProgram: "program", flockSex: "sex",
       birdCount: "initial_bird_count", placementDate: "placement_date", startAgeDays: "start_age_days",
       flockNotes: "notes", initialAverageWeightG: "initial_average_weight_g"
@@ -25,12 +25,6 @@
   };
 
   let editState = { type: null, id: null };
-
-  function pageType() {
-    if (document.getElementById("farmForm")) return "farm";
-    if (document.getElementById("houseForm")) return "flock";
-    return null;
-  }
 
   function val(id) {
     const el = document.getElementById(id);
@@ -45,7 +39,13 @@
   }
 
   function numberValue(v) {
-    return Number(String(v ?? "").replace(/[۰-۹]/g, c => String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g, c => String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g, "").trim());
+    const s = String(v ?? "")
+      .replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632))
+      .replace(/[٬،,]/g, "")
+      .trim();
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
   }
 
   function payloadFromForm(type, existing) {
@@ -54,10 +54,10 @@
       if (!(column in existing)) return;
       const raw = val(id);
       if (["capacity", "length_m", "width_m", "initial_bird_count", "start_age_days", "initial_average_weight_g"].includes(column)) {
-        if (raw !== "") payload[column] = numberValue(raw);
-        else payload[column] = null;
-      } else if (column === "placement_date") {
-        if (raw) payload[column] = raw.replace(/-/g, "/");
+        payload[column] = raw === "" ? null : numberValue(raw);
+      } else if (["placement_date"].includes(column)) {
+        // Existing DB value is YYYY-MM-DD. Keep that exact DB format on edit.
+        if (raw) payload[column] = raw.replace(/\//g, "-");
       } else {
         payload[column] = raw;
       }
@@ -75,7 +75,9 @@
     Object.entries(FIELD_MAP[type]).forEach(([id, column]) => {
       if (column in row) setVal(id, row[column]);
     });
-    if (type === "flock" && row.placement_date) setVal("placementDate", String(row.placement_date).replace(/-/g, "/"));
+    if (type === "flock" && row.placement_date) {
+      setVal("placementDate", String(row.placement_date).replace(/-/g, "/"));
+    }
   }
 
   function addCancel(form) {
@@ -102,12 +104,13 @@
   }
 
   function cancelEdit() {
+    const type = editState.type;
     editState = { type: null, id: null };
-    const form = document.getElementById(pageType() === "farm" ? "farmForm" : document.getElementById("houseForm") ? "houseForm" : "flockForm");
+    const form = document.getElementById(type === "farm" ? "farmForm" : type === "house" ? "houseForm" : "flockForm");
     if (!form) return;
     form.reset();
     const submit = form.querySelector('button[type="submit"]');
-    if (submit) submit.textContent = pageType() === "farm" ? "ذخیره فارم" : "ذخیره" + (form.id === "houseForm" ? " سالن" : " گله");
+    if (submit) submit.textContent = type === "farm" ? "ذخیره فارم" : type === "house" ? "ذخیره سالن" : "ذخیره گله";
     form.querySelector(".adine-edit-cancel")?.remove();
   }
 
@@ -120,7 +123,10 @@
     const form = event.currentTarget;
     const row = await fetchRow(table, editState.id);
     const payload = payloadFromForm(type, row);
+
     if (type === "house" && "farm_id" in row) payload.farm_id = selectedFarm?.id || row.farm_id;
+    if (type === "flock" && "farm_id" in row) payload.farm_id = selectedFarm?.id || row.farm_id;
+
     try {
       const { error } = await supabaseClient.from(table).update(payload).eq("id", editState.id);
       if (error) throw error;
@@ -139,13 +145,14 @@
     }
   }
 
-  function attachForm(type, form) {
+  function attachForm(form) {
     if (!form || form.dataset.adineEditBound) return;
     form.dataset.adineEditBound = "1";
+    // Capture phase guarantees the existing INSERT handler is not run during edit mode.
     form.addEventListener("submit", saveEdit, true);
   }
 
-  async function addButtons() {
+  function addButtons() {
     try {
       if (document.getElementById("farmsList") && typeof farms !== "undefined") {
         document.querySelectorAll("#farmsList .farm-card").forEach((card, i) => {
@@ -154,7 +161,7 @@
           b.onclick = () => beginEdit("farm", row.id, row);
           card.querySelector(".button-row")?.appendChild(b);
         });
-        attachForm("farm", document.getElementById("farmForm"));
+        attachForm(document.getElementById("farmForm"));
       }
       if (document.getElementById("housesList") && typeof houses !== "undefined") {
         document.querySelectorAll("#housesList .card").forEach((card, i) => {
@@ -163,7 +170,7 @@
           b.onclick = () => beginEdit("house", row.id, row);
           card.querySelector(".button-row")?.appendChild(b);
         });
-        attachForm("house", document.getElementById("houseForm"));
+        attachForm(document.getElementById("houseForm"));
       }
       if (document.getElementById("flocksList") && typeof flocks !== "undefined") {
         document.querySelectorAll("#flocksList .card").forEach((card, i) => {
@@ -172,7 +179,7 @@
           b.onclick = () => beginEdit("flock", row.id, row);
           card.querySelector(".button-row")?.appendChild(b);
         });
-        attachForm("flock", document.getElementById("flockForm"));
+        attachForm(document.getElementById("flockForm"));
       }
     } catch (e) { console.error("Edit manager:", e); }
   }

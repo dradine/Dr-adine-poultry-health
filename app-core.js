@@ -37,27 +37,24 @@ function escapeHTML(value) { return String(value ?? "").replaceAll("&", "&amp;")
 function safeNumber(value, fallback = 0) { const number = Number(value); return Number.isFinite(number) ? number : fallback; }
 function normalizeText(value) { return String(value || "").trim().toLowerCase(); }
 
-/* =========================================================
-   COMPACT PAGE PRESENTATION LOADER
-   Presentation only. No data or calculation logic.
-   ========================================================= */
+/* Presentation loader: app-core executes in <head>, so wait for body before adding page classes. */
 (function loadCompactPagePresentation() {
-    try {
-        const page = String(window.location.pathname || "").toLowerCase().split("/").pop();
-        const targets = new Set(["farms.html", "flocks.html", "weekly.html", "reports.html"]);
-        if (!targets.has(page)) return;
-        document.documentElement.classList.add("cp-compact-root");
-        document.body.classList.add("cp-compact-page");
-        if (page === "farms.html") document.body.classList.add("cp-farm-page");
-        if (page === "flocks.html") document.body.classList.add("cp-flock-page");
-        if (page === "weekly.html") document.body.classList.add("cp-weekly-page");
-        if (page === "reports.html") document.body.classList.add("cp-reports-page");
-        if (!document.querySelector('link[data-adine-compact-ui="1"]')) {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = "compact-pages.css?v=20260826-mobile2";
-            link.dataset.adineCompactUi = "1";
-            document.head.appendChild(link);
-        }
-    } catch (error) { console.warn("Compact UI layer was not loaded:", error); }
+    const apply = function () {
+        try {
+            const page = String(window.location.pathname || "").toLowerCase().split("/").pop();
+            const targets = new Set(["farms.html", "flocks.html", "weekly.html", "reports.html"]);
+            if (!targets.has(page) || !document.body) return;
+            document.documentElement.classList.add("cp-compact-root");
+            document.body.classList.add("cp-compact-page", `cp-${page.replace(".html", "")}-page`);
+            if (!document.querySelector('link[data-adine-compact-ui="1"]')) {
+                const link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = "compact-pages.css?v=20260826-mobile3";
+                link.dataset.adineCompactUi = "1";
+                document.head.appendChild(link);
+            }
+        } catch (error) { console.warn("Compact UI layer was not loaded:", error); }
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply, { once: true });
+    else apply();
 })();

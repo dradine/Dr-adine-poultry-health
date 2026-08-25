@@ -2677,6 +2677,24 @@ async function saveWeeklyRecord() {
                 : null;
 
 
+        const performanceType = currentFlock.production_type || currentFlock.productionType || "broiler";
+        const performancePrevious = [...existingForCumulative].sort((a,b) => Number(a.age_days || 0) - Number(b.age_days || 0)).at(-1) || null;
+        const performanceWeeklyFcr = window.AdinePerformance
+            ? window.AdinePerformance.broilerWeeklyFCR({
+                feedKg: feedTotal,
+                openBirds: performancePrevious?.live_birds,
+                openWeight: performancePrevious?.average_weight_g,
+                closeBirds: liveBirds,
+                closeWeight: stats.mean
+              })
+            : null;
+        const performanceLayerFcr = window.AdinePerformance
+            ? window.AdinePerformance.layerWeekly(feedTotal, productionMetrics?.egg_mass_kg)
+            : null;
+        const performanceWeeklyFcrResolved = ["layer","تخمگذار","تخم‌گذار","breeder","مادر","مرغ مادر"].includes(String(performanceType).toLowerCase())
+            ? performanceLayerFcr
+            : performanceWeeklyFcr;
+
         const payload = {
 
             ...(recordId
@@ -2772,6 +2790,9 @@ async function saveWeeklyRecord() {
                         currentFlock.production_type || currentFlock.productionType
                     )
                     : null,
+
+            fcr:
+                performanceWeeklyFcrResolved,
 
             notes:
                 notes,

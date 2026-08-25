@@ -22,6 +22,8 @@ const farmsList =
 ========================================================= */
 
 let currentUser = null;
+let ownerViewTarget = null;
+let ownerViewReadOnly = false;
 
 let farms = [];
 
@@ -97,11 +99,21 @@ async function initializeFarms() {
         currentUser =
             access.user;
 
+        const params = new URLSearchParams(window.location.search);
+        const requestedOwner = params.get("owner_view");
+        if (requestedOwner && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedOwner)) {
+            const role = String(access.profile?.role || "").toLowerCase();
+            if (!["owner","admin"].includes(role)) {
+                throw new Error("فقط مالک یا مدیر سامانه می‌تواند سامانه کاربر را مشاهده کند.");
+            }
+            ownerViewTarget = requestedOwner;
+            ownerViewReadOnly = true;
+            document.body.classList.add("owner-readonly-view");
+        }
 
         await loadFarms();
 
-
-        setupFarmForm();
+        if (!ownerViewReadOnly) setupFarmForm();
 
 
     }
@@ -145,7 +157,7 @@ async function loadFarms() {
             .select("*")
             .eq(
                 "owner_id",
-                currentUser.id
+                ownerViewTarget || currentUser.id
             )
             .order(
                 "created_at",
@@ -176,6 +188,9 @@ async function loadFarms() {
     farms =
         data || [];
 
+    if (ownerViewReadOnly && farmForm) {
+        farmForm.style.display = "none";
+    }
 
     renderFarms();
 
@@ -212,6 +227,12 @@ async function saveFarm(
 ) {
 
     event.preventDefault();
+
+
+    if (ownerViewReadOnly) {
+        alert("این سامانه در حالت مشاهده مدیریتی است و امکان ثبت یا ویرایش وجود ندارد.");
+        return;
+    }
 
 
     if (!currentUser) {
@@ -397,8 +418,12 @@ function renderFarms() {
     }
 
 
-    farmsList.innerHTML =
+    const banner = ownerViewReadOnly
+        ? `<div class="card" style="margin-bottom:12px;background:#edf4fb;color:#2c608c">این سامانه در حالت مشاهده مدیریتی باز شده است؛ اطلاعات در این حالت قابل ویرایش نیست.</div>`
+        : "";
 
+    farmsList.innerHTML =
+        banner +
         farms
         .map(
             farm =>

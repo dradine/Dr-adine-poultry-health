@@ -1,11 +1,12 @@
 /* =========================================================
-   ADINEH OWNER MANAGEMENT — STABLE V6 OWNER SAVE
+   ADINEH OWNER MANAGEMENT — STABLE V5
 ========================================================= */
 (function () {
   "use strict";
 
   let client = null;
   let allUsers = [];
+  let allFarms = [];
   let selectedUser = null;
   let initialized = false;
   let busy = false;
@@ -30,15 +31,18 @@
 
   const typeLabels={
     veterinarian:"دامپزشک",technical_veterinarian:"دامپزشک مسئول فنی",
-    farm_operator:"بهره‌بردار واحد طیور",
-    farm_manager:"مدیر واحد طیور",
-    diagnostic_lab:"آزمایشگاه تشخیص دامپزشکی",
-    poultry_technical_expert:"کارشناس فنی طیور",company_manager:"مدیر / نماینده مجموعه",
+    poultry_operator:"بهره‌بردار واحد طیور",farm_operator:"بهره‌بردار واحد طیور",
+    poultry_manager:"مدیر واحد طیور",farm_manager:"مدیر واحد طیور",
+    veterinary_lab:"آزمایشگاه تشخیص دامپزشکی",diagnostic_lab:"آزمایشگاه تشخیص دامپزشکی",
+    poultry_technical_expert:"کارشناس فنی طیور",organization_manager:"مدیر / نماینده مجموعه",
     company_manager:"مدیر / نماینده مجموعه",other:"سایر"
   };
   const roleLabels={owner:"مالک سامانه",admin:"مدیر سامانه",user:"کاربر"};
   const statusLabels={pending:"در انتظار تأیید",active:"فعال",suspended:"موقتاً غیرفعال",blocked:"مسدود",removed:"بایگانی / حذف‌شده"};
   const activityLabels={broiler:"گوشتی",layer:"تخم‌گذار",breeder:"مادر",pullet:"پولت",hatchery:"جوجه‌کشی",other:"سایر"};
+  const farmTypeLabels={broiler:"گوشتی",layer:"تخم‌گذار",breeder:"مادر",pullet:"پولت",hatchery:"جوجه‌کشی",other:"سایر"};
+  const farmStatusLabels={active:"فعال",inactive:"غیرفعال",preparing:"در حال آماده‌سازی"};
+  const monitoringLabels={good:"خوب",acceptable:"قابل قبول",poor:"نامناسب",unknown:"در انتظار ارزیابی"};
   const typeText=v=>typeLabels[v]||v||"ثبت نشده";
   const roleText=v=>roleLabels[v]||v||"—";
   const statusText=v=>statusLabels[v]||v||"نامشخص";
@@ -48,11 +52,10 @@
     if(!Array.isArray(a))return esc(a);
     return a.length?a.map(x=>esc(activityLabels[x]||x)).join("، "):"—";
   }
-  function canonicalType(v){const x=String(v||"other").trim().toLowerCase();return ({poultry_operator:"farm_operator",poultry_manager:"farm_manager",veterinary_lab:"diagnostic_lab",organization_manager:"company_manager"}[x]||x);}
   function normalize(r){return {
     id:r.id||r.user_id,user_id:r.user_id||r.id,email:r.email||"",full_name:r.full_name||"",phone:r.phone||"",
     role:r.role||"user",status:r.status||"pending",is_active:r.is_active===true,created_at:r.created_at||null,
-    updated_at:r.updated_at||null,last_seen_at:r.last_seen_at||null,user_type:canonicalType(r.user_type||"other"),activity_types:r.activity_types||[],
+    updated_at:r.updated_at||null,last_seen_at:r.last_seen_at||null,user_type:r.user_type||"other",activity_types:r.activity_types||[],
     organization_name:r.organization_name||null,license_number:r.license_number||null,province:r.province||null,city:r.city||null,
     specialty:r.specialty||null,notes:r.notes||null,is_verified:r.is_verified===true,
     professional_code:r.professional_code||r.access_code||null,access_code:r.access_code||r.professional_code||null,
@@ -105,9 +108,64 @@
     }
     return rows.map(x=>{
       const pp=pm.get(x.id)||{}, cc=cm.get(x.id)||{};
-      return normalize({...x,...pp,...cc,user_type:canonicalType(x.user_type||pp.user_type||"other"),activity_types:x.activity_types||pp.activity_types||[]});
+      return normalize({...x,...pp,...cc,user_type:x.user_type||pp.user_type||"other",activity_types:x.activity_types||pp.activity_types||[]});
     });
   }
+  function farmTypeText(v){return farmTypeLabels[String(v||'').toLowerCase()]||v||'سایر';}
+  function farmStatusText(v){return farmStatusLabels[String(v||'').toLowerCase()]||v||'نامشخص';}
+  function monitoringText(v){return monitoringLabels[String(v||'').toLowerCase()]||'در انتظار ارزیابی';}
+  function farmDate(v){return v?dateText(v):'—';}
+
+  async function loadFarms(){
+    const body=$("farmsTableBody");
+    if(body)body.innerHTML='<tr><td colspan="7" class="owner-loading">در حال دریافت فارم‌ها...</td></tr>';
+    try{
+      const {data,error}=await client.from("farms").select("id,name,farm_code,farm_type,is_active,operational_status,monitoring_status,monitoring_message,monitoring_updated_at,owner_id,owner_name,created_at").order("created_at",{ascending:false});
+      if(error)throw error;
+      allFarms=data||[];
+      const ownerIds=[...new Set(allFarms.map(x=>x.owner_id).filter(Boolean))];
+      const ownerMap=new Map();
+      if(ownerIds.length){
+        const {data:p,error:pe}=await client.from("profiles").select("id,full_name,email").in("id",ownerIds);
+        if(pe)console.warn("farm owner profiles",pe);
+        (p||[]).forEach(x=>ownerMap.set(x.id,x));
+      }
+      allFarms.forEach(f=>f._owner=ownerMap.get(f.owner_id)||null);
+      renderFarms();
+      const stat=$("statFarms");if(stat)stat.textContent=fa(allFarms.length);
+    }catch(e){
+      console.error("OWNER FARMS LOAD ERROR",e);
+      allFarms=[];
+      const stat=$("statFarms");if(stat)stat.textContent="۰";
+      if(body)body.innerHTML='<tr><td colspan="7" class="owner-empty">دریافت فارم‌ها ناموفق بود: '+esc(e?.message||'خطای نامشخص')+'</td></tr>';
+    }
+  }
+
+  function renderFarms(){
+    const body=$("farmsTableBody");if(!body)return;
+    if(!allFarms.length){body.innerHTML='<tr><td colspan="7" class="owner-empty">هنوز هیچ فارمی در سامانه ثبت نشده است.</td></tr>';return;}
+    body.innerHTML=allFarms.map(f=>{
+      const owner=f._owner?.full_name||f.owner_name||'بدون نام';
+      const role=String(window.__ADINEH_OWNER_VIEW__?'':(f.owner_id||''));
+      const last='—';
+      return `<tr>
+        <td><strong class="farm-row-name">${esc(f.name||'بدون نام')}</strong><span class="farm-code">${esc(f.farm_code||'—')}</span></td>
+        <td><span class="farm-type">${esc(farmTypeText(f.farm_type))}</span></td>
+        <td>${esc(owner)}<small>${esc(f._owner?.email||'')}</small></td>
+        <td><span class="farm-status">${esc(farmStatusText(f.operational_status))}</span></td>
+        <td>${esc(monitoringText(f.monitoring_status))}<small>${esc(f.monitoring_message||'')}</small></td>
+        <td>${farmDate(f.monitoring_updated_at)}</td>
+        <td><button type="button" class="owner-btn farm-view" data-farm-view="${esc(f.id)}" data-owner-id="${esc(f.owner_id||'')}">مشاهده سامانه</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function openFarmView(farmId,ownerId){
+    if(!farmId||!ownerId)return;
+    try{sessionStorage.setItem('adineh_owner_farm_target',farmId);}catch(_){}
+    window.location.href='Farms.html?owner_view='+encodeURIComponent(ownerId)+'&farm='+encodeURIComponent(farmId);
+  }
+
   async function loadUsers(){
     if(busy)return;busy=true;const body=$("usersTableBody");
     if(body)body.innerHTML='<tr><td colspan="8" class="owner-loading">در حال بارگذاری اطلاعات کاربران...</td></tr>';
@@ -115,7 +173,7 @@
     try{
       client=await getClient();const auth=await getAuthUser();await verifyOwner(auth);
       let users=[];try{users=await loadViaRpc()}catch(e){console.warn("RPC directory failed; direct load used",e)}
-      if(!users.length)users=await loadDirect();allUsers=users;render();notify(`اطلاعات ${fa(allUsers.length)} کاربر بارگذاری شد.`,'success');
+      if(!users.length)users=await loadDirect();allUsers=users;render();await loadFarms();notify(`اطلاعات ${fa(allUsers.length)} کاربر و ${fa(allFarms.length)} فارم بارگذاری شد.`,'success');
     }catch(e){console.error("OWNER LOAD ERROR",e);allUsers=[];render();notify(e?.message||"خطا در دریافت اطلاعات کاربران.","error");}
     finally{busy=false;}
   }
@@ -131,7 +189,7 @@
     const set=(id,n)=>{const e=$(id);if(e)e.textContent=fa(n)};
     set("statTotal",allUsers.length);set("statActive",allUsers.filter(x=>x.status==="active"&&x.is_active).length);
     set("statPending",allUsers.filter(x=>x.status==="pending").length);
-    set("statSpecialists",allUsers.filter(x=>["veterinarian","technical_veterinarian","diagnostic_lab","poultry_technical_expert"].includes(x.user_type)).length);
+    set("statSpecialists",allUsers.filter(x=>["veterinarian","technical_veterinarian","veterinary_lab","diagnostic_lab","poultry_technical_expert"].includes(x.user_type)).length);
   }
   function render(){
     renderStats();const body=$("usersTableBody");if(!body)return;const users=filteredUsers();
@@ -167,8 +225,8 @@
   function closeModal(){const m=$("ownerEditModal");if(m)m.hidden=true;document.body.classList.remove("owner-modal-open");selectedUser=null;}
 
   const PROFESSIONAL_TYPES = new Set([
-    "veterinarian","technical_veterinarian","diagnostic_lab",
-    "poultry_technical_expert"
+    "veterinarian","technical_veterinarian","veterinary_lab",
+    "diagnostic_lab","poultry_technical_expert"
   ]);
 
   async function saveUser(){
@@ -179,7 +237,7 @@
       const full=$("editFullName")?.value.trim()||"";
       if(!full)throw new Error("نام کاربر نمی‌تواند خالی باشد.");
 
-      const nextUserType=canonicalType($("editUserType")?.value||"other");
+      const nextUserType=$("editUserType")?.value||"other";
       const nextRole=$("editRole")?.value||"user";
       const nextStatus=$("editStatus")?.value||"pending";
       const nextActive=$("editActive")?.value==="true";

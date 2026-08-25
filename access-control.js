@@ -1,6 +1,15 @@
 /* ADINEH ROLE/FARM ACCESS BRIDGE */
 (function(){
 'use strict';
+
+function isoDate(value){if(!value)return null;const s=String(value).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:null}
+window.AdineAge={
+ calculateAgeDays(placementDate,targetDate,startAgeDays=0){const p=isoDate(placementDate),t=isoDate(targetDate||new Date().toISOString()),s=Number(startAgeDays);if(!p||!t||!Number.isFinite(s))return null;const a=Date.parse(p+'T00:00:00Z'),b=Date.parse(t+'T00:00:00Z');if(!Number.isFinite(a)||!Number.isFinite(b))return null;return Math.max(0,Math.floor((b-a)/86400000)+Math.trunc(s))},
+ calculateFlockAgeDays(flock,targetDate){if(!flock)return null;return this.calculateAgeDays(flock.placement_date||flock.placementDate,targetDate||new Date().toISOString(),flock.start_age_days??flock.startAgeDays??0)}
+};
+window.calculateAgeDays=(placementDate,targetDate,startAgeDays=0)=>window.AdineAge.calculateAgeDays(placementDate,targetDate,startAgeDays);
+window.calculateFlockAgeDays=(flock,targetDate)=>window.AdineAge.calculateFlockAgeDays(flock,targetDate);
+
 window.AdineAccess={
  normalizeRole(p){return String(p?.user_type||p?.role||'').trim().toLowerCase()},
  async current(){const auth=await AdineAuth.requireAuth();if(!auth)return null;return auth},

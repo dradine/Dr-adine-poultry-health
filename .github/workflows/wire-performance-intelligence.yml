@@ -1,0 +1,41 @@
+name: Wire performance intelligence
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'performance-intelligence-v1.js'
+      - '.github/workflows/wire-performance-intelligence.yml'
+permissions:
+  contents: write
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire intelligence engine into weekly and reports
+        shell: python
+        run: |
+          from pathlib import Path
+          for name in ('weekly.html','reports.html'):
+              p=Path(name)
+              if not p.exists():
+                  continue
+              s=p.read_text(encoding='utf-8')
+              tag='<script src="performance-intelligence-v1.js"></script>'
+              if tag not in s:
+                  anchor='<script src="performance-engine-v2.js"></script>'
+                  if anchor not in s:
+                      raise SystemExit(f'performance engine anchor not found in {name}')
+                  s=s.replace(anchor,anchor+'\n    '+tag,1)
+                  p.write_text(s,encoding='utf-8')
+      - name: Validate
+        run: |
+          node --check performance-intelligence-v1.js
+          git diff --check
+      - name: Commit wiring
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add weekly.html reports.html
+          git diff --cached --quiet || git commit -m 'Wire performance intelligence into reports'
+          git push

@@ -1,0 +1,13 @@
+/* ADINE PERFORMANCE INTELLIGENCE V1
+   Decision-support layer: benchmark -> score -> trend -> forecast -> alert.
+   It never invents a standard; it asks Supabase for the best eligible standard. */
+(function(){'use strict';
+const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
+function normalizeType(v){const x=String(v||'').toLowerCase();return x==='گوشتی'?'broiler':x==='تخمگذار'||x==='تخم‌گذار'?'layer':x==='مادر'||x==='مرغ مادر'?'breeder':x==='پولت'?'pullet':x}
+function metricDirection(metric){return ['fcr','cumulative_fcr','mortality','cv','feed_per_egg_mass'].includes(String(metric||'').toLowerCase())?'lower':'higher'}
+function score(current,target,metric){if(n(current)==null||n(target)==null||target===0)return null;const d=(current-target)/Math.abs(target)*100;return Math.max(0,Math.min(100,metricDirection(metric)==='lower'?100-d*2.5:100+d*2.5))}
+function status(s){return s==null?'unknown':s>=90?'excellent':s>=75?'good':s>=60?'watch':'critical'}
+function forecast(points,horizon=4){const a=(Array.isArray(points)?points:[]).map((x,i)=>({x:i,y:n(x)})).filter(x=>x.y!=null);if(a.length<3)return null;const mx=a.reduce((s,p)=>s+p.x,0)/a.length,my=a.reduce((s,p)=>s+p.y,0)/a.length;let den=0,num=0;for(const p of a){den+=(p.x-mx)**2;num+=(p.x-mx)*(p.y-my)}const slope=den?num/den:0;const intercept=my-slope*mx;return {slope,projected:a.length-1+horizon,projectedValue:intercept+slope*(a.length-1+horizon),direction:slope>0?'rising':slope<0?'falling':'stable'}}
+async function analyze({flockId,evaluationDate,ageDays,metric,currentValue,productionType,genetics,strain,history=[]}={}){const client=window.supabaseClient||window.supabase;if(!client)return {ok:false,code:'supabase_unavailable'};const type=normalizeType(productionType);const {data,error}=await client.rpc('calculate_performance_intelligence',{p_flock_id:flockId,p_evaluation_date:evaluationDate,p_age_days:ageDays,p_metric:metric,p_current_value:currentValue,p_production_type:type,p_genetics:genetics||null,p_strain:strain||null});if(error)return {ok:false,code:'database_error',message:error.message};const r=data||{};if(!r.ok)return r;const f=forecast(history,4);const out={...r,forecast:f,ui:{badge:status(r.score),label:status(r.score)==='excellent'?'عالی':status(r.score)==='good'?'خوب':status(r.score)==='watch'?'نیازمند پایش':'نیازمند اقدام'}};if(f&&metricDirection(metric)==='lower'&&f.projectedValue>r.target*1.05)out.alert={severity:'high',code:'forecast_deterioration',message_fa:'اگر روند فعلی ادامه پیدا کند، شاخص در هفته‌های آینده از هدف فاصله خواهد گرفت.'};return out}
+window.AdinePerformanceIntelligence={analyze,forecast,score,status,metricDirection};
+})();

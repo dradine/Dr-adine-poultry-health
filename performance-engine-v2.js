@@ -1,5 +1,5 @@
 /* ADINE PERFORMANCE ENGINE V2 - scientific/industry aligned */
-/* wired through CI into weekly.html and reports.html */
+/* wired through CI into weekly.html, reports.html and weekly.js persistence */
 (function(){'use strict';
 const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
 const r=(v,d=3)=>n(v)==null?null:Number(Number(v).toFixed(d));
@@ -8,7 +8,7 @@ const ageOf=x=>n(x?.age_days??x?.ageDays), feedOf=x=>n(x?.feed_total_kg??x?.feed
 function rows(a){return (Array.isArray(a)?a:[]).filter(Boolean).slice().sort((a,b)=>(ageOf(a)??0)-(ageOf(b)??0)||String(a.evaluation_date||a.date||'').localeCompare(String(b.evaluation_date||b.date||'')))}
 function biomassGainKg(ob,ow,cb,cw){if(![ob,ow,cb,cw].every(x=>n(x)!=null)||ob<=0||cb<=0||ow<0||cw<=0)return null;const g=(cb*cw-ob*ow)/1000;return g>0?g:null}
 function broilerWeeklyFCR({feedKg,openBirds,openWeight,closeBirds,closeWeight}){const f=n(feedKg),g=biomassGainKg(openBirds,openWeight,closeBirds,closeWeight);return f!=null&&f>0&&g>0?r(f/g):null}
-function broilerCumulativeFCR(all,flock){const a=rows(all);if(!a.length)return null;const feed=a.reduce((s,x)=>s+(feedOf(x)||0),0),last=a.at(-1);if(feed<=0||birdsOf(last)<=0||weightOf(last)<=0)return null;const first=a[0];let ob=n(flock?.initial_bird_count),ow=n(flock?.initial_average_weight_g??flock?.baseline_average_weight_g);if(ob==null||ob<=0)ob=birdsOf(first);if(ow==null){const age=ageOf(first);if(age!=null&&age<=1)ow=42}if(ob==null||ow==null)return null;const g=biomassGainKg(ob,ow,birdsOf(last),weightOf(last));return g?r(feed/g):null}
+function broilerCumulativeFCR(all,flock){const a=rows(all);if(!a.length)return null;const feed=a.reduce((s,x)=>s+(feedOf(x)||0),0),last=a.at(-1);if(feed<=0||birdsOf(last)<=0||weightOf(last)<=0)return null;const first=a[0];let ob=n(flock?.initial_bird_count),ow=n(flock?.initial_average_weight_g??flock?.baseline_average_weight_g);if(ob==null||ob<=0)ob=birdsOf(first);if(ow==null){const age=ageOf(first);if(age!=null&&age<=7)ow=42}if(ob==null||ow==null)return null;const g=biomassGainKg(ob,ow,birdsOf(last),weightOf(last));return g?r(feed/g):null}
 function eggMassKg({eggs,eggWeightG,henHousedPct,henHoused}){const ew=n(eggWeightG);let e=n(eggs);if(e==null&&n(henHousedPct)!=null&&n(henHoused)!=null)e=n(henHousedPct)*n(henHoused)*7/100;return e>0&&ew>0?r(e*ew/1000):null}
 function layerWeekly(feedKg,eggMassKgValue){const f=n(feedKg),e=n(eggMassKgValue);return f>0&&e>0?r(f/e):null}
 function layerCumulative(a){let f=0,e=0;for(const x of rows(a)){f+=feedOf(x)||0;e+=n(pm(x).egg_mass_kg)||0}return f>0&&e>0?r(f/e):null}

@@ -15,6 +15,8 @@ window.AdineAccess={
       .order('created_at',{ascending:false});
     if(rls.error){console.error('RLS farm access query failed',rls.error);return []}
 
+    /* RLS is the authoritative allow-list. RPCs can enrich only rows already
+       visible through the current authenticated RLS session. */
     const rows=new Map((rls.data||[]).map(x=>[x.id,{...x,_source:['rls']} ]));
     const allowed=new Set(rows.keys());
 
@@ -40,8 +42,12 @@ window.AdineAccess={
     if(!id)return false;
     const a=await this.current();
     if(!a)return false;
+
+    /* Never trust a frontend role alone: first prove the farm is visible by
+       the authenticated Supabase/RLS session. */
     const r=await supabaseClient.from('farms').select('id').eq('id',id).maybeSingle();
     if(r.error||!r.data)return false;
+
     const role=this.normalizeRole(a.profile);
     if(role==='owner'||role==='admin')return true;
     return (await this.farmIds()).includes(id);
@@ -60,9 +66,8 @@ window.AdineAccess={
   esc(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML}
 };
 
-/* flocks.js is loaded immediately after this bridge. Its original chooser
-   used get_my_farm_access directly. Replace that UI entry point before the
-   flocks DOMContentLoaded handler executes. */
+/* flocks.js may define its own chooser. This handler intentionally installs
+   the unified chooser immediately before flock initialization runs. */
 document.addEventListener('DOMContentLoaded',function(){
   window.renderFarmChooser=async function(){
     const container=document.getElementById('selectedFarm');

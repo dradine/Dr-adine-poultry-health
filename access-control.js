@@ -1,6 +1,7 @@
 /* ADINEH ROLE/FARM ACCESS BRIDGE */
 (function(){
 'use strict';
+
 window.AdineAccess={
   normalizeRole(p){return String(p?.user_type||p?.role||'').trim().toLowerCase()},
   async current(){const auth=await AdineAuth.requireAuth();if(!auth)return null;return auth},
@@ -12,17 +13,11 @@ window.AdineAccess={
       .from('farms')
       .select('id,name,farm_code,capacity,farm_type,owner_id,owner_name,manager_name,operational_status,monitoring_status,monitoring_message,monitoring_updated_at,created_at')
       .order('created_at',{ascending:false});
-    if(rls.error){
-      console.error('RLS farm access query failed',rls.error);
-      return [];
-    }
+    if(rls.error){console.error('RLS farm access query failed',rls.error);return []}
 
-    /* RLS is the authoritative allow-list. */
     const rows=new Map((rls.data||[]).map(x=>[x.id,{...x,_source:['rls']} ]));
     const allowed=new Set(rows.keys());
 
-    /* Legacy RPCs are enrichment/fallback only and can never add a farm that
-       the current RLS session cannot see. */
     for(const rpcName of ['get_my_farm_access','get_my_professional_farms']){
       try{
         const r=await supabaseClient.rpc(rpcName);
@@ -34,9 +29,7 @@ window.AdineAccess={
           const old=rows.get(id)||{};
           rows.set(id,{...old,...x,id,_source:[...(old._source||[]),rpcName]});
         }
-      }catch(error){
-        console.warn(rpcName+' fallback unavailable',error);
-      }
+      }catch(error){console.warn(rpcName+' fallback unavailable',error)}
     }
     return [...rows.values()];
   },
@@ -47,8 +40,6 @@ window.AdineAccess={
     if(!id)return false;
     const a=await this.current();
     if(!a)return false;
-    /* Always ask Supabase/RLS for the specific farm. Role alone never grants
-       frontend access. */
     const r=await supabaseClient.from('farms').select('id').eq('id',id).maybeSingle();
     if(r.error||!r.data)return false;
     const role=this.normalizeRole(a.profile);
@@ -68,4 +59,43 @@ window.AdineAccess={
   },
   esc(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML}
 };
+
+/* flocks.js is loaded immediately after this bridge. Its original chooser
+   used get_my_farm_access directly. Replace that UI entry point before the
+   flocks DOMContentLoaded handler executes. */
+document.addEventListener('DOMContentLoaded',function(){
+  window.renderFarmChooser=async function(){
+    const container=document.getElementById('selectedFarm');
+    if(!container)return;
+    try{
+      const farms=await window.AdineAccess.farmAccessRows();
+      if(!farms.length){
+        container.innerHTML='<p>هنوز فارمی برای این حساب ثبت نشده است.</p><button class="btn btn-primary" type="button" onclick="location.href=\'Farms.html\'">ثبت / انتخاب فارم</button>';
+        return;
+      }
+      container.innerHTML='<div class="form-group"><label for="directFarmSelect">انتخاب فارم</label><select id="directFarmSelect"><option value="">انتخاب فارم</option></select></div>';
+      const select=document.getElementById('directFarmSelect');
+      farms.forEach(farm=>{
+        const option=document.createElement('option');
+        option.value=farm.id;
+        option.textContent=(farm.name||'بدون نام')+(farm.farm_code?' — '+farm.farm_code:'');
+        select.appendChild(option);
+      });
+      select.addEventListener('change',async function(){
+        if(!this.value)return;
+        if(!await window.AdineAccess.canAccessFarm(this.value)){
+          alert('دسترسی این فارم برای حساب شما فعال نیست.');
+          this.value='';
+          return;
+        }
+        setCurrentSelection({farmId:this.value,houseId:null,flockId:null});
+        await loadSelectedFarm();
+        enableForms();
+      });
+    }catch(error){
+      console.error('Unified farm chooser error:',error);
+      container.innerHTML='<p>دریافت فهرست فارم‌ها انجام نشد.</p><button class="btn btn-secondary" type="button" onclick="location.reload()">تلاش مجدد</button>';
+    }
+  };
+});
 })();

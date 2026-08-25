@@ -1,0 +1,19 @@
+name: Performance intelligence checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'performance-intelligence-v1.js'
+      - 'performance-intelligence-tests.js'
+      - 'performance-engine-v2.js'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --check performance-intelligence-v1.js
+      - run: node --check performance-intelligence-tests.js
+      - run: node --check performance-engine-v2.js

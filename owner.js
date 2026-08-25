@@ -184,19 +184,12 @@
       const nextActive=$("editActive")?.value==="true";
       const nextVerified=$("editVerified")?.value==="true";
       const acts=[...document.querySelectorAll("#editActivities input[type=checkbox]:checked")].map(x=>x.value);
-
-      // IMPORTANT: user_type belongs to profiles. professional_profiles is only
-      // for professional user types accepted by its CHECK constraint.
       const payload={
-        p_user_id:uid,
-        p_full_name:full,
+        p_user_id:uid,p_full_name:full,
         p_email:$("editEmail")?.value.trim()||null,
         p_phone:$("editPhone")?.value.trim()||null,
-        p_role:nextRole,
-        p_status:nextStatus,
-        p_is_active:nextActive,
-        p_user_type:nextUserType,
-        p_activity_types:acts,
+        p_role:nextRole,p_status:nextStatus,p_is_active:nextActive,
+        p_user_type:nextUserType,p_activity_types:acts,
         p_organization_name:$("editOrganization")?.value.trim()||null,
         p_license_number:$("editLicense")?.value.trim()||null,
         p_province:$("editProvince")?.value.trim()||null,
@@ -206,23 +199,28 @@
         p_is_verified:nextVerified
       };
 
-      const {data,error}=await client.rpc("owner_save_user_management",payload);
+      /* V4: use the enum-safe RPC first. The fallback name keeps this ZIP
+         compatible with installations that already have the V3 RPC. */
+      let data=null,error=null;
+      ({data,error}=await client.rpc("owner_update_user_details_v2",payload));
+      if(error && /function .*owner_update_user_details_v2.*does not exist/i.test(String(error.message||""))){
+        ({data,error}=await client.rpc("owner_save_user_management",payload));
+      }
       if(error)throw error;
 
       const fresh=Array.isArray(data)?data[0]:data;
       if(fresh){
         const normalized=normalize(fresh);
         const idx=allUsers.findIndex(x=>String(x.id)===String(uid));
-        if(idx>=0)allUsers[idx]=normalized;
+        if(idx>=0)allUsers[idx]=normalized; else allUsers.unshift(normalized);
         selectedUser=normalized;
       }
+      render();
       notify("اطلاعات کاربر با موفقیت ذخیره شد.","success");
-      await loadUsers();
-      const loaded=allUsers.find(x=>String(x.id)===String(uid));
-      if(loaded)openModal(loaded);
     }catch(e){
       console.error("SAVE USER",e);
-      notify(e?.message||"ذخیره اطلاعات ناموفق بود.","error");
+      const msg=String(e?.message||e?.details||e?.hint||"ذخیره اطلاعات ناموفق بود.");
+      notify(msg,"error");
     }finally{if(btn)btn.disabled=false;}
   }
   async function generateCode(){
@@ -243,12 +241,25 @@
   }
   function bind(){
     if(initialized)return;initialized=true;
-    $("usersTableBody")?.addEventListener("click",e=>{const b=e.target.closest("[data-action=details]");if(!b)return;const u=allUsers.find(x=>String(x.id)===String(b.dataset.id));if(u)openModal(u);});
-    $("userSearch")?.addEventListener("input",render);$("roleFilter")?.addEventListener("change",render);$("statusFilter")?.addEventListener("change",render);
-    $("refreshUsers")?.addEventListener("click",loadUsers);$("saveUserButton")?.addEventListener("click",saveUser);$("generateCodeButton")?.addEventListener("click",generateCode);$("toggleCodeButton")?.addEventListener("click",toggleCode);
-    $("closeOwnerModal")?.addEventListener("click",closeModal);$("cancelEditButton")?.addEventListener("click",closeModal);
-    $("ownerEditModal")?.addEventListener("click",e=>{if(e.target===$("ownerEditModal"))closeModal();});
-    $("logoutButton")?.addEventListener("click",async()=>{try{client=client||await getClient();await client.auth.signOut();location.href="login.html"}catch(e){notify(e.message||"خروج ناموفق بود.","error")}});
+    document.addEventListener("click",async e=>{
+      const detail=e.target.closest?.('[data-action="details"]');
+      if(detail){
+        const u=allUsers.find(x=>String(x.id)===String(detail.dataset.id));
+        if(u)openModal(u);
+        return;
+      }
+      const id=e.target.closest?.("#saveUserButton")?.id;
+      if(id){e.preventDefault();await saveUser();return;}
+      if(e.target.closest?.("#closeOwnerModal,#cancelEditButton")){e.preventDefault();closeModal();return;}
+      if(e.target.closest?.("#generateCodeButton")){e.preventDefault();await generateCode();return;}
+      if(e.target.closest?.("#toggleCodeButton")){e.preventDefault();await toggleCode();return;}
+      if(e.target.closest?.("#refreshUsers")){e.preventDefault();await loadUsers();return;}
+      if(e.target.closest?.("#logoutButton")){e.preventDefault();try{client=client||await getClient();await client.auth.signOut();location.href="login.html"}catch(err){notify(err.message||"خروج ناموفق بود.","error")}return;}
+      if(e.target===$("ownerEditModal")){closeModal();}
+    },{passive:false});
+    $("userSearch")?.addEventListener("input",render);
+    $("roleFilter")?.addEventListener("change",render);
+    $("statusFilter")?.addEventListener("change",render);
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("ownerEditModal")?.hidden)closeModal();});
   }
   async function init(){try{bind();await loadUsers()}catch(e){console.error(e);notify(e.message||"خطای راه‌اندازی پنل مالک.","error")}}

@@ -1,106 +1,20 @@
 /* ADINEH ROLE/FARM ACCESS BRIDGE */
 (function(){
 'use strict';
-
 window.AdineAccess={
-  normalizeRole(p){return String(p?.user_type||p?.role||'').trim().toLowerCase()},
-  async current(){const auth=await AdineAuth.requireAuth();if(!auth)return null;return auth},
-
-  async farmAccessRows(){
-    const a=await this.current();
-    if(!a)return [];
-    const rls=await supabaseClient
-      .from('farms')
-      .select('id,name,farm_code,capacity,farm_type,owner_id,owner_name,manager_name,operational_status,monitoring_status,monitoring_message,monitoring_updated_at,created_at')
-      .order('created_at',{ascending:false});
-    if(rls.error){console.error('RLS farm access query failed',rls.error);return []}
-
-    /* RLS is the authoritative allow-list. RPCs can enrich only rows already
-       visible through the current authenticated RLS session. */
-    const rows=new Map((rls.data||[]).map(x=>[x.id,{...x,_source:['rls']} ]));
-    const allowed=new Set(rows.keys());
-
-    for(const rpcName of ['get_my_farm_access','get_my_professional_farms']){
-      try{
-        const r=await supabaseClient.rpc(rpcName);
-        if(r.error)continue;
-        for(const x of (r.data||[])){
-          if(x.connection_status && x.connection_status!=='active')continue;
-          const id=x.id||x.farm_id;
-          if(!id||!allowed.has(id))continue;
-          const old=rows.get(id)||{};
-          rows.set(id,{...old,...x,id,_source:[...(old._source||[]),rpcName]});
-        }
-      }catch(error){console.warn(rpcName+' fallback unavailable',error)}
-    }
-    return [...rows.values()];
-  },
-
-  async farmIds(){return (await this.farmAccessRows()).map(x=>x.id)},
-
-  async canAccessFarm(id){
-    if(!id)return false;
-    const a=await this.current();
-    if(!a)return false;
-
-    /* Never trust a frontend role alone: first prove the farm is visible by
-       the authenticated Supabase/RLS session. */
-    const r=await supabaseClient.from('farms').select('id').eq('id',id).maybeSingle();
-    if(r.error||!r.data)return false;
-
-    const role=this.normalizeRole(a.profile);
-    if(role==='owner'||role==='admin')return true;
-    return (await this.farmIds()).includes(id);
-  },
-
-  async openFarm(id,target='weekly.html'){
-    if(!await this.canAccessFarm(id)){alert('دسترسی این فارم برای حساب شما فعال نیست.');return}
-    localStorage.setItem('adine_selected_farm',id);
-    window.location.href=target+'?farm='+encodeURIComponent(id);
-  },
-
-  roleLabel(p){
-    const m={veterinarian:'دامپزشک',technical_veterinarian:'دامپزشک مسئول فنی',poultry_operator:'بهره‌بردار واحد طیور',poultry_manager:'مدیر واحد طیور',veterinary_lab:'آزمایشگاه تشخیص دامپزشکی',diagnostic_lab:'آزمایشگاه تشخیص دامپزشکی',poultry_technical_expert:'کارشناس فنی طیور',organization_manager:'مدیر / نماینده مجموعه',other:'سایر',owner:'مالک سامانه'};
-    return m[String(p?.user_type||p?.role||'').toLowerCase()]||'کاربر';
-  },
-  esc(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML}
+ normalizeRole(p){return String(p?.user_type||p?.role||'').trim().toLowerCase()},
+ async current(){const auth=await AdineAuth.requireAuth();if(!auth)return null;return auth},
+ async farmAccessRows(){const a=await this.current();if(!a)return [];const rls=await supabaseClient.from('farms').select('id,name,farm_code,capacity,farm_type,owner_id,owner_name,manager_name,operational_status,monitoring_status,monitoring_message,monitoring_updated_at,created_at').order('created_at',{ascending:false});if(rls.error){console.error('RLS farm access query failed',rls.error);return []}const rows=new Map((rls.data||[]).map(x=>[x.id,{...x,_source:['rls']} ]));const allowed=new Set(rows.keys());for(const rpcName of ['get_my_farm_access','get_my_professional_farms']){try{const r=await supabaseClient.rpc(rpcName);if(r.error)continue;for(const x of(r.data||[])){if(x.connection_status&&x.connection_status!=='active')continue;const id=x.id||x.farm_id;if(!id||!allowed.has(id))continue;const old=rows.get(id)||{};rows.set(id,{...old,...x,id,_source:[...(old._source||[]),rpcName]})}}catch(error){console.warn(rpcName+' fallback unavailable',error)}}return [...rows.values()]},
+ async farmIds(){return(await this.farmAccessRows()).map(x=>x.id)},
+ async canAccessFarm(id){if(!id)return false;const a=await this.current();if(!a)return false;const r=await supabaseClient.from('farms').select('id').eq('id',id).maybeSingle();if(r.error||!r.data)return false;const role=this.normalizeRole(a.profile);if(role==='owner'||role==='admin')return true;return(await this.farmIds()).includes(id)},
+ async openFarm(id,target='weekly.html'){if(!await this.canAccessFarm(id)){alert('دسترسی این فارم برای حساب شما فعال نیست.');return}localStorage.setItem('adine_selected_farm',id);window.location.href=target+'?farm='+encodeURIComponent(id)},
+ roleLabel(p){const m={veterinarian:'دامپزشک',technical_veterinarian:'دامپزشک مسئول فنی',poultry_operator:'بهره‌بردار واحد طیور',poultry_manager:'مدیر واحد طیور',veterinary_lab:'آزمایشگاه تشخیص دامپزشکی',diagnostic_lab:'آزمایشگاه تشخیص دامپزشکی',poultry_technical_expert:'کارشناس فنی طیور',organization_manager:'مدیر / نماینده مجموعه',other:'سایر',owner:'مالک سامانه'};return m[String(p?.user_type||p?.role||'').toLowerCase()]||'کاربر'},
+ esc(v){const d=document.createElement('div');d.textContent=v??'';return d.innerHTML}
 };
-
-/* flocks.js may define its own chooser. This handler intentionally installs
-   the unified chooser immediately before flock initialization runs. */
 document.addEventListener('DOMContentLoaded',function(){
-  window.renderFarmChooser=async function(){
-    const container=document.getElementById('selectedFarm');
-    if(!container)return;
-    try{
-      const farms=await window.AdineAccess.farmAccessRows();
-      if(!farms.length){
-        container.innerHTML='<p>هنوز فارمی برای این حساب ثبت نشده است.</p><button class="btn btn-primary" type="button" onclick="location.href=\'Farms.html\'">ثبت / انتخاب فارم</button>';
-        return;
-      }
-      container.innerHTML='<div class="form-group"><label for="directFarmSelect">انتخاب فارم</label><select id="directFarmSelect"><option value="">انتخاب فارم</option></select></div>';
-      const select=document.getElementById('directFarmSelect');
-      farms.forEach(farm=>{
-        const option=document.createElement('option');
-        option.value=farm.id;
-        option.textContent=(farm.name||'بدون نام')+(farm.farm_code?' — '+farm.farm_code:'');
-        select.appendChild(option);
-      });
-      select.addEventListener('change',async function(){
-        if(!this.value)return;
-        if(!await window.AdineAccess.canAccessFarm(this.value)){
-          alert('دسترسی این فارم برای حساب شما فعال نیست.');
-          this.value='';
-          return;
-        }
-        setCurrentSelection({farmId:this.value,houseId:null,flockId:null});
-        await loadSelectedFarm();
-        enableForms();
-      });
-    }catch(error){
-      console.error('Unified farm chooser error:',error);
-      container.innerHTML='<p>دریافت فهرست فارم‌ها انجام نشد.</p><button class="btn btn-secondary" type="button" onclick="location.reload()">تلاش مجدد</button>';
-    }
-  };
+ window.renderFarmChooser=async function(){const container=document.getElementById('selectedFarm');if(!container)return;try{const farms=await window.AdineAccess.farmAccessRows();if(!farms.length){container.innerHTML='<p>هنوز فارمی برای این حساب ثبت نشده است.</p><button class="btn btn-primary" type="button" onclick="location.href=\'Farms.html\'">ثبت / انتخاب فارم</button>';return}container.innerHTML='<div class="form-group"><label for="directFarmSelect">انتخاب فارم</label><select id="directFarmSelect"><option value="">انتخاب فارم</option></select></div>';const select=document.getElementById('directFarmSelect');farms.forEach(farm=>{const option=document.createElement('option');option.value=farm.id;option.textContent=(farm.name||'بدون نام')+(farm.farm_code?' — '+farm.farm_code:'');select.appendChild(option)});select.addEventListener('change',async function(){if(!this.value)return;if(!await window.AdineAccess.canAccessFarm(this.value)){alert('دسترسی این فارم برای حساب شما فعال نیست.');this.value='';return}setCurrentSelection({farmId:this.value,houseId:null,flockId:null});await loadSelectedFarm();enableForms()})}catch(error){console.error('Unified farm chooser error:',error);container.innerHTML='<p>دریافت فهرست فارم‌ها انجام نشد.</p><button class="btn btn-secondary" type="button" onclick="location.reload()">تلاش مجدد</button>'}};
+ const patchReports=()=>{if(typeof window.getReportFlock==='function'&&!window.getReportFlock.__adinePatched){window.getReportFlock=async function(flockId){if(!flockId)return null;const{data,error}=await supabaseClient.from('flocks').select('*, farms(id,name), houses(id,name)').eq('id',flockId).maybeSingle();if(error)throw error;if(!data)return null;const farmId=data.farm_id||data.farmId||data.farms?.id;if(farmId&&!(await window.AdineAccess.canAccessFarm(farmId)))return null;window.__adineReportFlock=data;return data};window.getReportFlock.__adinePatched=true}
+ if(typeof window.normalizeReportRecord==='function'&&!window.normalizeReportRecord.__adinePatched){const original=window.normalizeReportRecord;window.normalizeReportRecord=function(record){const out=original(record);const flock=window.__adineReportFlock||null;const d=record?.evaluation_date||record?.record_date;let age=Number(record?.age_days);if(flock?.placement_date&&d){const start=Number(flock.start_age_days);const t=Date.parse(String(d)),p=Date.parse(String(flock.placement_date));if(Number.isFinite(start)&&Number.isFinite(t)&&Number.isFinite(p))age=Math.max(0,Math.round(start+(t-p)/86400000))}if(Number.isFinite(age))out.ageDays=age;return out};window.normalizeReportRecord.__adinePatched=true}}
+ patchReports();setTimeout(patchReports,0);setTimeout(patchReports,100);setTimeout(patchReports,500);
 });
 })();

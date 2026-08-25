@@ -609,9 +609,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         .toLowerCase();
 
                 const userType =
-                    String(profile.user_type || "")
-                        .trim()
-                        .toLowerCase();
+                    (window.AdineAuth.canonicalUserType
+                        ? window.AdineAuth.canonicalUserType(profile.user_type)
+                        : String(profile.user_type || "").trim().toLowerCase());
 
                 const mainFarmTypes = [
                     "farm_operator",

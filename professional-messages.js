@@ -1,6 +1,6 @@
 (function(){'use strict';document.addEventListener('DOMContentLoaded',async()=>{
  const auth=await AdineAuth.requireAuth();if(!auth)return;
- const type=String(auth.profile?.user_type||'').toLowerCase();if(!['farm_operator','farm_manager','poultry_technical_expert'].includes(type)){location.replace('professional.html');return;}
+ const type=(AdineAuth.canonicalUserType?AdineAuth.canonicalUserType(auth.profile?.user_type):String(auth.profile?.user_type||'').toLowerCase());if(!['farm_operator','farm_manager','poultry_technical_expert'].includes(type)){location.replace('professional.html');return;}
  const esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML};
  async function load(){
   const r=await supabaseClient.from('professional_messages').select('id,sender_id,recipient_id,farm_id,body,attachment_path,attachment_name,attachment_size,created_at').or(`sender_id.eq.${auth.user.id},recipient_id.eq.${auth.user.id}`).order('created_at',{ascending:true});

@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const auth = await AdineAuth.requireAuth();
   if(!auth) return;
   const p = auth.profile || {};
-  const type = String(p.user_type || '').trim().toLowerCase();
+  const type = (AdineAuth.canonicalUserType ? AdineAuth.canonicalUserType(p.user_type) : String(p.user_type || '').trim().toLowerCase());
   const mainTypes = ['farm_operator','farm_manager','poultry_technical_expert'];
   if(mainTypes.includes(type) && !['owner','admin'].includes(String(p.role||'').toLowerCase())){
     location.replace('Dashboard.html'); return;

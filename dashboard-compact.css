@@ -1,58 +1,27 @@
-/* Dashboard mobile — larger cards and typography, desktop unchanged */
+/* Dashboard mobile — clearly larger cards and typography */
 @media (max-width:600px){
  body.dashboard-page{overflow-x:hidden}
- .dashboard-page .app-shell{padding-bottom:62px}
- .dashboard-page .dashboard-topbar{min-height:64px;height:64px;padding:6px 12px}
- .dashboard-page .brand-logo-wrap{width:46px;height:46px;flex-basis:46px;border-radius:13px;padding:3px}
- .dashboard-page .dashboard-brand{gap:8px}
- .dashboard-page .dashboard-brand-text strong{font-size:15px;line-height:1.3}
- .dashboard-page .dashboard-brand-text small{font-size:11px;line-height:1.2}
- .dashboard-page .dashboard-topbar .logout-btn{left:11px;min-height:36px;height:36px;padding:6px 9px;font-size:12px;border-radius:9px}
- .dashboard-page .dashboard-topbar .logout-btn>span:last-child{display:none}
- .dashboard-page .dashboard-main{padding:10px 10px 11px}
- .dashboard-page .dashboard-hero{height:108px!important;min-height:108px!important;margin-bottom:9px!important;border-radius:15px!important}
- .dashboard-page .dashboard-hero .hero-content{min-height:108px!important;padding:13px 15px!important}
- .dashboard-page .dashboard-hero .hero-kicker{font-size:10px!important;margin-bottom:4px!important;padding:4px 9px!important}
- .dashboard-page .dashboard-hero h1{font-size:19px!important;line-height:1.4!important;margin:0 0 4px!important}
- .dashboard-page .dashboard-hero p{font-size:10px!important;line-height:1.4!important;margin:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
- .dashboard-page .dashboard-account-card{min-height:44px!important;padding:7px 10px!important;margin-bottom:9px!important;border-radius:11px!important;gap:8px!important}
- .dashboard-page .dashboard-account-card .status-icon{width:31px!important;height:31px!important;min-width:31px!important}
- .dashboard-page .dashboard-account-card .status-content{gap:2px!important}
- .dashboard-page .dashboard-account-card .status-content strong{font-size:10px!important}
- .dashboard-page .dashboard-account-card .status-content span{font-size:8.5px!important}
- .dashboard-page .dashboard-account-card .account-retry{padding:6px 9px!important;font-size:10px!important}
- .dashboard-page .dashboard-section-heading{margin-bottom:8px!important;padding:0 2px!important}
- .dashboard-page .dashboard-section-heading .section-eyebrow{font-size:9px!important;margin-bottom:2px!important}
- .dashboard-page .dashboard-section-heading h2{font-size:16px!important;line-height:1.3!important;margin:0!important}
- .dashboard-page .dashboard-section-heading p{display:none!important}
- .dashboard-page .dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
- .dashboard-page .menu-card{height:84px!important;min-height:84px!important;padding:9px 10px!important;border-radius:13px!important;display:grid!important;grid-template-columns:38px minmax(0,1fr) 11px!important;align-items:center!important;column-gap:8px!important;justify-content:initial!important}
- .dashboard-page .menu-card::after{display:none!important}
- .dashboard-page .menu-icon{width:38px!important;height:38px!important;min-width:38px!important;margin:0!important;border-radius:10px!important}
- .dashboard-page .menu-icon .adi-generated,.dashboard-page .menu-icon .adi-generated svg{width:26px!important;height:26px!important}
- .dashboard-page .menu-content{min-width:0!important}
- .dashboard-page .menu-content h3{font-size:11px!important;line-height:1.4!important;margin:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .dashboard-page .menu-content p{font-size:8px!important;line-height:1.3!important;margin-top:2px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- .dashboard-page .menu-arrow{position:static!important;width:20px!important;height:20px!important;font-size:11px!important}
- .dashboard-page .bottom-nav{height:58px!important;grid-template-columns:repeat(4,1fr)!important}
- .dashboard-page .bottom-nav button{font-size:16px!important;gap:1px!important}
- .dashboard-page .bottom-nav button>span{width:23px!important;height:23px!important}
- .dashboard-page .bottom-nav .adi-svg-icon,.dashboard-page .bottom-nav .adi-svg-icon svg{width:21px!important;height:21px!important}
- .dashboard-page .bottom-nav button small{font-size:8px!important}
+ .dashboard-page .dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ .dashboard-page .menu-card{height:115px!important;min-height:115px!important;padding:12px 12px!important;border-radius:15px!important;display:grid!important;grid-template-columns:46px minmax(0,1fr) 14px!important;align-items:center!important;column-gap:10px!important}
+ .dashboard-page .menu-icon{width:46px!important;height:46px!important;min-width:46px!important;border-radius:12px!important}
+ .dashboard-page .menu-icon .adi-generated,.dashboard-page .menu-icon .adi-generated svg{width:31px!important;height:31px!important}
+ .dashboard-page .menu-content h3{font-size:14px!important;line-height:1.45!important;margin:0!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .dashboard-page .menu-content p{font-size:10px!important;line-height:1.35!important;margin-top:3px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .dashboard-page .menu-arrow{width:24px!important;height:24px!important;font-size:14px!important}
+ .dashboard-page .dashboard-section-heading h2{font-size:18px!important}
+ .dashboard-page .dashboard-section-heading .section-eyebrow{font-size:10px!important}
+ .dashboard-page .dashboard-account-card{min-height:50px!important;padding:8px 11px!important}
+ .dashboard-page .dashboard-account-card .status-content strong{font-size:12px!important}
+ .dashboard-page .dashboard-account-card .status-content span{font-size:10px!important}
+ .dashboard-page .bottom-nav{height:60px!important}
+ .dashboard-page .bottom-nav button small{font-size:9px!important}
 }
 @media (max-width:600px) and (max-height:760px){
- .dashboard-page .dashboard-topbar{height:60px!important;min-height:60px!important}
- .dashboard-page .brand-logo-wrap{width:43px!important;height:43px!important;flex-basis:43px!important}
- .dashboard-page .dashboard-hero{height:94px!important;min-height:94px!important}
- .dashboard-page .dashboard-hero .hero-content{min-height:94px!important;padding:11px 13px!important}
- .dashboard-page .dashboard-hero .hero-kicker{font-size:9px!important}
- .dashboard-page .dashboard-hero h1{font-size:17px!important}
- .dashboard-page .dashboard-hero p{font-size:9px!important}
- .dashboard-page .dashboard-account-card{min-height:41px!important;margin-bottom:7px!important;padding:6px 9px!important}
- .dashboard-page .dashboard-grid{gap:7px!important}
- .dashboard-page .menu-card{height:74px!important;min-height:74px!important;grid-template-columns:35px minmax(0,1fr) 10px!important;padding:8px 9px!important;column-gap:7px!important}
- .dashboard-page .menu-icon{width:35px!important;height:35px!important;min-width:35px!important}
- .dashboard-page .menu-content h3{font-size:10.5px!important}
- .dashboard-page .menu-content p{font-size:7.5px!important}
- .dashboard-page .bottom-nav{height:54px!important}
+ .dashboard-page .dashboard-grid{gap:8px!important}
+ .dashboard-page .menu-card{height:100px!important;min-height:100px!important;padding:10px!important;grid-template-columns:40px minmax(0,1fr) 12px!important;column-gap:8px!important}
+ .dashboard-page .menu-icon{width:40px!important;height:40px!important;min-width:40px!important}
+ .dashboard-page .menu-icon .adi-generated,.dashboard-page .menu-icon .adi-generated svg{width:28px!important;height:28px!important}
+ .dashboard-page .menu-content h3{font-size:12px!important}
+ .dashboard-page .menu-content p{font-size:9px!important}
+ .dashboard-page .dashboard-section-heading h2{font-size:16px!important}
 }

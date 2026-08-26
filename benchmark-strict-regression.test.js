@@ -13,10 +13,9 @@ const ff=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"Ros
 const ross708=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"Ross 708",ageDays:14});eq(ross708.weight,509,"Ross 708 day 14");eq(ross708.fcr,.992,"Ross 708 day 14 FCR");
 const wrong=S.resolve({productionType:"layer",genetics:"aviagen_ross",strain:"Ross 308",ageDays:14});eq(wrong.weight,null,"cross production type blocked");
 const vague=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"",ageDays:14});eq(vague.weight,null,"missing strain blocked");
-const cobb=S.resolve({productionType:"broiler",genetics:"cobb",strain:"Cobb500",ageDays:14});eq(cobb.weight,570,"Cobb500 day 14");eq(sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.cobb.Cobb500,"bodyWeight",0),42,"Cobb500 official placement baseline");
+const cobb=S.resolve({productionType:"broiler",genetics:"cobb",strain:"Cobb500",ageDays:14});eq(cobb.weight,570,"Cobb500 day 14");const cobbStd=S.directStandard(S.identity("broiler","cobb","Cobb500"));eq(sandbox.getStandardValueAtAge(cobbStd,"bodyWeight",0),42,"Cobb500 official placement baseline");
 const lb=S.resolve({productionType:"layer",genetics:"lohmann",strain:"Lohmann Brown-Classic",ageDays:119});eq(lb.weight,1421,"Lohmann Brown-Classic week 17 body weight");eq(lb.confidence,"official","Lohmann official confidence");
-const below=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.aviagen_ross["Ross 308"],"bodyWeight",0);eq(below,null,"Ross 308 no unsupported day-0 extrapolation");
-const above=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.aviagen_ross["Ross 308"],"bodyWeight",100);eq(above,null,"no extrapolation above curve");
-const interp=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.aviagen_ross["Ross 308"],"bodyWeight",10);ok(Math.abs(interp-350.14285714285717)<1e-9,"day 10 interpolation");
+const rossStd=S.directStandard(S.identity("broiler","aviagen_ross","Ross 308"));eq(sandbox.getStandardValueAtAge(rossStd,"bodyWeight",0),null,"Ross 308 no unsupported day-0 extrapolation");eq(sandbox.getStandardValueAtAge(rossStd,"bodyWeight",100),null,"no extrapolation above curve");
+const interp=sandbox.getStandardValueAtAge(rossStd,"bodyWeight",10);ok(Math.abs(interp-350.14285714285717)<1e-9,"day 10 interpolation");
 const audit=S.auditCatalog();ok(audit.length>0,"catalog audit has entries");ok(audit.some(r=>r.strain==="Ross 708"&&r.hasStandard),"Ross 708 appears in verified catalog");ok(audit.some(r=>r.strain==="Lohmann Brown-Classic"&&r.hasStandard),"Lohmann Brown-Classic appears in verified catalog");
 console.log(`STRICT BENCHMARK REGRESSION PASS: ${passed} assertions`);

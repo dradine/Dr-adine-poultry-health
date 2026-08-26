@@ -97,6 +97,80 @@
     /* =====================================================
        SMALL JALALI CALENDAR FOR HEALTH DATE FIELDS
     ===================================================== */
+    function installCompactCalendarStyle() {
+        if (document.getElementById("adine-health-calendar-compact-style")) return;
+
+        const style = document.createElement("style");
+        style.id = "adine-health-calendar-compact-style";
+        style.textContent = `
+            .datepicker-plot-area {
+                width: 238px !important;
+                min-width: 238px !important;
+                max-width: calc(100vw - 24px) !important;
+                box-sizing: border-box !important;
+                padding: 4px !important;
+                font-size: 12px !important;
+                border-radius: 11px !important;
+            }
+            .datepicker-plot-area .datepicker-header {
+                padding: 2px 0 !important;
+                margin: 0 !important;
+            }
+            .datepicker-plot-area .datepicker-navigator {
+                min-height: 30px !important;
+            }
+            .datepicker-plot-area .datepicker-navigator .pwt-btn {
+                height: 28px !important;
+                line-height: 28px !important;
+                font-size: 11px !important;
+                padding: 0 4px !important;
+            }
+            .datepicker-plot-area .table-days {
+                width: 100% !important;
+                table-layout: fixed !important;
+                margin: 0 !important;
+            }
+            .datepicker-plot-area .table-days th,
+            .datepicker-plot-area .table-days td {
+                width: 14.2857% !important;
+                height: 28px !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
+            }
+            .datepicker-plot-area .table-days th {
+                font-size: 10px !important;
+                line-height: 20px !important;
+            }
+            .datepicker-plot-area .table-days td span {
+                width: 24px !important;
+                height: 24px !important;
+                line-height: 24px !important;
+                font-size: 11px !important;
+                margin: 2px auto !important;
+                border-radius: 50% !important;
+            }
+            .datepicker-plot-area .datepicker-footer {
+                padding: 2px 0 !important;
+                margin: 0 !important;
+            }
+            .datepicker-plot-area .datepicker-footer .pwt-btn {
+                min-height: 25px !important;
+                line-height: 25px !important;
+                font-size: 10px !important;
+                padding: 0 5px !important;
+            }
+            @media (max-width: 480px) {
+                .datepicker-plot-area {
+                    width: min(238px, calc(100vw - 24px)) !important;
+                    min-width: min(238px, calc(100vw - 24px)) !important;
+                    max-width: calc(100vw - 24px) !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     function initHealthCalendar() {
         if (
             typeof window.jQuery === "undefined" ||
@@ -104,6 +178,8 @@
         ) {
             return;
         }
+
+        installCompactCalendarStyle();
 
         const $ = window.jQuery;
 
@@ -136,7 +212,7 @@
                     enabled: true,
                     scroll: { enabled: false }
                 },
-                responsive: true,
+                responsive: false,
                 timePicker: { enabled: false }
             });
         });

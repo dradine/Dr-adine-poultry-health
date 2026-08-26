@@ -53,7 +53,7 @@ Reproduction, Egg Output, Hatchability/Fertility, Survival, Uniformity, Growth
 
 ## وضعیت استانداردها
 
-Registry فعلی استانداردهای فعال برای گوشتی، پولت و تخمگذار دارد. برای مادر، موتور عمداً عدد ساختگی تولید نمی‌کند. منابع رسمی Aviagen برای Ross 308 Parent Stock و منابع 2026 Cobb Breeder بررسی شده‌اند و باید در مرحله بعد منحنی‌های عددی قابل ردیابی آن‌ها به Standard Registry وارد شوند؛ این یک **گیت کیفیت** است، نه نقص محاسبات Benchmark. Aviagen برای Ross 308 Parent Stock Performance Objectives جداگانه منتشر می‌کند و Cobb نیز Supplementهای breeder سال 2026 را منتشر کرده است.
+Registry فعلی استانداردهای فعال برای گوشتی، پولت و تخمگذار دارد. برای مادر، موتور عمداً عدد ساختگی تولید نمی‌کند. منابع رسمی Aviagen برای Ross 308 Parent Stock و منابع 2026 Cobb Breeder بررسی شده‌اند و منحنی‌های عددی قابل ردیابی آن‌ها باید در Registry استاندارد نسخه‌گذاری شوند؛ این یک **گیت کیفیت** است، نه نقص محاسبات Benchmark. Aviagen برای Ross 308 Parent Stock Performance Objectives جداگانه منتشر می‌کند و Cobb نیز Supplementهای breeder سال 2026 را منتشر کرده است.
 
 ## تست و پذیرش
 
@@ -68,10 +68,12 @@ Registry فعلی استانداردهای فعال برای گوشتی، پول
 - تست Canonical Age و Body Weight روی 106 گله تولیدی: **106/106 PASS**؛ سن مفقود 0، داده مشکوک 0.
 - تست دسترسی غیرمجاز: **PASS** — کاربر غیرمجاز 0 ردیف دریافت کرد.
 - تست چهار مدل تولیدی: **PASS**؛ موتور برای گوشتی، پولت، تخمگذار و مادر بدون خطای SQL اجرا شد.
+- تست کارایی RPC یک Metric: **PASS** — حدود 42ms در Dataset فعلی.
+- تست کارایی ماتریس Benchmark: **PASS** — حدود 105ms برای ماتریس گله آزمایشی.
 
-## نکته اجرایی
+## وضعیت اتصال به گزارش
 
-V6 حذف نشده است تا Regression ناخواسته ایجاد نشود. V7 به‌صورت additive در Supabase مستقر شده است. لایه UI فعلی هنوز باید به RPCهای V7 متصل شود تا V7 به‌عنوان Renderer اصلی گزارش جایگزین V6 شود؛ تا آن زمان V6 نقش compatibility layer را حفظ می‌کند.
+`internal-benchmark.js` و `performance-benchmark-v2.js` در GitHub به V7 سوییچ شدند؛ بنابراین مسیر Benchmark داخلی گزارش اکنون **V7-first** است. V6 فقط به‌عنوان compatibility/reference در SQL باقی مانده و Renderer اصلی دیگر نباید مستقیماً `get_flock_benchmark_v6` را صدا بزند.
 
 ## منابع مرجع
 

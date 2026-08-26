@@ -6,25 +6,19 @@
 "use strict";
 
 (function () {
-
     const FEED_ID = "feedTotal";
     const WATER_ID = "waterTotal";
     const BIRDS_ID = "liveBirds";
     const FEED_PER_BIRD_ID = "feedPerBird";
     const WATER_PER_BIRD_ID = "waterPerBird";
-    const RATIO_ID = "waterFeedRatio";
-    const RATIO_FIELD_ID = "waterFeedRatioField";
     const PRIMARY_RATIO_SELECTOR = '[data-weekly-specialized="water_feed_ratio"]';
 
     function numberOf(id) {
         const el = document.getElementById(id);
         if (!el) return null;
-
-        const normalizer =
-            typeof window.normalizeNumberString === "function"
-                ? window.normalizeNumberString
-                : value => String(value ?? "").replace(/,/g, "");
-
+        const normalizer = typeof window.normalizeNumberString === "function"
+            ? window.normalizeNumberString
+            : value => String(value ?? "").replace(/,/g, "");
         const value = Number(normalizer(el.value));
         return Number.isFinite(value) ? value : null;
     }
@@ -34,38 +28,12 @@
         return Number(value.toFixed(decimals)).toString();
     }
 
-    function ensureRatioField() {
-        const existing = document.getElementById(RATIO_ID);
-        if (existing) return existing;
-
-        const waterField = document.getElementById(WATER_PER_BIRD_ID)?.closest(".form-group");
-        if (!waterField || !waterField.parentElement) return null;
-
-        const wrapper = document.createElement("div");
-        wrapper.className = "form-group";
-        wrapper.id = RATIO_FIELD_ID;
-        wrapper.innerHTML = `
-            <label for="${RATIO_ID}">
-                نسبت آب به دان
-                <span>(L/kg)</span>
-            </label>
-            <input
-                id="${RATIO_ID}"
-                type="text"
-                inputmode="decimal"
-                autocomplete="off"
-                readonly
-                tabindex="-1"
-                placeholder="خودکار"
-                aria-label="نسبت آب به دان"
-            >
-            <small class="quick-entry-help">
-                خودکار از مصرف کل آب و دان محاسبه می‌شود.
-            </small>
-        `;
-
-        waterField.parentElement.appendChild(wrapper);
-        return document.getElementById(RATIO_ID);
+    function getRatioFromInputs() {
+        const feedKg = numberOf(FEED_ID);
+        const waterL = numberOf(WATER_ID);
+        return Number.isFinite(feedKg) && feedKg > 0 && Number.isFinite(waterL) && waterL >= 0
+            ? waterL / feedKg
+            : null;
     }
 
     function setReadonlyCalculatedFields() {
@@ -90,7 +58,6 @@
     function syncPrimaryRatio(ratio) {
         const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
         if (!primaryRatio) return;
-
         primaryRatio.value = Number.isFinite(ratio) ? format(ratio, 3) : "";
         primaryRatio.readOnly = true;
         primaryRatio.setAttribute("aria-readonly", "true");
@@ -103,29 +70,24 @@
         const feedKg = numberOf(FEED_ID);
         const waterL = numberOf(WATER_ID);
 
-        const feedPerBird =
-            Number.isFinite(birds) && birds > 0 && Number.isFinite(feedKg) && feedKg >= 0
-                ? (feedKg * 1000) / birds
-                : null;
-
-        const waterPerBird =
-            Number.isFinite(birds) && birds > 0 && Number.isFinite(waterL) && waterL >= 0
-                ? (waterL * 1000) / birds
-                : null;
-
-        const ratio =
-            Number.isFinite(feedKg) && feedKg > 0 && Number.isFinite(waterL) && waterL >= 0
-                ? waterL / feedKg
-                : null;
+        const feedPerBird = Number.isFinite(birds) && birds > 0 && Number.isFinite(feedKg) && feedKg >= 0
+            ? (feedKg * 1000) / birds
+            : null;
+        const waterPerBird = Number.isFinite(birds) && birds > 0 && Number.isFinite(waterL) && waterL >= 0
+            ? (waterL * 1000) / birds
+            : null;
+        const ratio = Number.isFinite(feedKg) && feedKg > 0 && Number.isFinite(waterL) && waterL >= 0
+            ? waterL / feedKg
+            : null;
 
         const feedEl = document.getElementById(FEED_PER_BIRD_ID);
         const waterEl = document.getElementById(WATER_PER_BIRD_ID);
-        const ratioEl = ensureRatioField();
-
         if (feedEl) feedEl.value = format(feedPerBird, 2);
         if (waterEl) waterEl.value = format(waterPerBird, 2);
-        if (ratioEl) ratioEl.value = format(ratio, 3);
 
+        // نسبت آب به دان عمداً در ثبت سریع نمایش داده نمی‌شود.
+        // تنها محل نمایش/ورود این شاخص، «شاخص‌های اصلی» است و مقدار آن از
+        // مصرف کل آب و دان به‌صورت خودکار محاسبه می‌شود.
         syncPrimaryRatio(ratio);
 
         window.weeklyFeedWaterAuto = {
@@ -133,7 +95,6 @@
             waterPerBirdMl: waterPerBird,
             waterFeedRatio: ratio
         };
-
         return window.weeklyFeedWaterAuto;
     }
 
@@ -141,7 +102,6 @@
         [FEED_ID, WATER_ID, BIRDS_ID].forEach(id => {
             const el = document.getElementById(id);
             if (!el || el.dataset.feedWaterAutoBound === "true") return;
-
             el.dataset.feedWaterAutoBound = "true";
             el.addEventListener("input", calculateFeedWater);
             el.addEventListener("change", calculateFeedWater);
@@ -154,39 +114,27 @@
         if (window.buildWeeklyWeightRecord.__feedWaterAutoPatched) return true;
 
         const original = window.buildWeeklyWeightRecord;
-
         function patchedWeeklyBuilder(data) {
             calculateFeedWater();
             const inputData = data && typeof data === "object" ? { ...data } : {};
-
             const feed = Number(inputData.feed);
             const water = Number(inputData.water);
             const birds = Number(inputData.liveBirds);
 
-            const feedPerBird =
-                Number.isFinite(feed) && feed >= 0 && Number.isFinite(birds) && birds > 0
-                    ? (feed * 1000) / birds
-                    : null;
-
-            const waterPerBird =
-                Number.isFinite(water) && water >= 0 && Number.isFinite(birds) && birds > 0
-                    ? (water * 1000) / birds
-                    : null;
-
-            const ratio =
-                Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0
-                    ? water / feed
-                    : null;
+            const feedPerBird = Number.isFinite(feed) && feed >= 0 && Number.isFinite(birds) && birds > 0
+                ? (feed * 1000) / birds : null;
+            const waterPerBird = Number.isFinite(water) && water >= 0 && Number.isFinite(birds) && birds > 0
+                ? (water * 1000) / birds : null;
+            const ratio = Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0
+                ? water / feed : null;
 
             const record = original(inputData);
-
             record.feedPerBirdG = feedPerBird;
             record.waterPerBirdMl = waterPerBird;
             record.waterFeedRatio = ratio;
             record.feedPerBird = feedPerBird;
             record.waterPerBird = waterPerBird;
             record.waterToFeedRatio = ratio;
-
             return record;
         }
 
@@ -201,7 +149,6 @@
         if (window.saveWeeklyRecord.__feedWaterAutoPatched) return true;
 
         const original = window.saveWeeklyRecord;
-
         function patchedWeeklySave(...args) {
             calculateFeedWater();
             const result = original.apply(this, args);
@@ -224,19 +171,18 @@
                         index = i;
                         break;
                     }
-
                     if (index < 0) index = records.length - 1;
 
                     const r = records[index];
                     const feed = Number(r.feed);
                     const water = Number(r.water);
                     const birds = Number(r.liveBirds);
-
                     if (!Number.isFinite(birds) || birds <= 0) return;
 
                     const feedPerBird = Number.isFinite(feed) && feed >= 0 ? (feed * 1000) / birds : null;
                     const waterPerBird = Number.isFinite(water) && water >= 0 ? (water * 1000) / birds : null;
-                    const ratio = Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0 ? water / feed : null;
+                    const ratio = Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0
+                        ? water / feed : null;
 
                     records[index] = {
                         ...r,
@@ -247,7 +193,6 @@
                         waterPerBird: waterPerBird,
                         waterToFeedRatio: ratio
                     };
-
                     writeStorage(WEEKLY_STORAGE_NAME, records);
                 } catch (error) {
                     console.error("Weekly feed/water post-save calculation error:", error);
@@ -260,7 +205,6 @@
                     return value;
                 });
             }
-
             finalize();
             return result;
         }
@@ -276,7 +220,6 @@
         if (window.editWeeklyRecord.__feedWaterAutoPatched) return true;
 
         const original = window.editWeeklyRecord;
-
         function patchedWeeklyEdit(...args) {
             const result = original.apply(this, args);
             setTimeout(() => {
@@ -285,7 +228,6 @@
             }, 0);
             return result;
         }
-
         patchedWeeklyEdit.__feedWaterAutoPatched = true;
         patchedWeeklyEdit.__original = original;
         window.editWeeklyRecord = patchedWeeklyEdit;
@@ -301,9 +243,8 @@
             const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
             if (!primaryRatio) return;
             setReadonlyCalculatedFields();
-            syncPrimaryRatio(window.weeklyFeedWaterAuto?.waterFeedRatio ?? null);
+            syncPrimaryRatio(window.weeklyFeedWaterAuto?.waterFeedRatio ?? getRatioFromInputs());
         });
-
         observer.observe(target, { childList: true, subtree: true });
         window.__weeklyFeedWaterRatioObserver = observer;
     }
@@ -312,10 +253,8 @@
         const feed = document.getElementById(FEED_ID);
         const water = document.getElementById(WATER_ID);
         const birds = document.getElementById(BIRDS_ID);
-
         if (!feed || !water || !birds) return false;
 
-        ensureRatioField();
         setReadonlyCalculatedFields();
         attachInputListeners();
         calculateFeedWater();

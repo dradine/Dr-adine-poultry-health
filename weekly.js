@@ -809,35 +809,16 @@ function initializeEvaluationDatePicker() {
 
 function setToday() {
 
-    const input =
-        document.getElementById(
-            "evaluationDate"
-        );
+    const input = document.getElementById("evaluationDate");
+    if (!input) return;
 
-
-    if (!input) {
-
-        return;
-
+    if (!window.AdineDateSystem || typeof window.AdineDateSystem.todayJalali !== "function") {
+        throw new Error("Central Date Engine is required before weekly.js");
     }
 
-
-    const today =
-        new Date();
-
-
-    const jalali =
-        gregorianToJalali(
-            today.getFullYear(),
-            today.getMonth() + 1,
-            today.getDate()
-        );
-
-
-    input.value =
-        `${padNumber(jalali[0], 4)}/${padNumber(jalali[1], 2)}/${padNumber(jalali[2], 2)}`;
-
+    input.value = window.AdineDateSystem.todayJalali();
 }
+
 
 
 /* =========================================================

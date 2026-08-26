@@ -1073,7 +1073,7 @@ async function saveFlock(
     if (jalaliDate) {
 
         gregorianDate =
-            jalaliToGregorianISO(
+            _flockLegacy_jalaliToGregorianISO(
                 jalaliDate
             );
 
@@ -1646,7 +1646,7 @@ function escapeHTML(
    1405/05/29
 */
 
-function jalaliToGregorianISO(
+function _flockLegacy_jalaliToGregorianISO(
     input
 ) {
 
@@ -1705,7 +1705,7 @@ function jalaliToGregorianISO(
 
 
     const result =
-        jalaliToGregorian(
+        _flockLegacy_jalaliToGregorian(
             jy,
             jm,
             jd
@@ -1734,7 +1734,7 @@ function jalaliToGregorianISO(
    الگوریتم تبدیل جلالی به میلادی
 */
 
-function jalaliToGregorian(
+function _flockLegacy_jalaliToGregorian(
     jy,
     jm,
     jd
@@ -1964,7 +1964,7 @@ function gregorianISOToJalali(
 
 
     const result =
-        gregorianToJalali(
+        _flockLegacy_gregorianToJalali(
             parts[0],
             parts[1],
             parts[2]
@@ -1993,7 +1993,7 @@ function gregorianISOToJalali(
    الگوریتم میلادی به جلالی
 */
 
-function gregorianToJalali(
+function _flockLegacy_gregorianToJalali(
     gy,
     gm,
     gd
@@ -2157,34 +2157,37 @@ let jalaliPickerMonth = null;
 
 function setupJalaliDate() {
 
-    const input =
-        document.getElementById(
-            "placementDate"
-        );
+    const input = document.getElementById("placementDate");
+    if (!input) return;
 
-
-    if (!input) {
-
-        return;
-
+    if (!window.AdineDateSystem) {
+        throw new Error("Central Date Engine is required before flocks.js");
     }
 
+    if (typeof window.jQuery !== "undefined" &&
+        typeof window.jQuery.fn.persianDatepicker === "function" &&
+        !window.jQuery(input).data("central-date-initialized")) {
 
-    input.addEventListener(
-        "click",
-        openJalaliPicker
-    );
+        window.jQuery(input).persianDatepicker({
+            format: "YYYY/MM/DD",
+            autoClose: true,
+            initialValue: false,
+            observer: true,
+            calendarType: "persian",
+            calendar: { persian: { locale: "fa", leapYearMode: "algorithmic" } },
+            toolbox: { calendarSwitch: false, todayButton: { enabled: true, text: { fa: "امروز" } } },
+            navigator: { enabled: true, scroll: { enabled: false } },
+            responsive: true,
+            timePicker: { enabled: false }
+        });
 
+        window.jQuery(input).data("central-date-initialized", true);
+    }
 
-    input.addEventListener(
-        "focus",
-        openJalaliPicker
-    );
-
-
-    createJalaliPicker();
-
+    input.setAttribute("inputmode", "numeric");
+    input.setAttribute("autocomplete", "off");
 }
+
 
 
 function createJalaliPicker() {
@@ -2327,7 +2330,7 @@ function openJalaliPicker() {
 
 
         const today =
-            gregorianToJalali(
+            _flockLegacy_gregorianToJalali(
                 now.getFullYear(),
                 now.getMonth() + 1,
                 now.getDate()
@@ -2475,7 +2478,7 @@ function renderJalaliPicker() {
 
 
     const firstGregorian =
-        jalaliToGregorian(
+        _flockLegacy_jalaliToGregorian(
             jalaliPickerYear,
             jalaliPickerMonth,
             1
@@ -2818,7 +2821,7 @@ function renderJalaliPicker() {
 
 
                 const today =
-                    gregorianToJalali(
+                    _flockLegacy_gregorianToJalali(
                         now.getFullYear(),
                         now.getMonth() + 1,
                         now.getDate()

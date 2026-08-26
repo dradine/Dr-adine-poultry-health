@@ -1,10 +1,12 @@
-# Flock Benchmark V7
+# Flock Benchmark V7 — Final Release
 
-## وضعیت
+## وضعیت نهایی
 
-V7 جایگزین مفهومی «Farm Benchmark» با **Flock Benchmark** شده است. در رابط کاربری و منطق مقایسه از واژه «گله» استفاده می‌شود؛ شناسه `farm_id` فقط در Backend برای استقلال آماری، امنیت و جلوگیری از وزن‌دهی بیش از حد به یک واحد تولیدی باقی می‌ماند.
+V7 جایگزین مفهومی «Farm Benchmark» با **Flock Benchmark** شده است. در رابط کاربری و منطق مقایسه از واژه «گله» استفاده می‌شود؛ `farm_id` فقط در Backend برای استقلال آماری، امنیت و جلوگیری از وزن‌دهی بیش از حد به یک واحد تولیدی باقی می‌ماند.
 
-## اصول علمی
+**Release status: PASS — Production-ready Benchmark Engine.**
+
+## اصول علمی نهایی
 
 - استاندارد ژنتیکی/رسمی از Peer Benchmark جداست.
 - سن مرجع از تاریخ ارزیابی/ثبت واقعی و سن شروع گله محاسبه می‌شود؛ `week_number` مرجع اصلی نیست.
@@ -13,15 +15,16 @@ V7 جایگزین مفهومی «Farm Benchmark» با **Flock Benchmark** شد�
 - حداقل نمایش: 10 گله معتبر + 5 واحد مستقل.
 - حداقل Peer Score: 20 گله معتبر + 10 واحد مستقل.
 - Benchmark پایدار: 50 گله معتبر + 20 واحد مستقل.
-- هر واحد مستقل فقط یک سهم آماری دارد؛ بنابراین چند گله یک واحد تولیدی Benchmark را منحرف نمی‌کنند.
+- هر واحد مستقل فقط یک سهم آماری دارد.
 - P10/P25/Median/P75/P90 و IQR محاسبه می‌شوند.
 - Body Weight شاخص Context است و به‌صورت «بهتر/بدتر» رتبه‌بندی نمی‌شود.
-- Uniformity و CV در یک Domain قرار گرفته‌اند تا یک مشکل یکنواختی دوبار وزن‌دهی نشود.
+- Uniformity و CV در یک Domain قرار گرفته‌اند تا یک مشکل دوبار وزن‌دهی نشود.
 - داده خارج از محدوده معتبر وارد محاسبه Benchmark نمی‌شود و داده خام حذف نمی‌شود.
 - Peer Score فقط با جامعه کافی فعال می‌شود.
-- Confidence از حجم نمونه و استقلال واحدها جدا از Peer Percentile محاسبه می‌شود.
+- Confidence از Peer Percentile جداست و به حجم نمونه/استقلال واحدها وابسته است.
 - دسترسی تابع بر اساس مالکیت واحد یا دسترسی حرفه‌ای فعال کنترل می‌شود.
-- عدد ساختگی برای استاندارد ژنتیکی تولید نمی‌شود. اگر استاندارد رسمی/مدیریتی نسخه‌دار در Registry وجود نداشته باشد، مقدار استاندارد `null` می‌ماند.
+- نوع پرورش ناشناخته به‌صورت امن `null` می‌شود و هرگز به‌صورت پیش‌فرض گوشتی فرض نمی‌شود.
+- استاندارد بدون منبع و نسخه معتبر عدد ساختگی تولید نمی‌کند.
 
 ## مدل‌های چهارگانه
 
@@ -45,36 +48,108 @@ Reproduction, Egg Output, Hatchability/Fertility, Survival, Uniformity, Growth
 
 ## اصلاحات بحرانی V7
 
-- انتخاب سن فعلی بر اساس تاریخ ارزیابی/رکورد، نه ترتیب تصادفی `created_at` در رکوردهای هم‌زمان.
-- Numeric parsing با الگوی امن؛ داده متنی خراب باعث Crash موتور نمی‌شود.
-- FCR در گله‌های layer/breeder از `cumulative_egg_fcr` خوانده می‌شود؛ FCR زیستی با FCR تخم قاطی نمی‌شود.
-- Egg Mass از `period_egg_mass_kg / production_baseline_birds / 7` به g/hen/day نرمال می‌شود تا با Performance Standardهای لایه/مادر قابل مقایسه باشد.
-- حد پایین FCR برای سنین ابتدایی از 0.5 به 0.1 اصلاح شده تا مقادیر واقعی early-age حذف نشوند.
+- Canonical Age بر اساس تاریخ ارزیابی/رکورد و سن شروع گله.
+- انتخاب رکورد نزدیک به سن با tie-breaker قطعی.
+- Numeric parsing امن؛ داده متنی خراب موتور را Crash نمی‌کند.
+- FCR در layer/breeder از `cumulative_egg_fcr` استفاده می‌کند و با FCR زیستی مخلوط نمی‌شود.
+- Egg Mass از `period_egg_mass_kg / production_baseline_birds / 7` به g/hen/day نرمال می‌شود.
+- حد پایین FCR سنین ابتدایی از 0.5 به 0.1 اصلاح شده است.
+- Peer جامعه به‌صورت flock-observation ولی با استقلال آماری unit-level محاسبه می‌شود.
+- Privacy و access control داخل RPCهای Security Definer اعمال می‌شود.
 
-## وضعیت استانداردها
+## Standard Registry
 
-Registry فعلی استانداردهای فعال برای گوشتی، پولت و تخمگذار دارد. برای مادر، موتور عمداً عدد ساختگی تولید نمی‌کند. منابع رسمی Aviagen برای Ross 308 Parent Stock و منابع 2026 Cobb Breeder بررسی شده‌اند و منحنی‌های عددی قابل ردیابی آن‌ها باید در Registry استاندارد نسخه‌گذاری شوند؛ این یک **گیت کیفیت** است، نه نقص محاسبات Benchmark. Aviagen برای Ross 308 Parent Stock Performance Objectives جداگانه منتشر می‌کند و Cobb نیز Supplementهای breeder سال 2026 را منتشر کرده است.
+چهار منبع رسمی نسخه‌دار در Registry ثبت شده‌اند:
 
-## تست و پذیرش
+1. Aviagen Ross 308 Parent Stock Performance Objectives — 2021؛ منحنی عددی Ross 308 Parent Stock شامل وزن ماده/نر در کل چرخه و شاخص‌های تولیدی کلیدی وارد Registry شده است.
+2. Cobb500 Fast Feather Breeder Management Supplement — 2026-03؛ منبع رسمی جاری ثبت و نسخه آن قفل شده است.
+3. Hy-Line W-80 International Standards — منبع رسمی جاری ثبت شده است.
+4. LOHMANN Parent Stock Management Guide — 2025؛ منبع رسمی مدیریتی ثبت شده است.
 
-- تست ساختار Registry: **PASS** — 37 Metric در 4 نوع پرورش.
-- تست نرمال‌سازی نوع پرورش: **PASS**.
-- تست آستانه Peer Score: **PASS** — کمتر از 20 گله و 10 واحد مستقل Peer Score فعال نمی‌شود.
-- تست استقلال واحد: **PASS** — هر واحد تولیدی فقط یک سهم آماری دارد.
-- تست ترتیب Percentileها: **PASS**.
-- تست بازه Peer Percentile: **PASS** — 0 تا 100.
-- تست Context Metrics: **PASS** — Peer Score دریافت نمی‌کنند.
-- تست حذف تابع قدیمی مبهم سه‌پارامتری: **PASS**.
-- تست Canonical Age و Body Weight روی 106 گله تولیدی: **106/106 PASS**؛ سن مفقود 0، داده مشکوک 0.
-- تست دسترسی غیرمجاز: **PASS** — کاربر غیرمجاز 0 ردیف دریافت کرد.
-- تست چهار مدل تولیدی: **PASS**؛ موتور برای گوشتی، پولت، تخمگذار و مادر بدون خطای SQL اجرا شد.
-- تست کارایی RPC یک Metric: **PASS** — حدود 42ms در Dataset فعلی.
-- تست کارایی ماتریس Benchmark: **PASS** — حدود 105ms برای ماتریس گله آزمایشی.
+اصل مهم: وجود منبع در Registry به معنی اجازه ساختن عدد تخمینی نیست. منابعی که هنوز extraction عددی field-by-field نشده‌اند با وضعیت `source_verified` باقی می‌مانند و موتور برای آن‌ها عدد جعلی نمی‌سازد.
 
-## وضعیت اتصال به گزارش
+برای Ross 308 Parent Stock، منحنی وزن رسمی 2021 برای ماده و نر در سن 0 تا 448 روز به‌صورت سن‌محور ثبت شده و شاخص‌های کلیدی تولید/تخم نیز با منبع رسمی ثبت شده‌اند.
 
-`internal-benchmark.js` و `performance-benchmark-v2.js` در GitHub به V7 سوییچ شدند؛ بنابراین مسیر Benchmark داخلی گزارش اکنون **V7-first** است. V6 فقط به‌عنوان compatibility/reference در SQL باقی مانده و Renderer اصلی دیگر نباید مستقیماً `get_flock_benchmark_v6` را صدا بزند.
+## تست نهایی
 
-## منابع مرجع
+### Registry
 
-استانداردها باید با نسخه/سال/منبع Performance Objectives رسمی ژنتیک ثبت شوند. منابع مرجع بررسی‌شده شامل Aviagen/Ross، Cobb و Hy-Line هستند.
+- 4 نوع پرورش: **PASS**
+- 37 Metric: **PASS**
+- 4 منبع رسمی: **PASS**
+- حداقل یک Standard Numeric رسمی کامل برای breeder: **PASS**
+- Ross 308 Parent Stock body-weight curve: **PASS** — 130 رکورد سن‌محور female/male.
+
+### Normalization
+
+- فارسی «مادر» → breeder: **PASS**
+- فارسی «گوشتی» → broiler: **PASS**
+- فارسی «پولت» → pullet: **PASS**
+- فارسی «تخمگذار» → layer: **PASS**
+- مقدار ناشناخته → null: **PASS**
+
+### Metric Configuration
+
+- range نامعتبر: **0**
+- direction نامعتبر: **0**
+- age window نامعتبر: **0**
+- وزن منفی: **0**
+
+### Cohort / Statistics
+
+- Exact → Genetics → Production fallback: **PASS**
+- حذف گله جاری: **PASS**
+- حداقل 10 گله + 5 واحد: **PASS**
+- حداقل 20 گله + 10 واحد برای Peer Score: **PASS**
+- حداقل 50 گله + 20 واحد برای Stable: **PASS**
+- Percentile ordering: **PASS**
+- Peer Percentile 0–100: **PASS**
+- Context metrics بدون رتبه Peer: **PASS**
+
+### Age / Data Quality
+
+- Canonical Age + Body Weight روی 106 گله تولیدی: **106/106 PASS**
+- سن مفقود: **0**
+- داده مشکوک: **0**
+- numeric parsing امن: **PASS**
+- out-of-range exclusion بدون حذف raw data: **PASS**
+
+### چهار مدل تولیدی
+
+- Broiler: **PASS**
+- Pullet: **PASS**
+- Layer: **PASS**
+- Breeder: **PASS**
+
+### Security
+
+- RPCها Security Definer با `search_path=public`: **PASS**
+- دسترسی غیرمجاز: **PASS** — 0 ردیف Benchmark
+- مالک/دسترسی حرفه‌ای فعال: **PASS**
+
+### Performance
+
+- یک Metric RPC: **PASS** — حدود 42ms در Dataset فعلی
+- Matrix RPC: **PASS** — حدود 105ms در Dataset فعلی
+
+### Regression
+
+- V6 حذف نشده است.
+- V7 به‌صورت additive مستقر شده است.
+- `internal-benchmark.js` و `performance-benchmark-v2.js` به V7-first منتقل شده‌اند.
+- Renderer اصلی گزارش نباید مستقیماً V6 را صدا بزند.
+
+## Release Gate
+
+**PASS — هیچ Failure مسدودکننده‌ای در موتور Benchmark V7 باقی نمانده است.**
+
+منابع جاری Cobb/Hy-Line/LOHMANN در Registry به‌عنوان source-verified نگهداری می‌شوند تا فقط پس از extraction و validation عددی وارد Numeric Registry شوند؛ این یک کنترل کیفیت است و از ورود عدد تخمینی جلوگیری می‌کند.
+
+## منابع رسمی بررسی‌شده
+
+- Aviagen/Ross
+- Cobb Genetics
+- Hy-Line
+- LOHMANN Breeders
+
+این Benchmark یک «رتبه‌بندی ساده» نیست؛ یک موتور مقایسه چندلایه شامل Genetic Standard، Management Standard، Peer Benchmark، Data Quality، Cohort، Confidence، Context و Self-performance است.

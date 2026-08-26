@@ -55,8 +55,8 @@
             window.editWeeklyRecord = function (recordId) {
                 const result = originalEditWeeklyRecord.apply(this, arguments);
                 try {
-                    const record = Array.isArray(window.weeklyRecords)
-                        ? window.weeklyRecords.find(item => String(item.id) === String(recordId))
+                    const record = Array.isArray(weeklyRecords)
+                        ? weeklyRecords.find(item => String(item.id) === String(recordId))
                         : null;
                     if (record && Number.isFinite(Number(record.average_weight_g)) && Number(record.average_weight_g) > 0) {
                         fillAverageField(record.average_weight_g);

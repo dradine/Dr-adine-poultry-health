@@ -2,7 +2,10 @@
 "use strict";
 (function(global){
 const VERSION="4.0-2026";
-if(typeof document!=="undefined"&&typeof global.BENCHMARK_CORE_V3==="undefined"){document.write('<script src="benchmark-core-v3.js"><\\/script>');}
+if(typeof document!=="undefined"){
+  if(typeof global.BENCHMARK_CORE_V3==="undefined")document.write('<script src="benchmark-core-v3.js"><\\/script>');
+  document.write('<script src="benchmark-standard-overrides-v1.js"><\\/script>');
+}
 const norm=v=>String(v??"").normalize("NFKC").toLowerCase().replace(/[\u200c\u200f\u202a-\u202e]/g,"").replace(/[‐‑‒–—−]/g,"-").replace(/[._/\\]+/g," ").replace(/[^a-z0-9\u0600-\u06ff-]+/gi," ").replace(/\s+/g," ").trim();
 function productionType(v){const x=norm(v);if(x==="broiler"||x==="broilers"||x==="goshthi"||x==="گوشتی")return"broiler";if(x==="layer"||x==="layers"||x==="laying"||x==="تخمگذار"||x==="تخم گذار"||x==="تخم‌گذار")return"layer";if(x==="breeder"||x==="breeders"||x==="parent"||x==="parent stock"||x==="مادر"||x==="مرغ مادر")return"breeder";if(x==="pullet"||x==="pullets"||x==="پولت")return"pullet";return x||"broiler";}
 function identity(type,genetics,strain){const t=productionType(type),g=norm(genetics),s=norm(strain),cat=typeof POULTRY_CATALOG!=="undefined"?POULTRY_CATALOG[t]:null;if(!cat)return{type:t,geneticsId:g,strain:s,matched:false};for(const group of cat.genetics||[]){if(norm(group.id)===g){const hit=(group.strains||[]).find(x=>norm(x)===s);return{type:t,geneticsId:group.id,strain:hit||s,matched:Boolean(hit)};}}for(const group of cat.genetics||[]){const hit=(group.strains||[]).find(x=>norm(x)===s);if(hit)return{type:t,geneticsId:group.id,strain:hit,matched:true};}return{type:t,geneticsId:g,strain:s,matched:false};}

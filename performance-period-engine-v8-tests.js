@@ -1,6 +1,6 @@
 (function(g){
 "use strict";
-function assert(name,condition,detail){if(!condition)throw new Error("FAIL: "+name+(detail?" | "+detail:""));}
+function assert(name,condition,detail){if(!condition)throw new Error("FAIL: "+name+(detail?" | "+detail:"));}
 function approx(a,b,e){return Math.abs(a-b)<=e;}
 function runAdinePeriodEngineTests(){
  const E=g.AdinePerformancePeriodEngineV8;
@@ -40,7 +40,10 @@ function runAdinePeriodEngineTests(){
  const boundary=E.enrichRecords([{ageDays:1,averageWeight:60},{ageDays:8,averageWeight:120}],flock,standard);
  assert("day 1 is week 1",boundary[0].weekNumber===1);
  assert("day 8 is week 2",boundary[1].weekNumber===2);
- return {passed:true,count:23,version:E.VERSION};
+ const mismatch=E.enrichRecords([{weekNumber:3,ageDays:132,averageWeight:532}],flock,standard);
+ assert("age days override bad stored week number",mismatch[0].weekNumber===19);
+ assert("age 132 maps to days 127-133",mismatch[0].periodStartAgeDays===127&&mismatch[0].periodEndAgeDays===133);
+ return {passed:true,count:25,version:E.VERSION};
 }
 g.runAdinePeriodEngineTests=runAdinePeriodEngineTests;
 })(window);

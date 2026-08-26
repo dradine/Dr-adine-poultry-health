@@ -1,1 +1,5 @@
-/* Intentionally empty: Dashboard uses its native app.css mobile sizing. */
+/* Dashboard-only override: remove body background image. Hero, cards and bottom navigation remain unchanged. */
+body.dashboard-page{
+  background:#f4f7f5!important;
+  background-image:none!important;
+}

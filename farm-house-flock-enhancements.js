@@ -8,29 +8,38 @@
     const iso = id => { const v=text(id); if(!v)return null; return window.AdineDateSystem?.jalaliToISO?.(v) || window.jalaliToISO?.(v) || null; };
     const productionRelevant = () => ["layer","breeder"].includes(text("productionType").toLowerCase());
 
-    /*
-       IMPORTANT:
-       There are already dedicated production-baseline controls for layer/breeder.
-       Older markup/scripts can still inject a second generic set immediately below
-       the flock notes. Remove ONLY those duplicate generic controls by their exact
-       labels. The dedicated controls (including "تاریخ شروع تولید") are preserved.
-    */
+    /* Remove ONLY the four duplicate generic fields from the flock form.
+       The dedicated layer/breeder production section is preserved. */
     function removeDuplicateProductionFields(){
-        const duplicateLabels = new Set([
-            "شروع تولید",
-            "سن شروع تولید (روز)",
-            "تعداد پرنده شروع تولید",
-            "وزن شروع تولید (گرم)"
-        ]);
-        document.querySelectorAll("#flockForm label").forEach(label => {
-            const labelText = label.textContent.replace(/\s+/g," ").trim();
-            if(!duplicateLabels.has(labelText)) return;
-            const group = label.closest(".form-group");
-            if(!group) return;
-            /* Never remove a field from the dedicated production-baseline block. */
-            if(group.closest("#productionBaselineFields")) return;
-            group.remove();
+        const form=$("flockForm");
+        if(!form)return;
+        const exact=new Set(["شروع تولید","سن شروع تولید (روز)","تعداد پرنده شروع تولید","وزن شروع تولید (گرم)"]);
+        const partial=["شروع تولید","سن شروع تولید","تعداد پرنده شروع تولید","وزن شروع تولید"];
+        form.querySelectorAll("label").forEach(label=>{
+            const t=label.textContent.replace(/\s+/g," ").trim();
+            const match=exact.has(t)||partial.some(x=>t===x||t.includes(x));
+            if(!match)return;
+            const protectedBlock=label.closest("#productionBaselineFields,[data-production-baseline],.production-baseline");
+            if(protectedBlock)return;
+            const group=label.closest(".form-group")||label.parentElement;
+            if(group && group!==form) group.remove();
         });
+        /* Also remove orphan inputs by their known IDs if an older script created them. */
+        ["productionStartDate","productionStartAgeDays","productionBaselineBirdCount","productionBaselineWeightG"].forEach(id=>{
+            const el=$(id);
+            if(!el)return;
+            if(el.closest("#productionBaselineFields,[data-production-baseline],.production-baseline"))return;
+            (el.closest(".form-group")||el.parentElement)?.remove();
+        });
+    }
+
+    function watchForDuplicateFields(){
+        const form=$("flockForm");
+        if(!form||form.dataset.productionDuplicateObserver)return;
+        form.dataset.productionDuplicateObserver="1";
+        const observer=new MutationObserver(()=>removeDuplicateProductionFields());
+        observer.observe(form,{childList:true,subtree:true});
+        removeDuplicateProductionFields();
     }
 
     function updateProductionVisibility(){
@@ -39,32 +48,18 @@
         const active=productionRelevant();
         wrap.style.display=active?"grid":"none";
         ["productionStartDate","productionStartAgeDays","productionBaselineBirdCount","productionBaselineWeightG"].forEach(id=>{
-            const el=$(id);
-            if(el) el.required=false;
-            if(!active&&el) el.value="";
+            const el=$(id); if(el)el.required=false;
+            if(!active&&el)el.value="";
         });
     }
 
     function selectedHouse(){
-        const id=text("flockHouse"); if(!id)return null;
-        try { const list=(typeof houses !== "undefined") ? houses : []; return list.find(h=>String(h.id)===String(id))||null; } catch(_){ return null; }
+        const id=text("flockHouse");if(!id)return null;
+        try{const list=(typeof houses!=="undefined")?houses:[];return list.find(h=>String(h.id)===String(id))||null;}catch(_){return null;}
     }
-    function autoFillBirds(){
-        const h=selectedHouse(),input=$("birdCount"); if(!h||!input)return;
-        const v=h.initial_bird_count??h.capacity;
-        if(v!==null&&v!==undefined&&v!=="")input.value=Number(v).toLocaleString("fa-IR");
-    }
-    function addDensity(){
-        const width=$("houseWidth"); if(!width||$("houseDensity"))return;
-        const g=document.createElement("div");g.className="form-group";
-        g.innerHTML=`<label for="houseDensity">تراکم اولیه (پرنده / مترمربع)</label><input id="houseDensity" type="text" readonly placeholder="با وارد کردن طول، عرض و تعداد پرنده محاسبه می‌شود">`;
-        width.closest(".form-group")?.after(g);
-    }
-    function updateDensity(){
-        const l=num("houseLength"),w=num("houseWidth"),b=num("houseInitialBirdCount"),o=$("houseDensity");if(!o)return;
-        if(!l||!w||b===null||l<=0||w<=0||b<0){o.value="";return;}
-        o.value=(b/(l*w)).toLocaleString("fa-IR",{maximumFractionDigits:2});
-    }
+    function autoFillBirds(){const h=selectedHouse(),input=$("birdCount");if(!h||!input)return;const v=h.initial_bird_count??h.capacity;if(v!==null&&v!==undefined&&v!=="")input.value=Number(v).toLocaleString("fa-IR");}
+    function addDensity(){const width=$("houseWidth");if(!width||$("houseDensity"))return;const g=document.createElement("div");g.className="form-group";g.innerHTML=`<label for="houseDensity">تراکم اولیه (پرنده / مترمربع)</label><input id="houseDensity" type="text" readonly placeholder="با وارد کردن طول، عرض و تعداد پرنده محاسبه می‌شود">`;width.closest(".form-group")?.after(g);}
+    function updateDensity(){const l=num("houseLength"),w=num("houseWidth"),b=num("houseInitialBirdCount"),o=$("houseDensity");if(!o)return;if(!l||!w||b===null||l<=0||w<=0||b<0){o.value="";return;}o.value=(b/(l*w)).toLocaleString("fa-IR",{maximumFractionDigits:2});}
     function interceptHouse(){
         const form=$("houseForm");if(!form||form.dataset.adineFixHouse)return;form.dataset.adineFixHouse="1";
         form.addEventListener("submit",async e=>{e.preventDefault();e.stopImmediatePropagation();if(typeof selectedFarm==="undefined"||!selectedFarm)return alert("ابتدا یک فارم انتخاب کنید.");const name=text("houseName");if(!name)return alert("نام سالن را وارد کنید.");const payload={farm_id:selectedFarm.id,owner_id:currentUser.id,name,house_code:text("houseCode"),capacity:num("houseCapacity"),initial_bird_count:num("houseInitialBirdCount"),length_m:num("houseLength"),width_m:num("houseWidth"),ventilation_type:text("houseVentilation"),housing_system:text("houseSystem"),notes:text("houseNotes"),is_active:true};const btn=form.querySelector('button[type="submit"]');if(btn){btn.disabled=true;btn.textContent="در حال ذخیره...";}try{const{error}=await supabaseClient.from("houses").insert(payload);if(error)throw error;form.reset();updateDensity();await loadHouses();alert("سالن با موفقیت ثبت شد.");}catch(err){console.error(err);alert("ذخیره سالن انجام نشد:\n"+(err.message||err));}finally{if(btn){btn.disabled=false;btn.textContent="ذخیره سالن";}}},true);
@@ -80,9 +75,8 @@
         $("flockHouse")?.addEventListener("change",autoFillBirds);
         ["houseLength","houseWidth","houseInitialBirdCount"].forEach(id=>$(id)?.addEventListener("input",updateDensity));
         autoFillBirds();updateDensity();updateProductionVisibility();
-        /* Re-check once after all page scripts have finished rendering dynamic fields. */
-        setTimeout(removeDuplicateProductionFields,300);
-        setTimeout(removeDuplicateProductionFields,1000);
+        setTimeout(removeDuplicateProductionFields,300);setTimeout(removeDuplicateProductionFields,1000);
+        watchForDuplicateFields();
     }
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();

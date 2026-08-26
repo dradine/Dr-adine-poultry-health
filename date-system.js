@@ -177,7 +177,7 @@
         if (!value) return "";
         const text = String(value).trim().slice(0, 10);
         const parts = text.split("-");
-        if (parts.length !== 3) return value;
+        if (parts.length !== 3) return "";
 
         const gy = Number(parts[0]);
         const gm = Number(parts[1]);
@@ -193,7 +193,7 @@
     }
 
     function isJalaliLeapYear(jy) {
-        return Boolean(jalaliToGregorianISO(`${jy}/12/30`));
+        return Boolean(jalaliToGregorianISO(`${Number(jy)}/12/30`));
     }
 
     function todayGregorianISO() {
@@ -231,31 +231,57 @@
     }
 
     function runSelfTest() {
-        const cases = [
-            "1405/01/01",
-            "1405/01/31",
-            "1405/02/01",
-            "1405/04/31",
-            "1405/05/08",
-            "1405/05/31",
-            "1405/06/01",
-            "1405/12/29",
-            "1403/12/30"
-        ];
-
         const failures = [];
-        cases.forEach(j => {
+        const expectRoundTrip = (j, expectedISO = null) => {
             const iso = jalaliToISO(j);
             const back = isoToJalali(iso);
-            if (!iso || back !== j) failures.push({ j, iso, back });
+            if (!iso || back !== normalizeDigits(j).replace(/-/g, "/").replace(/\./g, "/").split("/").map((v, i) => i === 0 ? String(Number(v)) : pad(Number(v))).join("/")) {
+                failures.push({ type: "round-trip", input: j, iso, back });
+            }
+            if (expectedISO && iso !== expectedISO) failures.push({ type: "known-value", input: j, iso, expectedISO });
+        };
+
+        [
+            ["1405/01/01", "2026-03-21"],
+            ["1405/01/31", "2026-04-20"],
+            ["1405/02/01", "2026-04-21"],
+            ["1405/04/31", "2026-07-22"],
+            ["1405/05/08", "2026-07-30"],
+            ["1405/05/31", "2026-08-22"],
+            ["1405/06/01", "2026-08-23"],
+            ["1405/12/29", "2027-03-20"],
+            ["1403/12/30", "2025-03-20"]
+        ].forEach(([j, iso]) => expectRoundTrip(j, iso));
+
+        [
+            "1405/12/30",
+            "1405/01/32",
+            "1405/06/31",
+            "1405/13/01",
+            "1405/00/01",
+            "1405/02/00",
+            "۱۴۰۵/۱۲/۳۰",
+            "1405-12-30",
+            "1405.12.30"
+        ].forEach(j => {
+            if (isValidJalali(j)) failures.push({ type: "invalid-accepted", input: j });
         });
 
-        if (isValidJalali("1405/12/30")) failures.push({ j: "1405/12/30", error: "invalid leap day accepted" });
-        if (!isValidJalali("1403/12/30")) failures.push({ j: "1403/12/30", error: "valid leap day rejected" });
+        ["1403/12/30", "1408/12/30", "1399/12/30"].forEach(j => {
+            if (!isValidJalali(j)) failures.push({ type: "leap-rejected", input: j });
+        });
+
+        if (isValidGregorian(2024, 2, 29) !== true) failures.push({ type: "gregorian-leap", value: "2024-02-29" });
+        if (isValidGregorian(2025, 2, 29) !== false) failures.push({ type: "gregorian-invalid-leap", value: "2025-02-29" });
+        if (dateOnlyDiffDays("2026-03-21", "2026-03-22") !== 1) failures.push({ type: "diff", value: 1 });
+        if (dateOnlyDiffDays("2026-03-22", "2026-03-21") !== -1) failures.push({ type: "diff", value: -1 });
+        if (jalaliDiffDays("1405/01/01", "1405/01/31") !== 30) failures.push({ type: "jalali-diff", value: 30 });
+        if (normalizeDigits("۱۴۰۵/۰۵/۰۸") !== "1405/05/08") failures.push({ type: "digits" });
+        if (todayJalali() !== isoToJalali(todayGregorianISO())) failures.push({ type: "today" });
 
         return {
             ok: failures.length === 0,
-            cases: cases.length,
+            testCount: 9 + 9 + 3 + 7,
             failures
         };
     }
@@ -287,6 +313,6 @@
     window.jalaliToISO = jalaliToISO;
     window.isoToJalali = isoToJalali;
 
-    // Do not spam production logs; only expose the result for diagnostics.
+    // Diagnostic result; no console spam.
     window.__ADINE_DATE_SELF_TEST__ = runSelfTest();
 })();

@@ -16,12 +16,8 @@ function calculateEggMass(productionPercent,eggWeight){const production=Number(p
 function toPersianDigits(value){return String(value).replace(/\d/g,digit=>"۰۱۲۳۴۵۶۷۸۹"[digit]);}
 function formatNumber(value,decimals=1){if(value===null||value===undefined||!Number.isFinite(Number(value)))return"—";return Number(value).toLocaleString("fa-IR",{minimumFractionDigits:decimals,maximumFractionDigits:decimals});}
 
-/* Shared Jalali calendar visual theme. UI only; date calculations are untouched. */
+/* Shared Jalali calendar theme. UI only; date calculations are untouched. */
 (function(){
   if(document.querySelector('link[data-adine-calendar-theme="1"]'))return;
-  const link=document.createElement("link");
-  link.rel="stylesheet";
-  link.href="calendar-theme.css";
-  link.dataset.adineCalendarTheme="1";
-  document.head.appendChild(link);
+  const link=document.createElement("link");link.rel="stylesheet";link.href="calendar-theme.css";link.dataset.adineCalendarTheme="1";document.head.appendChild(link);
 })();

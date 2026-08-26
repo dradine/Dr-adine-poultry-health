@@ -1,0 +1,56 @@
+/* ADINE FARM SCORE — REPORT DISPLAY FIX
+   Keeps the scoring engine untouched; fixes only the breakdown rendering/layout.
+*/
+(function(g){"use strict";
+const LABELS={weight:"میانگین وزن گله",fcr:"FCR",mortality:"تلفات تجمعی",uniformity:"یکنواختی ±10٪",cv:"CV",production:"تولید",fertility:"نطفه‌داری",hatchability:"جوجه‌درآوری",eggWeight:"وزن تخم",feed:"مصرف دان",water:"مصرف آب"};
+const UNIT={weight:"گرم",fcr:"",mortality:"٪",uniformity:"٪",cv:"٪",production:"٪",fertility:"٪",hatchability:"٪",eggWeight:"گرم",feed:"",water:""};
+function esc(v){return String(v??"").replace(/[&<>"']/g,x=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[x]))}
+function scoreClass(v){return v>=90?"excellent":v>=80?"good":v>=70?"acceptable":v>=60?"weak":"critical"}
+function getEngine(){return g.AdineFarmScoreV7||g.AdineFarmScoreV3||null}
+function render(r){
+ const c=document.getElementById("farmScoreCard"),b=document.getElementById("farmScoreBreakdown");
+ if(!c||!b||!r||r.score==null)return;
+ const scores=r.latest?.scores||{};
+ const order=Object.keys(scores);
+ b.className="farm-score-breakdown farm-score-breakdown-fixed";
+ b.innerHTML=`<div class="farm-score-breakdown-title"><strong>جزئیات امتیاز شاخص‌ها</strong><span>امتیاز هر شاخص از ۱۰۰</span></div>`+
+ order.map(k=>{
+   const s=Number(scores[k]); const label=LABELS[k]||k; const unit=UNIT[k]||"";
+   if(!Number.isFinite(s)) return `<div class="farm-score-item score-missing"><div class="farm-score-item-top"><span>${esc(label)}</span><b>داده کافی نیست</b></div></div>`;
+   return `<div class="farm-score-item score-${scoreClass(s)}">
+      <div class="farm-score-item-top"><span>${esc(label)}</span><b>${s.toFixed(1)} / 100</b></div>
+      <div class="farm-score-bar"><span style="width:${Math.max(0,Math.min(100,s))}%"></span></div>
+      <div class="farm-score-item-value">${s.toFixed(1)} <small>امتیاز</small></div>
+   </div>`;
+ }).join("");
+}
+function patch(){
+ const engine=getEngine(); if(!engine)return false;
+ if(!engine.__displayPatched){
+   const original=engine.render;
+   engine.render=function(r){ original.call(engine,r); render(r); };
+   engine.__displayPatched=true;
+ }
+ return true;
+}
+function refresh(){const e=getEngine();if(!e)return;patch();if(typeof e.refresh==="function")e.refresh()}
+function injectStyle(){if(document.getElementById("farm-score-display-fix-style"))return;const s=document.createElement("style");s.id="farm-score-display-fix-style";s.textContent=`
+.farm-score-breakdown-fixed{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px;direction:rtl}
+.farm-score-breakdown-title{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:0 2px 4px;color:#344054;font-size:13px}
+.farm-score-breakdown-title span{color:#667085;font-weight:600}
+.farm-score-breakdown-fixed .farm-score-item{min-width:0!important;box-sizing:border-box;background:#fff;border:1px solid #e5ebe8;border-radius:14px;padding:13px;overflow:hidden}
+.farm-score-breakdown-fixed .farm-score-item-top{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:8px!important;direction:rtl;font-size:12px;color:#475467;line-height:1.6}
+.farm-score-breakdown-fixed .farm-score-item-top span{font-weight:800;white-space:normal}
+.farm-score-breakdown-fixed .farm-score-item-top b{direction:ltr;white-space:nowrap;font-size:12px;color:#173f35}
+.farm-score-breakdown-fixed .farm-score-item-value{font-size:22px!important;font-weight:900!important;margin-top:7px!important;color:#173f35!important;direction:ltr;text-align:right}
+.farm-score-breakdown-fixed .farm-score-item-value small{font-size:11px;font-weight:700;color:#667085}
+.farm-score-breakdown-fixed .farm-score-bar{height:7px!important;border-radius:999px;background:#edf1ef;overflow:hidden;margin-top:9px}
+.farm-score-breakdown-fixed .farm-score-bar span{display:block;height:100%;border-radius:999px;background:#173f35}
+.farm-score-breakdown-fixed .score-excellent{border-right:4px solid #067647!important}.farm-score-breakdown-fixed .score-good{border-right:4px solid #198754!important}.farm-score-breakdown-fixed .score-acceptable{border-right:4px solid #9a6700!important}.farm-score-breakdown-fixed .score-weak{border-right:4px solid #d97706!important}.farm-score-breakdown-fixed .score-critical{border-right:4px solid #b42318!important}.farm-score-breakdown-fixed .score-missing{border-right:4px solid #98a2b3!important}
+@media(max-width:900px){.farm-score-breakdown-fixed{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.farm-score-breakdown-fixed{grid-template-columns:1fr}.farm-score-breakdown-title{align-items:flex-start;flex-direction:column;gap:3px}}
+`;document.head.appendChild(s)}
+function boot(){injectStyle();let n=0;const t=setInterval(()=>{if(patch()){refresh();clearInterval(t)}if(++n>30)clearInterval(t)},300)}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+g.AdineFarmScoreDisplayFix={render,refresh};
+})(window);

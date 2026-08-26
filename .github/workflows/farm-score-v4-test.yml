@@ -13,3 +13,4 @@ jobs:
         run: node farm-score-v4.test.js
       - name: Verify reports integration
         run: grep -F '<script src="farm-score-v3.js"></script>' reports.html
+# regression trigger for corrected v6 engine

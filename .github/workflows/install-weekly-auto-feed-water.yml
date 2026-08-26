@@ -1,0 +1,238 @@
+name: Install Weekly Auto Feed Water Metrics
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    if: ${{ !contains(github.event.head_commit.message, '[skip weekly-auto]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install weekly auto metrics
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          html_path = Path('weekly.html')
+          js_path = Path('weekly.js')
+
+          if not html_path.exists() or not js_path.exists():
+              raise SystemExit('weekly.html or weekly.js not found')
+
+          html = html_path.read_text(encoding='utf-8')
+
+          # Make derived fields visibly system-controlled. The values are still
+          # present in the form for transparency/edit-history compatibility, but
+          # the user cannot enter them manually.
+          html = re.sub(
+              r'(<input\s+id="feedPerBird"\b[^>]*)(>)',
+              lambda m: m.group(1) + ' readonly data-auto-derived="true" aria-readonly="true"' + m.group(2),
+              html,
+              count=1,
+              flags=re.S,
+          )
+          html = re.sub(
+              r'(<input\s+id="waterPerBird"\b[^>]*)(>)',
+              lambda m: m.group(1) + ' readonly data-auto-derived="true" aria-readonly="true"' + m.group(2),
+              html,
+              count=1,
+              flags=re.S,
+          )
+
+          if 'id="autoFeedWaterMetrics"' not in html:
+              anchor = re.search(r'(\n\s*</div>\s*\n\s*<div class="form-group">\s*\n\s*<label for="waterPerBird"[\s\S]*?</div>)', html)
+              if anchor:
+                  block = '''\n\n            <div class="form-group" id="autoFeedWaterMetrics" style="grid-column:1/-1;">\n                <div class="info-box" style="margin:0;">\n                    <strong>محاسبات خودکار مصرف:</strong>\n                    <span id="autoFeedWaterRatioValue">—</span>\n                    <span id="autoFeedWaterPopulationBasis" style="display:block;margin-top:6px;font-size:.88em;color:#667085;"></span>\n                </div>\n            </div>'''
+                  html = html[:anchor.end()] + block + html[anchor.end():]
+
+          js = js_path.read_text(encoding='utf-8')
+          marker = '/* ADINE_AUTO_WEEKLY_METRICS_V1 */'
+
+          if marker not in js:
+              js += r'''
+
+/* ADINE_AUTO_WEEKLY_METRICS_V1 */
+(function () {
+    "use strict";
+
+    function n(id) {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const raw = typeof normalizeNumberString === "function"
+            ? normalizeNumberString(el.value)
+            : String(el.value || "").replace(/,/g, "");
+        if (raw === "") return null;
+        const value = Number(raw);
+        return Number.isFinite(value) ? value : null;
+    }
+
+    function setAuto(id, value, decimals) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (value === null || !Number.isFinite(value)) {
+            el.value = "";
+            return;
+        }
+        el.value = Number(value.toFixed(decimals)).toString();
+    }
+
+    function currentRecordForPreviousWeek() {
+        if (!Array.isArray(window.weeklyRecords)) return null;
+        const editing = window.editingRecordId || null;
+        const rows = window.weeklyRecords
+            .filter(r => String(r.id) !== String(editing || ""))
+            .filter(r => Number.isFinite(Number(r.live_birds ?? r.liveBirds)))
+            .sort((a, b) => {
+                const aa = Number(a.age_days ?? a.ageDays ?? a.production_day ?? a.week_number * 7 ?? 0);
+                const bb = Number(b.age_days ?? b.ageDays ?? b.production_day ?? b.week_number * 7 ?? 0);
+                return aa - bb;
+            });
+        return rows.length ? rows[rows.length - 1] : null;
+    }
+
+    function getPopulationBasis() {
+        const close = n("liveBirds");
+        if (!(close > 0)) return { average: null, basis: "جمعیت زنده ثبت نشده است" };
+
+        const previous = currentRecordForPreviousWeek();
+        const previousLive = previous ? Number(previous.live_birds ?? previous.liveBirds) : null;
+        if (Number.isFinite(previousLive) && previousLive > 0) {
+            return {
+                average: (previousLive + close) / 2,
+                basis: "میانگین جمعیت: ابتدای هفته = پایان هفته قبل"
+            };
+        }
+
+        const initial = Number(window.currentFlock?.initial_bird_count ?? window.currentFlock?.initialBirdCount);
+        if (Number.isFinite(initial) && initial > 0) {
+            return {
+                average: (initial + close) / 2,
+                basis: "میانگین جمعیت: جوجه‌ریزی اولیه و جمعیت پایان هفته"
+            };
+        }
+
+        const mortality = n("mortalityWeek");
+        if (Number.isFinite(mortality) && mortality >= 0) {
+            return {
+                average: (close + mortality + close) / 2,
+                basis: "تقریبی: جمعیت پایان هفته + تلفات ثبت‌شده؛ در نبود جمعیت ابتدای هفته"
+            };
+        }
+
+        return { average: close, basis: "فقط جمعیت پایان هفته؛ جمعیت ابتدای هفته در دسترس نیست" };
+    }
+
+    function updateAutoFeedWaterMetrics() {
+        const feedKg = n("feedTotal");
+        const waterL = n("waterTotal");
+        const pop = getPopulationBasis();
+
+        const feedPerBird = feedKg !== null && feedKg >= 0 && pop.average > 0
+            ? (feedKg * 1000) / pop.average
+            : null;
+        const waterPerBird = waterL !== null && waterL >= 0 && pop.average > 0
+            ? (waterL * 1000) / pop.average
+            : null;
+        const ratio = feedKg !== null && feedKg > 0 && waterL !== null && waterL >= 0
+            ? waterL / feedKg
+            : null;
+
+        setAuto("feedPerBird", feedPerBird, 3);
+        setAuto("waterPerBird", waterPerBird, 3);
+
+        const ratioEl = document.getElementById("autoFeedWaterRatioValue");
+        if (ratioEl) ratioEl.textContent = ratio === null ? "نسبت آب به دان: —" : `نسبت آب به دان: ${ratio.toFixed(3)} : 1`;
+
+        const basisEl = document.getElementById("autoFeedWaterPopulationBasis");
+        if (basisEl) basisEl.textContent = pop.average > 0
+            ? `${pop.basis} | جمعیت متوسط هفتگی: ${Math.round(pop.average).toLocaleString('fa-IR')} قطعه`
+            : pop.basis;
+    }
+
+    function attach() {
+        ["feedTotal", "waterTotal", "liveBirds", "mortalityWeek", "weekNumber"].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el || el.dataset.autoMetricBound === "true") return;
+            el.dataset.autoMetricBound = "true";
+            el.addEventListener("input", updateAutoFeedWaterMetrics);
+            el.addEventListener("change", updateAutoFeedWaterMetrics);
+        });
+        updateAutoFeedWaterMetrics();
+    }
+
+    function wrapAfterDefined(name) {
+        const original = window[name];
+        if (typeof original !== "function" || original.__autoWrappedV1) return;
+        function wrapped() {
+            const result = original.apply(this, arguments);
+            setTimeout(updateAutoFeedWaterMetrics, 0);
+            return result;
+        }
+        wrapped.__autoWrappedV1 = true;
+        window[name] = wrapped;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        attach();
+        setTimeout(function () {
+            attach();
+            wrapAfterDefined("editWeeklyRecord");
+            wrapAfterDefined("clearWeeklyForm");
+            wrapAfterDefined("loadCurrentFlock");
+            updateAutoFeedWaterMetrics();
+        }, 250);
+    });
+
+    // Keep the calculation live even when weekly.js populates fields programmatically.
+    const observer = new MutationObserver(function () {
+        if (document.getElementById("feedTotal")) updateAutoFeedWaterMetrics();
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+
+    window.AdineWeeklyAutoMetrics = {
+        update: updateAutoFeedWaterMetrics,
+        getPopulationBasis: getPopulationBasis
+    };
+})();
+'''
+
+          html_path.write_text(html, encoding='utf-8')
+          js_path.write_text(js, encoding='utf-8')
+
+      - name: Validate syntax and installation
+        run: |
+          node --check weekly.js
+          python - <<'PY'
+          from pathlib import Path
+          html = Path('weekly.html').read_text(encoding='utf-8')
+          js = Path('weekly.js').read_text(encoding='utf-8')
+          assert 'id="feedPerBird"' in html
+          assert 'id="waterPerBird"' in html
+          assert 'readonly' in html
+          assert 'ADINE_AUTO_WEEKLY_METRICS_V1' in js
+          print('weekly auto metrics installation checks: PASS')
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add weekly.html weekly.js
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git commit -m "Implement automatic weekly feed and water metrics [skip weekly-auto]"
+          git push

@@ -58,7 +58,6 @@ jobs:
                   i += 1
               raise RuntimeError(f'Unbalanced braces in {name}')
 
-          # Weekly: route today's date through the central engine.
           weekly = root / 'weekly.js'
           text = weekly.read_text(encoding='utf-8')
           replacement = '''function setToday() {\n\n    const input = document.getElementById("evaluationDate");\n    if (!input) return;\n\n    if (!window.AdineDateSystem || typeof window.AdineDateSystem.todayJalali !== "function") {\n        throw new Error("Central Date Engine is required before weekly.js");\n    }\n\n    input.value = window.AdineDateSystem.todayJalali();\n}\n'''
@@ -67,37 +66,32 @@ jobs:
               raise RuntimeError('weekly.js setToday() was not found')
           weekly.write_text(text, encoding='utf-8')
 
-          # Flocks: replace the local date setup with a central-engine adapter.
           flocks = root / 'flocks.js'
           text = flocks.read_text(encoding='utf-8')
-          replacement = '''function setupJalaliDate() {\n\n    const input = document.getElementById("placementDate");\n    if (!input) return;\n\n    if (!window.AdineDateSystem) {\n        throw new Error("Central Date Engine is required before flocks.js");\n    }\n\n    if (typeof window.jQuery !== "undefined" &&\n        typeof window.jQuery.fn.persianDatepicker === "function" &&\n        !window.jQuery(input).data("central-date-initialized")) {\n\n        window.jQuery(input).persianDatepicker({\n            format: "YYYY/MM/DD",\n            autoClose: true,\n            initialValue: false,\n            observer: true,\n            calendarType: "persian",\n            calendar: {\n                persian: {\n                    locale: "fa",\n                    leapYearMode: "algorithmic"\n                }\n            },\n            toolbox: {\n                calendarSwitch: false,\n                todayButton: { enabled: true, text: { fa: "امروز" } }\n            },\n            navigator: { enabled: true, scroll: { enabled: false } },\n            responsive: true,\n            timePicker: { enabled: false }\n        });\n\n        window.jQuery(input).data("central-date-initialized", true);\n    }\n\n    input.setAttribute("inputmode", "numeric");\n    input.setAttribute("autocomplete", "off");\n}\n'''
+          replacement = '''function setupJalaliDate() {\n\n    const input = document.getElementById("placementDate");\n    if (!input) return;\n\n    if (!window.AdineDateSystem) {\n        throw new Error("Central Date Engine is required before flocks.js");\n    }\n\n    if (typeof window.jQuery !== "undefined" &&\n        typeof window.jQuery.fn.persianDatepicker === "function" &&\n        !window.jQuery(input).data("central-date-initialized")) {\n\n        window.jQuery(input).persianDatepicker({\n            format: "YYYY/MM/DD",\n            autoClose: true,\n            initialValue: false,\n            observer: true,\n            calendarType: "persian",\n            calendar: { persian: { locale: "fa", leapYearMode: "algorithmic" } },\n            toolbox: { calendarSwitch: false, todayButton: { enabled: true, text: { fa: "امروز" } } },\n            navigator: { enabled: true, scroll: { enabled: false } },\n            responsive: true,\n            timePicker: { enabled: false }\n        });\n\n        window.jQuery(input).data("central-date-initialized", true);\n    }\n\n    input.setAttribute("inputmode", "numeric");\n    input.setAttribute("autocomplete", "off");\n}\n'''
           text, changed = replace_function(text, 'setupJalaliDate', replacement)
           if not changed:
               raise RuntimeError('flocks.js setupJalaliDate() was not found')
 
-          # Prevent local conversion functions from shadowing the central engine.
           for name in ('gregorianToJalali', 'jalaliToGregorian', 'jalaliToGregorianISO'):
-              occurrences = len(re.findall(rf'\\bfunction\\s+{name}\\s*\\(', text))
-              if occurrences:
-                  text = re.sub(rf'\\b{name}\\b', f'_flockLegacy_{name}', text)
+              if f'function {name}(' in text:
+                  text = re.sub(r'(?<![A-Za-z0-9_$])' + re.escape(name) + r'\b', '_flockLegacy_' + name, text)
           flocks.write_text(text, encoding='utf-8')
 
-          # Every page that uses date-dependent engines must load the central engine first.
           for html in root.glob('*.html'):
               s = html.read_text(encoding='utf-8')
               deps = ['flocks.js', 'weekly.js', 'health-date.js']
               used = [d for d in deps if f'src="{d}"' in s or f"src='{d}'" in s]
               if not used:
                   continue
-              if 'src="date-system.js"' in s or "src='date-system.js'" in s:
-                  s = re.sub(r'\\s*<script[^>]+src=["\\\']date-system\\.js["\\\'][^>]*></script>', '', s)
-              first_positions = []
+              s = re.sub(r'\s*<script[^>]+src=["\']date-system\.js["\'][^>]*></script>', '', s)
+              positions = []
               for d in used:
-                  m = re.search(rf'<script[^>]+src=["\\\']{re.escape(d)}["\\\'][^>]*></script>', s)
+                  m = re.search(r'<script[^>]+src=["\']' + re.escape(d) + r'["\'][^>]*></script>', s)
                   if m:
-                      first_positions.append((m.start(), d))
-              if first_positions:
-                  pos, _ = min(first_positions)
+                      positions.append(m.start())
+              if positions:
+                  pos = min(positions)
                   s = s[:pos] + '<script src="date-system.js"></script>\n' + s[pos:]
                   html.write_text(s, encoding='utf-8')
 
@@ -123,7 +117,6 @@ jobs:
           if (!d || !d.runSelfTest) throw new Error('Central Date Engine did not initialize');
           const self = d.runSelfTest();
           if (!self.ok) throw new Error('Self-test failed: ' + JSON.stringify(self.failures));
-
           let count = 0;
           for (let jy = 1300; jy <= 1500; jy++) {
             for (let jm = 1; jm <= 12; jm++) {
@@ -151,6 +144,7 @@ jobs:
         run: |
           grep -q 'date-system.js' weekly.html
           grep -q 'date-system.js' flocks.html
+          grep -q 'date-system.js' health.html
           grep -q 'AdineDateSystem.todayJalali' weekly.js
           grep -q 'AdineDateSystem' flocks.js
           ! grep -q 'function gregorianToJalali' flocks.js
@@ -159,7 +153,6 @@ jobs:
           ! grep -q 'function jalaliToGregorian' health-date.js
 
       - name: Commit automatic integration changes
-        if: github.event_name == 'push'
         shell: bash
         run: |
           if git diff --quiet; then

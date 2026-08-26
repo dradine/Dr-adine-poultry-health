@@ -17,30 +17,33 @@ jobs:
           fetch-depth: 1
       - name: Run strict scoring tests
         run: node farm-score-v3.test.js
-      - name: Integrate scoring engine into reports page
+      - name: Integrate scoring engine and display fix into reports page
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('reports.html')
           s=p.read_text(encoding='utf-8')
-          tag='<script src="farm-score-v3.js"></script>'
-          if tag not in s:
-              marker='<script src="reports-data.js"></script>'
-              if marker not in s:
-                  raise SystemExit('reports-data.js marker not found')
-              s=s.replace(marker, marker+'\n\n'+tag, 1)
-              p.write_text(s,encoding='utf-8')
+          tags=['<script src="farm-score-v3.js"></script>','<script src="farm-score-display-fix.js"></script>']
+          marker='<script src="reports-data.js"></script>'
+          if marker not in s:
+              raise SystemExit('reports-data.js marker not found')
+          for tag in tags:
+              if tag not in s:
+                  s=s.replace(marker, marker+'\n\n'+tag, 1)
+                  marker=tag
+          p.write_text(s,encoding='utf-8')
           PY
       - name: Verify integration
         run: |
           grep -F '<script src="farm-score-v3.js"></script>' reports.html
-          node -e "const fs=require('fs'); const s=fs.readFileSync('reports.html','utf8'); if((s.match(/farm-score-v3\\.js/g)||[]).length!==1) process.exit(1); console.log('integration check: PASS')"
+          grep -F '<script src="farm-score-display-fix.js"></script>' reports.html
+          node -e "const fs=require('fs'); const s=fs.readFileSync('reports.html','utf8'); if((s.match(/farm-score-v3\\.js/g)||[]).length!==1) process.exit(1); if((s.match(/farm-score-display-fix\\.js/g)||[]).length!==1) process.exit(1); console.log('report score integration check: PASS')"
       - name: Commit integration
         run: |
           if git diff --quiet -- reports.html; then echo 'No integration change required.'; exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add reports.html
-          git commit -m 'feat: activate strict farm score v3'
+          git commit -m 'fix: repair farm score report display'
           git push
 # final v7 regression trigger

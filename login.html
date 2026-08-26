@@ -1,214 +1,32 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    >
-
-    <meta
-        name="theme-color"
-        content="#123b2a"
-    >
-
-    <meta
-        name="description"
-        content="ورود به سامانه فارم‌یار
- مدیریت هوشمند فارم‌های طیور  
-        مرکز تخصصی سلامت طیور آدینه"
-    >
-
-    <title>
-        ورود | سامانه  مدیریت هوشمند فارم‌های طیور
-    </title>
-
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#123b2a">
+<meta name="description" content="ورود به سامانه مدیریت هوشمند فارم‌های طیور - مرکز تخصصی سلامت طیور آدینه">
+<title>ورود | سامانه مدیریت هوشمند فارم‌های طیور</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="auth-compact.css">
 </head>
-
-
 <body class="auth-page">
-
-
-    <main class="auth-wrapper">
-
-        <section
-            class="auth-card"
-            aria-labelledby="loginTitle"
-        >
-
-
-            <!-- LOGO -->
-
-            <div class="auth-logo">
-
-                <img
-                    src="IMG_4309.png"
-                    alt="لوگوی مرکز تخصصی سلامت طیور آدینه"
-                >
-
-            </div>
-
-
-            <!-- TITLE -->
-
-            <h1 id="loginTitle">
-                مرکز تخصصی سلامت طیور آدینه
-            </h1>
-
-
-            <p class="auth-subtitle">
-                سامانه  مدیریت هوشمند فارم‌های طیور
-            </p>
-
-
-            <!-- MESSAGE -->
-
-            <div
-                id="message"
-                class="message hidden"
-                role="alert"
-                aria-live="assertive"
-                aria-atomic="true"
-            ></div>
-
-
-            <!-- LOGIN FORM -->
-
-            <form
-                id="loginForm"
-                novalidate
-                autocomplete="on"
-            >
-
-
-                <!-- EMAIL -->
-
-                <div class="form-group">
-
-                    <label for="email">
-                        ایمیل
-                    </label>
-
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        inputmode="email"
-                        autocomplete="username"
-                        placeholder="ایمیل حساب کاربری"
-                        dir="ltr"
-                        required
-                    >
-
-                </div>
-
-
-                <!-- PASSWORD -->
-
-                <div class="form-group">
-
-                    <label for="password">
-                        رمز عبور
-                    </label>
-
-
-                    <div class="password-field">
-
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            autocomplete="current-password"
-                            placeholder="رمز عبور"
-                            dir="ltr"
-                            required
-                        >
-
-
-                        <button
-                            type="button"
-                            id="togglePassword"
-                            class="password-toggle"
-                            aria-label="نمایش رمز"
-                        >
-                            نمایش
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-                <!-- LOGIN -->
-
-                <button
-                    type="submit"
-                    id="loginButton"
-                    class="primary-button"
-                >
-                    <span id="loginButtonText">
-                        ورود
-                    </span>
-                </button>
-
-
-            </form>
-
-
-            <!-- LINKS -->
-
-            <div class="auth-links">
-
-                <a href="reset-password.html">
-                    رمز عبور را فراموش کرده‌ام
-                </a>
-
-                <span aria-hidden="true">
-                    |
-                </span>
-
-                <a href="register.html">
-                    ثبت‌نام
-                </a>
-
-            </div>
-
-
-        </section>
-
-    </main>
-
-
-    <!-- SUPABASE -->
-
-    <script
-        src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-    ></script>
-
-
-    <!-- CONFIG -->
-
-    <script src="config.js"></script>
-
-
-    <!-- AUTH -->
-
-    <script src="auth.js"></script>
-
-
-    <!-- LOGIN -->
-
-    <script src="login.js"></script>
-
-
+<main class="auth-wrapper">
+<section class="auth-card" aria-labelledby="loginTitle">
+<div class="auth-logo"><img src="IMG_4309.png" alt="لوگوی مرکز تخصصی سلامت طیور آدینه"></div>
+<h1 id="loginTitle">مرکز تخصصی سلامت طیور آدینه</h1>
+<p class="auth-subtitle">سامانه مدیریت هوشمند فارم‌های طیور</p>
+<div id="message" class="message hidden" role="alert" aria-live="assertive" aria-atomic="true"></div>
+<form id="loginForm" novalidate autocomplete="on">
+<div class="form-group"><label for="email">ایمیل</label><input id="email" name="email" type="email" inputmode="email" autocomplete="username" placeholder="ایمیل حساب کاربری" dir="ltr" required></div>
+<div class="form-group"><label for="password">رمز عبور</label><div class="password-field"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="رمز عبور" dir="ltr" required><button type="button" id="togglePassword" class="password-toggle" aria-label="نمایش رمز">نمایش</button></div></div>
+<button type="submit" id="loginButton" class="primary-button"><span id="loginButtonText">ورود</span></button>
+</form>
+<div class="auth-links"><a href="reset-password.html">رمز عبور را فراموش کرده‌ام</a><span aria-hidden="true">|</span><a href="register.html">ثبت‌نام</a></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script src="login.js"></script>
 </body>
-
 </html>

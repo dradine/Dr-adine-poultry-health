@@ -1,10 +1,9 @@
 /* =========================================================
    WEEKLY AVERAGE WEIGHT AUTO-FILL
-   Minimal compatibility enhancement:
-   - Uses the already calculated sample mean.
-   - Mirrors that mean into the existing "averageWeightDirect" field.
-   - Does not change weight statistics, FCR, water/feed calculations,
-     payload structure, UI markup, or database schema.
+   Isolated enhancement: after sample-weight monitoring is
+   calculated, copy the SAME calculated sample mean into the
+   existing "averageWeightDirect" field.
+   No UI, calculation formula, payload or database structure changes.
 ========================================================= */
 
 (function installWeeklyAverageWeightAutofill() {
@@ -19,53 +18,67 @@
 
     function fillAverageField(mean) {
         const input = document.getElementById("averageWeightDirect");
-        if (!input || !Number.isFinite(Number(mean)) || Number(mean) <= 0) return;
+        const numericMean = Number(mean);
+        if (!input || !Number.isFinite(numericMean) || numericMean <= 0) return;
 
-        input.value = normalize(Number(mean).toFixed(2));
+        input.value = normalize(numericMean.toFixed(2));
         input.dataset.autoFilledFromSample = "true";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
     function applyFromCurrentSample() {
-        if (typeof getWeights !== "function" || typeof calculateWeightStatistics !== "function") return;
+        if (typeof getWeights !== "function" || typeof calculateWeightStatistics !== "function") return false;
 
         const weights = getWeights();
-        if (!Array.isArray(weights) || weights.length < 2) return;
+        if (!Array.isArray(weights) || weights.length < 2) return false;
 
         const stats = calculateWeightStatistics(weights);
-        if (stats && Number.isFinite(Number(stats.mean)) && Number(stats.mean) > 0) {
-            fillAverageField(stats.mean);
-        }
+        if (!stats || !Number.isFinite(Number(stats.mean)) || Number(stats.mean) <= 0) return false;
+
+        fillAverageField(stats.mean);
+        return true;
     }
 
     function install() {
         if (window.__weeklyAverageWeightAutofillInstalled) return true;
         if (typeof window.calculateWeekly !== "function") return false;
 
+        /*
+         * Primary hook: wrap the existing function. This preserves the
+         * original calculation completely, then mirrors its result.
+         */
         const originalCalculateWeekly = window.calculateWeekly;
-
         window.calculateWeekly = function () {
             const result = originalCalculateWeekly.apply(this, arguments);
             applyFromCurrentSample();
             return result;
         };
 
-        if (typeof window.editWeeklyRecord === "function") {
-            const originalEditWeeklyRecord = window.editWeeklyRecord;
-            window.editWeeklyRecord = function (recordId) {
-                const result = originalEditWeeklyRecord.apply(this, arguments);
-                try {
-                    const record = Array.isArray(weeklyRecords)
-                        ? weeklyRecords.find(item => String(item.id) === String(recordId))
-                        : null;
-                    if (record && Number.isFinite(Number(record.average_weight_g)) && Number(record.average_weight_g) > 0) {
-                        fillAverageField(record.average_weight_g);
-                    }
-                } catch (error) {
-                    console.warn("Weekly average weight autofill edit hook:", error);
-                }
-                return result;
-            };
+        /*
+         * Safety hook: inline onclick handlers run before bubbling event
+         * listeners. Therefore this also guarantees that a click on the
+         * existing "محاسبه پایش" button fills the field after calculation,
+         * even if another script replaces the global function later.
+         */
+        const calculateButton = Array.from(document.querySelectorAll("button")).find(button => {
+            const onclick = button.getAttribute("onclick") || "";
+            return onclick.includes("calculateWeekly()");
+        });
+
+        if (calculateButton) {
+            calculateButton.addEventListener("click", function () {
+                setTimeout(applyFromCurrentSample, 0);
+            }, false);
+        }
+
+        /* When adding/editing sample weights, keep the field synchronized
+           once there are at least two valid sample weights. */
+        const weightsContainer = document.getElementById("weightsContainer");
+        if (weightsContainer) {
+            weightsContainer.addEventListener("input", function () {
+                if (getWeights().length >= 2) applyFromCurrentSample();
+            });
         }
 
         window.__weeklyAverageWeightAutofillInstalled = true;
@@ -78,7 +91,7 @@
         let attempts = 0;
         const timer = setInterval(function () {
             attempts += 1;
-            if (install() || attempts >= 50) clearInterval(timer);
+            if (install() || attempts >= 100) clearInterval(timer);
         }, 100);
     }
 

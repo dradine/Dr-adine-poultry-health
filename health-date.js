@@ -95,6 +95,43 @@
     }
 
     /* =====================================================
+       MOBILE SAFARI: PREVENT FOCUS AUTO-ZOOM
+       iOS Safari auto-zooms focused text inputs whose computed
+       font size is below 16px. The page must retain its original
+       scale after the datepicker opens/closes, so we solve the
+       cause instead of disabling user pinch-zoom globally.
+    ===================================================== */
+    function installIOSNoAutoZoomStyle() {
+        if (document.getElementById("adine-ios-date-nozoom-style")) return;
+
+        const style = document.createElement("style");
+        style.id = "adine-ios-date-nozoom-style";
+        style.textContent = `
+            .jalali-input,
+            .datepicker-plot-area input,
+            .datepicker-plot-area select,
+            .datepicker-plot-area button {
+                -webkit-text-size-adjust: 100% !important;
+            }
+
+            /* Critical iPhone Safari rule: keep focused date inputs at >=16px. */
+            .jalali-input {
+                font-size: 16px !important;
+                line-height: 22px !important;
+                -webkit-appearance: none;
+                appearance: none;
+            }
+
+            @media (max-width: 480px) {
+                .jalali-input:focus {
+                    font-size: 16px !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /* =====================================================
        SMALL JALALI CALENDAR FOR HEALTH DATE FIELDS
     ===================================================== */
     function installCompactCalendarStyle() {
@@ -179,6 +216,7 @@
             return;
         }
 
+        installIOSNoAutoZoomStyle();
         installCompactCalendarStyle();
 
         const $ = window.jQuery;
@@ -234,10 +272,12 @@
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", () => {
             initializeDateAdapter();
+            installIOSNoAutoZoomStyle();
             waitForCalendar();
         }, { once: true });
     } else {
         initializeDateAdapter();
+        installIOSNoAutoZoomStyle();
         waitForCalendar();
     }
 })();

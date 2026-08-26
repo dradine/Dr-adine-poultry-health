@@ -1,84 +1,126 @@
 /* =========================================================
    WEEKLY AVERAGE WEIGHT AUTO-FILL
-   Isolated enhancement: after sample-weight monitoring is
-   calculated, copy the SAME calculated sample mean into the
-   existing "averageWeightDirect" field.
-   No UI, calculation formula, payload or database structure changes.
+   Purpose: after sample-weight monitoring is calculated, the
+   existing "وزن متوسط گله (گرم)" field receives the same mean.
+
+   IMPORTANT:
+   - No UI/CSS changes.
+   - No changes to existing weight/CV/SD/uniformity formulas.
+   - No database/schema changes.
+   - Uses the existing monitoring result when available.
+   - Falls back only to the arithmetic mean of the SAME sample
+     inputs, so the field cannot remain blank because of load order.
 ========================================================= */
 
 (function installWeeklyAverageWeightAutofill() {
     "use strict";
 
     function normalize(value) {
-        if (typeof normalizeNumberString === "function") {
-            return normalizeNumberString(value);
-        }
-        return String(value ?? "");
+        return typeof normalizeNumberString === "function"
+            ? normalizeNumberString(value)
+            : String(value ?? "");
     }
 
-    function fillAverageField(mean) {
-        const input = document.getElementById("averageWeightDirect");
+    function getAverageField() {
+        return document.getElementById("averageWeightDirect");
+    }
+
+    function setAverageField(mean) {
+        const input = getAverageField();
         const numericMean = Number(mean);
-        if (!input || !Number.isFinite(numericMean) || numericMean <= 0) return;
+
+        if (!input || !Number.isFinite(numericMean) || numericMean <= 0) {
+            return false;
+        }
 
         input.value = normalize(numericMean.toFixed(2));
         input.dataset.autoFilledFromSample = "true";
+
+        /* Keep the existing input system informed without changing it. */
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
+
+        return true;
     }
 
-    function applyFromCurrentSample() {
-        if (typeof getWeights !== "function" || typeof calculateWeightStatistics !== "function") return false;
+    function getSampleWeightsDirectly() {
+        return Array.from(document.querySelectorAll("#weightsContainer .bird-weight"))
+            .map(input => Number(normalize(input.value)))
+            .filter(value => Number.isFinite(value) && value > 0);
+    }
 
-        const weights = getWeights();
-        if (!Array.isArray(weights) || weights.length < 2) return false;
+    function getCalculatedMean() {
+        /* First preference: use the application's own monitoring function. */
+        if (typeof getWeights === "function" && typeof calculateWeightStatistics === "function") {
+            try {
+                const weights = getWeights();
+                if (Array.isArray(weights) && weights.length >= 2) {
+                    const stats = calculateWeightStatistics(weights);
+                    const mean = Number(stats?.mean);
+                    if (Number.isFinite(mean) && mean > 0) {
+                        return mean;
+                    }
+                }
+            } catch (error) {
+                console.warn("Weekly average weight sync fallback:", error);
+            }
+        }
 
-        const stats = calculateWeightStatistics(weights);
-        if (!stats || !Number.isFinite(Number(stats.mean)) || Number(stats.mean) <= 0) return false;
+        /* Same sample values, independent of script/load order. */
+        const weights = getSampleWeightsDirectly();
+        if (weights.length < 2) return null;
 
-        fillAverageField(stats.mean);
-        return true;
+        return weights.reduce((sum, value) => sum + value, 0) / weights.length;
+    }
+
+    function syncAverageWeight() {
+        const mean = getCalculatedMean();
+        return mean !== null && setAverageField(mean);
+    }
+
+    function syncAfterCalculation() {
+        /* calculateWeekly may update/render other elements after its return.
+           A few short retries make the synchronization deterministic without
+           interfering with any existing calculation. */
+        syncAverageWeight();
+        [50, 150, 300, 600].forEach(delay => {
+            window.setTimeout(syncAverageWeight, delay);
+        });
     }
 
     function install() {
         if (window.__weeklyAverageWeightAutofillInstalled) return true;
-        if (typeof window.calculateWeekly !== "function") return false;
 
-        /*
-         * Primary hook: wrap the existing function. This preserves the
-         * original calculation completely, then mirrors its result.
-         */
-        const originalCalculateWeekly = window.calculateWeekly;
-        window.calculateWeekly = function () {
-            const result = originalCalculateWeekly.apply(this, arguments);
-            applyFromCurrentSample();
-            return result;
-        };
+        const button = Array.from(document.querySelectorAll("button"))
+            .find(element => {
+                const onclick = element.getAttribute("onclick") || "";
+                return onclick.includes("calculateWeekly()");
+            });
 
-        /*
-         * Safety hook: inline onclick handlers run before bubbling event
-         * listeners. Therefore this also guarantees that a click on the
-         * existing "محاسبه پایش" button fills the field after calculation,
-         * even if another script replaces the global function later.
-         */
-        const calculateButton = Array.from(document.querySelectorAll("button")).find(button => {
-            const onclick = button.getAttribute("onclick") || "";
-            return onclick.includes("calculateWeekly()");
-        });
-
-        if (calculateButton) {
-            calculateButton.addEventListener("click", function () {
-                setTimeout(applyFromCurrentSample, 0);
-            }, false);
+        /* Direct button hook. */
+        if (button) {
+            button.addEventListener("click", syncAfterCalculation, false);
         }
 
-        /* When adding/editing sample weights, keep the field synchronized
-           once there are at least two valid sample weights. */
-        const weightsContainer = document.getElementById("weightsContainer");
-        if (weightsContainer) {
-            weightsContainer.addEventListener("input", function () {
-                if (getWeights().length >= 2) applyFromCurrentSample();
-            });
+        /* Capture-phase hook survives changes to the button's own handlers. */
+        document.addEventListener("click", function (event) {
+            const target = event.target?.closest?.("button");
+            if (!target) return;
+
+            const onclick = target.getAttribute("onclick") || "";
+            if (onclick.includes("calculateWeekly()")) {
+                syncAfterCalculation();
+            }
+        }, true);
+
+        /* Also keep the field synchronized whenever sample weights are edited. */
+        const container = document.getElementById("weightsContainer");
+        if (container) {
+            container.addEventListener("input", function () {
+                if (getSampleWeightsDirectly().length >= 2) {
+                    syncAverageWeight();
+                }
+            }, false);
         }
 
         window.__weeklyAverageWeightAutofillInstalled = true;
@@ -89,9 +131,11 @@
         if (install()) return;
 
         let attempts = 0;
-        const timer = setInterval(function () {
+        const timer = window.setInterval(function () {
             attempts += 1;
-            if (install() || attempts >= 100) clearInterval(timer);
+            if (install() || attempts >= 100) {
+                window.clearInterval(timer);
+            }
         }, 100);
     }
 

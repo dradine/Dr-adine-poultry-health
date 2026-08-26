@@ -41,11 +41,6 @@
             && gd >= 1 && gd <= daysInGregorianMonth(gy, gm);
     }
 
-    /* ---------------------------------------------------------
-       GREGORIAN -> JALALI
-       Returned value is both array-compatible and object-compatible:
-       result[0]/[1]/[2] and result.jy/jm/jd.
-    --------------------------------------------------------- */
     function gregorianToJalali(gy, gm, gd) {
         gy = Number(gy); gm = Number(gm); gd = Number(gd);
         if (!isValidGregorian(gy, gm, gd)) return null;
@@ -94,11 +89,6 @@
         return result;
     }
 
-    /* ---------------------------------------------------------
-       JALALI -> GREGORIAN
-       The arithmetic is followed by a reverse conversion check
-       in the public ISO parser, so impossible dates are rejected.
-    --------------------------------------------------------- */
     function jalaliToGregorian(jy, jm, jd) {
         jy = Number(jy); jm = Number(jm); jd = Number(jd);
 
@@ -166,7 +156,6 @@
         const g = jalaliToGregorian(jy, jm, jd);
         if (!g || !isValidGregorian(g.gy, g.gm, g.gd)) return null;
 
-        // Critical: reject impossible Jalali dates such as 1405/12/30.
         const roundTrip = gregorianToJalali(g.gy, g.gm, g.gd);
         if (!roundTrip || roundTrip.jy !== jy || roundTrip.jm !== jm || roundTrip.jd !== jd) return null;
 
@@ -198,7 +187,6 @@
 
     function todayGregorianISO() {
         const now = new Date();
-        // Local calendar date. Deliberately NOT toISOString().slice(0,10).
         return `${pad(now.getFullYear(), 4)}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     }
 
@@ -235,10 +223,19 @@
         const expectRoundTrip = (j, expectedISO = null) => {
             const iso = jalaliToISO(j);
             const back = isoToJalali(iso);
-            if (!iso || back !== normalizeDigits(j).replace(/-/g, "/").replace(/\./g, "/").split("/").map((v, i) => i === 0 ? String(Number(v)) : pad(Number(v))).join("/")) {
+            const expectedJalali = normalizeDigits(j)
+                .replace(/-/g, "/")
+                .replace(/\./g, "/")
+                .split("/")
+                .map((v, i) => i === 0 ? String(Number(v)) : pad(Number(v)))
+                .join("/");
+
+            if (!iso || back !== expectedJalali) {
                 failures.push({ type: "round-trip", input: j, iso, back });
             }
-            if (expectedISO && iso !== expectedISO) failures.push({ type: "known-value", input: j, iso, expectedISO });
+            if (expectedISO && iso !== expectedISO) {
+                failures.push({ type: "known-value", input: j, iso, expectedISO });
+            }
         };
 
         [
@@ -256,7 +253,7 @@
         [
             "1405/12/30",
             "1405/01/32",
-            "1405/06/31",
+            "1405/07/31",
             "1405/13/01",
             "1405/00/01",
             "1405/02/00",
@@ -271,8 +268,8 @@
             if (!isValidJalali(j)) failures.push({ type: "leap-rejected", input: j });
         });
 
-        if (isValidGregorian(2024, 2, 29) !== true) failures.push({ type: "gregorian-leap", value: "2024-02-29" });
-        if (isValidGregorian(2025, 2, 29) !== false) failures.push({ type: "gregorian-invalid-leap", value: "2025-02-29" });
+        if (!isValidGregorian(2024, 2, 29)) failures.push({ type: "gregorian-leap", value: "2024-02-29" });
+        if (isValidGregorian(2025, 2, 29)) failures.push({ type: "gregorian-invalid-leap", value: "2025-02-29" });
         if (dateOnlyDiffDays("2026-03-21", "2026-03-22") !== 1) failures.push({ type: "diff", value: 1 });
         if (dateOnlyDiffDays("2026-03-22", "2026-03-21") !== -1) failures.push({ type: "diff", value: -1 });
         if (jalaliDiffDays("1405/01/01", "1405/01/31") !== 30) failures.push({ type: "jalali-diff", value: 30 });
@@ -281,7 +278,7 @@
 
         return {
             ok: failures.length === 0,
-            testCount: 9 + 9 + 3 + 7,
+            testCount: 28,
             failures
         };
     }
@@ -303,16 +300,13 @@
         runSelfTest
     };
 
-    // Canonical API.
     window.AdineDateSystem = api;
 
-    // Compatibility for existing code in flocks.js / weekly.js / health.js.
     window.gregorianToJalali = gregorianToJalali;
     window.jalaliToGregorian = jalaliToGregorian;
     window.jalaliToGregorianISO = jalaliToGregorianISO;
     window.jalaliToISO = jalaliToISO;
     window.isoToJalali = isoToJalali;
 
-    // Diagnostic result; no console spam.
     window.__ADINE_DATE_SELF_TEST__ = runSelfTest();
 })();

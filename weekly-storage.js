@@ -103,3 +103,28 @@ function clearAllWeeklyRecords() {
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
 })();
+
+/* =========================================================
+   WEEKLY DATE SAVE COMPATIBILITY FIX LOADER
+   Loaded on DOMContentLoaded so weekly.js has already defined
+   its legacy date helpers, then the central engine becomes the
+   single conversion source without changing weekly calculations.
+========================================================= */
+(function loadWeeklyDateSaveFix() {
+    if (document.getElementById("weekly-date-save-fix-script")) return;
+
+    const load = function () {
+        if (document.getElementById("weekly-date-save-fix-script")) return;
+        const script = document.createElement("script");
+        script.id = "weekly-date-save-fix-script";
+        script.src = "weekly-date-save-fix.js?v=20260826";
+        script.async = false;
+        (document.head || document.documentElement).appendChild(script);
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", load, { once: true });
+    } else {
+        load();
+    }
+})();

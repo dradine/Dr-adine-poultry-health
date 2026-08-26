@@ -1,3 +1,4 @@
+global.window=global;
 global.document={addEventListener(){}};
 global.normalizeReportProductionType=(v)=>v;
 global.getReportStandardMeta=(obj,metric)=>({value:obj[metric]??null});

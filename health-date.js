@@ -95,31 +95,88 @@
     }
 
     /* =====================================================
-       MOBILE SAFARI: PREVENT FOCUS AUTO-ZOOM
-       iOS Safari auto-zooms focused text inputs whose computed
-       font size is below 16px. The page must retain its original
-       scale after the datepicker opens/closes, so we solve the
-       cause instead of disabling user pinch-zoom globally.
+       MOBILE SAFARI: PREVENT DATEPICKER AUTO-ZOOM
+
+       Safari can retain a visual zoom after a date input or an
+       internal datepicker control receives focus. We therefore
+       lock the viewport only while the Health datepicker is open.
+       The user's normal pinch-zoom is restored immediately after
+       the calendar closes. This avoids permanently disabling zoom.
     ===================================================== */
+    let originalViewportContent = null;
+    let viewportLocked = false;
+    let viewportUnlockTimer = null;
+
+    function getViewportMeta() {
+        let meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) {
+            meta = document.createElement("meta");
+            meta.name = "viewport";
+            document.head.appendChild(meta);
+        }
+        return meta;
+    }
+
+    function lockViewportForDatepicker() {
+        if (!/iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
+
+        const meta = getViewportMeta();
+        if (!viewportLocked) {
+            originalViewportContent = meta.getAttribute("content") || "width=device-width, initial-scale=1";
+        }
+
+        viewportLocked = true;
+        clearTimeout(viewportUnlockTimer);
+        meta.setAttribute(
+            "content",
+            "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+        );
+    }
+
+    function unlockViewportAfterDatepicker() {
+        if (!viewportLocked) return;
+
+        clearTimeout(viewportUnlockTimer);
+        viewportUnlockTimer = setTimeout(() => {
+            const meta = getViewportMeta();
+            meta.setAttribute(
+                "content",
+                originalViewportContent || "width=device-width, initial-scale=1"
+            );
+            viewportLocked = false;
+            originalViewportContent = null;
+        }, 180);
+    }
+
     function installIOSNoAutoZoomStyle() {
         if (document.getElementById("adine-ios-date-nozoom-style")) return;
 
         const style = document.createElement("style");
         style.id = "adine-ios-date-nozoom-style";
         style.textContent = `
+            html {
+                -webkit-text-size-adjust: 100% !important;
+                text-size-adjust: 100% !important;
+            }
+
             .jalali-input,
             .datepicker-plot-area input,
             .datepicker-plot-area select,
             .datepicker-plot-area button {
                 -webkit-text-size-adjust: 100% !important;
+                text-size-adjust: 100% !important;
             }
 
-            /* Critical iPhone Safari rule: keep focused date inputs at >=16px. */
             .jalali-input {
                 font-size: 16px !important;
                 line-height: 22px !important;
                 -webkit-appearance: none;
                 appearance: none;
+            }
+
+            .datepicker-plot-area input,
+            .datepicker-plot-area select {
+                font-size: 16px !important;
             }
 
             @media (max-width: 480px) {
@@ -129,6 +186,68 @@
             }
         `;
         document.head.appendChild(style);
+    }
+
+    function installViewportTouchGuard() {
+        if (document.documentElement.dataset.adineViewportGuard === "true") return;
+        document.documentElement.dataset.adineViewportGuard = "true";
+
+        document.addEventListener("touchstart", function (event) {
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+
+            if (
+                target.closest(".jalali-input") ||
+                target.closest(".datepicker-plot-area")
+            ) {
+                lockViewportForDatepicker();
+            }
+        }, { passive: true, capture: true });
+
+        document.addEventListener("focusin", function (event) {
+            const target = event.target instanceof Element ? event.target : null;
+            if (!target) return;
+
+            if (
+                target.matches(".jalali-input") ||
+                target.closest(".datepicker-plot-area")
+            ) {
+                lockViewportForDatepicker();
+            }
+        }, true);
+    }
+
+    function installCalendarVisibilityObserver() {
+        if (window.MutationObserver && !document.documentElement.dataset.adineCalendarObserver) {
+            document.documentElement.dataset.adineCalendarObserver = "true";
+
+            const observer = new MutationObserver(() => {
+                const picker = document.querySelector(".datepicker-plot-area");
+                if (!picker) {
+                    unlockViewportAfterDatepicker();
+                    return;
+                }
+
+                const style = window.getComputedStyle(picker);
+                const visible = style.display !== "none" &&
+                    style.visibility !== "hidden" &&
+                    picker.getBoundingClientRect().width > 0 &&
+                    picker.getBoundingClientRect().height > 0;
+
+                if (visible) {
+                    lockViewportForDatepicker();
+                } else {
+                    unlockViewportAfterDatepicker();
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: ["style", "class"]
+            });
+        }
     }
 
     /* =====================================================
@@ -217,6 +336,8 @@
         }
 
         installIOSNoAutoZoomStyle();
+        installViewportTouchGuard();
+        installCalendarVisibilityObserver();
         installCompactCalendarStyle();
 
         const $ = window.jQuery;
@@ -273,11 +394,13 @@
         document.addEventListener("DOMContentLoaded", () => {
             initializeDateAdapter();
             installIOSNoAutoZoomStyle();
+            installViewportTouchGuard();
             waitForCalendar();
         }, { once: true });
     } else {
         initializeDateAdapter();
         installIOSNoAutoZoomStyle();
+        installViewportTouchGuard();
         waitForCalendar();
     }
 })();

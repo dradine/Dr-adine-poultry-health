@@ -8,7 +8,7 @@
   }catch(e){console.warn("Adine global no-zoom guard:",e);}
   const CACHE="adine_profile_cache_v2", TTL=60000; let profilePromise=null;
   const norm=v=>String(v||"").trim().toLowerCase();
-  const cached=id=>{try{const x=JSON.parse(sessionStorage.getItem(CACHE)||"null");return x&&x.userId===id&&x.profile&&Date.now()-x.ts<TTL?x.profile:null;}catch(_){return null;}};
+  const cached=id=>{try{const x=JSON.parse(sessionStorage.getItem(CACHE)||"null");return x&&x.userId===id&&x.profile&&Date.now()-x.ts<TTL?x.profile:null;}catch(_) {return null;}};
   const cache=(id,p)=>{try{sessionStorage.setItem(CACHE,JSON.stringify({userId:id,ts:Date.now(),profile:p}));}catch(_) {}};
   const clear=()=>{try{sessionStorage.removeItem(CACHE);}catch(_) {}};
   const timeout=async(p,ms)=>{let t;try{return await Promise.race([p,new Promise((_,r)=>t=setTimeout(()=>r(new Error("AUTH_TIMEOUT")),ms))]);}finally{clearTimeout(t);}};
@@ -22,6 +22,6 @@
     async requireAuth(){const s=await this.getSession();if(!s?.user){window.location.replace("login.html");return null;}const u=s.user;let p=await this.getProfile(u.id);if(!p)p=cached(u.id);if(!p)p=await this.getProfile(u.id,{force:true});if(!p){window.dispatchEvent(new CustomEvent("adine-auth-profile-unavailable",{detail:{userId:u.id}}));return null;}if(!this.isActiveProfile(p)){const m=this.getAccessMessage(p);clear();try{await supabaseClient.auth.signOut();}catch(_){}window.location.replace("login.html?message="+encodeURIComponent(m));return null;}return {user:u,profile:p};},
     async requireOwner(){const a=await this.requireAuth();if(!a)return null;if(norm(a.profile.role)!=="owner"){window.location.replace("Dashboard.html");return null;}return a;}
   };
-  // Dashboard-only compact mobile stylesheet. Loaded here so Dashboard.html needs no structural change.
-  try{if(document.body?.classList.contains("dashboard-page")&&!document.getElementById("adine-dashboard-compact-css")){const l=document.createElement("link");l.id="adine-dashboard-compact-css";l.rel="stylesheet";l.href="dashboard-compact.css?v=1";(document.head||document.documentElement).appendChild(l);}}catch(e){console.warn("Dashboard compact CSS:",e);}
+  // Dashboard-only mobile stylesheet. Cache-busted so GitHub Pages cannot keep the previous CSS.
+  try{if(document.body?.classList.contains("dashboard-page")&&!document.getElementById("adine-dashboard-compact-css")){const l=document.createElement("link");l.id="adine-dashboard-compact-css";l.rel="stylesheet";l.href="dashboard-compact.css?v=3";(document.head||document.documentElement).appendChild(l);}}catch(e){console.warn("Dashboard mobile CSS:",e);}
 })();

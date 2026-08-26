@@ -1,0 +1,47 @@
+name: Restore reports.html integrity
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Restore reports.html from last known-good commit and add mortality benchmark loader
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout 13c497e944bce57a2b387a432bafda6d26c1dd55 -- reports.html
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('reports.html')
+          s = p.read_text(encoding='utf-8')
+          marker = '<script src="farm-score-v3.js"></script>'
+          loader = '<script src="mortality-benchmark-v2.js"></script>\n'
+          if 'mortality-benchmark-v2.js' not in s and marker in s:
+              s = s.replace(marker, loader + marker, 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit restored reports page only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports.html
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Restore reports page integrity and load mortality benchmark'
+          git push

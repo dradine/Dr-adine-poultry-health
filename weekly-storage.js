@@ -128,3 +128,27 @@ function clearAllWeeklyRecords() {
         load();
     }
 })();
+
+/* =========================================================
+   WEEKLY AVERAGE WEIGHT AUTO-FILL LOADER
+   This is intentionally isolated from weekly.js so the existing
+   calculations, markup, styles, payload and database structure remain unchanged.
+========================================================= */
+(function loadWeeklyAverageWeightAutofill() {
+    if (document.getElementById("weekly-average-weight-autofill-script")) return;
+
+    const load = function () {
+        if (document.getElementById("weekly-average-weight-autofill-script")) return;
+        const script = document.createElement("script");
+        script.id = "weekly-average-weight-autofill-script";
+        script.src = "weekly-average-weight-autofill.js?v=20260826";
+        script.async = false;
+        (document.head || document.documentElement).appendChild(script);
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", load, { once: true });
+    } else {
+        load();
+    }
+})();

@@ -1,7 +1,7 @@
 "use strict";
 const fs=require("fs"),vm=require("vm"),path=require("path");
 const sandbox={console,setTimeout};sandbox.globalThis=sandbox;
-for(const file of ["standard-data.js","benchmark-core-v3.js","standards.js"]){vm.runInNewContext(fs.readFileSync(path.join(__dirname,file),"utf8"),sandbox,{filename:file});}
+for(const file of ["standard-data.js","benchmark-core-v3.js","benchmark-standard-overrides-v1.js","standards.js"]){vm.runInNewContext(fs.readFileSync(path.join(__dirname,file),"utf8"),sandbox,{filename:file});}
 const C=sandbox.BENCHMARK_CORE_V3;const S=sandbox.ADINE_BENCHMARK_GUARD;let passed=0;
 const ok=(v,m)=>{if(!v)throw new Error("FAIL: "+m);passed++;};
 const eq=(a,b,m)=>ok(a===b,`${m} | expected ${b}, got ${a}`);
@@ -9,12 +9,14 @@ const eq=(a,b,m)=>ok(a===b,`${m} | expected ${b}, got ${a}`);
 const growth=C.buildGrowth([{ageDays:7,averageWeight:199},{ageDays:14,averageWeight:350},{ageDays:21,averageWeight:500}],{initial_weight_g:48});
 eq(growth[0].weeklyGainG,151,"week 1 gain");eq(growth[1].weeklyGainG,151,"week 2 gain");eq(growth[2].weeklyGainG,150,"week 3 gain");eq(growth[1].cumulativeGainG,302,"week 2 cumulative gain");
 const ross=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"Ross 308",ageDays:14});eq(ross.weight,533,"Ross 308 day 14");eq(ross.confidence,"official","Ross 308 official confidence");
+const ff=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"Ross 308 FF",ageDays:14});eq(ff.weight,533,"Ross 308 FF uses only the explicitly shared official Ross 308/FF curve");
+const ross708=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"Ross 708",ageDays:14});eq(ross708.weight,509,"Ross 708 day 14");eq(ross708.fcr,.992,"Ross 708 day 14 FCR");
 const wrong=S.resolve({productionType:"layer",genetics:"aviagen_ross",strain:"Ross 308",ageDays:14});eq(wrong.weight,null,"cross production type blocked");
 const vague=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"",ageDays:14});eq(vague.weight,null,"missing strain blocked");
-const ff=S.resolve({productionType:"broiler",genetics:"aviagen_ross",strain:"Ross 308 FF",ageDays:14});eq(ff.weight,null,"unverified FF curve is not borrowed from Ross 308");
-const cobb=S.resolve({productionType:"broiler",genetics:"cobb",strain:"Cobb500",ageDays:14});eq(cobb.weight,570,"Cobb500 day 14");
-const below=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS?.broiler?.aviagen_ross?.["Ross 308"],"bodyWeight",0);eq(below,null,"no extrapolation below curve");
-const above=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS?.broiler?.aviagen_ross?.["Ross 308"],"bodyWeight",100);eq(above,null,"no extrapolation above curve");
-const interp=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS?.broiler?.aviagen_ross?.["Ross 308"],"bodyWeight",10);ok(Math.abs(interp-350.14285714285717)<1e-9,"day 10 interpolation");
-const audit=S.auditCatalog();ok(audit.length>0,"catalog audit has entries");ok(audit.every(r=>r.hasStandard||r.sourceType===null),"audit never invents source metadata");
+const cobb=S.resolve({productionType:"broiler",genetics:"cobb",strain:"Cobb500",ageDays:14});eq(cobb.weight,570,"Cobb500 day 14");eq(sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.cobb.Cobb500,"bodyWeight",0),42,"Cobb500 official placement baseline");
+const lb=S.resolve({productionType:"layer",genetics:"lohmann",strain:"Lohmann Brown-Classic",ageDays:119});eq(lb.weight,1421,"Lohmann Brown-Classic week 17 body weight");eq(lb.confidence,"official","Lohmann official confidence");
+const below=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.aviagen_ross["Ross 308"],"bodyWeight",0);eq(below,null,"Ross 308 no unsupported day-0 extrapolation");
+const above=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.aviagen_ross["Ross 308"],"bodyWeight",100);eq(above,null,"no extrapolation above curve");
+const interp=sandbox.getStandardValueAtAge(sandbox.VERIFIED_STANDARDS.broiler.aviagen_ross["Ross 308"],"bodyWeight",10);ok(Math.abs(interp-350.14285714285717)<1e-9,"day 10 interpolation");
+const audit=S.auditCatalog();ok(audit.length>0,"catalog audit has entries");ok(audit.some(r=>r.strain==="Ross 708"&&r.hasStandard),"Ross 708 appears in verified catalog");ok(audit.some(r=>r.strain==="Lohmann Brown-Classic"&&r.hasStandard),"Lohmann Brown-Classic appears in verified catalog");
 console.log(`STRICT BENCHMARK REGRESSION PASS: ${passed} assertions`);

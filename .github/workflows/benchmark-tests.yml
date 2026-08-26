@@ -1,0 +1,17 @@
+name: Benchmark Integrity Tests
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  benchmark-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run benchmark core regression suite
+        run: node benchmark-core-v2-tests.js

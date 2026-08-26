@@ -6,473 +6,100 @@
 
 "use strict";
 
-
-const WEEKLY_STORAGE_NAME =
-    "weekly_records";
-
-
-/* =========================================================
-   GET ALL
-   ========================================================= */
+const WEEKLY_STORAGE_NAME = "weekly_records";
 
 function getWeeklyRecords() {
-
-    const records =
-        readStorage(
-            WEEKLY_STORAGE_NAME,
-            []
-        );
-
-
-    if (!Array.isArray(records)) {
-
-        return [];
-
-    }
-
-
-    return records;
-
+    const records = readStorage(WEEKLY_STORAGE_NAME, []);
+    return Array.isArray(records) ? records : [];
 }
 
-
-/* =========================================================
-   SAVE
-   ========================================================= */
-
-function saveWeeklyRecord(
-    record
-) {
-
-    if (
-        !record ||
-        typeof record !== "object"
-    ) {
-
-        throw new Error(
-            "رکورد هفتگی معتبر نیست."
-        );
-
-    }
-
-
-    const records =
-        getWeeklyRecords();
-
-
+function saveWeeklyRecord(record) {
+    if (!record || typeof record !== "object") throw new Error("رکورد هفتگی معتبر نیست.");
+    const records = getWeeklyRecords();
     const item = {
-
         ...record,
-
-        id:
-            record.id ||
-            createId("weekly"),
-
-        createdAt:
-            record.createdAt ||
-            new Date().toISOString(),
-
-        updatedAt:
-            new Date().toISOString()
-
+        id: record.id || createId("weekly"),
+        createdAt: record.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
-
-
-    const index =
-        records.findIndex(
-            itemRecord =>
-                itemRecord.id ===
-                item.id
-        );
-
-
-    if (index >= 0) {
-
-        records[index] =
-            item;
-
-    }
-
-    else {
-
-        records.push(
-            item
-        );
-
-    }
-
-
-    writeStorage(
-        WEEKLY_STORAGE_NAME,
-        records
-    );
-
-
+    const index = records.findIndex(itemRecord => itemRecord.id === item.id);
+    if (index >= 0) records[index] = item;
+    else records.push(item);
+    writeStorage(WEEKLY_STORAGE_NAME, records);
     return item;
-
 }
 
+function upsertWeeklyRecord(record) { return saveWeeklyRecord(record); }
 
-/* =========================================================
-   UPSERT
-   ========================================================= */
-
-function upsertWeeklyRecord(
-    record
-) {
-
-    return saveWeeklyRecord(
-        record
-    );
-
-}
-
-
-/* =========================================================
-   DELETE
-   ========================================================= */
-
-function deleteWeeklyRecord(
-    id
-) {
-
-    if (!id) {
-
-        return false;
-
-    }
-
-
-    const records =
-        getWeeklyRecords()
-            .filter(
-                item =>
-                    item.id !==
-                    id
-            );
-
-
-    writeStorage(
-        WEEKLY_STORAGE_NAME,
-        records
-    );
-
-
+function deleteWeeklyRecord(id) {
+    if (!id) return false;
+    const records = getWeeklyRecords().filter(item => item.id !== id);
+    writeStorage(WEEKLY_STORAGE_NAME, records);
     return true;
-
 }
 
+function getWeeklyRecord(id) {
+    if (!id) return null;
+    return getWeeklyRecords().find(item => item.id === id) || null;
+}
 
-/* =========================================================
-   FIND BY ID
-   ========================================================= */
-
-function getWeeklyRecord(
-    id
-) {
-
-    if (!id) {
-
-        return null;
-
-    }
-
-
+function getFarmWeeklyRecords(farmId) {
+    if (!farmId) return [];
     return getWeeklyRecords()
-        .find(
-            item =>
-                item.id ===
-                id
-        ) || null;
-
+        .filter(item => item.farmId === farmId)
+        .sort((a, b) => Number(a.ageDays || 0) - Number(b.ageDays || 0));
 }
 
-
-/* =========================================================
-   FARM RECORDS
-   ========================================================= */
-
-function getFarmWeeklyRecords(
-    farmId
-) {
-
-    if (!farmId) {
-
-        return [];
-
-    }
-
-
+function getFlockWeeklyRecords(flockId) {
+    if (!flockId) return [];
     return getWeeklyRecords()
-        .filter(
-            item =>
-                item.farmId ===
-                farmId
-        )
-        .sort(
-            (
-                a,
-                b
-            ) =>
-                Number(
-                    a.ageDays || 0
-                ) -
-                Number(
-                    b.ageDays || 0
-                )
-        );
-
+        .filter(item => item.flockId === flockId)
+        .sort((a, b) => {
+            const ageA = Number(a.ageDays || 0);
+            const ageB = Number(b.ageDays || 0);
+            if (ageA !== ageB) return ageA - ageB;
+            return String(a.date || a.evaluationDate || "").localeCompare(String(b.date || b.evaluationDate || ""));
+        });
 }
 
-
-/* =========================================================
-   FLOCK RECORDS
-   ========================================================= */
-
-function getFlockWeeklyRecords(
-    flockId
-) {
-
-    if (!flockId) {
-
-        return [];
-
-    }
-
-
-    return getWeeklyRecords()
-        .filter(
-            item =>
-                item.flockId ===
-                flockId
-        )
-        .sort(
-            (
-                a,
-                b
-            ) => {
-
-                const ageA =
-                    Number(
-                        a.ageDays || 0
-                    );
-
-                const ageB =
-                    Number(
-                        b.ageDays || 0
-                    );
-
-
-                if (
-                    ageA !==
-                    ageB
-                ) {
-
-                    return ageA -
-                           ageB;
-
-                }
-
-
-                return String(
-                    a.date ||
-                    a.evaluationDate ||
-                    ""
-                ).localeCompare(
-                    String(
-                        b.date ||
-                        b.evaluationDate ||
-                        ""
-                    )
-                );
-
-            }
-        );
-
+function getFlockRecordByAge(flockId, ageDays) {
+    return getFlockWeeklyRecords(flockId).find(item => Number(item.ageDays) === Number(ageDays)) || null;
 }
 
-
-/* =========================================================
-   RECORD BY AGE
-   ========================================================= */
-
-function getFlockRecordByAge(
-    flockId,
-    ageDays
-) {
-
-    return getFlockWeeklyRecords(
-        flockId
-    )
-    .find(
-        item =>
-            Number(
-                item.ageDays
-            ) ===
-            Number(
-                ageDays
-            )
-    ) || null;
-
+function getFlockRecordByWeek(flockId, weekNumber) {
+    return getFlockWeeklyRecords(flockId).find(item => Number(item.weekNumber) === Number(weekNumber)) || null;
 }
 
-
-/* =========================================================
-   RECORD BY WEEK
-   ========================================================= */
-
-function getFlockRecordByWeek(
-    flockId,
-    weekNumber
-) {
-
-    return getFlockWeeklyRecords(
-        flockId
-    )
-    .find(
-        item =>
-            Number(
-                item.weekNumber
-            ) ===
-            Number(
-                weekNumber
-            )
-    ) || null;
-
+function getFlockRecordByDate(flockId, date) {
+    if (!date) return null;
+    const targetDate = String(date).slice(0, 10);
+    return getFlockWeeklyRecords(flockId).find(item => String(item.date || item.evaluationDate || "").slice(0, 10) === targetDate) || null;
 }
 
-
-/* =========================================================
-   RECORD BY DATE
-   ========================================================= */
-
-function getFlockRecordByDate(
-    flockId,
-    date
-) {
-
-    if (!date) {
-
-        return null;
-
-    }
-
-
-    const targetDate =
-        String(
-            date
-        )
-        .slice(
-            0,
-            10
-        );
-
-
-    return getFlockWeeklyRecords(
-        flockId
-    )
-    .find(
-        item => {
-
-            const itemDate =
-                String(
-                    item.date ||
-                    item.evaluationDate ||
-                    ""
-                )
-                .slice(
-                    0,
-                    10
-                );
-
-
-            return itemDate ===
-                   targetDate;
-
-        }
-    ) || null;
-
+function hasLocalWeeklyRecordAtAge(flockId, ageDays, excludeId = null) {
+    return getFlockWeeklyRecords(flockId).some(record => record.id !== excludeId && Number(record.ageDays) === Number(ageDays));
 }
 
-
-/* =========================================================
-   CHECK DUPLICATE AGE
-   ========================================================= */
-
-function hasLocalWeeklyRecordAtAge(
-    flockId,
-    ageDays,
-    excludeId = null
-) {
-
-    return getFlockWeeklyRecords(
-        flockId
-    )
-    .some(
-        record =>
-
-            record.id !==
-            excludeId &&
-
-            Number(
-                record.ageDays
-            ) ===
-            Number(
-                ageDays
-            )
-
-    );
-
-}
-
-
-/* =========================================================
-   CLEAR FLOCK RECORDS
-   ========================================================= */
-
-function clearFlockWeeklyRecords(
-    flockId
-) {
-
-    if (!flockId) {
-
-        return false;
-
-    }
-
-
-    const remaining =
-        getWeeklyRecords()
-            .filter(
-                item =>
-                    item.flockId !==
-                    flockId
-            );
-
-
-    writeStorage(
-        WEEKLY_STORAGE_NAME,
-        remaining
-    );
-
-
+function clearFlockWeeklyRecords(flockId) {
+    if (!flockId) return false;
+    const remaining = getWeeklyRecords().filter(item => item.flockId !== flockId);
+    writeStorage(WEEKLY_STORAGE_NAME, remaining);
     return true;
-
 }
-
-
-/* =========================================================
-   CLEAR ALL
-   ========================================================= */
 
 function clearAllWeeklyRecords() {
-
-    writeStorage(
-        WEEKLY_STORAGE_NAME,
-        []
-    );
-
-
+    writeStorage(WEEKLY_STORAGE_NAME, []);
     return true;
-
 }
+
+/* =========================================================
+   WEEKLY FEED / WATER AUTO CALCULATOR LOADER
+========================================================= */
+(function loadWeeklyFeedWaterFix() {
+    if (document.getElementById("weekly-feed-water-fix-script")) return;
+    const script = document.createElement("script");
+    script.id = "weekly-feed-water-fix-script";
+    script.src = "weekly-feed-water-fix.js?v=20260826";
+    script.async = false;
+    (document.head || document.documentElement).appendChild(script);
+})();

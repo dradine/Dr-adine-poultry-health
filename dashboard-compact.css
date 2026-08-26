@@ -1,5 +1,17 @@
-/* Dashboard-only override: remove body background image. Hero, cards and bottom navigation remain unchanged. */
+/* Dashboard-only color theme. Layout, cards, typography and bottom navigation remain unchanged. */
 body.dashboard-page{
-  background:#f4f7f5!important;
+  background:#dfe9e4!important;
   background-image:none!important;
+}
+body.dashboard-page .app-shell{
+  background:transparent!important;
+}
+body.dashboard-page .dashboard-topbar{
+  background:#173f35!important;
+}
+body.dashboard-page .dashboard-hero{
+  background:#173f35!important;
+}
+body.dashboard-page .dashboard-hero .hero-overlay{
+  background:linear-gradient(90deg,rgba(7,34,25,.82),rgba(7,34,25,.52),rgba(7,34,25,.30))!important;
 }

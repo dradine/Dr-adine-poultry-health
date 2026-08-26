@@ -1,0 +1,17 @@
+"use strict";
+const fs=require("fs"),vm=require("vm"),path=require("path");
+const source=fs.readFileSync(path.join(__dirname,"benchmark-core-v3.js"),"utf8");
+const sandbox={console};sandbox.globalThis=sandbox;vm.runInNewContext(source,sandbox,{filename:"benchmark-core-v3.js"});
+const C=sandbox.BENCHMARK_CORE_V3;let passed=0;
+const assert=(c,m)=>{if(!c)throw new Error("FAIL: "+m);passed++;};
+const eq=(a,b,m)=>assert(a===b,`${m} | expected ${b}, got ${a}`);
+[[1,1],[7,1],[8,2],[14,2],[15,3],[21,3],[22,4],[28,4],[29,5],[140,20]].forEach(([a,w])=>eq(C.ageToWeek(a),w,`age ${a} -> week`));
+assert(C.ageToWeek(0)===null,"age 0 rejected");assert(C.ageToWeek(-1)===null,"negative age rejected");
+const standard={official:{sourceType:"official",sourceLabel:"test",records:[{ageDays:7,bodyWeight:200},{ageDays:14,bodyWeight:500}]},management:{sourceType:"management-standard",sourceLabel:"mgmt",records:[{ageDays:7,cv:10},{ageDays:14,cv:10}]}};
+eq(C.metricAtAge(standard,"bodyWeight",7).value,200,"exact official standard");assert(Math.abs(C.metricAtAge(standard,"bodyWeight",10).value-328.57142857142856)<1e-9,"linear interpolation");assert(C.metricAtAge(standard,"bodyWeight",6).value===null,"no extrapolation below curve");assert(C.metricAtAge(standard,"bodyWeight",15).value===null,"no extrapolation above curve");assert(C.metricAtAge(standard,"cv",10).sourceType==="management-standard","management fallback labelled");
+const mixed={official:{sourceType:"official",sourceLabel:"official",records:[{ageDays:7,bodyWeight:200}]},management:{sourceType:"management-standard",sourceLabel:"management",records:[{ageDays:7,bodyWeight:999}]}};eq(C.metricAtAge(mixed,"bodyWeight",7).value,200,"official priority");assert(C.metricAtAge(mixed,"bodyWeight",7).sourceType==="official","official source retained");
+const growth=C.buildGrowth([{ageDays:7,averageWeight:199},{ageDays:14,averageWeight:350},{ageDays:21,averageWeight:500}],{initial_weight_g:48});eq(growth[0].weeklyGainG,151,"week 1 gain 199-48");eq(growth[1].weeklyGainG,151,"week 2 gain 350-199");eq(growth[2].weeklyGainG,150,"week 3 gain 500-350");eq(growth[0].cumulativeGainG,151,"cumulative gain week 1");eq(growth[1].cumulativeGainG,302,"cumulative gain week 2");
+assert(C.buildGrowth([{ageDays:7,averageWeight:199}],{})[0].weeklyGainG===null,"missing entry weight does not invent gain");
+assert(Math.abs(C.deviationPercent(210,200)-5)<1e-9,"deviation +5%");assert(Math.abs(C.scoreDeviation(200,200,"target")-100)<1e-9,"target exact = 100");assert(C.scoreDeviation(160,200,"target")===0,"20% below target = 0");assert(C.scoreDeviation(240,200,"target")===0,"20% above target = 0");assert(C.scoreDeviation(190,200,"target")>C.scoreDeviation(180,200,"target"),"target deviation is symmetric");assert(C.scoreDeviation(240,200,"lower")===0,"lower-better +20% = 0");assert(C.scoreDeviation(160,200,"higher")===0,"higher-better -20% = 0");
+const s2={official:{sourceType:"official",sourceLabel:"test",records:[{ageDays:7,bodyWeight:213},{ageDays:14,bodyWeight:533},{ageDays:21,bodyWeight:978}]},management:{records:[]}};const d=C.decorateRecords([{ageDays:7,averageWeight:199},{ageDays:14,averageWeight:350},{ageDays:21,averageWeight:800}],{initial_weight_g:48},s2);eq(d[1].standardWeeklyGainG,320,"week 2 standard gain = 533-213");eq(d[2].standardWeeklyGainG,445,"week 3 standard gain = 978-533");assert(d[1].scoreV3!==null,"score exists with valid weight/gain");
+console.log(`BENCHMARK CORE V3 PASS: ${passed} assertions`);

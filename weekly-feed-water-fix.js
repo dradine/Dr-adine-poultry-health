@@ -14,6 +14,7 @@
     const WATER_PER_BIRD_ID = "waterPerBird";
     const RATIO_ID = "waterFeedRatio";
     const RATIO_FIELD_ID = "waterFeedRatioField";
+    const PRIMARY_RATIO_SELECTOR = '[data-weekly-specialized="water_feed_ratio"]';
 
     function numberOf(id) {
         const el = document.getElementById(id);
@@ -76,6 +77,25 @@
             el.setAttribute("tabindex", "-1");
             el.placeholder = "خودکار";
         });
+
+        const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
+        if (primaryRatio) {
+            primaryRatio.readOnly = true;
+            primaryRatio.setAttribute("aria-readonly", "true");
+            primaryRatio.setAttribute("tabindex", "-1");
+            primaryRatio.placeholder = "خودکار";
+        }
+    }
+
+    function syncPrimaryRatio(ratio) {
+        const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
+        if (!primaryRatio) return;
+
+        primaryRatio.value = Number.isFinite(ratio) ? format(ratio, 3) : "";
+        primaryRatio.readOnly = true;
+        primaryRatio.setAttribute("aria-readonly", "true");
+        primaryRatio.setAttribute("tabindex", "-1");
+        primaryRatio.dataset.autoCalculated = "true";
     }
 
     function calculateFeedWater() {
@@ -105,6 +125,8 @@
         if (feedEl) feedEl.value = format(feedPerBird, 2);
         if (waterEl) waterEl.value = format(waterPerBird, 2);
         if (ratioEl) ratioEl.value = format(ratio, 3);
+
+        syncPrimaryRatio(ratio);
 
         window.weeklyFeedWaterAuto = {
             feedPerBirdG: feedPerBird,
@@ -249,6 +271,27 @@
         return true;
     }
 
+    function patchWeeklyEdit() {
+        if (typeof window.editWeeklyRecord !== "function") return false;
+        if (window.editWeeklyRecord.__feedWaterAutoPatched) return true;
+
+        const original = window.editWeeklyRecord;
+
+        function patchedWeeklyEdit(...args) {
+            const result = original.apply(this, args);
+            setTimeout(() => {
+                setReadonlyCalculatedFields();
+                calculateFeedWater();
+            }, 0);
+            return result;
+        }
+
+        patchedWeeklyEdit.__feedWaterAutoPatched = true;
+        patchedWeeklyEdit.__original = original;
+        window.editWeeklyRecord = patchedWeeklyEdit;
+        return true;
+    }
+
     function boot() {
         const feed = document.getElementById(FEED_ID);
         const water = document.getElementById(WATER_ID);
@@ -262,6 +305,7 @@
         calculateFeedWater();
         patchWeeklyBuilder();
         patchWeeklySave();
+        patchWeeklyEdit();
         return true;
     }
 

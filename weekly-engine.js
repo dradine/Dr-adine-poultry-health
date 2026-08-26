@@ -1,80 +1,24 @@
-/* =========================================================
-   ADINE POULTRY HEALTH CENTER
-   WEEKLY PERFORMANCE ENGINE — CANONICAL V2 BRIDGE
-   ========================================================= */
+/* ADINE POULTRY HEALTH — WEEKLY PERFORMANCE ENGINE CANONICAL BRIDGE */
 "use strict";
-
-function buildWeeklyWeightRecord({flockId,farmId=null,houseId=null,ageDays,weekNumber=null,weights=[],feed=null,water=null,liveBirds=null,mortalityCount=0,initialBirdCount=null,date=todayISO(),notes=""}) {
-    const analysis=calculateWeightAnalysis(weights);
-    const averageWeight=analysis.mean;
-    const standard=getStandardForCurrentFlock(flockId);
-    const standardWeight=standard?getStandardValueAtAge(standard,"bodyWeight",ageDays):null;
-    const age=Number(ageDays);
-    const previousRecord=getFlockWeeklyRecords(flockId).filter(item=>Number.isFinite(Number(item.ageDays))&&Number(item.ageDays)<age).sort((a,b)=>Number(a.ageDays)-Number(b.ageDays)).at(-1)||null;
-    const productionType=getFlockProductionType(flockId);
-    const fcr=calculateWeeklyFCR(flockId,averageWeight,feed,liveBirds,previousRecord,productionType);
-    const mortalityRate=calculateMortalityRate(mortalityCount,initialBirdCount);
-    const calculatedWeekNumber=typeof BENCHMARK_CORE_V2!=="undefined"?BENCHMARK_CORE_V2.ageToWeek(age):(Number.isFinite(age)&&age>=1?Math.floor((age-1)/7)+1:null);
-    const flock=typeof getFlocks==='function'?(getFlocks()||[]).find(x=>String(x.id)===String(flockId)):null;
-    const entryWeight=typeof BENCHMARK_CORE_V2!=='undefined'?BENCHMARK_CORE_V2.findEntryWeight(flock):null;
-    const openingWeight=previousRecord?Number(previousRecord.average_weight_g??previousRecord.averageWeight):entryWeight;
-    const intervalDays=previousRecord?age-Number(previousRecord.ageDays):(entryWeight!==null?age:null);
-    const weeklyGainG=Number.isFinite(Number(averageWeight))&&Number.isFinite(Number(openingWeight))&&intervalDays>0?Number(averageWeight)-Number(openingWeight):null;
-    const cumulativeGainG=Number.isFinite(Number(averageWeight))&&entryWeight!==null?Number(averageWeight)-Number(entryWeight):null;
-    const dailyGainG=weeklyGainG!==null&&intervalDays>0?weeklyGainG/intervalDays:null;
-    const live=Number(liveBirds);
-    const feedTotalKg=feed==null||feed===""?null:Number(feed);
-    const waterTotalLiter=water==null||water===""?null:Number(water);
-    const feedPerBirdG=feedTotalKg!==null&&Number.isFinite(live)&&live>0?(feedTotalKg*1000)/live:null;
-    const waterPerBirdMl=waterTotalLiter!==null&&Number.isFinite(live)&&live>0?(waterTotalLiter*1000)/live:null;
-    return {
-        id:createId("weekly"),flockId,farmId,houseId,date,evaluationDate:date,ageDays:age,weekNumber:calculatedWeekNumber,
-        sampleCount:analysis.count,liveBirds:liveBirds==null||liveBirds===""?null:live,mortalityCount:mortalityCount==null||mortalityCount===""?null:Number(mortalityCount),
-        averageWeight:analysis.mean,sd:analysis.sd,cv:analysis.cv,uniformity10:analysis.uniformity10,uniformity15:analysis.uniformity15,minWeight:analysis.min,maxWeight:analysis.max,
-        feed:feedTotalKg,feedTotalKg,feedPerBirdG,water:waterTotalLiter,waterTotalLiter,waterPerBirdMl,fcr,mortality:mortalityRate,livability:mortalityRate===null?null:calculateLivability(mortalityRate),
-        openingWeightG:openingWeight,weeklyGainG,dailyGainG,cumulativeGainG,entryWeightG:entryWeight,intervalDays,
-        standardWeight,weightDifference:standardWeight===null||averageWeight===null?null:Number(averageWeight)-Number(standardWeight),
-        weightDifferencePercent:standardWeight===null||averageWeight===null||Number(standardWeight)===0?null:((Number(averageWeight)-Number(standardWeight))/Number(standardWeight))*100,notes:notes||""
-    };
+function buildWeeklyWeightRecord({flockId,farmId=null,houseId=null,ageDays,weekNumber=null,weights=[],feed=null,water=null,liveBirds=null,mortalityCount=0,initialBirdCount=null,date=todayISO(),notes=""}){
+ const analysis=calculateWeightAnalysis(weights),averageWeight=analysis.mean,standard=getStandardForCurrentFlock(flockId),standardWeight=standard?getStandardValueAtAge(standard,"bodyWeight",ageDays):null,age=Number(ageDays);
+ const previousRecord=getFlockWeeklyRecords(flockId).filter(item=>Number.isFinite(Number(item.ageDays))&&Number(item.ageDays)<age).sort((a,b)=>Number(a.ageDays)-Number(b.ageDays)).at(-1)||null;
+ const productionType=getFlockProductionType(flockId),fcr=calculateWeeklyFCR(flockId,averageWeight,feed,liveBirds,previousRecord,productionType),mortalityRate=calculateMortalityRate(mortalityCount,initialBirdCount);
+ const calculatedWeekNumber=typeof BENCHMARK_CORE_V3!=="undefined"?BENCHMARK_CORE_V3.ageToWeek(age):(Number.isFinite(age)&&age>=1?Math.floor((age-1)/7)+1:null);
+ const flock=typeof getFlocks==='function'?(getFlocks()||[]).find(x=>String(x.id)===String(flockId)):null,entryWeight=typeof BENCHMARK_CORE_V3!=='undefined'?BENCHMARK_CORE_V3.findEntryWeight(flock):null;
+ const openingWeight=previousRecord?Number(previousRecord.average_weight_g??previousRecord.averageWeight):entryWeight,intervalDays=previousRecord?age-Number(previousRecord.ageDays):(entryWeight!==null?age:null);
+ const weeklyGainG=Number.isFinite(Number(averageWeight))&&Number.isFinite(Number(openingWeight))&&intervalDays>0?Number(averageWeight)-Number(openingWeight):null,cumulativeGainG=Number.isFinite(Number(averageWeight))&&entryWeight!==null?Number(averageWeight)-Number(entryWeight):null,dailyGainG=weeklyGainG!==null&&intervalDays>0?weeklyGainG/intervalDays:null;
+ const live=Number(liveBirds),feedTotalKg=feed==null||feed===""?null:Number(feed),waterTotalLiter=water==null||water===""?null:Number(water),feedPerBirdG=feedTotalKg!==null&&Number.isFinite(live)&&live>0?feedTotalKg*1000/live:null,waterPerBirdMl=waterTotalLiter!==null&&Number.isFinite(live)&&live>0?waterTotalLiter*1000/live:null;
+ return {id:createId("weekly"),flockId,farmId,houseId,date,evaluationDate:date,ageDays:age,weekNumber:calculatedWeekNumber,sampleCount:analysis.count,liveBirds:liveBirds==null||liveBirds===""?null:live,mortalityCount:mortalityCount==null||mortalityCount===""?null:Number(mortalityCount),averageWeight:analysis.mean,sd:analysis.sd,cv:analysis.cv,uniformity10:analysis.uniformity10,uniformity15:analysis.uniformity15,minWeight:analysis.min,maxWeight:analysis.max,feed:feedTotalKg,feedTotalKg,feedPerBirdG,water:waterTotalLiter,waterTotalLiter,waterPerBirdMl,fcr,mortality:mortalityRate,livability:mortalityRate===null?null:calculateLivability(mortalityRate),openingWeightG:openingWeight,weeklyGainG,dailyGainG,cumulativeGainG,entryWeightG:entryWeight,intervalDays,standardWeight,weightDifference:standardWeight===null||averageWeight===null?null:Number(averageWeight)-Number(standardWeight),weightDifferencePercent:standardWeight===null||averageWeight===null||Number(standardWeight)===0?null:((Number(averageWeight)-Number(standardWeight))/Number(standardWeight))*100,notes:notes||""};
 }
-
 function saveWeeklyWeightRecord(data){return saveWeeklyRecord(buildWeeklyWeightRecord(data));}
-
-function calculateWeeklyFCR(flockId,currentWeight,currentFeed,currentLiveBirds=null,previousRecord=null,productionType=null,productionMetrics=null){
-    const feedKg=Number(currentFeed),cw=Number(currentWeight),cb=Number(currentLiveBirds);
-    const type=typeof normalizePoultryProductionType==='function'?normalizePoultryProductionType(productionType||getFlockProductionType(flockId)||'broiler'):String(productionType||'broiler').toLowerCase();
-    if(!Number.isFinite(feedKg)||feedKg<=0)return null;
-    if(type==='layer'||type==='breeder'){const eggMassKg=Number(productionMetrics?.egg_mass_kg);return Number.isFinite(eggMassKg)&&eggMassKg>0?Number((feedKg/eggMassKg).toFixed(3)):null;}
-    if(!previousRecord)return null;
-    const ow=Number(previousRecord.average_weight_g??previousRecord.averageWeight??previousRecord.averageWeightG),ob=Number(previousRecord.live_birds??previousRecord.liveBirds);
-    if(![ow,ob,cb,cw].every(Number.isFinite)||ow<0||ob<=0||cb<=0||cw<=0)return null;
-    const gainKg=(cb*cw-ob*ow)/1000;
-    return gainKg>0?Number((feedKg/gainKg).toFixed(3)):null;
-}
-
+function calculateWeeklyFCR(flockId,currentWeight,currentFeed,currentLiveBirds=null,previousRecord=null,productionType=null,productionMetrics=null){const feedKg=Number(currentFeed),cw=Number(currentWeight),cb=Number(currentLiveBirds),type=typeof normalizePoultryProductionType==='function'?normalizePoultryProductionType(productionType||getFlockProductionType(flockId)||'broiler'):String(productionType||'broiler').toLowerCase();if(!Number.isFinite(feedKg)||feedKg<=0)return null;if(type==='layer'||type==='breeder'){const eggMassKg=Number(productionMetrics?.egg_mass_kg);return Number.isFinite(eggMassKg)&&eggMassKg>0?Number((feedKg/eggMassKg).toFixed(3)):null;}if(!previousRecord)return null;const ow=Number(previousRecord.average_weight_g??previousRecord.averageWeight??previousRecord.averageWeightG),ob=Number(previousRecord.live_birds??previousRecord.liveBirds);if(![ow,ob,cb,cw].every(Number.isFinite)||ow<0||ob<=0||cb<=0||cw<=0)return null;const gainKg=(cb*cw-ob*ow)/1000;return gainKg>0?Number((feedKg/gainKg).toFixed(3)):null;}
 function getFlockProductionType(flockId){if(typeof getFlocks!=='function')return null;const flock=getFlocks().find(item=>String(item.id)===String(flockId));return flock?.productionType||flock?.production_type||null;}
-
-function getStandardForCurrentFlock(flockId){
-    if(typeof getFlocks!=='function'||typeof getStandard!=='function')return null;
-    const flock=(getFlocks()||[]).find(item=>String(item.id)===String(flockId));if(!flock)return null;
-    const productionType=flock.production_type||flock.productionType||"broiler";
-    const genetics=flock.genetics||flock.genetic||flock.breed||"";const strain=flock.strain||flock.flock_strain||"";
-    if(typeof findPoultryStandardIdentity==='function'){const identity=findPoultryStandardIdentity(productionType,genetics,strain);return getStandard(identity.type||productionType,identity.geneticsId||genetics,identity.strain||strain);}
-    return getStandard(productionType,genetics,strain);
-}
-
-function getWeeklyPerformance(flockId){
-    const records=getFlockWeeklyRecords(flockId);if(!Array.isArray(records))return[];
-    const standard=getStandardForCurrentFlock(flockId);
-    const flock=(typeof getFlocks==='function'?(getFlocks()||[]).find(x=>String(x.id)===String(flockId)):null)||{};
-    const decorated=typeof BENCHMARK_CORE_V2!=='undefined'?BENCHMARK_CORE_V2.decorateRecords(records,flock,standard):records;
-    return decorated.map(record=>({...record,standardWeight:standard?getStandardValueAtAge(standard,"bodyWeight",record.ageDays):null,standardFCR:standard?getStandardValueAtAge(standard,"fcr",record.ageDays):null}));
-}
+function getStandardForCurrentFlock(flockId){if(typeof getFlocks!=='function'||typeof getStandard!=='function')return null;const flock=(getFlocks()||[]).find(item=>String(item.id)===String(flockId));if(!flock)return null;const productionType=flock.production_type||flock.productionType||"broiler",genetics=flock.genetics||flock.genetic||flock.breed||"",strain=flock.strain||flock.flock_strain||"";if(typeof findPoultryStandardIdentity==='function'){const identity=findPoultryStandardIdentity(productionType,genetics,strain);return getStandard(identity.type||productionType,identity.geneticsId||genetics,identity.strain||strain);}return getStandard(productionType,genetics,strain);}
+function getWeeklyPerformance(flockId){const records=getFlockWeeklyRecords(flockId);if(!Array.isArray(records))return[];const standard=getStandardForCurrentFlock(flockId),flock=(typeof getFlocks==='function'?(getFlocks()||[]).find(x=>String(x.id)===String(flockId)):null)||{},decorated=typeof BENCHMARK_CORE_V3!=='undefined'?BENCHMARK_CORE_V3.decorateRecords(records,flock,standard):records;return decorated.map(record=>({...record,standardWeight:standard?getStandardValueAtAge(standard,"bodyWeight",record.ageDays):null,standardFCR:standard?getStandardValueAtAge(standard,"fcr",record.ageDays):null}));}
 function getLatestWeeklyPerformance(flockId){const records=getWeeklyPerformance(flockId);return records.length?records[records.length-1]:null;}
 function calculateFlockHealthIndex(record){if(!record)return null;let score=100;const cv=Number(record.cv),u=Number(record.uniformity10),w=Math.abs(Number(record.weightDifferencePercent)),m=Number(record.mortality);if(Number.isFinite(cv)&&cv>10)score-=Math.min(30,(cv-10)*3);if(Number.isFinite(u)&&u<85)score-=Math.min(30,(85-u)*1.5);if(Number.isFinite(w)&&w>5)score-=Math.min(25,(w-5)*1.5);if(Number.isFinite(m)&&m>1)score-=Math.min(25,(m-1)*4);return Math.max(0,Math.min(100,score));}
 function hasWeeklyRecordAtAge(flockId,ageDays,excludeId=null){const records=getFlockWeeklyRecords(flockId);return Array.isArray(records)&&records.some(r=>r.id!==excludeId&&Number(r.ageDays)===Number(ageDays));}
-function getFlockRecordByWeek(flockId,weekNumber){const records=getFlockWeeklyRecords(flockId),w=Number(weekNumber);return records.find(r=>{const age=Number(r.ageDays);return Number.isFinite(age)?(typeof BENCHMARK_CORE_V2!=='undefined'?BENCHMARK_CORE_V2.ageToWeek(age):Math.floor((age-1)/7)+1)===w:Number(r.weekNumber)===w;})||null;}
+function getFlockRecordByWeek(flockId,weekNumber){const records=getFlockWeeklyRecords(flockId),w=Number(weekNumber);return records.find(r=>{const age=Number(r.ageDays);return Number.isFinite(age)?(typeof BENCHMARK_CORE_V3!=='undefined'?BENCHMARK_CORE_V3.ageToWeek(age):Math.floor((age-1)/7)+1)===w:Number(r.weekNumber)===w;})||null;}
 function getFlockRecordByDate(flockId,date){const records=getFlockWeeklyRecords(flockId);return records.find(record=>String(record.date||record.evaluationDate||"").slice(0,10)===String(date||"").slice(0,10))||null;}
-
-/* Canonical benchmark core must execute before reports-data.js. */
-if(typeof document!=="undefined"&&document.readyState!=="complete")document.write('<script src="benchmark-core-v2.js"><\\/script>');
+if(typeof document!=="undefined"&&document.readyState!=="complete")document.write('<script src="benchmark-core-v3.js"><\\/script>');

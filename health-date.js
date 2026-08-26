@@ -22,9 +22,7 @@
   });}
   async function initializeDateAdapter(){try{const api=await loadCentralEngine();exposeCentralAPI(api);prepareDateFields();}catch(e){console.error("Health date adapter initialization error:",e);}}
 
-  /* iOS Safari fix: this page intentionally keeps a fixed viewport.
-     This is the reliable solution for the persistent Safari auto-zoom
-     seen when the Persian datepicker/input receives focus. */
+  /* iOS Safari fix: this page intentionally keeps a fixed viewport. */
   function lockHealthViewport(){
     const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
     if(!isIOS)return;
@@ -54,14 +52,68 @@
     `;document.head.appendChild(style);
   }
 
+  /*
+     Persian Datepicker 1.x can leave more than one plot area in the DOM
+     when several inputs are initialized.  Only the currently displayed
+     calendar should ever be visible.  If the library briefly exposes two,
+     keep the LOWER one (the user's requested calendar) and hide the other.
+     We do not destroy instances, so every date field remains functional.
+  */
+  function keepSingleVisibleCalendar(){
+    const plots=Array.from(document.querySelectorAll(".datepicker-plot-area"));
+    const visible=plots.filter(el=>{
+      const cs=getComputedStyle(el);
+      const r=el.getBoundingClientRect();
+      return cs.display!=="none" && cs.visibility!=="hidden" && parseFloat(cs.opacity||"1")>0 && r.width>0 && r.height>0;
+    });
+    if(visible.length<=1)return;
+
+    let keep=visible[0];
+    let keepTop=-Infinity;
+    visible.forEach(el=>{
+      const top=el.getBoundingClientRect().top;
+      if(top>=keepTop){keepTop=top;keep=el;}
+    });
+
+    visible.forEach(el=>{
+      if(el===keep){
+        if(el.dataset.adineCalendarSuppressed==="true"){
+          el.style.removeProperty("display");
+          delete el.dataset.adineCalendarSuppressed;
+        }
+      }else{
+        el.style.setProperty("display","none","important");
+        el.dataset.adineCalendarSuppressed="true";
+      }
+    });
+  }
+
+  function watchCalendarVisibility(){
+    if(window.__adineHealthCalendarVisibilityWatch)return;
+    window.__adineHealthCalendarVisibilityWatch=true;
+
+    const schedule=()=>setTimeout(keepSingleVisibleCalendar,40);
+
+    document.addEventListener("focusin",e=>{
+      if(e.target && e.target.classList && e.target.classList.contains("jalali-input"))schedule();
+    },true);
+    document.addEventListener("click",e=>{
+      if(e.target && (e.target.closest?.(".jalali-input") || e.target.closest?.(".datepicker-plot-area")))schedule();
+    },true);
+
+    const observer=new MutationObserver(schedule);
+    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:["style","class"]});
+  }
+
   function initHealthCalendar(){
     if(!window.jQuery||typeof window.jQuery.fn.persianDatepicker!=="function")return;
-    lockHealthViewport();installMobileDateStyle();
+    lockHealthViewport();installMobileDateStyle();watchCalendarVisibility();
     const $=window.jQuery;
     $(".jalali-input").each(function(){
       if(this.dataset.calendarInitialized==="true")return;this.dataset.calendarInitialized="true";
       $(this).persianDatepicker({format:"YYYY/MM/DD",autoClose:true,initialValue:false,observer:true,calendarType:"persian",calendar:{persian:{locale:"fa",leapYearMode:"algorithmic"}},toolbox:{calendarSwitch:false,todayButton:{enabled:true,text:{fa:"امروز"}}},navigator:{enabled:true,scroll:{enabled:false}},responsive:false,timePicker:{enabled:false}});
     });
+    setTimeout(keepSingleVisibleCalendar,80);
   }
   function waitForCalendar(){if(window.jQuery&&typeof window.jQuery.fn.persianDatepicker==="function")return initHealthCalendar();setTimeout(waitForCalendar,200);}
   window.initHealthCalendar=initHealthCalendar;

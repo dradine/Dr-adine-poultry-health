@@ -156,7 +156,7 @@
         const original = window.buildWeeklyWeightRecord;
 
         function patchedWeeklyBuilder(data) {
-            const auto = calculateFeedWater();
+            calculateFeedWater();
             const inputData = data && typeof data === "object" ? { ...data } : {};
 
             const feed = Number(inputData.feed);
@@ -292,6 +292,22 @@
         return true;
     }
 
+    function observeSpecializedRatio() {
+        if (window.__weeklyFeedWaterRatioObserver) return;
+        const target = document.body || document.documentElement;
+        if (!target || typeof MutationObserver === "undefined") return;
+
+        const observer = new MutationObserver(() => {
+            const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
+            if (!primaryRatio) return;
+            setReadonlyCalculatedFields();
+            syncPrimaryRatio(window.weeklyFeedWaterAuto?.waterFeedRatio ?? null);
+        });
+
+        observer.observe(target, { childList: true, subtree: true });
+        window.__weeklyFeedWaterRatioObserver = observer;
+    }
+
     function boot() {
         const feed = document.getElementById(FEED_ID);
         const water = document.getElementById(WATER_ID);
@@ -303,6 +319,7 @@
         setReadonlyCalculatedFields();
         attachInputListeners();
         calculateFeedWater();
+        observeSpecializedRatio();
         patchWeeklyBuilder();
         patchWeeklySave();
         patchWeeklyEdit();

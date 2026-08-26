@@ -13,5 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Run benchmark core regression suite
+      - name: Run canonical benchmark core regression suite
         run: node benchmark-core-v3-tests.js
+      - name: Run strict standards and cross-strain regression suite
+        run: node benchmark-strict-regression.test.js

@@ -21,7 +21,7 @@ const WEEKLY_SPECIALIZED_FIELDS = {
     ["management_note","ملاحظه مدیریتی هفته","توضیح","text","تهویه، دان، آب، نور، تراکم یا رفتار گله"]
   ],
   broiler: [
-    ["water_feed_ratio","نسبت آب به دان","L/kg","number","شاخص سریع برای کشف تغییر مصرف آب"],
+    ["water_feed_ratio","نسبت آب به دان","L/kg","number","محاسبه خودکار از مصرف کل آب ÷ مصرف کل دان"],
     ["dead_bird_avg_weight_g","میانگین وزن پرندگان تلف‌شده","g","number","اختیاری؛ برای محاسبه علمی FCR اصلاح‌شده با تلفات استفاده می‌شود"],
     ["feed_form","شکل دان","توضیح","text","آردی/کرامبل/پلت و تغییرات کیفی"],
     ["litter_score","امتیاز بستر","0–5","number","۰ عالی؛ ۵ بسیار نامطلوب"],
@@ -79,82 +79,55 @@ const WEEKLY_SPECIALIZED_FIELDS = {
 };
 
 function weeklySpecializedType(flock){
-  const t=String(flock?.production_type||flock?.productionType||"broiler").toLowerCase();
-  if(t==="گوشتی") return "broiler";
-  if(t==="تخمگذار"||t==="تخم‌گذار") return "layer";
-  if(t==="پولت") return "pullet";
-  if(t==="مادر"||t==="مرغ مادر") return "breeder";
-  return t;
+  const raw=String(flock?.production_type||flock?.productionType||"").trim().toLowerCase();
+  if(raw.includes("گوشتی")||raw.includes("broiler")||raw.includes("meat")) return "broiler";
+  if(raw.includes("تخم")||raw.includes("layer")||raw.includes("egg")) return "layer";
+  if(raw.includes("پولت")||raw.includes("pullet")||raw.includes("grower")) return "pullet";
+  if(raw.includes("مادر")||raw.includes("breeder")||raw.includes("parent")) return "breeder";
+  return "broiler";
 }
 function weeklyFieldLabel(key){
   const all=[...WEEKLY_SPECIALIZED_FIELDS.common,...WEEKLY_SPECIALIZED_FIELDS.broiler,...WEEKLY_SPECIALIZED_FIELDS.pullet,...WEEKLY_SPECIALIZED_FIELDS.layer,...WEEKLY_SPECIALIZED_FIELDS.breeder];
   return all.find(x=>x[0]===key)?.[1]||key;
 }
-function weeklySpecializedPriority(type, key){
-  // ثبت هفتگی باید سریع بماند؛ فقط شاخص‌هایی که واقعاً برای تصمیم همان هفته
-  // لازم‌اند در حالت اصلی دیده می‌شوند. بقیه در «پایش تکمیلی» هستند.
-  const required={
-    broiler:["water_feed_ratio","litter_score"],
-    pullet:["weekly_gain_g"],
-    layer:["egg_count","egg_weight_g","egg_mass_kg","feed_per_hen_g"],
-    breeder:["female_egg_count","egg_weight_g","hatching_egg_pct","female_weight_g"]
-  };
-  return (required[type]||[]).includes(key) ? "primary" : "advanced";
+function weeklySpecializedPriority(type,key){
+  const required={broiler:["water_feed_ratio","litter_score"],pullet:["weekly_gain_g"],layer:["egg_count","egg_weight_g","egg_mass_kg","feed_per_hen_g"],breeder:["female_egg_count","egg_weight_g","hatching_egg_pct","female_weight_g"]};
+  return (required[type]||[]).includes(key)?"primary":"advanced";
 }
 function weeklyFieldHelp(key){
   const all=[...WEEKLY_SPECIALIZED_FIELDS.common,...WEEKLY_SPECIALIZED_FIELDS.broiler,...WEEKLY_SPECIALIZED_FIELDS.pullet,...WEEKLY_SPECIALIZED_FIELDS.layer,...WEEKLY_SPECIALIZED_FIELDS.breeder];
   return all.find(x=>x[0]===key)?.[4]||"";
 }
-function weeklyFieldLabel(key){
-  const all=[...WEEKLY_SPECIALIZED_FIELDS.common,...WEEKLY_SPECIALIZED_FIELDS.broiler,...WEEKLY_SPECIALIZED_FIELDS.pullet,...WEEKLY_SPECIALIZED_FIELDS.layer,...WEEKLY_SPECIALIZED_FIELDS.breeder];
-  return all.find(x=>x[0]===key)?.[1]||key;
-}
 function renderWeeklySpecializedFields(flock){
-  const card=document.getElementById("specializedMetricsCard");
-  const host=document.getElementById("specializedMetrics");
-  const intro=document.getElementById("specializedMetricsIntro");
-  if(!card||!host) return;
+  const card=document.getElementById("specializedMetricsCard"),host=document.getElementById("specializedMetrics"),intro=document.getElementById("specializedMetricsIntro");
+  if(!card||!host)return;
   const type=weeklySpecializedType(flock);
-  const fields=[...WEEKLY_SPECIALIZED_FIELDS.common,...(WEEKLY_SPECIALIZED_FIELDS[type]||[])];
-  const labels={
-    broiler:"گوشتی: رشد، یکنواختی، FCR، دان/آب و کنترل محیط؛ تغییرات کوچک آب و هوا می‌توانند زودتر از افت وزن هشدار بدهند.",
-    pullet:"پولت: هدف اصلی رسیدن یکنواخت به منحنی وزن سویه و آماده‌سازی صحیح برای ورود به تولید است.",
-    layer:"تخم‌گذار: تولید، وزن و جرم تخم، مصرف دان، کیفیت پوسته و شرایط محیطی باید همزمان دیده شوند.",
-    breeder:"مادر: وزن و یکنواختی ماده و نر، تولید، تخم قابل جوجه‌کشی، باروری و هچ باید یک زنجیره واحد دیده شوند."
-  };
-  intro.innerHTML=`<strong>${labels[type]||"شاخص‌های تخصصی این گله"}</strong><div class="weekly-special-note">فیلدهای ستاره‌دار، شاخص‌های اصلی ارزیابی هستند. فیلدهای پیشرفته را در صورت داشتن ابزار یا داده ثبت کنید.</div>`;
+  /* The two broiler completion KPIs have their own resilient panel. Do not render duplicate inputs here. */
+  let typeFields=[...(WEEKLY_SPECIALIZED_FIELDS[type]||[])];
+  if(type==="broiler") typeFields=typeFields.filter(x=>x[0]!=="water_feed_ratio"&&x[0]!=="litter_score");
+  const fields=[...WEEKLY_SPECIALIZED_FIELDS.common,...typeFields];
+  const labels={broiler:"گوشتی: رشد، یکنواختی، FCR، دان/آب و کنترل محیط.",pullet:"پولت: هدف اصلی رسیدن یکنواخت به منحنی وزن سویه و آماده‌سازی صحیح برای تولید است.",layer:"تخم‌گذار: تولید، وزن و جرم تخم، مصرف دان، کیفیت پوسته و شرایط محیطی.",breeder:"مادر: وزن و یکنواختی ماده و نر، تولید، تخم قابل جوجه‌کشی، باروری و هچ."};
+  intro.innerHTML=`<strong>${labels[type]||"شاخص‌های تخصصی این گله"}</strong><div class="weekly-special-note">فیلدهای ستاره‌دار شاخص‌های اصلی ارزیابی هستند؛ سایر موارد در پایش تکمیلی قرار دارند.</div>`;
   const primary=fields.filter(x=>weeklySpecializedPriority(type,x[0])==='primary');
   const advanced=fields.filter(x=>weeklySpecializedPriority(type,x[0])!=='primary');
   const renderGroup=(title,items,cls)=>`<div class="weekly-metric-group ${cls}"><div class="weekly-metric-group-title">${title}</div><div class="form-grid">${items.map(([id,label,unit,kind])=>`<div class="form-group weekly-special-field"><label for="wm_${id}">${weeklySpecializedPriority(type,id)==='primary'?'<b class="required-star">★</b> ':''}${label} <span>(${unit})</span></label><input id="wm_${id}" data-weekly-specialized="${id}" type="text" inputmode="${kind==='number'?'decimal':'text'}" autocomplete="off"><small>${weeklyFieldHelp(id)}</small></div>`).join('')}</div></div>`;
   host.innerHTML=renderGroup("شاخص‌های اصلی",primary,"primary-group")+`<div class="weekly-advanced-toggle-wrap"><button type="button" class="btn btn-secondary weekly-advanced-toggle" onclick="toggleWeeklyAdvanced()">+ پایش تکمیلی و کیفیت</button></div>`+renderGroup("پایش پیشرفته و کیفیت",advanced,"advanced-group");
-  card.style.display="block";
-  const advancedGroup=host.querySelector(".advanced-group");
-  if(advancedGroup) advancedGroup.style.display="none";
-  host.querySelectorAll("[data-weekly-specialized]").forEach(input=>{ input.addEventListener("input",()=>{ if(input.inputMode==="decimal") input.value=normalizeWeeklyDigits(input.value); }); });
+  card.style.display="block"; card.hidden=false;
+  const advancedGroup=host.querySelector(".advanced-group"); if(advancedGroup)advancedGroup.style.display="none";
+  host.querySelectorAll("[data-weekly-specialized]").forEach(input=>{input.addEventListener("input",()=>{if(input.inputMode==="decimal")input.value=normalizeWeeklyDigits(input.value);});});
 }
-
-function toggleWeeklyAdvanced(){
-  const host=document.getElementById("specializedMetrics");
-  const group=host?.querySelector(".advanced-group");
-  const btn=host?.querySelector(".weekly-advanced-toggle");
-  if(!group||!btn)return;
-  const open=group.style.display!=="none";
-  group.style.display=open?"none":"block";
-  btn.textContent=open?"+ پایش تکمیلی و کیفیت":"− بستن پایش تکمیلی";
-}
-function normalizeWeeklyDigits(v){ return String(v??"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/,/g,"").replace(/٬/g,"").replace(/٫/g,"."); }
-function getWeeklySpecializedMetrics(){
-  const out={}; document.querySelectorAll("[data-weekly-specialized]").forEach(input=>{ const key=input.dataset.weeklySpecialized; const raw=String(input.value||"").trim(); if(!raw)return; if(input.inputMode==="decimal"){const n=Number(normalizeWeeklyDigits(raw)); if(Number.isFinite(n))out[key]=n;} else out[key]=raw; }); return out;
-}
-function loadWeeklySpecializedMetrics(metrics){ const data=(metrics&&typeof metrics==="object")?metrics:{}; document.querySelectorAll("[data-weekly-specialized]").forEach(input=>{input.value=data[input.dataset.weeklySpecialized]??"";}); }
+function toggleWeeklyAdvanced(){const host=document.getElementById("specializedMetrics"),group=host?.querySelector(".advanced-group"),btn=host?.querySelector(".weekly-advanced-toggle");if(!group||!btn)return;const open=group.style.display!=="none";group.style.display=open?"none":"block";btn.textContent=open?"+ پایش تکمیلی و کیفیت":"− بستن پایش تکمیلی";}
+function normalizeWeeklyDigits(v){return String(v??"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/,/g,"").replace(/٬/g,"").replace(/٫/g,".");}
+function getWeeklySpecializedMetrics(){const out={};document.querySelectorAll("[data-weekly-specialized]").forEach(input=>{const key=input.dataset.weeklySpecialized,raw=String(input.value||"").trim();if(!raw)return;if(input.inputMode==="decimal"){const n=Number(normalizeWeeklyDigits(raw));if(Number.isFinite(n))out[key]=n;}else out[key]=raw;});return out;}
+function loadWeeklySpecializedMetrics(metrics){const data=(metrics&&typeof metrics==="object")?metrics:{};document.querySelectorAll("[data-weekly-specialized]").forEach(input=>{input.value=data[input.dataset.weeklySpecialized]??"";});}
 function clearWeeklySpecializedMetrics(){document.querySelectorAll("[data-weekly-specialized]").forEach(input=>input.value="");}
 function calculateWeeklySpecializedDerived(metrics,flock,previousRecords){
   const out={...(metrics||{})}; const type=weeklySpecializedType(flock); const rows=Array.isArray(previousRecords)?previousRecords:[]; const live=Number(out.live_birds||flock?.current_bird_count||flock?.live_birds||0);
-  if((type==='layer'||type==='breeder')&&out.egg_mass_kg==null){const eggs=Number(out.egg_count??out.female_egg_count??0), ew=Number(out.egg_weight_g||0); if(eggs>0&&ew>0)out.egg_mass_kg=Number((eggs*ew/1000).toFixed(3));}
-  if((type==='layer'||type==='breeder')&&out.hen_day_pct==null&&live>0){const eggs=Number(out.egg_count??out.female_egg_count??0); if(eggs>0)out.hen_day_pct=Number((eggs/(live*7)*100).toFixed(3));}
-  if(type==='layer'&&out.hen_housed_pct==null&&live>0){const eggs=Number(out.egg_count||0); if(eggs>0)out.hen_housed_pct=Number((eggs/(live*7)*100).toFixed(3));}
-  if(out.water_feed_ratio==null){const water=Number(flock?._weekly_water_total||0),feed=Number(flock?._weekly_feed_total||0); if(water>0&&feed>0)out.water_feed_ratio=Number((water/feed).toFixed(3));}
-  if(out.weekly_gain_g==null&&rows.length){const last=[...rows].sort((a,b)=>Number(a.age_days||a.ageDays||0)-Number(b.age_days||b.ageDays||0)).at(-1); const w=Number(out.measured_weight_g||out.average_weight_g||0),pw=Number(last?.average_weight_g||last?.averageWeight||0); if(w>0&&pw>0)out.weekly_gain_g=Number((w-pw).toFixed(1));}
+  if((type==='layer'||type==='breeder')&&out.egg_mass_kg==null){const eggs=Number(out.egg_count??out.female_egg_count??0),ew=Number(out.egg_weight_g||0);if(eggs>0&&ew>0)out.egg_mass_kg=Number((eggs*ew/1000).toFixed(3));}
+  if((type==='layer'||type==='breeder')&&out.hen_day_pct==null&&live>0){const eggs=Number(out.egg_count??out.female_egg_count??0);if(eggs>0)out.hen_day_pct=Number((eggs/(live*7)*100).toFixed(3));}
+  if(type==='layer'&&out.hen_housed_pct==null&&live>0){const eggs=Number(out.egg_count||0);if(eggs>0)out.hen_housed_pct=Number((eggs/(live*7)*100).toFixed(3));}
+  if(out.water_feed_ratio==null){const water=Number(flock?._weekly_water_total||0),feed=Number(flock?._weekly_feed_total||0);if(water>0&&feed>0)out.water_feed_ratio=Number((water/feed).toFixed(3));}
+  if(out.weekly_gain_g==null&&rows.length){const last=[...rows].sort((a,b)=>Number(a.age_days||a.ageDays||0)-Number(b.age_days||b.ageDays||0)).at(-1);const w=Number(out.measured_weight_g||out.average_weight_g||0),pw=Number(last?.average_weight_g||last?.averageWeight||0);if(w>0&&pw>0)out.weekly_gain_g=Number((w-pw).toFixed(1));}
   return out;
 }
 function validateSpecializedMetrics(type,metrics){
@@ -166,54 +139,10 @@ function validateSpecializedMetrics(type,metrics){
   if(metrics.footpad_score!=null&&(metrics.footpad_score<0||metrics.footpad_score>2))return "امتیاز کف پا باید بین ۰ تا ۲ باشد.";
   return null;
 }
-
 function calculateWeeklyCumulativeConversion(records,current,type){
-  const rows=Array.isArray(records)?[...records]:[];
-  const currentFeed=Number(current?.feed_total_kg||0);
-  if(currentFeed<=0) return null;
-  const all=[...rows.filter(r=>String(r.id)!==String(current?.id)),current].sort((a,b)=>Number(a.week_number)-Number(b.week_number));
-  const t=weeklySpecializedType({production_type:type});
-  const first=all.find(r=>Number(r.average_weight_g)>0);
-  if(!first) return null;
-  const feed=all.reduce((sum,r)=>sum+Number(r.feed_total_kg||0),0);
-  if(t==="layer"||t==="breeder"){
-    const eggMass=all.reduce((sum,r)=>sum+Number(r.production_metrics?.egg_mass_kg||0),0);
-    return eggMass>0?Number((feed/eggMass).toFixed(3)):null;
-  }
-  const last=all[all.length-1];
-  const birds0=Number(first.live_birds||0), birdsn=Number(last.live_birds||0);
-  const w0=Number(first.average_weight_g||0), wn=Number(last.average_weight_g||0);
-  if(!birds0||!birdsn||!w0||!wn) return null;
-  const gainKg=(birdsn*wn-birds0*w0)/1000;
-  return gainKg>0?Number((feed/gainKg).toFixed(3)):null;
+  const rows=Array.isArray(records)?[...records]:[];const currentFeed=Number(current?.feed_total_kg||0);if(currentFeed<=0)return null;const all=[...rows.filter(r=>String(r.id)!==String(current?.id)),current].sort((a,b)=>Number(a.week_number)-Number(b.week_number));const t=weeklySpecializedType({production_type:type});const first=all.find(r=>Number(r.average_weight_g)>0);if(!first)return null;const feed=all.reduce((sum,r)=>sum+Number(r.feed_total_kg||0),0);if(t==="layer"||t==="breeder"){const eggMass=all.reduce((sum,r)=>sum+Number(r.production_metrics?.egg_mass_kg||0),0);return eggMass>0?Number((feed/eggMass).toFixed(3)):null;}const last=all[all.length-1],birds0=Number(first.live_birds||0),birdsn=Number(last.live_birds||0),w0=Number(first.average_weight_g||0),wn=Number(last.average_weight_g||0);if(!birds0||!birdsn||!w0||!wn)return null;const gainKg=(birdsn*wn-birds0*w0)/1000;return gainKg>0?Number((feed/gainKg).toFixed(3)):null;
 }
-function validateSpecializedMetrics(type,metrics){
-  const percentKeys=["hen_day_pct","hen_housed_pct","dirty_eggs_pct","cracked_eggs_pct","floor_eggs_pct","hatching_egg_pct","fertility_pct","hatchability_pct","male_female_ratio"];
-  for(const k of percentKeys){
-    if(metrics[k]!=null&&(metrics[k]<0||metrics[k]>100)) return `${weeklyFieldLabel(k)} باید بین ۰ تا ۱۰۰ باشد.`;
-  }
-  if(metrics.egg_weight_g!=null&&metrics.egg_weight_g<=0) return "وزن تخم باید بزرگ‌تر از صفر باشد.";
-  if(metrics.egg_mass_kg!=null&&metrics.egg_mass_kg<0) return "Egg Mass نمی‌تواند منفی باشد.";
-  return null;
-}
-async function closeCurrentFlockPeriod(){
-  if(!window.currentFlockForSpecialized) {
-    alert("گله فعال پیدا نشد."); return;
-  }
-  const flock=window.currentFlockForSpecialized;
-  if(String(flock.status||"active").toLowerCase()==="closed"){
-    alert("این دوره قبلاً بسته شده است."); return;
-  }
-  const ok=confirm(`آیا از بستن دوره گله «${flock.flock_name||flock.flockName||""}» مطمئن هستید؟\nپس از بستن، ثبت و ویرایش هفتگی متوقف می‌شود و فارم در وضعیت غیرفعال/آرشیوی قرار می‌گیرد تا با گله جدید دوباره فعال شود.`);
-  if(!ok) return;
-  const typed=prompt("برای تأیید، عبارت «بستن دوره» را وارد کنید:");
-  if(typed!=="بستن دوره"){ alert("عملیات لغو شد."); return; }
-  const {error}=await supabaseClient.from("flocks").update({status:"closed",closed_at:new Date().toISOString(),closed_by:currentUser.id}).eq("id",flock.id).eq("owner_id",currentUser.id);
-  if(error){console.error(error);alert("بستن دوره انجام نشد:\n"+error.message);return;}
-  flock.status="closed";
-  alert("دوره با موفقیت بسته شد. برای بایگانی، از گزارش دوره استفاده کنید.");
-  location.reload();
-}
+async function closeCurrentFlockPeriod(){if(!window.currentFlockForSpecialized){alert("گله فعال پیدا نشد.");return;}const flock=window.currentFlockForSpecialized;if(String(flock.status||"active").toLowerCase()==="closed"){alert("این دوره قبلاً بسته شده است.");return;}const ok=confirm(`آیا از بستن دوره گله «${flock.flock_name||flock.flockName||""}» مطمئن هستید؟\nپس از بستن، ثبت و ویرایش هفتگی متوقف می‌شود و فارم در وضعیت غیرفعال/آرشیوی قرار می‌گیرد تا با گله جدید دوباره فعال شود.`);if(!ok)return;const typed=prompt("برای تأیید، عبارت «بستن دوره» را وارد کنید:");if(typed!=="بستن دوره"){alert("عملیات لغو شد.");return;}const {error}=await supabaseClient.from("flocks").update({status:"closed",closed_at:new Date().toISOString(),closed_by:currentUser.id}).eq("id",flock.id).eq("owner_id",currentUser.id);if(error){console.error(error);alert("بستن دوره انجام نشد:\n"+error.message);return;}flock.status="closed";alert("دوره با موفقیت بسته شد. برای بایگانی، از گزارش دوره استفاده کنید.");location.reload();}
 window.WEEKLY_SPECIALIZED_FIELDS=WEEKLY_SPECIALIZED_FIELDS;
 window.getWeeklySpecializedMetrics=getWeeklySpecializedMetrics;
 window.loadWeeklySpecializedMetrics=loadWeeklySpecializedMetrics;
@@ -223,8 +152,4 @@ window.calculateWeeklySpecializedDerived=calculateWeeklySpecializedDerived;
 window.validateSpecializedMetrics=validateSpecializedMetrics;
 window.closeCurrentFlockPeriod=closeCurrentFlockPeriod;
 window.toggleWeeklyAdvanced=toggleWeeklyAdvanced;
-document.addEventListener("DOMContentLoaded",()=>{
-  setTimeout(()=>{
-    if(window.currentFlockForSpecialized) renderWeeklySpecializedFields(window.currentFlockForSpecialized);
-  },100);
-});
+document.addEventListener("DOMContentLoaded",()=>{setTimeout(()=>{if(window.currentFlockForSpecialized)renderWeeklySpecializedFields(window.currentFlockForSpecialized);},100);});

@@ -1,159 +1,162 @@
 /* =========================================================
-   WEEKLY AUTO WEEK ENGINE
-   - Derives week number from flock placement date + evaluation date.
-   - Uses the flock's start_age_days when present (default 1).
-   - Standard weeks are 7-day age blocks.
-   - If an evaluation falls 1-2 days into a new 7-day block,
-     it remains assigned to the previous week (late-evaluation tolerance).
-   - The result is written to #weekNumber and made read-only.
-   - No weekly calculations, reports, scores or stored records are changed.
+   WEEKLY AUTO WEEK — QUICK ENTRY
+   Derives week_number from flock placement date + evaluation date.
+   Late tolerance: first 2 days of a new 7-day block remain in the
+   previous week. This file is deliberately isolated from calculations.
 ========================================================= */
 (function () {
-    "use strict";
+  "use strict";
 
-    const START_DATE_KEYS = [
-        "placement_date",
-        "placementDate",
-        "flock_start_date",
-        "flockStartDate",
-        "start_date",
-        "startDate",
-        "entry_date",
-        "entryDate",
-        "chick_placement_date",
-        "chickPlacementDate",
-        "chick_arrival_date",
-        "chickArrivalDate",
-        "arrival_date",
-        "arrivalDate"
-    ];
+  const START_KEYS = [
+    "placement_date", "placementDate", "flock_start_date", "flockStartDate",
+    "start_date", "startDate", "entry_date", "entryDate",
+    "chick_placement_date", "chickPlacementDate", "chick_arrival_date",
+    "chickArrivalDate", "arrival_date", "arrivalDate"
+  ];
 
-    function normalize(value) {
-        if (value === null || value === undefined) return "";
-        return String(value)
-            .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
-            .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
-            .trim();
+  function norm(v) {
+    return String(v ?? "")
+      .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
+      .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
+      .trim();
+  }
+
+  function getFlock() {
+    // currentFlock is a top-level let in weekly.js and therefore is NOT
+    // available as window.currentFlock. weekly.js exposes the same object
+    // through currentFlockForSpecialized.
+    return window.currentFlockForSpecialized || window.currentFlock || null;
+  }
+
+  function getStart(flock) {
+    if (!flock) return null;
+    for (const key of START_KEYS) {
+      if (flock[key] !== null && flock[key] !== undefined && String(flock[key]).trim()) {
+        return flock[key];
+      }
     }
+    return null;
+  }
 
-    function flockStartDate(flock) {
-        if (!flock || typeof flock !== "object") return null;
-        for (const key of START_DATE_KEYS) {
-            const value = flock[key];
-            if (value !== null && value !== undefined && String(value).trim()) {
-                return value;
-            }
-        }
-        return null;
+  function toISO(value) {
+    const v = norm(value).replace(/[.-]/g, "/");
+    if (!v) return null;
+    // Database stores placement_date as Gregorian ISO.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    if (/^\d{4}\/\d{2}\/\d{2}$/.test(v) && Number(v.slice(0,4)) >= 1700) {
+      return v.replaceAll("/", "-");
     }
+    if (window.AdineDateSystem?.jalaliToISO) return window.AdineDateSystem.jalaliToISO(v);
+    return null;
+  }
 
-    function evaluationDate() {
-        const input = document.getElementById("evaluationDate");
-        return input ? normalize(input.value).replace(/[.-]/g, "/") : "";
+  function getEvaluationISO() {
+    const el = document.getElementById("evaluationDate");
+    if (!el) return null;
+    const v = norm(el.value).replace(/[.-]/g, "/");
+    return window.AdineDateSystem?.jalaliToISO ? window.AdineDateSystem.jalaliToISO(v) : null;
+  }
+
+  function diffDays(a, b) {
+    if (window.AdineDateSystem?.dateOnlyDiffDays) {
+      return window.AdineDateSystem.dateOnlyDiffDays(a, b);
     }
+    const aa = a.split("-").map(Number), bb = b.split("-").map(Number);
+    return Math.round((Date.UTC(bb[0],bb[1]-1,bb[2]) - Date.UTC(aa[0],aa[1]-1,aa[2])) / 86400000);
+  }
 
-    function calculateWeek(startJalali, evaluationJalali, startAgeDays) {
-        if (!window.AdineDateSystem) return null;
-        const startISO = window.AdineDateSystem.jalaliToISO(startJalali);
-        const evaluationISO = window.AdineDateSystem.jalaliToISO(evaluationJalali);
-        if (!startISO || !evaluationISO) return null;
+  function calculateWeekFromDates(startValue, evaluationValue, startAgeDays = 1) {
+    const startISO = toISO(startValue);
+    const evaluationISO = toISO(evaluationValue);
+    if (!startISO || !evaluationISO) return null;
+    const diff = diffDays(startISO, evaluationISO);
+    if (diff === null || diff < 0) return null;
 
-        const diff = window.AdineDateSystem.dateOnlyDiffDays(startISO, evaluationISO);
-        if (diff === null || diff < 0) return null;
+    const baseAge = Number.isFinite(Number(startAgeDays)) && Number(startAgeDays) >= 0
+      ? Math.floor(Number(startAgeDays)) : 1;
+    const ageDays = baseAge + diff;
 
-        const ageStart = Number(startAgeDays);
-        const baseAge = Number.isFinite(ageStart) && ageStart >= 0 ? Math.floor(ageStart) : 1;
-        const ageDays = baseAge + diff;
+    let week = Math.max(1, Math.floor((Math.max(1, ageDays) - 1) / 7) + 1);
+    const position = ((Math.max(1, ageDays) - 1) % 7) + 1;
 
-        // Normal poultry weekly blocks: days 1-7, 8-14, 15-21, ...
-        let week = Math.max(1, Math.floor((Math.max(1, ageDays) - 1) / 7) + 1);
+    // Example with placement on day 2:
+    // evaluation day 8  => age 7  => week 1
+    // evaluation day 14 => age 13 => week 2
+    // evaluation day 15/16 => age 14/15 => week 2
+    // evaluation day 17 => age 16 => week 3
+    if (week > 1 && position <= 2) week -= 1;
 
-        // Late-evaluation tolerance requested by the user:
-        // days 15-16 remain week 2, days 22-23 remain week 3, etc.
-        // More generally, first two days of a new block stay with the prior week.
-        const position = ((Math.max(1, ageDays) - 1) % 7) + 1;
-        if (week > 1 && position <= 2) week -= 1;
+    return { week, ageDays, diffDays: diff, startISO, evaluationISO };
+  }
 
-        return { week, ageDays, diffDays: diff, startISO, evaluationISO };
+  function setWeek(result) {
+    const el = document.getElementById("weekNumber");
+    if (!el) return;
+    if (!result) return;
+    el.value = String(result.week);
+    el.readOnly = true;
+    el.dataset.autoWeek = "true";
+    el.setAttribute("aria-readonly", "true");
+    el.title = `شماره هفته خودکار — سن گله: ${result.ageDays} روز`;
+  }
+
+  function recalculate() {
+    const flock = getFlock();
+    const start = getStart(flock);
+    const evaluationISO = getEvaluationISO();
+    if (!start || !evaluationISO) return null;
+    const result = calculateWeekFromDates(
+      start,
+      evaluationISO,
+      flock.start_age_days ?? flock.startAgeDays ?? 1
+    );
+    setWeek(result);
+    return result;
+  }
+
+  function bind() {
+    const evaluation = document.getElementById("evaluationDate");
+    if (!evaluation) return;
+    if (evaluation.dataset.autoWeekBound !== "true") {
+      evaluation.dataset.autoWeekBound = "true";
+      evaluation.addEventListener("change", recalculate);
+      evaluation.addEventListener("input", recalculate);
     }
+    recalculate();
+  }
 
-    function setWeek(result) {
-        const input = document.getElementById("weekNumber");
-        if (!input) return;
-        if (!result) {
-            input.value = "";
-            input.removeAttribute("data-auto-week");
-            input.removeAttribute("aria-readonly");
-            input.readOnly = false;
-            return;
-        }
-        input.value = String(result.week);
-        input.readOnly = true;
-        input.setAttribute("data-auto-week", "true");
-        input.setAttribute("aria-readonly", "true");
-        input.title = `هفته ${result.week} — سن گله در تاریخ ارزیابی: ${result.ageDays} روز`;
+  window.AdineWeeklyWeek = {
+    calculate: calculateWeekFromDates,
+    recalculate,
+    selfTest() {
+      const cases = [
+        ["1405/01/02", "1405/01/08", 1],
+        ["1405/01/02", "1405/01/14", 2],
+        ["1405/01/02", "1405/01/15", 2],
+        ["1405/01/02", "1405/01/16", 2],
+        ["1405/01/02", "1405/01/17", 3]
+      ];
+      const failures = [];
+      cases.forEach(([s,e,w]) => {
+        const r = calculateWeekFromDates(s,e,1);
+        if (!r || r.week !== w) failures.push({s,e,expected:w,result:r});
+      });
+      return { ok: failures.length === 0, failures };
     }
+  };
 
-    function recalculate() {
-        const flock = window.currentFlock || window.currentFlockForSpecialized || null;
-        const start = flockStartDate(flock);
-        const evaluation = evaluationDate();
-        if (!start || !evaluation) {
-            setWeek(null);
-            return null;
-        }
-
-        const result = calculateWeek(
-            start,
-            evaluation,
-            flock.start_age_days ?? flock.startAgeDays ?? 1
-        );
-        setWeek(result);
-        return result;
-    }
-
-    function attach() {
-        const input = document.getElementById("evaluationDate");
-        if (!input || input.dataset.autoWeekBound === "true") return;
-        input.dataset.autoWeekBound = "true";
-        input.addEventListener("change", recalculate);
-        input.addEventListener("input", recalculate);
-        recalculate();
-    }
-
-    window.AdineWeeklyWeek = {
-        calculate: calculateWeek,
-        recalculate,
-        getStartDate: flockStartDate,
-        selfTest: function () {
-            const tests = [
-                ["1405/01/02", "1405/01/08", 1, 1],
-                ["1405/01/02", "1405/01/14", 1, 2],
-                ["1405/01/02", "1405/01/15", 1, 2],
-                ["1405/01/02", "1405/01/16", 1, 2],
-                ["1405/01/02", "1405/01/17", 1, 3],
-                ["1405/01/02", "1405/01/21", 1, 3]
-            ];
-            const failures = [];
-            tests.forEach(t => {
-                const r = calculateWeek(t[0], t[1], t[2]);
-                if (!r || r.week !== t[3]) failures.push({ input: t, result: r });
-            });
-            return { ok: failures.length === 0, failures };
-        }
-    };
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", attach, { once: true });
-    } else {
-        attach();
-    }
-
-    // weekly.js loads the flock asynchronously; retry briefly after it becomes available.
-    let attempts = 0;
+  function start() {
+    bind();
+    let tries = 0;
     const timer = setInterval(() => {
-        attempts += 1;
-        recalculate();
-        if (window.currentFlock || attempts >= 40) clearInterval(timer);
+      tries++;
+      bind();
+      // Keep polling until flock has loaded and the week has actually been set.
+      const input = document.getElementById("weekNumber");
+      if ((getFlock() && input?.dataset.autoWeek === "true") || tries >= 80) clearInterval(timer);
     }, 250);
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, {once:true});
+  else start();
 })();

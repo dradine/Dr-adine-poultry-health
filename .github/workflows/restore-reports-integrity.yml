@@ -26,18 +26,18 @@ jobs:
           p = Path('reports.html')
           s = p.read_text(encoding='utf-8')
           marker = '<script src="farm-score-v3.js"></script>'
-          loaders = '<script src="mortality-benchmark-v2.js"></script>\n<script src="reports-ui-v4.js"></script>\n<script src="reports-ui-v5-layout.js"></script>\n'
           changed = False
+          loaders = [
+              ('mortality-benchmark-v2.js', '<script src="mortality-benchmark-v2.js"></script>\n'),
+              ('reports-ui-v4.js', '<script src="reports-ui-v4.js"></script>\n'),
+              ('reports-ui-v5-layout.js', '<script src="reports-ui-v5-layout.js"></script>\n'),
+              ('reports-ui-v6-sync.js', '<script src="reports-ui-v6-sync.js"></script>\n'),
+          ]
           if marker in s:
-              if 'mortality-benchmark-v2.js' not in s:
-                  s = s.replace(marker, '<script src="mortality-benchmark-v2.js"></script>\n' + marker, 1)
-                  changed = True
-              if 'reports-ui-v4.js' not in s:
-                  s = s.replace(marker, '<script src="reports-ui-v4.js"></script>\n' + marker, 1)
-                  changed = True
-              if 'reports-ui-v5-layout.js' not in s:
-                  s = s.replace(marker, '<script src="reports-ui-v5-layout.js"></script>\n' + marker, 1)
-                  changed = True
+              for name, loader in loaders:
+                  if name not in s:
+                      s = s.replace(marker, loader + marker, 1)
+                      changed = True
           if changed:
               p.write_text(s, encoding='utf-8')
           PY
@@ -52,5 +52,5 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m 'Ensure reports UI loaders without overwriting report page'
+          git commit -m 'Ensure reports UI synchronization without overwriting report page'
           git push

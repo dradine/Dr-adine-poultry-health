@@ -1,12 +1,8 @@
-/* ADINE FARM SCORE LOADER — CANONICAL V11
-   Safe loader. Reports flock bootstrap uses the actual flocks schema and
-   deliberately relies on Supabase RLS for authorized farm/professional access.
-*/
+/* ADINE FARM SCORE LOADER — CANONICAL V12 */
 (function(g){
   "use strict";
-  if (g.__ADINE_CANONICAL_ENGINE_REQUESTED) return;
+  if(g.__ADINE_CANONICAL_ENGINE_REQUESTED) return;
   g.__ADINE_CANONICAL_ENGINE_REQUESTED = true;
-
   function load(src,next){
     if(document.querySelector('script[data-adine-src="'+src+'"]')){if(next)next();return;}
     var s=document.createElement('script');
@@ -20,7 +16,9 @@
       load('benchmark-report-adapter-v1.js',function(){
         load('report-week-selector-v1.js',function(){
           load('performance-period-engine-v9.js',function(){
-            load('reports-root-controller-v10.js');
+            load('report-period-data-adapter-v11.js',function(){
+              load('reports-root-controller-v10.js');
+            });
           });
         });
       });

@@ -28,7 +28,7 @@ const css=document.createElement('style');css.textContent='#'+PANEL+'{display:bl
 /* Strict delete confirmation for weekly history */
 (function(){
 'use strict';
-function records(){try{return Array.isArray(window.weeklyRecords)?window.weeklyRecords:[]}catch(e){return[]}}
+function records(){try{if(typeof weeklyRecords!=='undefined'&&Array.isArray(weeklyRecords))return weeklyRecords}catch(e){}return[]}
 function decorate(){
  const box=document.getElementById('weeklyHistory');if(!box)return;
  const rows=box.querySelectorAll('tbody tr');const rs=records();
@@ -57,7 +57,7 @@ async function strictDelete(rec,button){
  button.disabled=true;button.textContent='در حال حذف...';
  const {error}=await window.supabaseClient.from('weekly_records').delete().eq('id',rec.id).eq('flock_id',flock.id);
  if(error){console.error(error);button.disabled=false;button.textContent='🗑️ حذف';alert('حذف انجام نشد:\n'+error.message);return}
- try{window.weeklyRecords=records().filter(r=>String(r.id)!==String(rec.id))}catch(e){}
+ try{weeklyRecords=records().filter(r=>String(r.id)!==String(rec.id))}catch(e){try{window.weeklyRecords=records().filter(r=>String(r.id)!==String(rec.id))}catch(e2){}}
  if(typeof window.renderHistory==='function')window.renderHistory();
  setTimeout(decorate,0);
  alert('سابقه پایش هفته '+week+' با موفقیت حذف شد.');

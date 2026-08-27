@@ -3,16 +3,6 @@ const SUPABASE_URL = "https://vzcczkavlopznljnnehp.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_4jMgvqKI__-MsmMQtEiCig_M9WjhvN9";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
 
-/*
- * Canonical global bridge.
- *
- * The application historically uses both the global lexical binding
- * `supabaseClient` and `window.supabaseClient`.  Pages such as reports.html
- * load independent scripts which execute inside IIFEs and therefore cannot
- * reliably see the lexical binding through `window`.  Expose the SAME client
- * instance on window so every report/flock loader uses one authenticated
- * client and one session.
- */
 try { window.supabaseClient = supabaseClient; } catch (_) {}
 
 async function getCurrentUser(){ try { const {data,error}=await supabaseClient.auth.getSession(); if(!error&&data?.session?.user)return data.session.user; const r=await supabaseClient.auth.getUser(); return r.data?.user||null; } catch(e){ console.warn("getCurrentUser:",e); return null; } }
@@ -33,7 +23,6 @@ async function checkUserAccess(){
 async function logoutUser(){ try{await supabaseClient.auth.signOut();}catch(e){console.warn("logoutUser:",e);} try{sessionStorage.removeItem("adine_profile_cache_v2");}catch(_){} window.location.replace("login.html"); return true; }
 if(supabaseClient?.auth) supabaseClient.auth.onAuthStateChange((event,session)=>window.dispatchEvent(new CustomEvent("adine-auth-state-change",{detail:{event,session}})));
 
-/* Flock baseline compatibility: isolated, non-invasive field mapping. */
 (function(){
   const page=String(location.pathname||"").toLowerCase().split("/").pop(); if(page!=="flocks.html")return;
   const num=id=>{const e=document.getElementById(id);if(!e)return null;const v=String(e.value??"").replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,"").trim();const n=Number(v);return v&&Number.isFinite(n)?n:null;};
@@ -47,8 +36,6 @@ if(supabaseClient?.auth) supabaseClient.auth.onAuthStateChange((event,session)=>
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",inject,{once:true});else inject();
 })();
 
-/* Weekly page compatibility bridge: load the isolated average-weight module.
-   This is page-scoped and does not alter Supabase/auth behavior elsewhere. */
 (function(){
   const page=String(location.pathname||"").toLowerCase().split("/").pop();
   if(page!=="weekly.html")return;
@@ -57,5 +44,18 @@ if(supabaseClient?.auth) supabaseClient.auth.onAuthStateChange((event,session)=>
   script.src="weekly-average-weight-autofill.js";
   script.async=false;
   script.dataset.adineWeeklyAverageWeight="true";
+  (document.head||document.documentElement).appendChild(script);
+})();
+
+/* Authoritative weekly date/week policy: placement_date is the flock
+   monitoring anchor, and week boundaries are strict 7-day blocks. */
+(function(){
+  const page=String(location.pathname||"").toLowerCase().split("/").pop();
+  if(page!=="weekly.html")return;
+  if(document.querySelector('script[data-adine-week-policy]'))return;
+  const script=document.createElement("script");
+  script.src="weekly-week-policy-v1.js";
+  script.async=false;
+  script.dataset.adineWeekPolicy="true";
   (document.head||document.documentElement).appendChild(script);
 })();

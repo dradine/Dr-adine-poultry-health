@@ -1,148 +1,17 @@
-/* ADINE Weekly History Delete UI v3
-   Directly decorates the existing Edit action. No dependency on table markup.
+/* ADINE Weekly History Delete UI v4
+   Put delete BESIDE Edit in the same inline action container.
 */
-(function () {
-  'use strict';
-
-  const HISTORY = 'weeklyHistory';
-  const DELETE_CLASS = 'weekly-delete-record-v3';
-
-  function normalizeDigits(value) {
-    return String(value ?? '').replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-  }
-
-  function getRecords() {
-    try {
-      if (typeof weeklyRecords !== 'undefined' && Array.isArray(weeklyRecords)) return weeklyRecords;
-    } catch (_) {}
-    return [];
-  }
-
-  function getFlock() {
-    try {
-      if (typeof currentFlock !== 'undefined' && currentFlock) return currentFlock;
-    } catch (_) {}
-    return window.currentFlockForSpecialized || window.currentFlock || null;
-  }
-
-  function weekOf(record, row) {
-    const direct = record?.week_number ?? record?.weekNumber ?? record?.week;
-    if (direct != null) return String(direct);
-    const text = String(row?.textContent || '');
-    const m = text.match(/هفته\s*([0-9۰-۹]+)/);
-    return m ? normalizeDigits(m[1]) : '';
-  }
-
-  function findRecord(row, index) {
-    const records = getRecords();
-    if (!records.length) return null;
-    const attr = row.getAttribute('data-record-id') || row.dataset.recordId;
-    if (attr) {
-      const byId = records.find(r => String(r.id) === String(attr));
-      if (byId) return byId;
-    }
-    const edit = Array.from(row.querySelectorAll('button, a')).find(el => /ویرایش|edit/i.test(el.textContent || ''));
-    const onclick = edit?.getAttribute('onclick') || '';
-    const idMatch = onclick.match(/['"]([0-9a-f-]{20,})['"]/i);
-    if (idMatch) {
-      const byId = records.find(r => String(r.id) === idMatch[1]);
-      if (byId) return byId;
-    }
-    const week = weekOf(null, row);
-    if (week) {
-      const byWeek = records.find(r => normalizeDigits(r.week_number ?? r.weekNumber ?? r.week) === normalizeDigits(week));
-      if (byWeek) return byWeek;
-    }
-    return records[index] || null;
-  }
-
-  async function performDelete(record, button) {
-    const flock = getFlock();
-    if (!record?.id) { alert('شناسه سابقه پایش پیدا نشد؛ حذف انجام نشد.'); return; }
-    if (!flock?.id) { alert('گله فعال مشخص نیست؛ حذف انجام نشد.'); return; }
-
-    let authUser = null;
-    try { authUser = (await window.supabaseClient.auth.getUser())?.data?.user || null; } catch (_) {}
-    if (!authUser) { alert('برای حذف سابقه، ابتدا وارد سامانه شوید.'); return; }
-
-    const status = String(flock.status ?? flock.operational_status ?? '').toLowerCase();
-    if (['closed', 'بسته', 'archived'].includes(status)) {
-      alert('این دوره بسته است و حذف سابقه پایش مجاز نیست.');
-      return;
-    }
-
-    const week = record.week_number ?? record.weekNumber ?? record.week ?? '-';
-    const phrase = 'حذف هفته ' + week;
-    const warning = '⚠️ هشدار بسیار مهم\n\n' +
-      'شما در حال حذف سابقه پایش هفتگی هفته ' + week + ' هستید.\n\n' +
-      'این داده پس از حذف قابل بازیابی نخواهد بود.\n' +
-      'این عملیات دائمی است و ممکن است روی گزارش‌ها و روندهای گله اثر بگذارد.\n\n' +
-      'برای ادامه، «تأیید» را انتخاب کنید.';
-    if (!window.confirm(warning)) return;
-
-    const typed = window.prompt('برای تأیید نهایی، عبارت زیر را دقیقاً وارد کنید:\n\n' + phrase);
-    if (typed === null) return;
-    if (String(typed).trim() !== phrase) {
-      alert('عبارت تأیید صحیح نیست؛ حذف لغو شد و هیچ داده‌ای تغییر نکرد.');
-      return;
-    }
-
-    button.disabled = true;
-    button.textContent = 'در حال حذف...';
-    try {
-      const { error } = await window.supabaseClient.from('weekly_records').delete().eq('id', record.id).eq('flock_id', flock.id);
-      if (error) throw error;
-      try {
-        if (typeof weeklyRecords !== 'undefined' && Array.isArray(weeklyRecords)) {
-          weeklyRecords = weeklyRecords.filter(r => String(r.id) !== String(record.id));
-        }
-      } catch (_) {}
-      if (typeof loadHistory === 'function') await loadHistory();
-      else if (typeof renderHistory === 'function') renderHistory();
-      alert('سابقه پایش هفته ' + week + ' با موفقیت حذف شد.');
-    } catch (error) {
-      console.error('Weekly delete error:', error);
-      button.disabled = false;
-      button.textContent = '🗑️ حذف';
-      alert('حذف انجام نشد:\n' + (error?.message || error));
-    }
-  }
-
-  function decorate() {
-    const root = document.getElementById(HISTORY);
-    if (!root) return;
-
-    // Find every existing Edit control, regardless of whether history is rendered as a table or cards.
-    const edits = Array.from(root.querySelectorAll('button, a')).filter(el => /ویرایش|edit/i.test(el.textContent || ''));
-    edits.forEach((edit, index) => {
-      const parent = edit.parentElement;
-      if (!parent || parent.querySelector('.' + DELETE_CLASS)) return;
-      const row = edit.closest('tr, .history-row, .history-item, .record-row, .card') || parent;
-      const record = findRecord(row, index);
-      if (!record?.id) return;
-
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'btn btn-danger ' + DELETE_CLASS;
-      button.textContent = '🗑️ حذف';
-      button.title = 'حذف دائمی سابقه پایش هفتگی';
-      button.style.cssText = 'display:inline-flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:99999!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;min-width:82px!important;margin:2px 4px!important;cursor:pointer!important;';
-      button.addEventListener('click', function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        performDelete(record, button);
-      });
-      edit.insertAdjacentElement('afterend', button);
-    });
-  }
-
-  function start() {
-    decorate();
-    if (document.body) new MutationObserver(decorate).observe(document.body, { childList: true, subtree: true });
-    let n = 0;
-    const timer = setInterval(() => { decorate(); if (++n > 160) clearInterval(timer); }, 250);
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  window.installWeeklyDeleteUI = decorate;
-})();
+(function(){'use strict';
+const HISTORY='weeklyHistory',CLS='weekly-delete-record-v4';
+const norm=v=>String(v??'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
+function recs(){try{if(typeof weeklyRecords!=='undefined'&&Array.isArray(weeklyRecords))return weeklyRecords}catch(e){}return[]}
+function flock(){try{if(typeof currentFlock!=='undefined'&&currentFlock)return currentFlock}catch(e){}return window.currentFlockForSpecialized||window.currentFlock||null}
+function findRecord(row,i){const rs=recs();if(!rs.length)return null;const id=row?.getAttribute('data-record-id');if(id){const r=rs.find(x=>String(x.id)===String(id));if(r)return r}const text=String(row?.textContent||'');const m=text.match(/هفته\s*([0-9۰-۹]+)/);if(m){const w=norm(m[1]);const r=rs.find(x=>norm(x.week_number??x.weekNumber??x.week)===w);if(r)return r}return rs[i]||null}
+async function del(r,b){const f=flock();if(!r?.id||!f?.id){alert('شناسه سابقه یا گله فعال مشخص نیست؛ حذف انجام نشد.');return}let u=null;try{u=(await window.supabaseClient.auth.getUser())?.data?.user||null}catch(e){}if(!u){alert('برای حذف، ابتدا وارد سامانه شوید.');return}const week=r.week_number??r.weekNumber??r.week??'-';const phrase='حذف هفته '+week;if(!confirm('⚠️ هشدار بسیار مهم\n\nاین سابقه پایش هفتگی در حال حذف است.\n\nپس از حذف، این داده قابل بازیابی نخواهد بود.\nاین عملیات دائمی است و می‌تواند روی گزارش‌ها و روندهای گله اثر بگذارد.'))return;const typed=prompt('برای تأیید نهایی حذف، دقیقاً عبارت زیر را وارد کنید:\n\n'+phrase);if(typed===null)return;if(String(typed).trim()!==phrase){alert('عبارت تأیید صحیح نیست؛ حذف لغو شد.');return}b.disabled=true;b.textContent='در حال حذف...';try{const {error}=await window.supabaseClient.from('weekly_records').delete().eq('id',r.id).eq('flock_id',f.id);if(error)throw error;try{weeklyRecords=weeklyRecords.filter(x=>String(x.id)!==String(r.id))}catch(e){}if(typeof loadHistory==='function')await loadHistory();else if(typeof renderHistory==='function')renderHistory();alert('سابقه پایش هفته '+week+' حذف شد.')}catch(e){b.disabled=false;b.textContent='🗑️ حذف';alert('حذف انجام نشد:\n'+(e?.message||e))}}
+function decorate(){const root=document.getElementById(HISTORY);if(!root)return;const edits=Array.from(root.querySelectorAll('button,a')).filter(x=>/ویرایش|edit/i.test(x.textContent||''));edits.forEach((edit,i)=>{const host=edit.parentElement;if(!host||host.querySelector('.'+CLS))return;const row=edit.closest('tr,.history-row,.history-item,.record-row,.card')||host;const r=findRecord(row,i);if(!r?.id)return;
+// Force an inline flex action group so Delete cannot fall below Edit.
+let group=host.closest('.weekly-action-group,.actions,.action-buttons,.record-actions');if(!group)group=host;
+group.style.setProperty('display','inline-flex','important');group.style.setProperty('flex-direction','row','important');group.style.setProperty('flex-wrap','nowrap','important');group.style.setProperty('align-items','center','important');group.style.setProperty('justify-content','center','important');group.style.setProperty('gap','6px','important');group.style.setProperty('white-space','nowrap','important');group.style.setProperty('width','auto','important');group.style.setProperty('min-width','max-content','important');
+edit.style.setProperty('display','inline-flex','important');edit.style.setProperty('flex','0 0 auto','important');edit.style.setProperty('margin','0','important');
+const b=document.createElement('button');b.type='button';b.className='btn btn-danger '+CLS;b.textContent='🗑️ حذف';b.title='حذف دائمی سابقه پایش';b.style.cssText='display:inline-flex!important;flex:0 0 auto!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:99999!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;width:auto!important;min-width:82px!important;margin:0!important;padding:8px 12px!important;cursor:pointer!important;';b.onclick=e=>{e.preventDefault();e.stopPropagation();del(r,b)};edit.insertAdjacentElement('afterend',b);});}
+function start(){decorate();if(document.body)new MutationObserver(decorate).observe(document.body,{childList:true,subtree:true});let i=0;const t=setInterval(()=>{decorate();if(++i>200)clearInterval(t)},250)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();})();

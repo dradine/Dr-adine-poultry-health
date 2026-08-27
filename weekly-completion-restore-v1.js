@@ -1,150 +1,18 @@
-/* ADINE - Weekly completion restore v2
-   Robust broiler-only weekly completion panel.
-   Does not depend on window.currentFlock because weekly.js uses a top-level lexical variable.
-*/
-(function(){
-  'use strict';
-
-  var PANEL_ID='weeklyBroilerCompletionPanel';
-  var RATIO_ID='weeklyBroilerWaterFeedRatio';
-  var LITTER_ID='weeklyBroilerLitterScore';
-
-  function num(v){
-    var s=String(v==null?'':v)
-      .replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d);})
-      .replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d);})
-      .replace(/٬/g,'').replace(/,/g,'').replace(/٫/g,'.');
-    var x=Number(s);
-    return Number.isFinite(x)?x:null;
-  }
-
-  function getFlock(){
-    try{
-      if(typeof currentFlock!=='undefined' && currentFlock) return currentFlock;
-    }catch(e){}
-    return window.currentFlockForSpecialized || null;
-  }
-
-  function isBroiler(f){
-    var t=String(f && (f.production_type || f.productionType || '')).trim().toLowerCase();
-    return t.indexOf('گوشتی')!==-1 || t.indexOf('broiler')!==-1 || t.indexOf('meat')!==-1 || t.indexOf('گوش')!==-1;
-  }
-
-  function getHost(){return document.getElementById('specializedMetrics');}
-  function getCard(){return document.getElementById('specializedMetricsCard');}
-
-  function build(){
-    var host=getHost(), card=getCard();
-    if(!host || !card) return false;
-    var panel=document.getElementById(PANEL_ID);
-    if(!panel){
-      panel=document.createElement('div');
-      panel.id=PANEL_ID;
-      panel.className='weekly-broiler-completion-panel';
-      panel.innerHTML=
-        '<div class="weekly-completion-title"><span class="required-star">★</span> تکمیل اطلاعات مهم گوشتی</div>'+
-        '<div class="weekly-completion-sub">دو شاخص مهم برای تصمیم‌گیری همان هفته؛ سایر شاخص‌های تخصصی در «پایش تکمیلی» قرار دارند.</div>'+
-        '<div class="form-grid weekly-completion-grid">'+
-          '<div class="form-group">'+
-            '<label for="'+RATIO_ID+'"><span class="required-star">★</span> نسبت آب به دان <span>(L/kg)</span></label>'+
-            '<input id="'+RATIO_ID+'" data-weekly-specialized="water_feed_ratio" type="text" inputmode="decimal" readonly autocomplete="off" aria-readonly="true">'+
-            '<small>خودکار از مصرف کل آب ÷ مصرف کل دان محاسبه می‌شود.</small>'+
-          '</div>'+
-          '<div class="form-group">'+
-            '<label for="'+LITTER_ID+'"><span class="required-star">★</span> وضعیت بستر <span>(۰ تا ۵)</span></label>'+
-            '<input id="'+LITTER_ID+'" data-weekly-specialized="litter_score" type="text" inputmode="decimal" autocomplete="off" min="0" max="5">'+
-            '<small>۰ = عالی، ۵ = بسیار نامطلوب. این شاخص در ارزیابی گوشتی ذخیره می‌شود.</small>'+
-          '</div>'+ 
-        '</div>';
-      host.insertBefore(panel,host.firstChild);
-    }
-
-    card.hidden=false;
-    card.style.display='block';
-    card.style.visibility='visible';
-    card.style.opacity='1';
-
-    updateRatio();
-    return true;
-  }
-
-  function updateRatio(){
-    var r=document.getElementById(RATIO_ID);
-    if(!r) return;
-    var feed=num(document.getElementById('feedTotal') && document.getElementById('feedTotal').value);
-    var water=num(document.getElementById('waterTotal') && document.getElementById('waterTotal').value);
-    if(feed!==null && feed>0 && water!==null && water>=0){
-      r.value=(water/feed).toFixed(3);
-    }else{
-      r.value='';
-    }
-  }
-
-  function apply(){
-    var flock=getFlock();
-    if(!flock || !isBroiler(flock)) return;
-    build();
-  }
-
-  function bindInputs(){
-    ['feedTotal','waterTotal'].forEach(function(id){
-      var el=document.getElementById(id);
-      if(el && !el.dataset.broilerRatioBound){
-        el.dataset.broilerRatioBound='1';
-        el.addEventListener('input',updateRatio);
-        el.addEventListener('change',updateRatio);
-      }
-    });
-    var litter=document.getElementById(LITTER_ID);
-    if(litter && !litter.dataset.litterBound){
-      litter.dataset.litterBound='1';
-      litter.addEventListener('input',function(){
-        var v=num(litter.value);
-        if(v!==null){
-          if(v<0) litter.value='0';
-          if(v>5) litter.value='5';
-        }
-      });
-    }
-  }
-
-  function run(){
-    apply();
-    bindInputs();
-    updateRatio();
-  }
-
-  document.addEventListener('DOMContentLoaded',run);
-
-  /* weekly.js loads the flock asynchronously. Keep watching the actual DOM/state,
-     so the panel cannot disappear when the specialized renderer runs later. */
-  var observer=new MutationObserver(function(){
-    var flock=getFlock();
-    if(flock && isBroiler(flock)) run();
-  });
-  function startObserver(){
-    if(document.body) observer.observe(document.body,{childList:true,subtree:true});
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',startObserver);
-  else startObserver();
-
-  var attempts=0;
-  var timer=setInterval(function(){
-    run();
-    attempts++;
-    if(attempts>120) clearInterval(timer);
-  },250);
-
-  window.restoreWeeklyCompletion=run;
-})();
-
-/* v2 visual fallback styles are intentionally scoped to this component only. */
-(function(){
-  var css=document.createElement('style');
-  css.textContent=''+
-    '#weeklyBroilerCompletionPanel{display:block!important;visibility:visible!important;opacity:1!important;position:relative;z-index:2;margin:0 0 16px;padding:14px;border:1px solid rgba(37,99,235,.18);border-radius:14px;background:rgba(248,250,252,.9)}'+
-    '#weeklyBroilerCompletionPanel .weekly-completion-title{font-weight:800;font-size:1.05rem;margin-bottom:6px}'+
-    '#weeklyBroilerCompletionPanel .weekly-completion-sub{font-size:.86rem;line-height:1.8;margin-bottom:10px;opacity:.82}'+
-    '#weeklyBroilerCompletionPanel .required-star{font-weight:900}';
-  document.head.appendChild(css);
-})();
+/* ADINE - Weekly completion restore v3 */
+(function(){'use strict';
+var PANEL_ID='weeklyBroilerCompletionPanel',RATIO_ID='weeklyBroilerWaterFeedRatio',LITTER_ID='weeklyBroilerLitterScore',TOGGLE_ID='weeklyBroilerAdvancedToggle';
+function num(v){var s=String(v==null?'':v).replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)}).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d)}).replace(/٬/g,'').replace(/,/g,'').replace(/٫/g,'.');var x=Number(s);return Number.isFinite(x)?x:null}
+function getFlock(){try{if(typeof currentFlock!=='undefined'&&currentFlock)return currentFlock}catch(e){}return window.currentFlockForSpecialized||null}
+function isBroiler(f){var t=String(f&&(f.production_type||f.productionType||'')).trim().toLowerCase();return t.indexOf('گوشتی')!==-1||t.indexOf('broiler')!==-1||t.indexOf('meat')!==-1||t.indexOf('گوش')!==-1}
+function host(){return document.getElementById('specializedMetrics')}
+function card(){return document.getElementById('specializedMetricsCard')}
+function group(){return document.querySelector('#specializedMetrics .advanced-group')}
+function setOpen(open){var g=group();if(g){g.style.display=open?'block':'none';g.hidden=!open}var b=document.getElementById(TOGGLE_ID);if(b){b.setAttribute('aria-expanded',open?'true':'false');b.textContent=open?'− بستن پایش تکمیلی':'＋ پایش تکمیلی و کیفیت'}}
+window.toggleWeeklyAdvanced=function(){var g=group();setOpen(!(g&&g.style.display==='block'))}
+function ensureToggle(){var h=host(),g=group();if(!h||!g)return;var old=document.getElementById(TOGGLE_ID);if(old)old.parentNode.remove();var w=document.createElement('div');w.className='weekly-advanced-toggle-wrap';var b=document.createElement('button');b.type='button';b.id=TOGGLE_ID;b.className='btn btn-secondary weekly-advanced-toggle';b.setAttribute('aria-expanded','false');b.textContent='＋ پایش تکمیلی و کیفیت';b.onclick=function(){setOpen(g.style.display!=='block')};w.appendChild(b);g.parentNode.insertBefore(w,g);setOpen(false)}
+function build(){var h=host(),c=card();if(!h||!c)return false;var p=document.getElementById(PANEL_ID);if(!p){p=document.createElement('div');p.id=PANEL_ID;p.className='weekly-broiler-completion-panel';p.innerHTML='<div class="weekly-completion-title"><span class="required-star">★</span> تکمیل اطلاعات مهم گوشتی</div><div class="weekly-completion-sub">دو شاخص مهم؛ سایر اطلاعات در «پایش تکمیلی و کیفیت» قرار دارند.</div><div class="form-grid weekly-completion-grid"><div class="form-group"><label for="'+RATIO_ID+'"><span class="required-star">★</span> نسبت آب به دان <span>(L/kg)</span></label><input id="'+RATIO_ID+'" data-weekly-specialized="water_feed_ratio" type="text" inputmode="decimal" readonly autocomplete="off"><small>خودکار: مصرف کل آب ÷ مصرف کل دان.</small></div><div class="form-group"><label for="'+LITTER_ID+'"><span class="required-star">★</span> وضعیت بستر <span>(۰ تا ۵)</span></label><input id="'+LITTER_ID+'" data-weekly-specialized="litter_score" type="text" inputmode="decimal" min="0" max="5" autocomplete="off"><small>۰ عالی، ۵ بسیار نامطلوب.</small></div></div>';h.insertBefore(p,h.firstChild)}c.hidden=false;c.style.display='block';c.style.visibility='visible';c.style.opacity='1';updateRatio();ensureToggle();return true}
+function updateRatio(){var r=document.getElementById(RATIO_ID);if(!r)return;var f=num(document.getElementById('feedTotal')&&document.getElementById('feedTotal').value),w=num(document.getElementById('waterTotal')&&document.getElementById('waterTotal').value);r.value=f!==null&&f>0&&w!==null&&w>=0?(w/f).toFixed(3):''}
+function bind(){['feedTotal','waterTotal'].forEach(function(id){var e=document.getElementById(id);if(e&&!e.dataset.ratioBound){e.dataset.ratioBound='1';e.addEventListener('input',updateRatio);e.addEventListener('change',updateRatio)}});var l=document.getElementById(LITTER_ID);if(l&&!l.dataset.litterBound){l.dataset.litterBound='1';l.addEventListener('input',function(){var v=num(l.value);if(v!==null){if(v<0)l.value='0';if(v>5)l.value='5'}})}}
+function run(){var f=getFlock();if(!f||!isBroiler(f))return;build();bind();updateRatio()}
+document.addEventListener('DOMContentLoaded',run);var observer=new MutationObserver(function(){var f=getFlock();if(f&&isBroiler(f))run()});function start(){if(document.body)observer.observe(document.body,{childList:true,subtree:true})}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();var n=0,t=setInterval(function(){run();if(++n>120)clearInterval(t)},250);window.restoreWeeklyCompletion=run})();
+(function(){var css=document.createElement('style');css.textContent='#weeklyBroilerCompletionPanel{display:block!important;visibility:visible!important;opacity:1!important;position:relative;z-index:20;margin:0 0 16px;padding:14px;border:1px solid rgba(37,99,235,.18);border-radius:14px;background:rgba(248,250,252,.9)}#weeklyBroilerCompletionPanel .required-star{font-weight:900}.weekly-advanced-toggle-wrap{display:flex!important;visibility:visible!important;opacity:1!important;margin:12px 0!important;position:relative!important;z-index:50!important}.weekly-advanced-toggle{display:inline-flex!important;visibility:visible!important;opacity:1!important;cursor:pointer!important}.weekly-metric-group.advanced-group{transition:none!important}';document.head.appendChild(css)})();

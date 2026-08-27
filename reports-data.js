@@ -87,10 +87,6 @@ async function getReportFlock(
                 "id",
                 flockId
             )
-            .eq(
-                "owner_id",
-                reportsCurrentUser.id
-            )
             .maybeSingle();
 
 

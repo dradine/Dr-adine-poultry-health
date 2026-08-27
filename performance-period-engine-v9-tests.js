@@ -1,0 +1,9 @@
+"use strict";
+const fs=require("fs"),vm=require("vm");
+const src=fs.readFileSync("performance-period-engine-v9.js","utf8");const sandbox={console,setTimeout,normalizeReportProductionType:v=>v};sandbox.globalThis=sandbox;sandbox.window=sandbox;sandbox.AdineMortalityBenchmarkV2={BROILER_WEEKLY:{1:1,2:1.5}};
+vm.runInNewContext(src,sandbox,{filename:"performance-period-engine-v9.js"});const E=sandbox.AdinePerformancePeriodEngineV9;let p=0;const ok=(x,m)=>{if(!x)throw Error("FAIL: "+m);p++;};const eq=(a,b,m)=>ok(a===b,`${m}: ${a} !== ${b}`);
+const flock={production_type:"broiler",initial_weight_g:48};const std={official:{sourceType:"official",sourceLabel:"test",records:[{ageDays:7,bodyWeight:213},{ageDays:14,bodyWeight:533},{ageDays:21,bodyWeight:978}]}};
+const r=E.enrich([{ageDays:7,averageWeight:199,liveBirds:990,mortality:10},{ageDays:14,averageWeight:350,liveBirds:970,mortality:20},{ageDays:21,averageWeight:500,liveBirds:950,mortality:20}],flock,std);eq(r[0].weekNumber,1,"week1");eq(r[1].weekNumber,2,"week2");eq(r[0].weeklyGainG,151,"gain week1");eq(r[1].weeklyGainG,151,"gain week2");eq(r[1].cumulativeGainG,302,"cumulative week2");eq(r[1].standardWeeklyGainG,320,"standard week2 gain");eq(r[2].standardWeeklyGainG,445,"standard week3 gain");
+const range={interpolationPolicy:"exact-only",official:{sourceType:"official",records:[{ageDays:119,bodyWeight:{low:1238,high:1296}}]}};const layer={production_type:"layer",initial_weight_g:42};const rr=E.enrich([{ageDays:119,averageWeight:1260}],layer,range)[0];eq(rr.standardWeightLow,1238,"range low");eq(rr.standardWeightHigh,1296,"range high");ok(rr.standardWeightIsRange,"range flag");
+const result=E.evaluate(flock,r,std);ok(result.score!==null,"farm score exists");ok(result.score<100,"strict score not inflated");
+console.log(`PERFORMANCE ENGINE V9 PASS: ${p} assertions`);

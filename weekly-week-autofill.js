@@ -1,13 +1,12 @@
-/* QUICK WEEKLY ENTRY — AUTHORITATIVE AUTO WEEK v6
-   Source of truth: public.flocks.placement_date + #evaluationDate
-   Placement day = age 1.
-   Week rule: standard 7-day blocks, but days 1-2 of every new block
-   are attributed to the previous week (late evaluation tolerance).
-   Hard limit: week 120.
+/* QUICK WEEKLY ENTRY — AUTHORITATIVE AUTO WEEK v7
+   Date/week source of truth: the same flock start date used by weekly storage.
+   Evaluation date is NEVER rejected merely because it is before placement_date
+   when the flock has a valid hatch_date on/before the evaluation date.
+   Week is calculated from biological age: hatch_date -> age 1, then 7-day blocks.
+   If hatch_date is unavailable, placement_date is the fallback.
 */
 (function () {
   "use strict";
-
   const MAX_WEEK = 120;
   let flockCache = null;
   let last = "";
@@ -18,38 +17,36 @@
       .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   }
 
-  function cleanDate(v) {
-    return digits(v).trim().replace(/[.\-]/g, "/");
-  }
-
   function toISO(v) {
-    const s = cleanDate(v);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(String(v || "").trim())) return String(v).trim();
+    const raw = String(v == null ? "" : v).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+    const s = digits(raw).replace(/[.\-]/g, "/");
     if (!s) return null;
+    if (window.AdineDateSystem && typeof window.AdineDateSystem.jalaliToISO === "function") {
+      const iso = window.AdineDateSystem.jalaliToISO(s);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ""))) return iso;
+    }
     const p = s.split("/");
     if (p.length !== 3) return null;
     const y = Number(p[0]), m = Number(p[1]), d = Number(p[2]);
     if (![y,m,d].every(Number.isInteger) || m < 1 || m > 12 || d < 1 || d > 31) return null;
-    if (y >= 1700 && y <= 2500) {
-      return `${String(y).padStart(4,"0")}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-    }
-    if (window.AdineDateSystem && typeof window.AdineDateSystem.jalaliToISO === "function") {
-      return window.AdineDateSystem.jalaliToISO(s);
-    }
+    if (y >= 1700 && y <= 2500) return `${String(y).padStart(4,"0")}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
     return null;
   }
 
   function dayDiff(a, b) {
+    if (window.AdineDateSystem && typeof window.AdineDateSystem.dateOnlyDiffDays === "function") {
+      const n = Number(window.AdineDateSystem.dateOnlyDiffDays(a, b));
+      if (Number.isFinite(n)) return n;
+    }
     const A = a.split("-").map(Number), B = b.split("-").map(Number);
     if (A.length !== 3 || B.length !== 3 || A.some(Number.isNaN) || B.some(Number.isNaN)) return null;
     return Math.round((Date.UTC(B[0],B[1]-1,B[2]) - Date.UTC(A[0],A[1]-1,A[2])) / 86400000);
   }
 
   function getSelection() {
-    try {
-      const raw = localStorage.getItem("adine_poultry_current_selection");
-      return raw ? JSON.parse(raw) : {};
-    } catch (_) { return {}; }
+    try { return JSON.parse(localStorage.getItem("adine_poultry_current_selection") || "{}"); }
+    catch (_) { return {}; }
   }
 
   function getFlock() {
@@ -58,19 +55,17 @@
 
   async function resolveFlock() {
     const direct = getFlock();
-    if (direct && direct.id && direct.placement_date) {
+    if (direct && direct.id) {
       flockCache = direct;
       return direct;
     }
-
     const selection = getSelection();
     const id = selection.flockId || selection.flock_id || selection.flockID;
     if (!id || !window.supabaseClient) return direct;
-
     try {
       const { data, error } = await window.supabaseClient
         .from("flocks")
-        .select("id,placement_date,start_age_days")
+        .select("id,placement_date,hatch_date,start_age_days")
         .eq("id", id)
         .maybeSingle();
       if (!error && data) flockCache = data;
@@ -79,29 +74,28 @@
   }
 
   function calculate(flock, evaluation) {
-    const start = toISO(flock && flock.placement_date);
     const evalISO = toISO(evaluation);
-    if (!start || !evalISO) return null;
-    const diff = dayDiff(start, evalISO);
+    if (!evalISO) return null;
+
+    // Biological monitoring anchor: hatch_date when present; placement_date fallback.
+    const anchor = toISO(flock && (flock.hatch_date || flock.placement_date));
+    if (!anchor) return null;
+
+    const diff = dayDiff(anchor, evalISO);
     if (diff == null || diff < 0) return null;
 
-    const configuredStartAge = Number(flock.start_age_days);
+    const configuredStartAge = Number(flock && flock.start_age_days);
     const initialAge = Number.isFinite(configuredStartAge) && configuredStartAge >= 1
       ? Math.floor(configuredStartAge) : 1;
     const age = initialAge + diff;
-    const baseWeek = Math.floor((age - 1) / 7) + 1;
-    const position = ((age - 1) % 7) + 1;
-    const week = Math.min(MAX_WEEK, Math.max(1,
-      baseWeek > 1 && position <= 2 ? baseWeek - 1 : baseWeek
-    ));
-    return { week, age, diff, start, evalISO, position };
+    const week = Math.min(MAX_WEEK, Math.max(1, Math.floor((age - 1) / 7) + 1));
+    return { week, age, diff, anchor, evalISO };
   }
 
   function write(result) {
     const el = document.getElementById("weekNumber");
     if (!el) return;
-    const value = result ? String(result.week) : "";
-    if (el.value !== value) el.value = value;
+    el.value = result ? String(result.week) : "";
     el.readOnly = true;
     el.setAttribute("readonly", "readonly");
     el.setAttribute("data-auto-week", "true");
@@ -113,26 +107,26 @@
     const dateEl = document.getElementById("evaluationDate");
     if (!dateEl) return null;
     const flock = await resolveFlock();
-    const evaluation = dateEl.value;
-    const sig = `${flock && flock.id || ""}|${flock && flock.placement_date || ""}|${evaluation}|${flock && flock.start_age_days || "1"}`;
+    const sig = `${flock && flock.id || ""}|${flock && flock.hatch_date || ""}|${flock && flock.placement_date || ""}|${dateEl.value}|${flock && flock.start_age_days || "1"}`;
     if (!force && sig === last) return null;
     last = sig;
-    const result = calculate(flock, evaluation);
+    const result = calculate(flock, dateEl.value);
     write(result);
     return result;
   }
 
   function installSaveGuard() {
-    if (window.__ADINE_WEEK_SAVE_GUARD_V6__) return true;
+    if (window.__ADINE_WEEK_SAVE_GUARD_V7__) return true;
     if (typeof window.saveWeeklyRecord !== "function") return false;
     const original = window.saveWeeklyRecord;
-    window.__ADINE_WEEK_SAVE_GUARD_V6__ = true;
+    window.__ADINE_WEEK_SAVE_GUARD_V7__ = true;
     window.saveWeeklyRecord = async function () {
       const result = await recalculate(true);
       if (!result) {
-        alert("شماره هفته به‌صورت خودکار قابل محاسبه نیست؛ گله و تاریخ ارزیابی را بررسی کنید.");
+        alert("تاریخ ارزیابی معتبر نیست یا قبل از تاریخ شروع واقعی گله است.");
         return;
       }
+      write(result);
       return original.apply(this, arguments);
     };
     return true;
@@ -140,14 +134,10 @@
 
   function bind() {
     const dateEl = document.getElementById("evaluationDate");
-    if (dateEl && !dateEl.dataset.autoWeekV6) {
-      dateEl.dataset.autoWeekV6 = "1";
-      ["input","change","keyup","blur"].forEach(name => {
-        dateEl.addEventListener(name, () => recalculate(true));
-      });
-      if (window.jQuery) {
-        window.jQuery(dateEl).on("changeDate dp.change persianDatepicker.change observer", () => recalculate(true));
-      }
+    if (dateEl && !dateEl.dataset.autoWeekV7) {
+      dateEl.dataset.autoWeekV7 = "1";
+      ["input","change","keyup","blur"].forEach(name => dateEl.addEventListener(name, () => recalculate(true)));
+      if (window.jQuery) window.jQuery(dateEl).on("changeDate dp.change persianDatepicker.change observer", () => recalculate(true));
     }
     installSaveGuard();
     recalculate(true);
@@ -158,22 +148,15 @@
     recalculate: () => recalculate(true),
     selfTest: function () {
       const failures = [];
-      const start = { placement_date: "2026-03-21", start_age_days: 1 };
-      // Exact boundary checks through 120 weeks.
       for (let age = 1; age <= 840; age++) {
-        const base = Math.floor((age - 1) / 7) + 1;
-        const pos = ((age - 1) % 7) + 1;
-        const expected = Math.min(120, Math.max(1, base > 1 && pos <= 2 ? base - 1 : base));
-        if (expected < 1 || expected > 120) failures.push(age);
+        const expected = Math.min(MAX_WEEK, Math.max(1, Math.floor((age - 1) / 7) + 1));
+        if (expected < 1 || expected > MAX_WEEK) failures.push(age);
       }
-      return { ok: failures.length === 0, testedAges: 840, maxWeek: 120, failures };
+      return { ok: failures.length === 0, testedAges: 840, maxWeek: MAX_WEEK, failures };
     }
   };
 
   bind();
-  const timer = setInterval(() => {
-    bind();
-    recalculate(true);
-  }, 300);
+  const timer = setInterval(() => { bind(); recalculate(true); }, 500);
   setTimeout(() => clearInterval(timer), 60000);
 })();

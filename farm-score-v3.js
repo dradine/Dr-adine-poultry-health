@@ -4,6 +4,7 @@
   if (g.__ADINE_CANONICAL_ENGINE_REQUESTED) return;
   g.__ADINE_CANONICAL_ENGINE_REQUESTED = true;
   if (typeof document !== "undefined" && document.write) {
+    document.write('<script src="benchmark-report-adapter-v1.js"><\\/script>');
     document.write('<script src="performance-period-engine-v9.js"><\\/script>');
   }
 })(window);

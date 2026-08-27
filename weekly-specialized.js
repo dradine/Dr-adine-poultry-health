@@ -91,8 +91,6 @@ function weeklyFieldLabel(key){
   return all.find(x=>x[0]===key)?.[1]||key;
 }
 function weeklySpecializedPriority(type, key){
-  // ثبت هفتگی باید سریع بماند؛ فقط شاخص‌هایی که واقعاً برای تصمیم همان هفته
-  // لازم‌اند در حالت اصلی دیده می‌شوند. بقیه در «پایش تکمیلی» هستند.
   const required={
     broiler:["water_feed_ratio","litter_score"],
     pullet:["weekly_gain_g"],
@@ -104,10 +102,6 @@ function weeklySpecializedPriority(type, key){
 function weeklyFieldHelp(key){
   const all=[...WEEKLY_SPECIALIZED_FIELDS.common,...WEEKLY_SPECIALIZED_FIELDS.broiler,...WEEKLY_SPECIALIZED_FIELDS.pullet,...WEEKLY_SPECIALIZED_FIELDS.layer,...WEEKLY_SPECIALIZED_FIELDS.breeder];
   return all.find(x=>x[0]===key)?.[4]||"";
-}
-function weeklyFieldLabel(key){
-  const all=[...WEEKLY_SPECIALIZED_FIELDS.common,...WEEKLY_SPECIALIZED_FIELDS.broiler,...WEEKLY_SPECIALIZED_FIELDS.pullet,...WEEKLY_SPECIALIZED_FIELDS.layer,...WEEKLY_SPECIALIZED_FIELDS.breeder];
-  return all.find(x=>x[0]===key)?.[1]||key;
 }
 function renderWeeklySpecializedFields(flock){
   const card=document.getElementById("specializedMetricsCard");
@@ -126,7 +120,7 @@ function renderWeeklySpecializedFields(flock){
   const primary=fields.filter(x=>weeklySpecializedPriority(type,x[0])==='primary');
   const advanced=fields.filter(x=>weeklySpecializedPriority(type,x[0])!=='primary');
   const renderGroup=(title,items,cls)=>`<div class="weekly-metric-group ${cls}"><div class="weekly-metric-group-title">${title}</div><div class="form-grid">${items.map(([id,label,unit,kind])=>`<div class="form-group weekly-special-field"><label for="wm_${id}">${weeklySpecializedPriority(type,id)==='primary'?'<b class="required-star">★</b> ':''}${label} <span>(${unit})</span></label><input id="wm_${id}" data-weekly-specialized="${id}" type="text" inputmode="${kind==='number'?'decimal':'text'}" autocomplete="off"><small>${weeklyFieldHelp(id)}</small></div>`).join('')}</div></div>`;
-  host.innerHTML=renderGroup("شاخص‌های اصلی",primary,"primary-group")+`<div class="weekly-advanced-toggle-wrap"><button type="button" class="btn btn-secondary weekly-advanced-toggle" onclick="toggleWeeklyAdvanced()">+ پایش تکمیلی و کیفیت</button></div>`+renderGroup("پایش پیشرفته و کیفیت",advanced,"advanced-group");
+  host.innerHTML=renderGroup("شاخص‌های اصلی",primary,"primary-group")+`<div class="weekly-advanced-toggle-wrap"><button type="button" class="btn btn-secondary weekly-advanced-toggle" onclick="toggleWeeklyAdvanced()">+ اطلاعات تکمیلی</button></div>`+renderGroup("اطلاعات تکمیلی و کیفیت",advanced,"advanced-group");
   card.style.display="block";
   const advancedGroup=host.querySelector(".advanced-group");
   if(advancedGroup) advancedGroup.style.display="none";
@@ -140,7 +134,7 @@ function toggleWeeklyAdvanced(){
   if(!group||!btn)return;
   const open=group.style.display!=="none";
   group.style.display=open?"none":"block";
-  btn.textContent=open?"+ پایش تکمیلی و کیفیت":"− بستن پایش تکمیلی";
+  btn.textContent=open?"+ اطلاعات تکمیلی":"− بستن اطلاعات تکمیلی";
 }
 function normalizeWeeklyDigits(v){ return String(v??"").replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/,/g,"").replace(/٬/g,"").replace(/٫/g,"."); }
 function getWeeklySpecializedMetrics(){

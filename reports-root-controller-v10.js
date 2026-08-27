@@ -1,113 +1,81 @@
-/* ADINE REPORTS ROOT CONTROLLER V11
-   Single source of truth for report-period selection.
-   The page's existing inline report engine remains the ONLY owner of flock loading.
-   This controller owns only: layout, week options, selected week, and report refresh.
+/* ADINE REPORTS ROOT CONTROLLER V12
+   Canonical owner of report-period UI. The existing inline reports engine
+   remains the only owner of flock loading and report rendering.
 */
 (function(w,d){
 'use strict';
-if(w.__ADINE_REPORTS_ROOT_V11__) return;
-w.__ADINE_REPORTS_ROOT_V11__=true;
-
+if(w.__ADINE_REPORTS_ROOT_V12__)return;
+w.__ADINE_REPORTS_ROOT_V12__=true;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const num=v=>{if(v===null||v===undefined||v==='')return null;const n=Number(String(v).replace(/,/g,'').trim());return Number.isFinite(n)?n:null};
-const weekOf=r=>{const age=num(r?.ageDays??r?.age_days);if(age!=null&&age>=1)return Math.floor((age-1)/7)+1;const x=num(r?.weekNumber??r?.week_number);return x!=null&&x>=1?Math.trunc(x):null};
-
+const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/,/g,'').trim());return Number.isFinite(x)?x:null};
+const biologicalWeek=r=>{const age=n(r?.ageDays??r?.age_days);if(age!=null&&age>=1)return Math.floor((age-1)/7)+1;const wk=n(r?.weekNumber??r?.week_number);return wk!=null&&wk>=1?Math.trunc(wk):null};
 function layout(){
-  const page=d.querySelector('.reports-page');
-  const controls=d.getElementById('adineReportsControlCard');
-  const exec=d.getElementById('executiveReportCard');
+  const page=d.querySelector('.reports-page'),controls=d.getElementById('adineReportsControlCard'),exec=d.getElementById('executiveReportCard');
   if(!page||!controls)return false;
   controls.style.display='block';
-  if(exec){exec.style.display='block';page.insertBefore(exec,page.children[1]||null);page.insertBefore(controls,exec.nextSibling);}
+  if(exec){exec.style.display='block';page.insertBefore(exec,page.children[1]||null);page.insertBefore(controls,exec.nextSibling)}
   d.querySelectorAll('#adineReportFlockMirror,#adineReportWeekMirror,#reportWeekSelectorCard').forEach(e=>e.remove());
   return true;
 }
-
-function populateWeeks(){
-  const sel=d.getElementById('reportWeekSelect');
-  const records=Array.isArray(w.__adineReportRecords)?w.__adineReportRecords:[];
-  if(!sel)return [];
-  const weeks=[...new Set(records.map(weekOf).filter(Number.isInteger))].sort((a,b)=>a-b);
-  const current=num(sel.value);
+async function getWeeks(id){
+  if(typeof w.getReportWeeklyRecords!=='function')return [];
+  const rows=await w.getReportWeeklyRecords(id);
+  return [...new Set((Array.isArray(rows)?rows:[]).map(biologicalWeek).filter(Number.isInteger))].sort((a,b)=>a-b);
+}
+function renderWeeks(weeks,selected){
+  const sel=d.getElementById('reportWeekSelect');if(!sel)return;
   sel.innerHTML='';
-  const first=d.createElement('option');
-  first.value='';
-  first.textContent=weeks.length?'انتخاب هفته گزارش':'برای این گله پایش هفتگی ثبت نشده است';
-  sel.appendChild(first);
+  const first=d.createElement('option');first.value='';first.textContent=weeks.length?'انتخاب هفته گزارش':'برای این گله پایش هفتگی ثبت نشده است';sel.appendChild(first);
   weeks.forEach(x=>{const o=d.createElement('option');o.value=String(x);o.textContent='هفته '+x;sel.appendChild(o)});
-  const stored=num(sessionStorage.getItem('adine_report_week_v11'));
-  const chosen=current&&weeks.includes(current)?current:(stored&&weeks.includes(stored)?stored:(weeks.length?weeks[weeks.length-1]:null));
-  if(chosen!=null){sel.value=String(chosen);w.__adineSelectedReportWeek=chosen;}
+  const chosen=selected!=null&&weeks.includes(selected)?selected:(weeks.length?weeks[weeks.length-1]:null);
+  if(chosen!=null){sel.value=String(chosen);w.__adineSelectedReportWeek=chosen;w.__adineReportPeriodExplicit=true;}
+  else{sel.value='';w.__adineSelectedReportWeek=null;w.__adineReportPeriodExplicit=false;}
   sel.disabled=!weeks.length;
   const info=d.getElementById('reportWeekSelectorInfo');
-  if(info)info.innerHTML=weeks.length?`پایش‌های ثبت‌شده: <strong>${weeks.length}</strong> هفته | بازه: <strong>هفته ۱ تا ${weeks[weeks.length-1]}</strong>`:'برای این گله ثبت هفتگی وجود ندارد.';
-  return weeks;
+  if(info)info.innerHTML=weeks.length?`پایش‌های ثبت‌شده: <strong>${weeks.length}</strong> هفته | بازه گزارش: <strong>هفته ۱ تا ${chosen||weeks[weeks.length-1]}</strong>`:'برای این گله ثبت هفتگی وجود ندارد.';
 }
-
-async function waitForFlocks(){
-  const sel=d.getElementById('flockSelect');
-  if(!sel)return false;
-  for(let i=0;i<240;i++){
-    if(sel.options.length>1 && sel.value) return true;
-    if(sel.options.length>1) return true;
-    await sleep(50);
-  }
-  return sel.options.length>1;
+async function invokeOriginalFlockChange(flock){
+  const handler=flock.__adineOriginalOnChange||flock.onchange;
+  if(typeof handler!=='function')throw new Error('موتور اصلی گزارش هنوز انتخاب گله را آماده نکرده است.');
+  await handler.call(flock,{target:flock,currentTarget:flock});
 }
-
 async function bind(){
-  const flock=d.getElementById('flockSelect');
-  const week=d.getElementById('reportWeekSelect');
-  if(!flock||!week)return false;
-  if(flock.dataset.v11Bound!=='1'){
-    flock.dataset.v11Bound='1';
-    flock.addEventListener('change',async()=>{
+  const flock=d.getElementById('flockSelect'),week=d.getElementById('reportWeekSelect');
+  if(!flock||!week||typeof flock.onchange!=='function')return false;
+  if(flock.dataset.v12Bound!=='1'){
+    flock.__adineOriginalOnChange=flock.onchange;
+    flock.dataset.v12Bound='1';
+    flock.onchange=async function(e){
       const id=flock.value;
-      w.__adineSelectedReportWeek=null;
-      sessionStorage.removeItem('adine_report_week_v11');
-      week.disabled=true;
-      week.innerHTML='<option value="">در حال دریافت ثبت‌های هفتگی...</option>';
-      if(!id){week.innerHTML='<option value="">ابتدا گله را انتخاب کنید</option>';return;}
-      if(typeof w.loadReport!=='function'){console.error('ADINE V11: loadReport is unavailable');return;}
-      await w.loadReport(id);
-      populateWeeks();
-    });
+      w.__adineSelectedReportWeek=null;w.__adineReportPeriodExplicit=false;
+      week.disabled=true;week.innerHTML='<option value="">در حال دریافت ثبت‌های هفتگی...</option>';
+      if(!id){week.innerHTML='<option value="">ابتدا گله را انتخاب کنید</option>';return}
+      await invokeOriginalFlockChange(flock);
+      const weeks=await getWeeks(id);
+      renderWeeks(weeks,null);
+    };
   }
-  if(week.dataset.v11Bound!=='1'){
-    week.dataset.v11Bound='1';
+  if(week.dataset.v12Bound!=='1'){
+    week.dataset.v12Bound='1';
     week.addEventListener('change',async()=>{
-      const id=flock.value;
-      const selected=num(week.value);
+      const id=flock.value,selected=n(week.value);
       if(!id||selected==null)return;
-      w.__adineSelectedReportWeek=selected;
-      sessionStorage.setItem('adine_report_week_v11',String(selected));
-      if(typeof w.loadReport==='function') await w.loadReport(id);
-      populateWeeks();
+      w.__adineSelectedReportWeek=selected;w.__adineReportPeriodExplicit=true;
+      await invokeOriginalFlockChange(flock);
+      const weeks=await getWeeks(id);renderWeeks(weeks,selected);
     });
   }
   return true;
 }
-
 async function boot(){
   layout();
-  for(let i=0;i<240;i++){if(await bind())break;await sleep(50);}
-  await waitForFlocks();
+  for(let i=0;i<300;i++){if(await bind())break;await sleep(50)}
+  const flock=d.getElementById('flockSelect');
+  if(flock&&flock.value){const weeks=await getWeeks(flock.value);renderWeeks(weeks,n(w.__adineSelectedReportWeek));}
   layout();
-  if(d.getElementById('flockSelect')?.value){
-    const flock=d.getElementById('flockSelect');
-    if(typeof w.loadReport==='function'){
-      w.__adineSelectedReportWeek=null;
-      await w.loadReport(flock.value);
-      populateWeeks();
-    }
-  }
   const page=d.querySelector('.reports-page');
-  if(page && !w.__adineReportsLayoutObserver){
-    w.__adineReportsLayoutObserver=true;
-    new MutationObserver(()=>layout()).observe(page,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']});
-  }
-  console.info('ADINE Reports V11 ready: canonical flock selector + weekly-record period selector');
+  if(page&&!w.__adineReportsLayoutObserverV12){w.__adineReportsLayoutObserverV12=true;new MutationObserver(()=>layout()).observe(page,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class']})}
+  console.info('ADINE Reports V12 ready: one flock selector, one weekly-record selector');
 }
-
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(window,document);

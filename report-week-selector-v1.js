@@ -1,18 +1,21 @@
-/* ADINE REPORT WEEK SELECTOR V2
+/* ADINE REPORT WEEK SELECTOR V3
    Biological-week selector for reports.
    - Default: latest recorded week.
-   - Selected week: returns ALL records up to that week so cumulative metrics remain correct.
+   - Selected week: keeps history through selected week for cumulative calculations.
+   - Report renderer receives the selected period through a shared state API.
    - Never mutates weekly_records.
    - Supports up to week 120 for layer/breeder; up to week 60 for broiler/pullet.
+   - Boot is retry-safe so script order cannot leave the selector stuck on «در حال آماده‌سازی». 
 */
 (function(){
   'use strict';
-  const KEY='adine_report_selected_week_v2';
+  const KEY='adine_report_selected_week_v3';
   let originalGet=null;
+  let installed=false;
 
   function num(v){
-    const n=Number(v);
-    return Number.isFinite(n)?n:null;
+    if(v===null||v===undefined||v==='') return null;
+    const n=Number(v); return Number.isFinite(n)?n:null;
   }
   function canonicalWeek(r){
     const age=num(r?.age_days ?? r?.ageDays);
@@ -28,13 +31,12 @@
     });
   }
   function read(){
-    const v=localStorage.getItem(KEY);
-    const n=num(v);
+    const n=num(localStorage.getItem(KEY));
     return Number.isInteger(n)&&n>=1&&n<=120?n:null;
   }
   function save(v){
-    if(v===null){ localStorage.removeItem(KEY); return; }
-    localStorage.setItem(KEY,String(v));
+    if(v===null) localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY,String(v));
   }
   function productionType(flock){
     const raw=String(flock?.production_type ?? flock?.productionType ?? flock?.flock_type ?? flock?.type ?? '').toLowerCase();
@@ -45,9 +47,9 @@
     return 'other';
   }
   function buildControl(){
-    if(document.getElementById('reportWeekSelectorCard')) return;
+    if(document.getElementById('reportWeekSelectorCard')) return true;
     const flock=document.getElementById('flockSelect');
-    if(!flock) return;
+    if(!flock) return false;
     const card=document.createElement('section');
     card.id='reportWeekSelectorCard';
     card.className='card report-week-selector-card';
@@ -62,15 +64,18 @@
     sel.addEventListener('change',()=>{
       const v=num(sel.value);
       save(Number.isInteger(v)&&v>=1&&v<=120?v:null);
+      // Full reload is intentional: it guarantees every report renderer starts from
+      // the same selected-period state while the underlying records remain untouched.
       window.location.reload();
     });
     document.getElementById('reportWeekLatestBtn')?.addEventListener('click',()=>{ save(null); window.location.reload(); });
+    return true;
   }
   async function populate(){
     buildControl();
     const flockEl=document.getElementById('flockSelect');
     const sel=document.getElementById('reportWeekSelect');
-    if(!flockEl||!sel||!flockEl.value||typeof originalGet!=='function') return;
+    if(!flockEl||!sel||!flockEl.value||typeof originalGet!=='function') return false;
     try{
       const rows=sort(await originalGet(flockEl.value));
       const weeks=[...new Set(rows.map(canonicalWeek).filter(w=>Number.isInteger(w)&&w>=1&&w<=120))].sort((a,b)=>a-b);
@@ -78,12 +83,11 @@
       if(typeof window.getReportFlock==='function') type=productionType(await window.getReportFlock(flockEl.value));
       const maxWeek=(type==='layer'||type==='breeder')?120:60;
       const recorded=new Set(weeks);
-      const available=Array.from({length:maxWeek},(_,i)=>i+1);
       const stored=read();
       if(stored!==null && !recorded.has(stored)) save(null);
       const active=read()??(weeks.length?weeks[weeks.length-1]:null);
       sel.innerHTML=`<option value="">آخرین هفته ثبت‌شده (خودکار)</option>`+
-        available.map(w=>`<option value="${w}" ${!recorded.has(w)?'disabled':''}>هفته ${w}${recorded.has(w)?'':' — ثبت نشده'}</option>`).join('');
+        Array.from({length:maxWeek},(_,i)=>i+1).map(w=>`<option value="${w}" ${!recorded.has(w)?'disabled':''}>هفته ${w}${recorded.has(w)?'':' — ثبت نشده'}</option>`).join('');
       sel.value=read()===null?'':String(active??'');
       const info=document.getElementById('reportWeekSelectorInfo');
       if(info){
@@ -91,21 +95,28 @@
           ? `در حال نمایش گزارش <strong>هفته ${active}</strong>. محاسبات تجمعی تا همین هفته حفظ می‌شود. ${read()===null?'':'برای برگشت به آخرین هفته، «آخرین هفته» را بزنید.'}`
           : 'هنوز رکورد هفتگی ثبت نشده است.';
       }
-    }catch(e){ console.error('Report week selector V2:',e); }
+      window.__adineSelectedReportWeek=active;
+      window.__adineReportWeekReady=true;
+      return true;
+    }catch(e){
+      console.error('Report week selector V3:',e);
+      return false;
+    }
   }
   function install(){
+    if(installed) return true;
     if(typeof window.getReportWeeklyRecords!=='function') return false;
-    if(window.__adineReportWeekSelectorInstalled) return true;
     originalGet=window.getReportWeeklyRecords;
     window.getReportWeeklyRecords=async function(flockId){
       const rows=sort(await originalGet(flockId));
       const chosen=read();
       if(chosen===null) return rows;
-      // Keep all history through the selected week so weekly and cumulative calculations remain valid.
-      const selectedRows=rows.filter(r=>canonicalWeek(r)===chosen);
-      if(!selectedRows.length) return [];
-      return rows.filter(r=>{ const w=canonicalWeek(r); return w!==null && w<=chosen; });
+      return rows.filter(r=>{
+        const w=canonicalWeek(r);
+        return w!==null && w<=chosen;
+      });
     };
+    installed=true;
     window.__adineReportWeekSelectorInstalled=true;
     return true;
   }
@@ -113,11 +124,24 @@
     buildControl();
     install();
     const flock=document.getElementById('flockSelect');
-    if(flock&&!flock.dataset.reportWeekBoundV2){
-      flock.dataset.reportWeekBoundV2='1';
-      flock.addEventListener('change',()=>{ save(null); setTimeout(populate,80); });
+    if(flock&&!flock.dataset.reportWeekBoundV3){
+      flock.dataset.reportWeekBoundV3='1';
+      flock.addEventListener('change',()=>{ save(null); window.__adineSelectedReportWeek=null; setTimeout(populate,80); });
     }
-    setTimeout(populate,250);
+    populate();
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+  function retryBoot(){
+    boot();
+    if(!installed || !document.getElementById('reportWeekSelect')){
+      setTimeout(retryBoot,100);
+    } else {
+      let attempts=0;
+      const timer=setInterval(async()=>{
+        attempts++;
+        if(document.getElementById('flockSelect')?.value) await populate();
+        if(attempts>=50) clearInterval(timer);
+      },200);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',retryBoot,{once:true}); else retryBoot();
 })();

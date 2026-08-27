@@ -10,6 +10,7 @@
    - Uses the existing monitoring result when available.
    - Falls back only to the arithmetic mean of the SAME sample
      inputs, so the field cannot remain blank because of load order.
+   - The average-weight field is AUTO-ONLY and READ-ONLY.
 ========================================================= */
 
 (function installWeeklyAverageWeightAutofill() {
@@ -25,6 +26,18 @@
         return document.getElementById("averageWeightDirect");
     }
 
+    function lockAverageField() {
+        const input = getAverageField();
+        if (!input) return false;
+
+        // This field is derived data. It must never be manually editable.
+        input.readOnly = true;
+        input.setAttribute("readonly", "readonly");
+        input.setAttribute("aria-readonly", "true");
+        input.dataset.autoOnly = "true";
+        return true;
+    }
+
     function setAverageField(mean) {
         const input = getAverageField();
         const numericMean = Number(mean);
@@ -33,6 +46,7 @@
             return false;
         }
 
+        lockAverageField();
         input.value = normalize(numericMean.toFixed(2));
         input.dataset.autoFilledFromSample = "true";
 
@@ -74,6 +88,7 @@
     }
 
     function syncAverageWeight() {
+        lockAverageField();
         const mean = getCalculatedMean();
         return mean !== null && setAverageField(mean);
     }
@@ -82,6 +97,7 @@
         /* calculateWeekly may update/render other elements after its return.
            A few short retries make the synchronization deterministic without
            interfering with any existing calculation. */
+        lockAverageField();
         syncAverageWeight();
         [50, 150, 300, 600].forEach(delay => {
             window.setTimeout(syncAverageWeight, delay);
@@ -89,6 +105,12 @@
     }
 
     function install() {
+        const input = getAverageField();
+        if (!input) return false;
+
+        // Lock immediately, even before a sample calculation exists.
+        lockAverageField();
+
         if (window.__weeklyAverageWeightAutofillInstalled) return true;
 
         const button = Array.from(document.querySelectorAll("button"))
@@ -117,6 +139,7 @@
         const container = document.getElementById("weightsContainer");
         if (container) {
             container.addEventListener("input", function () {
+                lockAverageField();
                 if (getSampleWeightsDirectly().length >= 2) {
                     syncAverageWeight();
                 }

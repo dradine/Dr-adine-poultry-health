@@ -1,6 +1,7 @@
 /* =========================================================
    ADINE POULTRY HEALTH CENTER
    WEEKLY FEED / WATER AUTO CALCULATOR
+   Mortality-aware management calculation
    ========================================================= */
 
 "use strict";
@@ -9,6 +10,7 @@
     const FEED_ID = "feedTotal";
     const WATER_ID = "waterTotal";
     const BIRDS_ID = "liveBirds";
+    const MORTALITY_ID = "mortalityWeek";
     const FEED_PER_BIRD_ID = "feedPerBird";
     const WATER_PER_BIRD_ID = "waterPerBird";
     const PRIMARY_RATIO_SELECTOR = '[data-weekly-specialized="water_feed_ratio"]';
@@ -23,17 +25,95 @@
         return Number.isFinite(value) ? value : null;
     }
 
+    function numberFrom(value) {
+        if (value === null || value === undefined || value === "") return null;
+        const normalizer = typeof window.normalizeNumberString === "function"
+            ? window.normalizeNumberString
+            : v => String(v ?? "").replace(/,/g, "");
+        const valueNumber = Number(normalizer(value));
+        return Number.isFinite(valueNumber) ? valueNumber : null;
+    }
+
     function format(value, decimals = 2) {
         if (!Number.isFinite(value)) return "";
         return Number(value.toFixed(decimals)).toString();
     }
 
-    function getRatioFromInputs() {
-        const feedKg = numberOf(FEED_ID);
-        const waterL = numberOf(WATER_ID);
-        return Number.isFinite(feedKg) && feedKg > 0 && Number.isFinite(waterL) && waterL >= 0
-            ? waterL / feedKg
+    /*
+     * Raw water:feed remains the actual measured house ratio.
+     * The mortality-aware value is a management index and is intentionally
+     * stored separately so the original measured ratio is never destroyed.
+     *
+     * End-of-week live birds + weekly mortality gives an estimate of birds
+     * alive at the beginning of the week. Their midpoint is used as the
+     * effective weekly population for per-bird consumption.
+     */
+    function calculateMetrics(feedKg, waterL, liveBirds, mortalityWeek) {
+        const feed = numberFrom(feedKg);
+        const water = numberFrom(waterL);
+        const live = numberFrom(liveBirds);
+        const mortality = Math.max(0, numberFrom(mortalityWeek) ?? 0);
+
+        const rawRatio = Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0
+            ? water / feed
             : null;
+
+        const endBirds = Number.isFinite(live) && live > 0 ? live : null;
+        const startBirds = endBirds !== null ? endBirds + mortality : null;
+        const effectiveBirds = startBirds !== null
+            ? (startBirds + endBirds) / 2
+            : null;
+
+        const feedPerBird = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(feed) && feed >= 0
+            ? (feed * 1000) / effectiveBirds
+            : null;
+        const waterPerBird = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(water) && water >= 0
+            ? (water * 1000) / effectiveBirds
+            : null;
+
+        /*
+         * Mortality adjustment:
+         * A flock with more weekly mortality has fewer effective consumers.
+         * The measured ratio is therefore accompanied by a management
+         * penalty index based on the live/end population versus the estimated
+         * start population. This makes the displayed management ratio respond
+         * to mortality without altering the raw measured water/feed ratio.
+         *
+         * adjusted = raw * (startBirds / endBirds)
+         */
+        const mortalityFactor = startBirds !== null && endBirds !== null && endBirds > 0
+            ? startBirds / endBirds
+            : 1;
+
+        const mortalityAdjustedRatio = rawRatio !== null
+            ? rawRatio * mortalityFactor
+            : null;
+
+        const mortalityRate = startBirds !== null && startBirds > 0
+            ? (mortality / startBirds) * 100
+            : null;
+
+        return {
+            feedPerBirdG: feedPerBird,
+            waterPerBirdMl: waterPerBird,
+            waterFeedRatio: mortalityAdjustedRatio,
+            rawWaterFeedRatio: rawRatio,
+            mortalityAdjustedWaterFeedRatio: mortalityAdjustedRatio,
+            mortalityFactor,
+            mortalityRate,
+            effectiveBirds,
+            startBirds,
+            endBirds
+        };
+    }
+
+    function getMetricsFromInputs() {
+        return calculateMetrics(
+            numberOf(FEED_ID),
+            numberOf(WATER_ID),
+            numberOf(BIRDS_ID),
+            numberOf(MORTALITY_ID)
+        );
     }
 
     function setReadonlyCalculatedFields() {
@@ -66,40 +146,21 @@
     }
 
     function calculateFeedWater() {
-        const birds = numberOf(BIRDS_ID);
-        const feedKg = numberOf(FEED_ID);
-        const waterL = numberOf(WATER_ID);
-
-        const feedPerBird = Number.isFinite(birds) && birds > 0 && Number.isFinite(feedKg) && feedKg >= 0
-            ? (feedKg * 1000) / birds
-            : null;
-        const waterPerBird = Number.isFinite(birds) && birds > 0 && Number.isFinite(waterL) && waterL >= 0
-            ? (waterL * 1000) / birds
-            : null;
-        const ratio = Number.isFinite(feedKg) && feedKg > 0 && Number.isFinite(waterL) && waterL >= 0
-            ? waterL / feedKg
-            : null;
+        const metrics = getMetricsFromInputs();
 
         const feedEl = document.getElementById(FEED_PER_BIRD_ID);
         const waterEl = document.getElementById(WATER_PER_BIRD_ID);
-        if (feedEl) feedEl.value = format(feedPerBird, 2);
-        if (waterEl) waterEl.value = format(waterPerBird, 2);
+        if (feedEl) feedEl.value = format(metrics.feedPerBirdG, 2);
+        if (waterEl) waterEl.value = format(metrics.waterPerBirdMl, 2);
 
-        // نسبت آب به دان عمداً در ثبت سریع نمایش داده نمی‌شود.
-        // تنها محل نمایش/ورود این شاخص، «شاخص‌های اصلی» است و مقدار آن از
-        // مصرف کل آب و دان به‌صورت خودکار محاسبه می‌شود.
-        syncPrimaryRatio(ratio);
+        syncPrimaryRatio(metrics.mortalityAdjustedWaterFeedRatio);
 
-        window.weeklyFeedWaterAuto = {
-            feedPerBirdG: feedPerBird,
-            waterPerBirdMl: waterPerBird,
-            waterFeedRatio: ratio
-        };
-        return window.weeklyFeedWaterAuto;
+        window.weeklyFeedWaterAuto = metrics;
+        return metrics;
     }
 
     function attachInputListeners() {
-        [FEED_ID, WATER_ID, BIRDS_ID].forEach(id => {
+        [FEED_ID, WATER_ID, BIRDS_ID, MORTALITY_ID].forEach(id => {
             const el = document.getElementById(id);
             if (!el || el.dataset.feedWaterAutoBound === "true") return;
             el.dataset.feedWaterAutoBound = "true";
@@ -107,6 +168,36 @@
             el.addEventListener("change", calculateFeedWater);
             el.addEventListener("blur", calculateFeedWater);
         });
+    }
+
+    function calculateRecordMetrics(inputData) {
+        const data = inputData && typeof inputData === "object" ? inputData : {};
+        return calculateMetrics(
+            data.feed,
+            data.water,
+            data.liveBirds,
+            data.mortalityWeek ?? data.weeklyMortality ?? data.mortality
+        );
+    }
+
+    function applyMetricsToRecord(record, metrics) {
+        return {
+            ...record,
+            feedPerBirdG: metrics.feedPerBirdG,
+            waterPerBirdMl: metrics.waterPerBirdMl,
+            feedPerBird: metrics.feedPerBirdG,
+            waterPerBird: metrics.waterPerBirdMl,
+            waterFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
+            waterToFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
+            rawWaterFeedRatio: metrics.rawWaterFeedRatio,
+            mortalityAdjustedWaterFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
+            mortalityFactor: metrics.mortalityFactor,
+            mortalityRate: metrics.mortalityRate,
+            effectiveBirds: metrics.effectiveBirds,
+            effectiveBirdCount: metrics.effectiveBirds,
+            startBirdsForFeedWater: metrics.startBirds,
+            endBirdsForFeedWater: metrics.endBirds
+        };
     }
 
     function patchWeeklyBuilder() {
@@ -117,25 +208,9 @@
         function patchedWeeklyBuilder(data) {
             calculateFeedWater();
             const inputData = data && typeof data === "object" ? { ...data } : {};
-            const feed = Number(inputData.feed);
-            const water = Number(inputData.water);
-            const birds = Number(inputData.liveBirds);
-
-            const feedPerBird = Number.isFinite(feed) && feed >= 0 && Number.isFinite(birds) && birds > 0
-                ? (feed * 1000) / birds : null;
-            const waterPerBird = Number.isFinite(water) && water >= 0 && Number.isFinite(birds) && birds > 0
-                ? (water * 1000) / birds : null;
-            const ratio = Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0
-                ? water / feed : null;
-
+            const metrics = calculateRecordMetrics(inputData);
             const record = original(inputData);
-            record.feedPerBirdG = feedPerBird;
-            record.waterPerBirdMl = waterPerBird;
-            record.waterFeedRatio = ratio;
-            record.feedPerBird = feedPerBird;
-            record.waterPerBird = waterPerBird;
-            record.waterToFeedRatio = ratio;
-            return record;
+            return applyMetricsToRecord(record, metrics);
         }
 
         patchedWeeklyBuilder.__feedWaterAutoPatched = true;
@@ -155,7 +230,7 @@
 
             const finalize = () => {
                 try {
-                    const records = getWeeklyRecords();
+                    const records = typeof getWeeklyRecords === "function" ? getWeeklyRecords() : null;
                     if (!Array.isArray(records) || !records.length) return;
 
                     const currentFlockId = window.currentFlock?.id || window.currentFlockForSpecialized?.id || null;
@@ -174,28 +249,14 @@
                     if (index < 0) index = records.length - 1;
 
                     const r = records[index];
-                    const feed = Number(r.feed);
-                    const water = Number(r.water);
-                    const birds = Number(r.liveBirds);
-                    if (!Number.isFinite(birds) || birds <= 0) return;
+                    const metrics = calculateRecordMetrics(r);
+                    records[index] = applyMetricsToRecord(r, metrics);
 
-                    const feedPerBird = Number.isFinite(feed) && feed >= 0 ? (feed * 1000) / birds : null;
-                    const waterPerBird = Number.isFinite(water) && water >= 0 ? (water * 1000) / birds : null;
-                    const ratio = Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0
-                        ? water / feed : null;
-
-                    records[index] = {
-                        ...r,
-                        feedPerBirdG: feedPerBird,
-                        waterPerBirdMl: waterPerBird,
-                        waterFeedRatio: ratio,
-                        feedPerBird: feedPerBird,
-                        waterPerBird: waterPerBird,
-                        waterToFeedRatio: ratio
-                    };
-                    writeStorage(WEEKLY_STORAGE_NAME, records);
+                    if (typeof writeStorage === "function" && typeof WEEKLY_STORAGE_NAME !== "undefined") {
+                        writeStorage(WEEKLY_STORAGE_NAME, records);
+                    }
                 } catch (error) {
-                    console.error("Weekly feed/water post-save calculation error:", error);
+                    console.error("Weekly mortality-aware feed/water calculation error:", error);
                 }
             };
 
@@ -243,7 +304,8 @@
             const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
             if (!primaryRatio) return;
             setReadonlyCalculatedFields();
-            syncPrimaryRatio(window.weeklyFeedWaterAuto?.waterFeedRatio ?? getRatioFromInputs());
+            const metrics = getMetricsFromInputs();
+            syncPrimaryRatio(metrics.mortalityAdjustedWaterFeedRatio);
         });
         observer.observe(target, { childList: true, subtree: true });
         window.__weeklyFeedWaterRatioObserver = observer;
@@ -281,4 +343,5 @@
     }
 
     window.calculateWeeklyFeedWater = calculateFeedWater;
+    window.calculateWeeklyFeedWaterMetrics = getMetricsFromInputs;
 })();

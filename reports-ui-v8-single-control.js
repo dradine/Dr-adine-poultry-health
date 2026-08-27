@@ -1,29 +1,23 @@
-/* ADINE REPORTS UI V8.2 — CANONICAL REPORT CONTROLLER
-   Root fix: the original reports.html #flockSelect and #reportWeekSelect
-   are the ONLY visible controls. No mirrors are created or hidden.
+/* ADINE REPORTS UI V8.3 — CANONICAL CONTROL ONLY
+   The original reports.html #flockSelect/#reportWeekSelect are canonical.
+   No mirror, no second selector, no hiding of the source card.
 */
 (function(w,d){
 'use strict';
-if(w.__ADINE_REPORTS_UI_V82__)return;
-w.__ADINE_REPORTS_UI_V82__=true;
+if(w.__ADINE_REPORTS_UI_V83__)return;
+w.__ADINE_REPORTS_UI_V83__=true;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const client=()=>w.supabaseClient || (typeof supabaseClient!=='undefined'?supabaseClient:null);
-const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/,/g,'').trim());return Number.isFinite(x)?x:null};
-const week=r=>{const a=n(r.age_days??r.ageDays);if(a!=null&&a>=1)return Math.floor((a-1)/7)+1;const x=n(r.week_number??r.weekNumber);return x!=null&&x>=1?Math.trunc(x):null};
-const label=f=>f.flock_name||f.flock_code||('گله '+String(f.id||'').slice(0,8));
-function cleanup(){
-  d.querySelectorAll('#adineReportFlockMirror,#adineReportWeekMirror,#adineReportsControlCard,#reportWeekSelectorCard').forEach(e=>e.remove());
-  const s=d.getElementById('flockSelect'),wk=d.getElementById('reportWeekSelect');
-  if(s){s.disabled=false;s.removeAttribute('disabled');const c=s.closest('section.card');if(c)c.style.display='block';}
-  if(wk){wk.disabled=true;}
-}
-async function wait(){for(let i=0;i<240;i++){const c=client();if(c&&c.from&&c.auth)return c;await sleep(50)}throw Error('Supabase client unavailable');}
-async function flocks(c){const q=await c.from('flocks').select('id,flock_name,flock_code,production_type,farm_id,house_id,created_at').order('created_at',{ascending:false});if(q.error)throw q.error;return q.data||[];}
-async function weekly(c,id){const q=await c.from('weekly_records').select('*').eq('flock_id',id).order('age_days',{ascending:true}).order('week_number',{ascending:true});if(q.error)throw q.error;return q.data||[];}
-function fillFlocks(s,rows){s.innerHTML='<option value="">انتخاب گله</option>';rows.forEach(f=>{const o=d.createElement('option');o.value=f.id;o.textContent=label(f)+(f.production_type?' — '+f.production_type:'');s.appendChild(o)});s.disabled=false;s.removeAttribute('disabled');}
-function fillWeeks(s,rows){const ws=[...new Set(rows.map(week).filter(Number.isInteger))].sort((a,b)=>a-b);s.innerHTML=ws.length?'<option value="">انتخاب هفته گزارش</option>':'<option value="">برای این گله پایش هفتگی ثبت نشده است</option>';ws.forEach(x=>{const o=d.createElement('option');o.value=x;o.textContent='هفته '+x;s.appendChild(o)});s.disabled=!ws.length;s.removeAttribute('disabled');if(ws.length)s.disabled=false;return ws;}
-async function report(id,selected){w.__adineSelectedReportWeek=selected||null;w.__adineReportAvailableWeeks=w.__adineReportAvailableWeeks||[];if(typeof w.loadReport==='function'){try{await w.loadReport(id)}catch(e){console.error('ADINE report render failed',e)}}}
-function bind(s,wk){if(s.dataset.v82==='1')return;s.dataset.v82='1';s.addEventListener('change',async()=>{cleanup();const id=s.value;wk.innerHTML='<option value="">در حال دریافت هفته‌ها...</option>';wk.disabled=true;if(!id){wk.innerHTML='<option value="">ابتدا گله را انتخاب کنید</option>';return}try{const rows=await weekly(client(),id);const ws=fillWeeks(wk,rows);if(ws.length){const selected=ws[ws.length-1];wk.value=String(selected);w.__adineSelectedReportWeek=selected;await report(id,selected)}}catch(e){console.error('ADINE weekly records load failed',e);wk.innerHTML='<option value="">خطا در دریافت ثبت هفتگی</option>';wk.disabled=true}});wk.addEventListener('change',async()=>{const selected=n(wk.value),id=s.value;w.__adineSelectedReportWeek=selected;if(id&&selected)await report(id,selected)});}
-async function boot(){for(let i=0;i<240;i++){cleanup();const s=d.getElementById('flockSelect'),wk=d.getElementById('reportWeekSelect');if(s&&wk){try{const c=await wait();fillFlocks(s,await flocks(c));bind(s,wk);console.info('ADINE V8.2 ready');return}catch(e){console.error('ADINE V8.2 failed',e);s.innerHTML='<option value="">خطا در دریافت گله‌ها</option>';return}}await sleep(50)}}
+const num=v=>{if(v===null||v===undefined||v==='')return null;const n=Number(String(v).replace(/,/g,'').trim());return Number.isFinite(n)?n:null};
+const weekOf=r=>{const a=num(r?.age_days??r?.ageDays);if(a!=null&&a>=1)return Math.floor((a-1)/7)+1;const x=num(r?.week_number??r?.weekNumber);return x!=null&&x>=1?Math.trunc(x):null};
+function client(){try{return w.supabaseClient||(typeof supabaseClient!=='undefined'?supabaseClient:null)}catch(_){return w.supabaseClient||null}}
+function removeLegacy(){d.querySelectorAll('#adineReportFlockMirror,#adineReportWeekMirror,#adineReportsControlCard,#reportWeekSelectorCard').forEach(e=>e.remove())}
+function showCanonical(){const s=d.getElementById('flockSelect');if(!s)return false;const c=s.closest('section.card')||s.parentElement;if(c)c.style.display='block';const page=d.querySelector('.reports-page');const exec=d.getElementById('executiveReportCard');if(page&&exec&&c){exec.style.display='block';if(exec.nextSibling!==c)page.insertBefore(c,exec.nextSibling)}const standard=d.getElementById('standardFrameworkCard');if(page&&c&&standard&&standard.parentNode===page&&c.nextSibling!==standard)page.insertBefore(standard,c.nextSibling);return true}
+async function waitClient(){for(let i=0;i<200;i++){const c=client();if(c?.from&&c?.auth)return c;await sleep(50)}throw Error('Supabase client unavailable')}
+async function getWeekly(c,id){const q=await c.from('weekly_records').select('*').eq('flock_id',id).order('week_number',{ascending:true});if(q.error)throw q.error;return Array.isArray(q.data)?q.data:[]}
+function fillWeeks(sel,rows){const weeks=[...new Set(rows.map(weekOf).filter(Number.isInteger))].sort((a,b)=>a-b);const old=num(sel.value);sel.innerHTML='';const first=d.createElement('option');first.value='';first.textContent=weeks.length?'انتخاب هفته گزارش':'برای این گله پایش هفتگی ثبت نشده است';sel.appendChild(first);weeks.forEach(x=>{const o=d.createElement('option');o.value=String(x);o.textContent='هفته '+x;sel.appendChild(o)});sel.disabled=false;sel.removeAttribute('disabled');if(old&&weeks.includes(old))sel.value=String(old);else if(weeks.length)sel.value=String(weeks[weeks.length-1]);w.__adineReportAvailableWeeks=weeks;return weeks}
+let lastId='',seq=0;
+async function refreshWeeks(){const s=d.getElementById('flockSelect'),wk=d.getElementById('reportWeekSelect');if(!s||!wk)return;const id=s.value;if(!id){wk.disabled=true;wk.innerHTML='<option value="">ابتدا گله را انتخاب کنید</option>';return}const token=++seq;wk.disabled=true;wk.innerHTML='<option value="">در حال دریافت هفته‌های ثبت‌شده...</option>';try{const rows=await getWeekly(await waitClient(),id);if(token!==seq||s.value!==id)return;const weeks=fillWeeks(wk,rows);lastId=id;const info=d.getElementById('reportWeekSelectorInfo');if(info)info.innerHTML=weeks.length?`پایش‌های ثبت‌شده این گله: <strong>${weeks.length}</strong> هفته | بازه: <strong>هفته ۱ تا ${weeks[weeks.length-1]}</strong>`:'برای این گله ثبت هفتگی وجود ندارد.'}catch(e){if(token!==seq)return;console.error('ADINE weekly load failed',e);wk.disabled=false;wk.innerHTML='<option value="">خطا در دریافت ثبت هفتگی</option>';const info=d.getElementById('reportWeekSelectorInfo');if(info)info.textContent='خطا در دریافت ثبت هفتگی؛ Console را بررسی کنید.'}}
+function bind(){removeLegacy();if(!showCanonical())return false;const s=d.getElementById('flockSelect'),wk=d.getElementById('reportWeekSelect');if(!s||!wk)return false;if(s.dataset.v83Bound!=='1'){s.dataset.v83Bound='1';s.addEventListener('change',refreshWeeks)}if(wk.dataset.v83Bound!=='1'){wk.dataset.v83Bound='1';wk.addEventListener('change',()=>{const v=num(wk.value);w.__adineSelectedReportWeek=v;if(v!=null)localStorage.setItem('adine_report_selected_week_v4',String(v));else localStorage.removeItem('adine_report_selected_week_v4')})}if(s.value!==lastId)refreshWeeks();return true}
+async function boot(){for(let i=0;i<240;i++){if(bind())break;await sleep(50)}const s=d.getElementById('flockSelect');const page=d.querySelector('.reports-page');if(s){new MutationObserver(()=>{removeLegacy();showCanonical();if(s.value!==lastId)refreshWeeks()}).observe(s,{childList:true,subtree:true})}if(page)new MutationObserver(()=>{removeLegacy();showCanonical()}).observe(page,{childList:true,subtree:true});setInterval(()=>{removeLegacy();showCanonical()},1000)}
 if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(window,document);

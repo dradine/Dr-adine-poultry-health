@@ -30,11 +30,19 @@
         const input = getAverageField();
         if (!input) return false;
 
-        // This field is derived data. It must never be manually editable.
+        /* READ-ONLY (not disabled): the value remains part of normal form
+           submission and existing save/calculation code can still read it. */
         input.readOnly = true;
         input.setAttribute("readonly", "readonly");
         input.setAttribute("aria-readonly", "true");
         input.dataset.autoOnly = "true";
+
+        /* Remove the old manual-entry wording without changing the layout. */
+        const help = input.parentElement?.querySelector?.(".quick-entry-help");
+        if (help) {
+            help.textContent = "این مقدار فقط به‌صورت خودکار از میانگین وزن‌کشی نمونه‌ای محاسبه می‌شود و قابل ورود دستی نیست.";
+        }
+
         return true;
     }
 
@@ -97,7 +105,6 @@
         /* calculateWeekly may update/render other elements after its return.
            A few short retries make the synchronization deterministic without
            interfering with any existing calculation. */
-        lockAverageField();
         syncAverageWeight();
         [50, 150, 300, 600].forEach(delay => {
             window.setTimeout(syncAverageWeight, delay);
@@ -105,12 +112,6 @@
     }
 
     function install() {
-        const input = getAverageField();
-        if (!input) return false;
-
-        // Lock immediately, even before a sample calculation exists.
-        lockAverageField();
-
         if (window.__weeklyAverageWeightAutofillInstalled) return true;
 
         const button = Array.from(document.querySelectorAll("button"))
@@ -135,17 +136,24 @@
             }
         }, true);
 
-        /* Also keep the field synchronized whenever sample weights are edited. */
+        /* Keep the field synchronized whenever sample weights are edited. */
         const container = document.getElementById("weightsContainer");
         if (container) {
             container.addEventListener("input", function () {
-                lockAverageField();
-                if (getSampleWeightsDirectly().length >= 2) {
-                    syncAverageWeight();
-                }
+                syncAverageWeight();
             }, false);
         }
 
+        /* If sample-weight inputs are dynamically recreated, observe them. */
+        const observerTarget = document.getElementById("weightsContainer");
+        if (observerTarget && window.MutationObserver) {
+            new MutationObserver(function () {
+                lockAverageField();
+                syncAverageWeight();
+            }).observe(observerTarget, { childList: true, subtree: true });
+        }
+
+        lockAverageField();
         window.__weeklyAverageWeightAutofillInstalled = true;
         return true;
     }

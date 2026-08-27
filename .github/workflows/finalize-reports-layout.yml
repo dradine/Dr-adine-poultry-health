@@ -1,12 +1,9 @@
 name: Finalize reports hierarchy
-
 on:
   push:
     branches: [main]
-
 permissions:
   contents: write
-
 jobs:
   finalize:
     if: ${{ !contains(github.event.head_commit.message, '[skip reports finalize]') }}
@@ -19,39 +16,23 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          p=Path('reports.html')
-          s=p.read_text(encoding='utf-8')
-
-          # Remove duplicate loader tags while preserving the first occurrence.
+          p=Path('reports.html'); s=p.read_text(encoding='utf-8')
           tags=['reports-period-analysis-v7.js','reports-ui-v8-single-control.js','reports-flock-loader-v9.js']
           for tag in tags:
-              needle=f'<script src="{tag}"></script>'
-              first=s.find(needle)
+              needle=f'<script src="{tag}"></script>'; first=s.find(needle)
               if first>=0:
-                  rest=s[first+len(needle):].replace(needle,'')
-                  s=s[:first]+needle+rest
-
-          def extract_section(src, sid):
-              start=src.find(f'<section id="{sid}"')
-              if start<0:return '',src
-              end=src.find('</section>',start)
-              if end<0:return '',src
-              end+=len('</section>')
-              return src[start:end],src[:start]+src[end:]
-
-          executive,s=extract_section(s,'executiveReportCard')
-          controls,s=extract_section(s,'adineReportsControlCard')
-          standard,s=extract_section(s,'standardFrameworkCard')
-
-          # Insert the required hierarchy immediately after the page header.
-          header_end=s.find('</header>')
-          assert header_end>=0,'page header missing'
-          insert_at=header_end+len('</header>')
-          block='\n\n'+executive+'\n\n'+controls+'\n\n'+standard+'\n'
-          s=s[:insert_at]+block+s[insert_at:]
-
+                  s=s[:first]+needle+s[first+len(needle):].replace(needle,'')
+          def extract(src,sid):
+              a=src.find(f'<section id="{sid}"');
+              if a<0:return '',src
+              b=src.find('</section>',a); assert b>=0,sid
+              b+=len('</section>'); return src[a:b],src[:a]+src[b:]
+          executive,s=extract(s,'executiveReportCard')
+          controls,s=extract(s,'adineReportsControlCard')
+          standard,s=extract(s,'standardFrameworkCard')
+          h=s.find('</header>'); assert h>=0,'header missing'
+          s=s[:h+len('</header>')]+'\n\n'+executive+'\n\n'+controls+'\n\n'+standard+'\n'+s[h+len('</header>'):]
           p.write_text(s,encoding='utf-8')
-
       - name: Strict structural tests
         shell: python
         run: |
@@ -67,7 +48,6 @@ jobs:
           assert 'function loadReport' in s or 'async function loadReport' in s
           assert s.index('id="executiveReportCard"') < s.index('id="adineReportsControlCard"') < s.index('id="standardFrameworkCard"')
           print('REPORT HIERARCHY AND SINGLE-CONTROL TESTS PASSED')
-
       - name: Commit
         shell: bash
         run: |

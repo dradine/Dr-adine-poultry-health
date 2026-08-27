@@ -1,5 +1,6 @@
 /* ADINE FARM SCORE LOADER — CANONICAL V9
    Safe loader: never uses document.write, so it cannot corrupt reports.html.
+   Loads the report week selector before the canonical report engine.
 */
 (function(g){
   "use strict";
@@ -23,7 +24,9 @@
   if (typeof document !== 'undefined') {
     load('report-period-normalizer-v1.js', function(){
       load('benchmark-report-adapter-v1.js', function(){
-        load('performance-period-engine-v9.js');
+        load('report-week-selector-v1.js', function(){
+          load('performance-period-engine-v9.js');
+        });
       });
     });
   }

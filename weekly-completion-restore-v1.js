@@ -24,4 +24,52 @@ function run(){let f=flock();if(!f||!broiler(f))return;panel();bind();ratio()}
 function start(){run();let mo=new MutationObserver(()=>{let f=flock();if(f&&broiler(f)){panel();bind();ratio()}});if(document.body)mo.observe(document.body,{childList:true,subtree:true});let i=0,t=setInterval(()=>{run();if(++i>160)clearInterval(t)},250)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 const css=document.createElement('style');css.textContent='#'+PANEL+'{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:20!important;margin:0 0 16px!important;padding:14px!important;border-radius:14px!important}.weekly-advanced-toggle-wrap{display:flex!important;visibility:visible!important;opacity:1!important;width:100%!important;margin:12px 0!important;position:relative!important;z-index:9999!important}.weekly-advanced-toggle{display:inline-flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;cursor:pointer!important;min-height:42px!important;padding:8px 16px!important}.weekly-metric-group.advanced-group{transition:none!important}';document.head.appendChild(css);
+
+/* Strict delete confirmation for weekly history */
+(function(){
+'use strict';
+function records(){try{return Array.isArray(window.weeklyRecords)?window.weeklyRecords:[]}catch(e){return[]}}
+function decorate(){
+ const box=document.getElementById('weeklyHistory');if(!box)return;
+ const rows=box.querySelectorAll('tbody tr');const rs=records();
+ rows.forEach((row,i)=>{
+  const rec=rs[i];if(!rec)return;const cell=row.lastElementChild;
+  if(!cell||cell.dataset.deleteEnhanced==='true')return;
+  cell.dataset.deleteEnhanced='true';cell.style.whiteSpace='nowrap';cell.style.textAlign='center';
+  const edit=cell.querySelector('button');if(edit){edit.style.display='inline-flex';edit.style.margin='2px'}
+  const b=document.createElement('button');b.type='button';b.className='btn btn-danger';b.textContent='🗑️ حذف';b.style.display='inline-flex';b.style.margin='2px';
+  b.addEventListener('click',()=>strictDelete(rec,b));cell.appendChild(b);
+ });
+}
+async function strictDelete(rec,button){
+ if(!rec?.id)return;
+ let user=null;try{const r=await window.supabaseClient.auth.getUser();user=r?.data?.user||null}catch(e){console.error(e)}
+ if(!user){alert('برای حذف، ابتدا وارد سامانه شوید.');return}
+ const flock=window.currentFlockForSpecialized||window.currentFlock;
+ if(!flock?.id){alert('گله فعال مشخص نیست؛ حذف انجام نشد.');return}
+ if(String(flock.status||'active').toLowerCase()==='closed'){alert('این دوره بسته شده است و حذف سابقه مجاز نیست.');return}
+ const week=rec.week_number??'-';const phrase='حذف هفته '+week;
+ const ok=window.confirm('⚠️ هشدار بسیار مهم\n\nشما در حال حذف سابقه پایش هفتگی هفته '+week+' هستید.\n\nاین داده پس از حذف قابل بازیابی نخواهد بود.\nهمچنین حذف این رکورد می‌تواند بر گزارش‌ها، روندها و محاسبات تجمعی اثر بگذارد.\n\nاگر از حذف مطمئن هستید، «تأیید» را بزنید.');
+ if(!ok)return;
+ const typed=window.prompt('برای تأیید نهایی حذف، عبارت زیر را دقیقاً وارد کنید:\n\n'+phrase);
+ if(typed===null)return;
+ if(String(typed).trim()!==phrase){alert('عبارت تأیید صحیح نیست؛ حذف لغو شد و هیچ داده‌ای تغییر نکرد.');return}
+ button.disabled=true;button.textContent='در حال حذف...';
+ const {error}=await window.supabaseClient.from('weekly_records').delete().eq('id',rec.id).eq('flock_id',flock.id);
+ if(error){console.error(error);button.disabled=false;button.textContent='🗑️ حذف';alert('حذف انجام نشد:\n'+error.message);return}
+ try{window.weeklyRecords=records().filter(r=>String(r.id)!==String(rec.id))}catch(e){}
+ if(typeof window.renderHistory==='function')window.renderHistory();
+ setTimeout(decorate,0);
+ alert('سابقه پایش هفته '+week+' با موفقیت حذف شد.');
+}
+function install(){
+ if(typeof window.renderHistory==='function'&&!window.renderHistory.__deleteEnhanced){
+  const original=window.renderHistory;
+  const wrapped=function(){const out=original.apply(this,arguments);setTimeout(decorate,0);return out};
+  wrapped.__deleteEnhanced=true;wrapped.__original=original;window.renderHistory=wrapped;
+ }
+ setTimeout(decorate,0);
+}
+install();document.addEventListener('DOMContentLoaded',install);let tries=0;const timer=setInterval(()=>{install();if(++tries>=80)clearInterval(timer)},250);
+})();
 })();

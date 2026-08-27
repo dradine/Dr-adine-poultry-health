@@ -17,3 +17,5 @@ jobs:
         run: node benchmark-core-v3-tests.js
       - name: Run strict standards and cross-strain regression suite
         run: node benchmark-strict-regression.test.js
+      - name: Run canonical performance engine v9 suite
+        run: node performance-period-engine-v9-tests.js

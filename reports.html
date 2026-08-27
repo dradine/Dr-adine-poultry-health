@@ -65,7 +65,7 @@
 <script src="reports-ui-v6-sync.js"></script>
 <script src="reports-period-analysis-v7.js"></script>
 <script src="farm-score-v3.js"></script>
-<script src="reports-period-analysis-v7.js"></script>
+
 <script src="reports-ui-v8-single-control.js"></script>
 <script src="reports-flock-loader-v9.js"></script>
 
@@ -123,9 +123,17 @@
 
     </header>
 
+<section id="executiveReportCard" class="card executive-report-card" style="display:none;">
+        <div class="executive-head">
+            <div><span class="executive-eyebrow">ADINE FLOCK INTELLIGENCE</span><h2>داشبورد مدیریتی گله</h2><p id="executiveHeadline">در حال تحلیل روند...</p></div>
+            <div id="executiveGrade" class="executive-grade">—</div>
+        </div>
+        <div id="executiveKpis" class="executive-kpis"></div>
+        <div id="executiveAlerts" class="executive-alerts"></div>
+        <div class="executive-grid"><div><h3>روند هفته‌های اخیر</h3><div id="executiveTrend"></div></div><div><h3>مهم‌ترین اقدام پیشنهادی</h3><div id="executiveAction"></div></div></div>
+    </section>
 
-
-    <section id="adineReportsControlCard" class="card report-controls-card">
+<section id="adineReportsControlCard" class="card report-controls-card">
         <div class="section-title">انتخاب گله و هفته گزارش</div>
         <div class="report-controls-grid">
             <div class="form-group"><label for="flockSelect">گله</label><select id="flockSelect"><option value="">در حال دریافت گله‌ها...</option></select></div>
@@ -136,7 +144,7 @@
         <div id="reportWeekSelectorInfo" class="info-box">پس از انتخاب گله، هفته گزارش را انتخاب کنید.</div>
     </section>
 
-    <section id="standardFrameworkCard" class="card standard-framework-card">
+<section id="standardFrameworkCard" class="card standard-framework-card">
         <div class="section-title">مبنای استاندارد و مقایسه</div>
         <div class="standard-framework-grid">
             <div><strong>۱. استاندارد رسمی</strong><span>اگر برای سویه و شاخص موردنظر مرجع رسمی معتبر وجود داشته باشد، همان مبناست.</span></div>
@@ -146,15 +154,14 @@
         <div class="standard-framework-note">نوع مبنا کنار شاخص/نمودار نمایش داده می‌شود تا «استاندارد رسمی» با «هدف مدیریتی» اشتباه نشود. نسخه مبنای مدیریتی: ۲۰۲۶.۲</div>
     </section>
 
-    <section id="executiveReportCard" class="card executive-report-card" style="display:none;">
-        <div class="executive-head">
-            <div><span class="executive-eyebrow">ADINE FLOCK INTELLIGENCE</span><h2>داشبورد مدیریتی گله</h2><p id="executiveHeadline">در حال تحلیل روند...</p></div>
-            <div id="executiveGrade" class="executive-grade">—</div>
-        </div>
-        <div id="executiveKpis" class="executive-kpis"></div>
-        <div id="executiveAlerts" class="executive-alerts"></div>
-        <div class="executive-grid"><div><h3>روند هفته‌های اخیر</h3><div id="executiveTrend"></div></div><div><h3>مهم‌ترین اقدام پیشنهادی</h3><div id="executiveAction"></div></div></div>
-    </section>
+
+
+
+    
+
+    
+
+    
 
     <!-- =====================================================
          LOADING

@@ -150,3 +150,25 @@ function clearAllWeeklyRecords() {
         load();
     }
 })();
+
+/* =========================================================
+   WEEKLY AUTO WEEK ENGINE LOADER
+========================================================= */
+(function loadWeeklyAutoWeek() {
+    if (document.getElementById("weekly-auto-week-script")) return;
+
+    const load = function () {
+        if (document.getElementById("weekly-auto-week-script")) return;
+        const script = document.createElement("script");
+        script.id = "weekly-auto-week-script";
+        script.src = "weekly-auto-week.js?v=20260827";
+        script.async = false;
+        (document.head || document.documentElement).appendChild(script);
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", load, { once: true });
+    } else {
+        load();
+    }
+})();

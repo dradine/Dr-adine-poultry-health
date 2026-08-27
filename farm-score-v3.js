@@ -21,8 +21,10 @@
   }
 
   if (typeof document !== 'undefined') {
-    load('benchmark-report-adapter-v1.js', function(){
-      load('performance-period-engine-v9.js');
+    load('report-period-normalizer-v1.js', function(){
+      load('benchmark-report-adapter-v1.js', function(){
+        load('performance-period-engine-v9.js');
+      });
     });
   }
 })(window);

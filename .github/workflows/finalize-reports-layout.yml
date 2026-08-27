@@ -17,11 +17,14 @@ jobs:
         run: |
           from pathlib import Path
           p=Path('reports.html'); s=p.read_text(encoding='utf-8')
-          tags=['reports-period-analysis-v7.js','reports-ui-v8-single-control.js','reports-flock-loader-v9.js']
+          # The report page already has its own loadFlocks/loadReport engine.
+          # Remove the competing v9 flock loader; it can race the native loader and
+          # its nested relationship query can fail even when the native query works.
+          s=s.replace('<script src="reports-flock-loader-v9.js"></script>','')
+          tags=['reports-period-analysis-v7.js','reports-ui-v8-single-control.js']
           for tag in tags:
               needle=f'<script src="{tag}"></script>'; first=s.find(needle)
-              if first>=0:
-                  s=s[:first]+needle+s[first+len(needle):].replace(needle,'')
+              if first>=0: s=s[:first]+needle+s[first+len(needle):].replace(needle,'')
           def extract(src,sid):
               a=src.find(f'<section id="{sid}"');
               if a<0:return '',src
@@ -38,6 +41,7 @@ jobs:
         run: |
           from pathlib import Path
           s=Path('reports.html').read_text(encoding='utf-8')
+          assert 'reports-flock-loader-v9.js' not in s
           assert s.count('id="flockSelect"')==1
           assert s.count('id="reportWeekSelect"')==1
           assert s.count('id="reportCompareBtn"')==1
@@ -45,9 +49,10 @@ jobs:
           assert s.count('id="executiveReportCard"')==1
           assert s.count('id="standardFrameworkCard"')==1
           assert 'id="weeklyTableBody"' in s
+          assert 'function loadFlocks' in s or 'async function loadFlocks' in s
           assert 'function loadReport' in s or 'async function loadReport' in s
           assert s.index('id="executiveReportCard"') < s.index('id="adineReportsControlCard"') < s.index('id="standardFrameworkCard"')
-          print('REPORT HIERARCHY AND SINGLE-CONTROL TESTS PASSED')
+          print('REPORT NATIVE LOADER + HIERARCHY TESTS PASSED')
       - name: Commit
         shell: bash
         run: |
@@ -56,5 +61,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add reports.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Finalize report hierarchy and single controls [skip reports finalize]'
+          git commit -m 'Use native report loader and finalize hierarchy [skip reports finalize]'
           git push origin HEAD:main

@@ -46,3 +46,16 @@ if(supabaseClient?.auth) supabaseClient.auth.onAuthStateChange((event,session)=>
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",inject,{once:true});else inject();
 })();
+
+/* Weekly page compatibility bridge: load the isolated average-weight module.
+   This is page-scoped and does not alter Supabase/auth behavior elsewhere. */
+(function(){
+  const page=String(location.pathname||"").toLowerCase().split("/").pop();
+  if(page!=="weekly.html")return;
+  if(document.querySelector('script[data-adine-weekly-average-weight]'))return;
+  const script=document.createElement("script");
+  script.src="weekly-average-weight-autofill.js";
+  script.async=false;
+  script.dataset.adineWeeklyAverageWeight="true";
+  (document.head||document.documentElement).appendChild(script);
+})();

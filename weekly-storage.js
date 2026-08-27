@@ -2,10 +2,10 @@
 (function(){
   "use strict";
   function load(){
-    if(document.getElementById("weekly-auto-week-direct-script"))return;
+    if(document.getElementById("weekly-week-autofill-script"))return;
     const s=document.createElement("script");
-    s.id="weekly-auto-week-direct-script";
-    s.src="weekly-auto-week-direct.js?v=20260827-6";
+    s.id="weekly-week-autofill-script";
+    s.src="weekly-week-autofill.js?v=20260827-1";
     s.async=false;
     document.head.appendChild(s);
   }

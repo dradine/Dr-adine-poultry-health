@@ -1,0 +1,107 @@
+name: Repair reports page from known-good engine
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ !contains(github.event.head_commit.message, '[skip reports repair]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore known-good report engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin b46a9c38e673542f53c340ea4932ace743c44d32 --no-tags
+          git checkout b46a9c38e673542f53c340ea4932ace743c44d32 -- reports.html
+
+      - name: Patch report controls without touching engine
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('reports.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Add the comparison/period scripts after the existing report engine dependencies.
+          anchor = '<script src="farm-score-v3.js"></script>'
+          scripts = '''<script src="reports-period-analysis-v7.js"></script>\n<script src="reports-ui-v8-single-control.js"></script>\n<script src="reports-flock-loader-v9.js"></script>'''
+          if 'reports-flock-loader-v9.js' not in s:
+              s = s.replace(anchor, anchor + '\n' + scripts, 1)
+
+          # Replace the original standalone flock selector with the canonical combined control.
+          start = s.find('    <!-- =====================================================\n         FLOCK SELECT')
+          if start == -1:
+              start = s.find('<!-- =====================================================\n         FLOCK SELECT')
+          end = s.find('    <section id="standardFrameworkCard"', start)
+          if start != -1 and end != -1:
+              control = '''    <section id="adineReportsControlCard" class="card report-controls-card">\n        <div class="section-title">انتخاب گله و هفته گزارش</div>\n        <div class="report-controls-grid">\n            <div class="form-group">\n                <label for="flockSelect">گله</label>\n                <select id="flockSelect"><option value="">در حال دریافت گله‌ها...</option></select>\n            </div>\n            <div id="reportWeekHost" class="form-group">\n                <label for="reportWeekSelect">هفته گزارش</label>\n                <select id="reportWeekSelect"><option value="">ابتدا گله را انتخاب کنید</option></select>\n            </div>\n            <div class="report-control-action">\n                <button type="button" id="reportCompareBtn" class="btn btn-primary">⚖ مقایسه سالن‌ها و گله‌ها</button>\n            </div>\n        </div>\n        <div id="flockInfo" class="info-box">لطفاً یک گله را انتخاب کنید.</div>\n        <div id="reportWeekSelectorInfo" class="info-box">پس از انتخاب گله، هفته گزارش را انتخاب کنید.</div>\n    </section>\n\n'''
+              s = s[:start] + control + s[end:]
+
+          # Put executive report above the controls and standard framework.
+          exec_start = s.find('    <section id="executiveReportCard"')
+          exec_end = s.find('    <!-- =====================================================\n         LOADING', exec_start)
+          ctrl_start = s.find('    <section id="adineReportsControlCard"')
+          if exec_start != -1 and exec_end != -1 and ctrl_start != -1 and ctrl_start > exec_end:
+              executive = s[exec_start:exec_end]
+              s = s[:exec_start] + s[exec_end:]
+              ctrl_start = s.find('    <section id="adineReportsControlCard"')
+              s = s[:ctrl_start] + executive + '\n' + s[ctrl_start:]
+
+          # Ensure the comparison button has a safe fallback without interfering with the real engine.
+          marker = '</style>'
+          css = '''\n.report-controls-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:14px;align-items:end}\n.report-control-action{display:flex;align-items:end}.report-control-action .btn{min-height:48px;white-space:nowrap}\n@media(max-width:800px){.report-controls-grid{grid-template-columns:1fr}.report-control-action .btn{width:100%}}\n'''
+          if '.report-controls-grid' not in s:
+              s = s.replace(marker, css + marker, 1)
+
+          # Bind the visible comparison button to whichever comparison engine exists.
+          js = '''\n<script>\n(function(){\n  function bind(){\n    const b=document.getElementById('reportCompareBtn');\n    if(!b||b.dataset.bound)return;\n    b.dataset.bound='1';\n    b.addEventListener('click',function(){\n      if(typeof window.openReportComparison==='function') return window.openReportComparison();\n      if(typeof window.showReportComparison==='function') return window.showReportComparison();\n      if(window.ComparisonEngine && typeof window.ComparisonEngine.open==='function') return window.ComparisonEngine.open();\n      alert('موتور مقایسه در دسترس نیست.');\n    });\n  }\n  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();\n  setTimeout(bind,500);\n})();\n</script>\n'''
+          if 'id="reportCompareBtn"' in s and 'موتور مقایسه در دسترس نیست' not in s:
+              s = s.replace('</body>', js + '</body>', 1)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Validate report structure
+        shell: python
+        run: |
+          from pathlib import Path
+          s = Path('reports.html').read_text(encoding='utf-8')
+          required = [
+              'id="flockSelect"',
+              'id="reportWeekSelect"',
+              'id="reportCompareBtn"',
+              'id="executiveReportCard"',
+              'id="summaryCard"',
+              'id="weeklyTableBody"',
+              'initializeReportsData',
+              'getReportWeeklyRecords',
+              'loadReport'
+          ]
+          missing = [x for x in required if x not in s]
+          assert not missing, f'Missing required report engine markers: {missing}'
+          assert s.count('id="flockSelect"') == 1, 'Duplicate visible flock selector'
+          assert s.count('id="reportWeekSelect"') == 1, 'Duplicate week selector'
+          assert s.count('id="reportCompareBtn"') == 1, 'Duplicate comparison button'
+          print('REPORT STRUCTURE VALIDATED')
+
+      - name: Commit repaired report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports.html
+          if git diff --cached --quiet; then
+            echo 'No report changes required.'
+            exit 0
+          fi
+          git commit -m 'Repair reports engine and weekly-record loading [skip reports repair]'
+          git push origin HEAD:main

@@ -1,3 +1,2 @@
-# Reports comparison button fix
-
-The comparison control must be rendered in the primary reports header, adjacent to the flock selector, not injected by an optional patch script. This marker documents the intended integration point for the reports UI.
+# Reports comparison UI
+The reports page now uses `reports-ui-v4.js` for a non-destructive biological-week selector and flock/house comparison UI. Existing weekly records and report calculations remain unchanged outside the selected reporting period.

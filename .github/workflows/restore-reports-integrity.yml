@@ -12,32 +12,37 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout full history
+      - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Restore reports.html from known-good baseline and install report UI layers
+      - name: Ensure report UI loaders exist without replacing reports.html
         shell: bash
         run: |
           set -euo pipefail
-          git checkout 13c497e944bce57a2b387a432bafda6d26c1dd55 -- reports.html
           python - <<'PY'
           from pathlib import Path
           p = Path('reports.html')
           s = p.read_text(encoding='utf-8')
           marker = '<script src="farm-score-v3.js"></script>'
           loaders = '<script src="mortality-benchmark-v2.js"></script>\n<script src="reports-ui-v4.js"></script>\n<script src="reports-ui-v5-layout.js"></script>\n'
-          if 'reports-ui-v5-layout.js' not in s and marker in s:
-              s = s.replace(marker, loaders + marker, 1)
-          elif 'reports-ui-v4.js' not in s and marker in s:
-              s = s.replace(marker, '<script src="reports-ui-v4.js"></script>\n' + marker, 1)
-          elif 'mortality-benchmark-v2.js' not in s and marker in s:
-              s = s.replace(marker, '<script src="mortality-benchmark-v2.js"></script>\n' + marker, 1)
-          p.write_text(s, encoding='utf-8')
+          changed = False
+          if marker in s:
+              if 'mortality-benchmark-v2.js' not in s:
+                  s = s.replace(marker, '<script src="mortality-benchmark-v2.js"></script>\n' + marker, 1)
+                  changed = True
+              if 'reports-ui-v4.js' not in s:
+                  s = s.replace(marker, '<script src="reports-ui-v4.js"></script>\n' + marker, 1)
+                  changed = True
+              if 'reports-ui-v5-layout.js' not in s:
+                  s = s.replace(marker, '<script src="reports-ui-v5-layout.js"></script>\n' + marker, 1)
+                  changed = True
+          if changed:
+              p.write_text(s, encoding='utf-8')
           PY
 
-      - name: Commit restored reports page only
+      - name: Commit only missing loader changes
         shell: bash
         run: |
           set -euo pipefail
@@ -47,5 +52,5 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m 'Install reports layout guard'
+          git commit -m 'Ensure reports UI loaders without overwriting report page'
           git push

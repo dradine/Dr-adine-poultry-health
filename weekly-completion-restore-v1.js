@@ -31,45 +31,54 @@ const css=document.createElement('style');css.textContent='#'+PANEL+'{display:bl
 function records(){try{if(typeof weeklyRecords!=='undefined'&&Array.isArray(weeklyRecords))return weeklyRecords}catch(e){}return[]}
 function decorate(){
  const box=document.getElementById('weeklyHistory');if(!box)return;
- const rows=box.querySelectorAll('tbody tr');const rs=records();
+ const rows=box.querySelectorAll('table tbody tr');const rs=records();
  rows.forEach((row,i)=>{
-  const rec=rs[i];if(!rec)return;const cell=row.lastElementChild;
-  if(!cell||cell.dataset.deleteEnhanced==='true')return;
-  cell.dataset.deleteEnhanced='true';cell.style.whiteSpace='nowrap';cell.style.textAlign='center';
-  const edit=cell.querySelector('button');if(edit){edit.style.display='inline-flex';edit.style.margin='2px'}
-  const b=document.createElement('button');b.type='button';b.className='btn btn-danger';b.textContent='🗑️ حذف';b.style.display='inline-flex';b.style.margin='2px';
-  b.addEventListener('click',()=>strictDelete(rec,b));cell.appendChild(b);
+  const cell=row.lastElementChild;if(!cell)return;
+  if(cell.dataset.deleteEnhanced==='true')return;
+  const weekCell=row.querySelector('td');
+  const weekText=weekCell?String(weekCell.textContent||'').trim():'';
+  let rec=rs[i];
+  if(weekText){const numericWeek=weekText.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));const byWeek=rs.find(r=>String(r.week_number)==numericWeek);if(byWeek)rec=byWeek}
+  if(!rec?.id)return;
+  cell.dataset.deleteEnhanced='true';
+  cell.style.setProperty('white-space','nowrap','important');
+  cell.style.setProperty('text-align','center','important');
+  cell.style.setProperty('min-width','170px','important');
+  cell.style.setProperty('display','table-cell','important');
+  const edit=cell.querySelector('button');
+  if(edit){edit.style.setProperty('display','inline-flex','important');edit.style.setProperty('margin','2px','important');edit.style.setProperty('vertical-align','middle','important')}
+  const b=document.createElement('button');
+  b.type='button';b.className='btn btn-danger weekly-delete-record-btn';b.textContent='🗑️ حذف';
+  b.setAttribute('aria-label','حذف سابقه پایش هفتگی');
+  b.style.cssText='display:inline-flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;position:relative!important;z-index:99999!important;margin:2px!important;vertical-align:middle!important;cursor:pointer!important;min-width:82px!important;';
+  b.addEventListener('click',()=>strictDelete(rec,b));
+  cell.appendChild(b);
  });
 }
 async function strictDelete(rec,button){
  if(!rec?.id)return;
  let user=null;try{const r=await window.supabaseClient.auth.getUser();user=r?.data?.user||null}catch(e){console.error(e)}
  if(!user){alert('برای حذف، ابتدا وارد سامانه شوید.');return}
- const flock=window.currentFlockForSpecialized||window.currentFlock;
- if(!flock?.id){alert('گله فعال مشخص نیست؛ حذف انجام نشد.');return}
- if(String(flock.status||'active').toLowerCase()==='closed'){alert('این دوره بسته شده است و حذف سابقه مجاز نیست.');return}
+ const f=(()=>{try{if(typeof currentFlock!=='undefined'&&currentFlock)return currentFlock}catch(e){}return window.currentFlockForSpecialized||window.currentFlock||null})();
+ if(!f?.id){alert('گله فعال مشخص نیست؛ حذف انجام نشد.');return}
+ if(String(f.status||'active').toLowerCase()==='closed'){alert('این دوره بسته شده است و حذف سابقه مجاز نیست.');return}
  const week=rec.week_number??'-';const phrase='حذف هفته '+week;
- const ok=window.confirm('⚠️ هشدار بسیار مهم\n\nشما در حال حذف سابقه پایش هفتگی هفته '+week+' هستید.\n\nاین داده پس از حذف قابل بازیابی نخواهد بود.\nهمچنین حذف این رکورد می‌تواند بر گزارش‌ها، روندها و محاسبات تجمعی اثر بگذارد.\n\nاگر از حذف مطمئن هستید، «تأیید» را بزنید.');
+ const ok=window.confirm('⚠️ هشدار بسیار مهم\n\nشما در حال حذف سابقه پایش هفتگی هفته '+week+' هستید.\n\nاین داده پس از حذف قابل بازیابی نخواهد بود.\nاین عملیات دائمی است و ممکن است روی گزارش‌ها، روندها و محاسبات تجمعی اثر بگذارد.\n\nاگر مطمئن هستید، گزینه تأیید را انتخاب کنید.');
  if(!ok)return;
  const typed=window.prompt('برای تأیید نهایی حذف، عبارت زیر را دقیقاً وارد کنید:\n\n'+phrase);
  if(typed===null)return;
  if(String(typed).trim()!==phrase){alert('عبارت تأیید صحیح نیست؛ حذف لغو شد و هیچ داده‌ای تغییر نکرد.');return}
  button.disabled=true;button.textContent='در حال حذف...';
- const {error}=await window.supabaseClient.from('weekly_records').delete().eq('id',rec.id).eq('flock_id',flock.id);
+ const {error}=await window.supabaseClient.from('weekly_records').delete().eq('id',rec.id).eq('flock_id',f.id);
  if(error){console.error(error);button.disabled=false;button.textContent='🗑️ حذف';alert('حذف انجام نشد:\n'+error.message);return}
- try{weeklyRecords=records().filter(r=>String(r.id)!==String(rec.id))}catch(e){try{window.weeklyRecords=records().filter(r=>String(r.id)!==String(rec.id))}catch(e2){}}
- if(typeof window.renderHistory==='function')window.renderHistory();
+ try{weeklyRecords=records().filter(r=>String(r.id)!==String(rec.id))}catch(e){}
+ if(typeof renderHistory==='function')renderHistory();
  setTimeout(decorate,0);
  alert('سابقه پایش هفته '+week+' با موفقیت حذف شد.');
 }
-function install(){
- if(typeof window.renderHistory==='function'&&!window.renderHistory.__deleteEnhanced){
-  const original=window.renderHistory;
-  const wrapped=function(){const out=original.apply(this,arguments);setTimeout(decorate,0);return out};
-  wrapped.__deleteEnhanced=true;wrapped.__original=original;window.renderHistory=wrapped;
- }
- setTimeout(decorate,0);
-}
-install();document.addEventListener('DOMContentLoaded',install);let tries=0;const timer=setInterval(()=>{install();if(++tries>=80)clearInterval(timer)},250);
+function install(){decorate();setTimeout(decorate,50);setTimeout(decorate,250);setTimeout(decorate,1000)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+if(document.body){new MutationObserver(()=>decorate()).observe(document.body,{childList:true,subtree:true})}
+let tries=0;const timer=setInterval(()=>{decorate();if(++tries>=120)clearInterval(timer)},250);
 })();
 })();

@@ -92,9 +92,6 @@ function clearAllWeeklyRecords() {
     return true;
 }
 
-/* =========================================================
-   WEEKLY FEED / WATER AUTO CALCULATOR LOADER
-========================================================= */
 (function loadWeeklyFeedWaterFix() {
     if (document.getElementById("weekly-feed-water-fix-script")) return;
     const script = document.createElement("script");
@@ -104,15 +101,8 @@ function clearAllWeeklyRecords() {
     (document.head || document.documentElement).appendChild(script);
 })();
 
-/* =========================================================
-   WEEKLY DATE SAVE COMPATIBILITY FIX LOADER
-   Loaded on DOMContentLoaded so weekly.js has already defined
-   its legacy date helpers, then the central engine becomes the
-   single conversion source without changing weekly calculations.
-========================================================= */
 (function loadWeeklyDateSaveFix() {
     if (document.getElementById("weekly-date-save-fix-script")) return;
-
     const load = function () {
         if (document.getElementById("weekly-date-save-fix-script")) return;
         const script = document.createElement("script");
@@ -121,20 +111,12 @@ function clearAllWeeklyRecords() {
         script.async = false;
         (document.head || document.documentElement).appendChild(script);
     };
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", load, { once: true });
-    } else {
-        load();
-    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });
+    else load();
 })();
 
-/* =========================================================
-   WEEKLY AVERAGE WEIGHT AUTO-FILL LOADER
-========================================================= */
 (function loadWeeklyAverageWeightAutofill() {
     if (document.getElementById("weekly-average-weight-autofill-script")) return;
-
     const load = function () {
         if (document.getElementById("weekly-average-weight-autofill-script")) return;
         const script = document.createElement("script");
@@ -143,32 +125,21 @@ function clearAllWeeklyRecords() {
         script.async = false;
         (document.head || document.documentElement).appendChild(script);
     };
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", load, { once: true });
-    } else {
-        load();
-    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });
+    else load();
 })();
 
-/* =========================================================
-   WEEKLY AUTO WEEK ENGINE LOADER
-========================================================= */
+/* Automatic week calculation for QUICK WEEKLY ENTRY. */
 (function loadWeeklyAutoWeek() {
     if (document.getElementById("weekly-auto-week-script")) return;
-
     const load = function () {
         if (document.getElementById("weekly-auto-week-script")) return;
         const script = document.createElement("script");
         script.id = "weekly-auto-week-script";
-        script.src = "weekly-auto-week.js?v=20260827";
+        script.src = "weekly-auto-week.js?v=20260827-v2";
         script.async = false;
         (document.head || document.documentElement).appendChild(script);
     };
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", load, { once: true });
-    } else {
-        load();
-    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });
+    else load();
 })();

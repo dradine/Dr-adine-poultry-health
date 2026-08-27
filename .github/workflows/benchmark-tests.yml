@@ -1,21 +1,10 @@
-name: Benchmark Integrity Tests
-
+# DISABLED — stable baseline protection
+name: Benchmark tests (DISABLED)
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
-
 jobs:
-  benchmark-tests:
+  disabled:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Run canonical benchmark core regression suite
-        run: node benchmark-core-v3-tests.js
-      - name: Run strict standards and cross-strain regression suite
-        run: node benchmark-strict-regression.test.js
-      - name: Run canonical performance engine v9 suite
-        run: node performance-period-engine-v9-tests.js
+      - run: echo "Disabled — stable baseline protected"

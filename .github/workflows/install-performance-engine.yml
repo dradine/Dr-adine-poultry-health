@@ -1,55 +1,10 @@
-name: Install Adine performance engine
+# DISABLED — stable baseline protection
+name: Install Adine performance engine (DISABLED)
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'performance-engine-v2.js'
-      - 'performance-benchmark-v2.js'
-      - '.github/workflows/install-performance-engine.yml'
-permissions:
-  contents: write
+  workflow_dispatch:
 jobs:
-  install:
+  disabled:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Wire scientific engine, benchmark fallback and persistence
-        shell: python
-        run: |
-          from pathlib import Path
-          for name, anchor, tag in [
-              ('weekly.html','    <script src="weekly-specialized.js"></script>','<script src="performance-engine-v2.js"></script>'),
-              ('reports.html','<script src="weekly-engine.js"></script>','<script src="performance-engine-v2.js"></script>'),
-          ]:
-              p=Path(name); s=p.read_text(encoding='utf-8')
-              if tag not in s:
-                  if anchor not in s: raise SystemExit(f'anchor not found in {name}')
-                  s=s.replace(anchor,anchor+'\n'+tag,1); p.write_text(s,encoding='utf-8')
-          p=Path('reports.html'); s=p.read_text(encoding='utf-8'); tag='<script src="performance-benchmark-v2.js"></script>'; anchor='<script src="performance-engine-v2.js"></script>'
-          if tag not in s: s=s.replace(anchor,anchor+'\n'+tag,1); p.write_text(s,encoding='utf-8')
-          p=Path('weekly-specialized.js'); s=p.read_text(encoding='utf-8')
-          if 'dead_bird_avg_weight_g' not in s:
-              needle='["water_feed_ratio","نسبت آب به دان","L/kg","number","شاخص سریع برای کشف تغییر مصرف آب"],'
-              repl=needle+'\n    ["dead_bird_avg_weight_g","میانگین وزن پرندگان تلف‌شده","g","number","اختیاری؛ برای محاسبه علمی FCR اصلاح‌شده با تلفات استفاده می‌شود"],'
-              if needle not in s: raise SystemExit('broiler specialized anchor not found')
-              s=s.replace(needle,repl,1); p.write_text(s,encoding='utf-8')
-          p=Path('weekly.js'); s=p.read_text(encoding='utf-8')
-          marker='''        if (performanceMortalityCorrectedFcr != null) {\n            productionMetrics.mortality_corrected_fcr = performanceMortalityCorrectedFcr;\n        }\n'''
-          inject=marker+'''        const performanceRowsWithCurrent = [\n            ...existingForCumulative,\n            {\n                id: recordId,\n                age_days: ageDays,\n                feed_total_kg: feedTotal,\n                average_weight_g: stats.mean,\n                live_birds: liveBirds,\n                production_metrics: productionMetrics\n            }\n        ];\n        const performanceCumulativeFcr = window.AdinePerformance\n            ? window.AdinePerformance.typeOf(currentFlock) === "layer" || window.AdinePerformance.typeOf(currentFlock) === "breeder"\n                ? window.AdinePerformance.layerCumulative(performanceRowsWithCurrent)\n                : window.AdinePerformance.broilerCumulativeFCR(performanceRowsWithCurrent, currentFlock)\n            : null;\n        productionMetrics.performance_version = window.AdinePerformance?.version || null;\n        productionMetrics.weekly_fcr_engine = performanceWeeklyFcrResolved;\n        productionMetrics.cumulative_fcr_engine = performanceCumulativeFcr;\n        productionMetrics.cumulative_feed_kg = performanceRowsWithCurrent.reduce((sum, row) => sum + (Number(row.feed_total_kg) || 0), 0);\n        productionMetrics.current_age_days = ageDays;\n        productionMetrics.current_average_weight_g = stats.mean;\n        productionMetrics.current_live_birds = liveBirds;\n        if (performanceCumulativeFcr != null) productionMetrics.cumulative_fcr = performanceCumulativeFcr;\n\n'''
-          if 'productionMetrics.cumulative_fcr_engine' not in s:
-              if marker not in s: raise SystemExit('mortality persistence anchor not found')
-              s=s.replace(marker,inject,1); p.write_text(s,encoding='utf-8')
-      - name: Static syntax and whitespace checks
-        run: |
-          node --check performance-engine-v2.js
-          node --check performance-benchmark-v2.js
-          node --check weekly.js
-          node --check weekly-specialized.js
-          git diff --check
-      - name: Commit wiring changes
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add weekly.html reports.html weekly.js weekly-specialized.js
-          git diff --cached --quiet || git commit -m 'Persist scientific weekly and cumulative performance metrics'
-          git push
+      - run: echo "Disabled — stable baseline protected"

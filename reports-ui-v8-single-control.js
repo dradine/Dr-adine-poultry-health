@@ -7,24 +7,29 @@ function clean(){
   var page=document.querySelector('.reports-page');
   if(!page)return;
   var canonical=document.getElementById('adineReportsControlCard');
-  /* The original flock-only card is a data source for V4, but must never be visible. */
   var source=document.getElementById('flockSelect');
   if(source){
     var sourceCard=source.closest('section.card');
     if(sourceCard && sourceCard!==canonical) sourceCard.style.display='none';
   }
-  /* Hide any accidental duplicate legacy week-selector cards. */
   page.querySelectorAll('[id="reportWeekSelectorCard"]').forEach(function(el){
     if(el!==canonical)el.remove();
   });
-  /* Evaluation must always precede the single control. */
   var exec=document.getElementById('executiveReportCard');
-  if(exec && canonical && exec.parentNode===page){
-    page.insertBefore(exec,canonical);
-  } else if(exec && canonical){
-    canonical.parentNode.insertBefore(exec,canonical);
+  var standard=document.getElementById('standardFrameworkCard');
+  if(exec){
+    page.insertBefore(exec,page.children[1]||null);
   }
-  /* If V4 has not injected yet, do not create a second control here. */
+  canonical=document.getElementById('adineReportsControlCard');
+  if(canonical && exec && canonical.parentNode===page){
+    page.insertBefore(canonical,exec.nextSibling);
+  }
+  /* Keep the standards framework below the flock/week controls. */
+  standard=document.getElementById('standardFrameworkCard');
+  canonical=document.getElementById('adineReportsControlCard');
+  if(standard && canonical && standard.parentNode===page){
+    page.insertBefore(standard,canonical.nextSibling);
+  }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',clean,{once:true});
 else clean();

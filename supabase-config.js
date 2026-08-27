@@ -2,60 +2,13 @@
 const SUPABASE_URL = "https://vzcczkavlopznljnnehp.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_4jMgvqKI__-MsmMQtEiCig_M9WjhvN9";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
-
 try { window.supabaseClient = supabaseClient; } catch (_) {}
-
 async function getCurrentUser(){ try { const {data,error}=await supabaseClient.auth.getSession(); if(!error&&data?.session?.user)return data.session.user; const r=await supabaseClient.auth.getUser(); return r.data?.user||null; } catch(e){ console.warn("getCurrentUser:",e); return null; } }
 async function getCurrentProfile(userId=null){ const user=userId?{id:userId}:await getCurrentUser(); if(!user?.id)return null; try { const {data,error}=await supabaseClient.from("profiles").select("id,full_name,email,phone,role,status,is_active,approved_at,approved_by,last_seen_at,created_at,updated_at").eq("id",user.id).maybeSingle(); if(error){console.warn("getCurrentProfile:",error);return null;} return data||null; } catch(e){console.warn("getCurrentProfile:",e);return null;} }
 function checkProfileAccess(profile){ if(!profile)return false; const s=String(profile.status||"").trim().toLowerCase(), a=String(profile.access_status||"").trim().toLowerCase(), r=String(profile.role||"").trim().toLowerCase(); if(["blocked","suspended","removed"].includes(s)||["blocked","suspended","removed"].includes(a))return false; return s==="active"||a==="approved"||r==="owner"||r==="admin"; }
-
-async function checkUserAccess(){
-  if(window.AdineAuth?.requireAuth){
-    const auth=await window.AdineAuth.requireAuth();
-    if(auth) return {authenticated:true,allowed:true,user:auth.user,profile:auth.profile,error:null};
-    const user=await getCurrentUser();
-    return {authenticated:!!user,allowed:false,user:user||null,profile:null,error:user?"PROFILE_NOT_AVAILABLE":"SESSION_NOT_FOUND"};
-  }
-  const user=await getCurrentUser(); if(!user)return {authenticated:false,allowed:false,user:null,profile:null,error:null};
-  const profile=await getCurrentProfile(user.id); if(!profile)return {authenticated:true,allowed:false,user,profile:null,error:"PROFILE_NOT_FOUND_OR_UNAVAILABLE"};
-  return {authenticated:true,allowed:checkProfileAccess(profile),user,profile,error:null};
-}
-async function logoutUser(){ try{await supabaseClient.auth.signOut();}catch(e){console.warn("logoutUser:",e);} try{sessionStorage.removeItem("adine_profile_cache_v2");}catch(_){} window.location.replace("login.html"); return true; }
-if(supabaseClient?.auth) supabaseClient.auth.onAuthStateChange((event,session)=>window.dispatchEvent(new CustomEvent("adine-auth-state-change",{detail:{event,session}})));
-
-(function(){
-  const page=String(location.pathname||"").toLowerCase().split("/").pop(); if(page!=="flocks.html")return;
-  const num=id=>{const e=document.getElementById(id);if(!e)return null;const v=String(e.value??"").replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,"").trim();const n=Number(v);return v&&Number.isFinite(n)?n:null;};
-  const val=id=>document.getElementById(id)?.value?.trim()||null;
-  function inject(){
-    const ff=document.getElementById("flockForm"), hf=document.getElementById("houseForm"); if(!ff||!hf)return;
-    const add=(grid,id,label,ph,type="text",required=false)=>{if(document.getElementById(id))return document.getElementById(id);const w=document.createElement("div");w.className="form-group";const l=document.createElement("label");l.htmlFor=id;l.textContent=label+(required?" *":"");const i=document.createElement("input");i.id=id;i.type=type;i.inputMode=type==="date"?"numeric":(type==="number"?"decimal":"text");i.placeholder=ph||"";i.required=required;w.append(l,i);grid.appendChild(w);return i;};
-    const hg=hf.querySelector(".form-grid"), fg=ff.querySelector(".form-grid"); if(hg)add(hg,"houseInitialBirdCount","تعداد اولیه پرنده سالن","مثلاً ۵۰۰۰۰","number",true); if(!fg)return;
-    add(fg,"initialAverageWeightG","میانگین وزن اولیه (گرم)","مثلاً ۴۵","number",false); add(fg,"productionStartDate","تاریخ شروع تولید","YYYY-MM-DD","date",false); add(fg,"productionStartAgeDays","سن شروع تولید (روز)","مثلاً ۱۱۰","number",false); add(fg,"productionBaselineBirdCount","تعداد پرنده شروع تولید","مثلاً ۴۸۰۰۰","number",false); add(fg,"productionBaselineWeightG","وزن شروع تولید (گرم)","مثلاً ۱۵۵۰","number",false);
-  }
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",inject,{once:true});else inject();
-})();
-
-(function(){
-  const page=String(location.pathname||"").toLowerCase().split("/").pop();
-  if(page!=="weekly.html")return;
-  if(document.querySelector('script[data-adine-weekly-average-weight]'))return;
-  const script=document.createElement("script");
-  script.src="weekly-average-weight-autofill.js";
-  script.async=false;
-  script.dataset.adineWeeklyAverageWeight="true";
-  (document.head||document.documentElement).appendChild(script);
-})();
-
-/* Authoritative weekly date/week policy: placement_date is the flock
-   monitoring anchor, and week boundaries are strict 7-day blocks. */
-(function(){
-  const page=String(location.pathname||"").toLowerCase().split("/").pop();
-  if(page!=="weekly.html")return;
-  if(document.querySelector('script[data-adine-week-policy]'))return;
-  const script=document.createElement("script");
-  script.src="weekly-week-policy-v1.js";
-  script.async=false;
-  script.dataset.adineWeekPolicy="true";
-  (document.head||document.documentElement).appendChild(script);
-})();
+async function checkUserAccess(){ if(window.AdineAuth?.requireAuth){const auth=await window.AdineAuth.requireAuth();if(auth)return {authenticated:true,allowed:true,user:auth.user,profile:auth.profile,error:null};const user=await getCurrentUser();return {authenticated:!!user,allowed:false,user:user||null,profile:null,error:user?"PROFILE_NOT_AVAILABLE":"SESSION_NOT_FOUND"};} const user=await getCurrentUser();if(!user)return {authenticated:false,allowed:false,user:null,profile:null,error:null};const profile=await getCurrentProfile(user.id);if(!profile)return {authenticated:true,allowed:false,user,profile:null,error:"PROFILE_NOT_FOUND_OR_UNAVAILABLE"};return {authenticated:true,allowed:checkProfileAccess(profile),user,profile,error:null}; }
+async function logoutUser(){try{await supabaseClient.auth.signOut();}catch(e){console.warn("logoutUser:",e);}try{sessionStorage.removeItem("adine_profile_cache_v2");}catch(_){}window.location.replace("login.html");return true;}
+if(supabaseClient?.auth)supabaseClient.auth.onAuthStateChange((event,session)=>window.dispatchEvent(new CustomEvent("adine-auth-state-change",{detail:{event,session}})));
+(function(){const page=String(location.pathname||"").toLowerCase().split("/").pop();if(page!=="flocks.html")return;const ff=document.getElementById("flockForm"),hf=document.getElementById("houseForm");function inject(){if(!ff||!hf)return;const add=(grid,id,label,ph,type="text",required=false)=>{if(document.getElementById(id))return document.getElementById(id);const w=document.createElement("div");w.className="form-group";const l=document.createElement("label");l.htmlFor=id;l.textContent=label+(required?" *":"");const i=document.createElement("input");i.id=id;i.type=type;i.inputMode=type==="date"?"numeric":(type==="number"?"decimal":"text");i.placeholder=ph||"";i.required=required;w.append(l,i);grid.appendChild(w);return i;};const hg=hf.querySelector(".form-grid"),fg=ff.querySelector(".form-grid");if(hg)add(hg,"houseInitialBirdCount","تعداد اولیه پرنده سالن","مثلاً ۵۰۰۰۰","number",true);if(!fg)return;add(fg,"initialAverageWeightG","میانگین وزن اولیه (گرم)","مثلاً ۴۵","number",false);add(fg,"productionStartDate","تاریخ شروع تولید","YYYY-MM-DD","date",false);add(fg,"productionStartAgeDays","سن شروع تولید (روز)","مثلاً ۱۱۰","number",false);add(fg,"productionBaselineBirdCount","تعداد پرنده شروع تولید","مثلاً ۴۸۰۰۰","number",false);add(fg,"productionBaselineWeightG","وزن شروع تولید (گرم)","مثلاً ۱۵۵۰","number",false);}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",inject,{once:true});else inject();})();
+(function(){const page=String(location.pathname||"").toLowerCase().split("/").pop();if(page!=="weekly.html")return;if(document.querySelector('script[data-adine-weekly-average-weight]'))return;const script=document.createElement("script");script.src="weekly-average-weight-autofill.js";script.async=false;script.dataset.adineWeeklyAverageWeight="true";(document.head||document.documentElement).appendChild(script);})();
+(function(){const page=String(location.pathname||"").toLowerCase().split("/").pop();if(page!=="weekly.html")return;if(document.querySelector('script[data-adine-week-policy]'))return;const script=document.createElement("script");script.src="weekly-week-policy-v2.js";script.async=false;script.dataset.adineWeekPolicy="true";(document.head||document.documentElement).appendChild(script);})();

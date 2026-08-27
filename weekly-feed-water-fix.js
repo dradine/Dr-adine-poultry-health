@@ -40,13 +40,17 @@
     }
 
     /*
-     * Raw water:feed remains the actual measured house ratio.
-     * The mortality-aware value is a management index and is intentionally
-     * stored separately so the original measured ratio is never destroyed.
+     * Mortality-aware population model:
+     * endBirds = live birds entered for the end of the week
+     * startBirds = endBirds + deaths during the week
+     * effectiveBirds = midpoint of start and end populations
      *
-     * End-of-week live birds + weekly mortality gives an estimate of birds
-     * alive at the beginning of the week. Their midpoint is used as the
-     * effective weekly population for per-bird consumption.
+     * Therefore weekly mortality directly changes BOTH:
+     *   1) feed per bird (grams)
+     *   2) water per bird (grams/ml)
+     * and also the mortality-adjusted water:feed index.
+     *
+     * The raw water:feed ratio is retained separately and is never destroyed.
      */
     function calculateMetrics(feedKg, waterL, liveBirds, mortalityWeek) {
         const feed = numberFrom(feedKg);
@@ -60,27 +64,20 @@
 
         const endBirds = Number.isFinite(live) && live > 0 ? live : null;
         const startBirds = endBirds !== null ? endBirds + mortality : null;
-        const effectiveBirds = startBirds !== null
+        const effectiveBirds = startBirds !== null && endBirds !== null
             ? (startBirds + endBirds) / 2
             : null;
 
-        const feedPerBird = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(feed) && feed >= 0
+        // Total feed is kg/week -> grams/week, divided by mortality-adjusted effective birds.
+        const feedPerBirdG = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(feed) && feed >= 0
             ? (feed * 1000) / effectiveBirds
             : null;
-        const waterPerBird = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(water) && water >= 0
+
+        // Total water is L/week -> ml/week (approximately grams for water), divided by the same population.
+        const waterPerBirdMl = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(water) && water >= 0
             ? (water * 1000) / effectiveBirds
             : null;
 
-        /*
-         * Mortality adjustment:
-         * A flock with more weekly mortality has fewer effective consumers.
-         * The measured ratio is therefore accompanied by a management
-         * penalty index based on the live/end population versus the estimated
-         * start population. This makes the displayed management ratio respond
-         * to mortality without altering the raw measured water/feed ratio.
-         *
-         * adjusted = raw * (startBirds / endBirds)
-         */
         const mortalityFactor = startBirds !== null && endBirds !== null && endBirds > 0
             ? startBirds / endBirds
             : 1;
@@ -94,8 +91,10 @@
             : null;
 
         return {
-            feedPerBirdG: feedPerBird,
-            waterPerBirdMl: waterPerBird,
+            feedPerBirdG,
+            waterPerBirdMl,
+            // Alias in grams because the UI label may use «گرم» for water.
+            waterPerBirdG: waterPerBirdMl,
             waterFeedRatio: mortalityAdjustedRatio,
             rawWaterFeedRatio: rawRatio,
             mortalityAdjustedWaterFeedRatio: mortalityAdjustedRatio,
@@ -147,14 +146,11 @@
 
     function calculateFeedWater() {
         const metrics = getMetricsFromInputs();
-
         const feedEl = document.getElementById(FEED_PER_BIRD_ID);
         const waterEl = document.getElementById(WATER_PER_BIRD_ID);
         if (feedEl) feedEl.value = format(metrics.feedPerBirdG, 2);
         if (waterEl) waterEl.value = format(metrics.waterPerBirdMl, 2);
-
         syncPrimaryRatio(metrics.mortalityAdjustedWaterFeedRatio);
-
         window.weeklyFeedWaterAuto = metrics;
         return metrics;
     }
@@ -173,8 +169,8 @@
     function calculateRecordMetrics(inputData) {
         const data = inputData && typeof inputData === "object" ? inputData : {};
         return calculateMetrics(
-            data.feed,
-            data.water,
+            data.feed ?? data.feedTotal,
+            data.water ?? data.waterTotal,
             data.liveBirds,
             data.mortalityWeek ?? data.weeklyMortality ?? data.mortality
         );
@@ -187,6 +183,7 @@
             waterPerBirdMl: metrics.waterPerBirdMl,
             feedPerBird: metrics.feedPerBirdG,
             waterPerBird: metrics.waterPerBirdMl,
+            waterPerBirdG: metrics.waterPerBirdG,
             waterFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
             waterToFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
             rawWaterFeedRatio: metrics.rawWaterFeedRatio,
@@ -203,7 +200,6 @@
     function patchWeeklyBuilder() {
         if (typeof window.buildWeeklyWeightRecord !== "function") return false;
         if (window.buildWeeklyWeightRecord.__feedWaterAutoPatched) return true;
-
         const original = window.buildWeeklyWeightRecord;
         function patchedWeeklyBuilder(data) {
             calculateFeedWater();
@@ -212,7 +208,6 @@
             const record = original(inputData);
             return applyMetricsToRecord(record, metrics);
         }
-
         patchedWeeklyBuilder.__feedWaterAutoPatched = true;
         patchedWeeklyBuilder.__original = original;
         window.buildWeeklyWeightRecord = patchedWeeklyBuilder;
@@ -222,21 +217,17 @@
     function patchWeeklySave() {
         if (typeof window.saveWeeklyRecord !== "function") return false;
         if (window.saveWeeklyRecord.__feedWaterAutoPatched) return true;
-
         const original = window.saveWeeklyRecord;
         function patchedWeeklySave(...args) {
             calculateFeedWater();
             const result = original.apply(this, args);
-
             const finalize = () => {
                 try {
                     const records = typeof getWeeklyRecords === "function" ? getWeeklyRecords() : null;
                     if (!Array.isArray(records) || !records.length) return;
-
                     const currentFlockId = window.currentFlock?.id || window.currentFlockForSpecialized?.id || null;
                     const date = document.getElementById("evaluationDate")?.value || "";
                     const weekNumber = numberOf("weekNumber");
-
                     let index = -1;
                     for (let i = records.length - 1; i >= 0; i--) {
                         const r = records[i];
@@ -247,11 +238,9 @@
                         break;
                     }
                     if (index < 0) index = records.length - 1;
-
                     const r = records[index];
                     const metrics = calculateRecordMetrics(r);
                     records[index] = applyMetricsToRecord(r, metrics);
-
                     if (typeof writeStorage === "function" && typeof WEEKLY_STORAGE_NAME !== "undefined") {
                         writeStorage(WEEKLY_STORAGE_NAME, records);
                     }
@@ -259,17 +248,12 @@
                     console.error("Weekly mortality-aware feed/water calculation error:", error);
                 }
             };
-
             if (result && typeof result.then === "function") {
-                return result.then(value => {
-                    finalize();
-                    return value;
-                });
+                return result.then(value => { finalize(); return value; });
             }
             finalize();
             return result;
         }
-
         patchedWeeklySave.__feedWaterAutoPatched = true;
         patchedWeeklySave.__original = original;
         window.saveWeeklyRecord = patchedWeeklySave;
@@ -279,7 +263,6 @@
     function patchWeeklyEdit() {
         if (typeof window.editWeeklyRecord !== "function") return false;
         if (window.editWeeklyRecord.__feedWaterAutoPatched) return true;
-
         const original = window.editWeeklyRecord;
         function patchedWeeklyEdit(...args) {
             const result = original.apply(this, args);
@@ -299,7 +282,6 @@
         if (window.__weeklyFeedWaterRatioObserver) return;
         const target = document.body || document.documentElement;
         if (!target || typeof MutationObserver === "undefined") return;
-
         const observer = new MutationObserver(() => {
             const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
             if (!primaryRatio) return;
@@ -316,7 +298,6 @@
         const water = document.getElementById(WATER_ID);
         const birds = document.getElementById(BIRDS_ID);
         if (!feed || !water || !birds) return false;
-
         setReadonlyCalculatedFields();
         attachInputListeners();
         calculateFeedWater();

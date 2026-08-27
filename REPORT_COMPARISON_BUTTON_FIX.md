@@ -1,2 +1,2 @@
 # Reports comparison UI
-The reports page now uses `reports-ui-v4.js` for a non-destructive biological-week selector and flock/house comparison UI. Existing weekly records and report calculations remain unchanged outside the selected reporting period.
+Stable biological-week reporting and flock/house comparison are installed through the reports UI layer. The existing report engine and weekly data remain the source of truth.

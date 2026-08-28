@@ -1,15 +1,11 @@
-/* ADINE - Weekly broiler completion v7
-   Critical broiler KPIs + permanently visible supplemental monitoring toggle.
-   The toggle is physically inside the dedicated completion panel so later
-   weekly.js/weekly-specialized.js DOM rerenders cannot remove it.
-*/
+/* ADINE - Weekly broiler completion v7 */
 (function(){'use strict';
 const PANEL='weeklyBroilerCompletionPanel',RATIO='weeklyBroilerWaterFeedRatio',LITTER='weeklyBroilerLitterScore',TOGGLE='weeklyBroilerAdvancedToggle',ADV='weeklyBroilerAdvancedGroup';
 const n=v=>{let s=String(v??'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٬|,/g,'').replace(/٫/g,'.');let x=Number(s);return Number.isFinite(x)?x:null};
 function flock(){try{if(typeof currentFlock!=='undefined'&&currentFlock)return currentFlock}catch(e){}return window.currentFlockForSpecialized||window.currentFlock||null}
 function broiler(f){let t=String(f?.production_type||f?.productionType||'').toLowerCase();return /گوشتی|broiler|meat/.test(t)}
 function host(){return document.getElementById('specializedMetrics')}
-const common=[['avg_temp_c','میانگین دمای سالن','°C','number','پایش روزانه؛ مقدار نماینده هفتگی ثبت شود'],['relative_humidity_pct','رطوبت نسبی','%','number','در سطح پرنده و چند نقطه سالن بررسی شود'],['ammonia_ppm','آمونیاک','ppm','number','بهتر است با آمونیاک‌متر اندازه‌گیری شود'],['co2_ppm','CO₂','ppm','number','شاخص مهم تهویه در سالن‌های بسته'],['litter_moisture_pct','رطوبت بستر','%','number','در بخش نماینده سالن برآورد/اندازه‌گیری شود'],['water_quality_note','وضعیت آب','توضیح','text','شفافیت، بو، رسوب، فشار و خطوط آب'],['health_alert','رخداد یا هشدار سلامت','توضیح','text','هر تغییر غیرعادی کوتاه ثبت شود'],['management_note','ملاحظه مدیریتی هفته','توضیح','text','تهویه، دان، آب، نور، تراکم یا رفتار گله']];
+const common=[['avg_temp_c','میانگین دمای سالن','°C','number','پایش روزانه؛ مقدار نماینده هفتگی ثبت شود'],['relative_humidity_pct','رطوبت نسبی','%','number','در سطح پرنده و چند نقطه سالن بررسی شود'],['ammonia_ppm','آمونیاک','ppm','number','بهتر است با آمونیاک‌متر اندازه‌گیری شود'],['co2_ppm','CO₂','ppm','number','شاخص مهم تهویه در سالن‌های بسته'],['litter_moisture_pct','رطوبت بستر','%','number','در بخش نماینده سالن برآورد/اندازه‌گیری شود'],['water_quality_note','وضعیت آب','توضیح','text','شفافیت، بو، رسوب، فشار و خطوط آب'],['health_alert','رخداد یا هشدار سلامت','توضیح','text','هر تغییر غیرعادی کوتاه ثبت شود'],['management_note','ملاحظه مدیریتی هفته','توضیح','text','تهویه، دان، آب، نور، تراکم یا رفتار']];
 const broilerFields=[['dead_bird_avg_weight_g','میانگین وزن پرندگان تلف‌شده','g','number','اختیاری؛ برای FCR اصلاح‌شده با تلفات'],['feed_form','شکل دان','توضیح','text','آردی/کرامبل/پلت و تغییرات کیفی'],['footpad_score','امتیاز کف پا','0–2','number','شاخص رفاه و وضعیت بستر'],['behavior_note','رفتار گله','توضیح','text','پخش یکنواخت، تجمع، تنفس دهانی و فعالیت']];
 function htmlField(x){return '<div class="form-group weekly-special-field"><label for="wm_'+x[0]+'">'+x[1]+' <span>('+x[2]+')</span></label><input id="wm_'+x[0]+'" data-weekly-specialized="'+x[0]+'" type="text" inputmode="'+(x[3]==='number'?'decimal':'text')+'" autocomplete="off"><small>'+x[4]+'</small></div>'}
 function findAdvanced(){return document.getElementById(ADV)||document.querySelector('#specializedMetrics .advanced-group')}
@@ -23,57 +19,11 @@ function bind(){['feedTotal','waterTotal'].forEach(id=>{let e=document.getElemen
 function run(){let f=flock();if(!f||!broiler(f))return;panel();bind();ratio()}
 function start(){run();let mo=new MutationObserver(()=>{let f=flock();if(f&&broiler(f)){panel();bind();ratio()}});if(document.body)mo.observe(document.body,{childList:true,subtree:true});let i=0,t=setInterval(()=>{run();if(++i>160)clearInterval(t)},250)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
-const css=document.createElement('style');css.textContent='#'+PANEL+'{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:20!important;margin:0 0 16px!important;padding:14px!important;border-radius:14px!important}.weekly-advanced-toggle-wrap{display:flex!important;visibility:visible!important;opacity:1!important;width:100%!important;margin:12px 0!important;position:relative!important;z-index:9999!important}.weekly-advanced-toggle{display:inline-flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;cursor:pointer!important;min-height:42px!important;padding:8px 16px!important}.weekly-metric-group.advanced-group{transition:none!important}';document.head.appendChild(css);
+const css=document.createElement('style');css.textContent='#'+PANEL+'{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:20!important;margin:0 0 16px!important;padding:11px 12px!important;border-radius:13px!important;background:#33443f!important;color:#f2f6f4!important;border:1px solid rgba(255,255,255,.10)!important;box-shadow:0 5px 18px rgba(0,0,0,.10)!important;font-size:12px!important}#'+PANEL+' .weekly-completion-title{font-size:13px!important;font-weight:800!important;line-height:1.5!important;color:#f5f8f6!important;margin-bottom:3px!important}#'+PANEL+' .weekly-completion-sub{font-size:10px!important;line-height:1.6!important;color:#c9d5d0!important;margin-bottom:8px!important}#'+PANEL+' label{font-size:10.5px!important;color:#e7eeeb!important}#'+PANEL+' small{font-size:9px!important;line-height:1.5!important;color:#b9c8c2!important}#'+PANEL+' input{font-size:11px!important;min-height:38px!important;padding:7px 10px!important;background:#f8faf9!important;color:#173f35!important;border-color:rgba(255,255,255,.15)!important}#'+PANEL+' .required-star{font-size:10px!important;color:#e2e9e6!important}.weekly-advanced-toggle-wrap{display:flex!important;visibility:visible!important;opacity:1!important;width:100%!important;margin:9px 0!important;position:relative!important;z-index:9999!important}.weekly-advanced-toggle{display:inline-flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;cursor:pointer!important;min-height:36px!important;padding:6px 12px!important;font-size:10px!important;background:#465852!important;color:#f2f6f4!important;border:1px solid rgba(255,255,255,.10)!important}.weekly-metric-group.advanced-group{transition:none!important;background:#3a4b46!important;border-radius:12px!important;padding:10px!important;color:#f2f6f4!important}.weekly-metric-group.advanced-group .weekly-metric-group-title{font-size:11px!important;color:#edf3f0!important;font-weight:800!important;margin-bottom:7px!important}.weekly-metric-group.advanced-group label{font-size:10px!important;color:#dce6e2!important}.weekly-metric-group.advanced-group small{font-size:9px!important;color:#b9c8c2!important}';document.head.appendChild(css);
 })();
 
 /* Load the dedicated v3 history-delete integration after the weekly page has rendered. */
-(function(){
-  function loadDeleteUI(){
-    if(document.querySelector('script[data-weekly-delete-v3]')) return;
-    var s=document.createElement('script');
-    s.src='weekly-delete-ui-v3.js?v=3';
-    s.async=false;
-    s.setAttribute('data-weekly-delete-v3','true');
-    (document.head||document.documentElement).appendChild(s);
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',loadDeleteUI); else loadDeleteUI();
-})();
+(function(){function loadDeleteUI(){if(document.querySelector('script[data-weekly-delete-v3]'))return;var s=document.createElement('script');s.src='weekly-delete-ui-v3.js?v=3';s.async=false;s.setAttribute('data-weekly-delete-v3','true');(document.head||document.documentElement).appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDeleteUI);else loadDeleteUI()})();
 
-/* =========================================================
-   UNIFY WEEKLY BOTTOM NAVIGATION WITH THE SHARED APP NAV
-   Keeps the existing four routes/behavior and only normalizes
-   structure, sizing, spacing, typography and active state.
-========================================================= */
-(function(){
-  'use strict';
-  function unify(){
-    var nav=document.getElementById('bottomNavigation') || document.querySelector('.bottom-navigation');
-    if(!nav || nav.dataset.unifiedBottomNav==='1') return;
-    nav.dataset.unifiedBottomNav='1';
-    nav.classList.add('bottom-nav');
-    nav.style.cssText += ';position:fixed!important;bottom:0!important;left:0!important;right:0!important;z-index:200!important;height:70px!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;background:rgba(255,255,255,.97)!important;border-top:1px solid #e1e8e4!important;box-shadow:0 -4px 18px rgba(0,0,0,.05)!important;padding-bottom:env(safe-area-inset-bottom)!important;border-radius:0!important;transform:none!important;width:auto!important;';
-    var items=nav.querySelectorAll('.bottom-nav-item');
-    items.forEach(function(item){
-      item.style.cssText += ';border:0!important;background:transparent!important;color:#7b8883!important;font-family:inherit!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:20px!important;cursor:pointer!important;height:100%!important;width:auto!important;border-radius:0!important;padding:0!important;';
-      if(item.classList.contains('active')) item.style.setProperty('color','#173f35','important');
-      var icon=item.querySelector('.bottom-nav-icon');
-      if(icon) icon.style.cssText += ';display:flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:26px!important;line-height:0!important;';
-      var svg=item.querySelector('.bottom-nav-icon svg');
-      if(svg) svg.style.cssText += ';display:block!important;width:23px!important;height:23px!important;fill:none!important;stroke:currentColor!important;stroke-width:2.2!important;stroke-linecap:round!important;stroke-linejoin:round!important;';
-      var labels=item.querySelectorAll(':scope > span:not(.bottom-nav-icon)');
-      labels.forEach(function(label){label.style.cssText += ';font-size:10px!important;font-weight:700!important;line-height:1.2!important;';});
-    });
-    function responsive(){
-      var compact=window.innerWidth<=520;
-      nav.style.setProperty('height',compact?'70px':'70px','important');
-      nav.style.setProperty('padding-bottom','env(safe-area-inset-bottom)','important');
-      items.forEach(function(item){
-        var label=item.querySelector(':scope > span:not(.bottom-nav-icon)');
-        if(label) label.style.setProperty('font-size',compact?'10px':'10px','important');
-      });
-    }
-    responsive();
-    window.addEventListener('resize',responsive,{passive:true});
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',unify,{once:true}); else unify();
-})();
+/* Unified weekly bottom navigation */
+(function(){'use strict';function unify(){var nav=document.getElementById('bottomNavigation')||document.querySelector('.bottom-navigation');if(!nav||nav.dataset.unifiedBottomNav==='1')return;nav.dataset.unifiedBottomNav='1';nav.classList.add('bottom-nav');nav.style.cssText+=';position:fixed!important;bottom:0!important;left:0!important;right:0!important;z-index:200!important;height:70px!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;background:rgba(255,255,255,.97)!important;border-top:1px solid #e1e8e4!important;box-shadow:0 -4px 18px rgba(0,0,0,.05)!important;padding-bottom:env(safe-area-inset-bottom)!important;border-radius:0!important;transform:none!important;width:auto!important;';var items=nav.querySelectorAll('.bottom-nav-item');items.forEach(function(item){item.style.cssText+=';border:0!important;background:transparent!important;color:#7b8883!important;font-family:inherit!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:20px!important;cursor:pointer!important;height:100%!important;width:auto!important;border-radius:0!important;padding:0!important;';if(item.classList.contains('active'))item.style.setProperty('color','#173f35','important');var icon=item.querySelector('.bottom-nav-icon');if(icon)icon.style.cssText+=';display:flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:26px!important;line-height:0!important;';var svg=item.querySelector('.bottom-nav-icon svg');if(svg)svg.style.cssText+=';display:block!important;width:23px!important;height:23px!important;fill:none!important;stroke:currentColor!important;stroke-width:2.2!important;stroke-linecap:round!important;stroke-linejoin:round!important;';var labels=item.querySelectorAll(':scope > span:not(.bottom-nav-icon)');labels.forEach(function(label){label.style.cssText+=';font-size:10px!important;font-weight:700!important;line-height:1.2!important;';})});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',unify,{once:true});else unify()})();

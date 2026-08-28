@@ -1,0 +1,35 @@
+name: health-persian-calendar
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[health-date-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject Persian health calendar
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('health.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<script src="health.js"></script>'
+          if 'health-date-picker.js' not in s:
+              if marker in s:
+                  s=s.replace(marker, '<script src="date-system.js"></script>\n<script src="health-date-picker.js"></script>\n'+marker)
+              elif '</body>' in s:
+                  s=s.replace('</body>', '<script src="date-system.js"></script><script src="health-date-picker.js"></script></body>')
+              else:
+                  s += '\n<script src="date-system.js"></script><script src="health-date-picker.js"></script>\n'
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add health.html
+          git diff --cached --quiet || git commit -m 'fix: Persian Jalali calendar in health module [health-date-applied]'
+          git push

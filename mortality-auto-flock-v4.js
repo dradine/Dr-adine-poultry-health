@@ -4,6 +4,7 @@
 (function(){
     let lastKey = null;
     let syncing = false;
+    let ageWatchTimer = null;
 
     function getHealthFlock(){
         try {
@@ -66,6 +67,11 @@
         const flock = getHealthFlock();
         if (!dateInput || !ageInput || !flock) return;
 
+        /* سن یک مقدار محاسباتی است و کاربر نباید آن را دستی تغییر دهد. */
+        ageInput.readOnly = true;
+        ageInput.setAttribute("aria-readonly", "true");
+        ageInput.title = "سن گله در تاریخ رخداد، به‌صورت خودکار محاسبه می‌شود.";
+
         const placement = String(flock.placement_date || "").slice(0,10);
         const eventISO = normalizeDate(dateInput.value);
 
@@ -91,11 +97,30 @@
 
     function bindEventDateAge(){
         const input = document.getElementById("eventDate");
-        if (!input || input.dataset.ageSyncBound === "1") return;
+        const ageInput = document.getElementById("eventAge");
+        if (!input || !ageInput) return;
+
         input.dataset.ageSyncBound = "1";
-        ["input", "change", "blur"].forEach(type => input.addEventListener(type, calculateAgeForDate));
-        document.addEventListener("adine:jalali-date-selected", calculateAgeForDate);
+        ["input", "change", "blur"].forEach(type => {
+            if (input.dataset["ageSync_" + type] !== "1") {
+                input.addEventListener(type, calculateAgeForDate);
+                input.dataset["ageSync_" + type] = "1";
+            }
+        });
+
+        ageInput.readOnly = true;
+        ageInput.setAttribute("aria-readonly", "true");
         calculateAgeForDate();
+    }
+
+    function startAgeWatch(){
+        if (ageWatchTimer) return;
+        ageWatchTimer = setInterval(() => {
+            /* این فراخوانی عمداً دوره‌ای است تا حتی اگر تقویم تاریخ را
+               با تغییر مستقیم value تنظیم کند و هیچ event استانداردی
+               ارسال نکند، سن گله حتماً خودکار به‌روزرسانی شود. */
+            bindEventDateAge();
+        }, 250);
     }
 
     function tidyReportSettings(){
@@ -147,6 +172,7 @@
     function start(){
         lastKey = selectionKey();
         bindEventDateAge();
+        startAgeWatch();
         tidyReportSettings();
         setInterval(() => sync("poll"), 1500);
         window.addEventListener("focus", () => sync("focus"));
@@ -157,6 +183,7 @@
             if (event.key && event.key.indexOf("adine_poultry_current_selection") >= 0) sync("storage");
         });
         document.addEventListener("adine:current-selection-changed", () => sync("selection-event"));
+        document.addEventListener("adine:jalali-date-selected", calculateAgeForDate);
         document.addEventListener("adine:active-flock-synced", bindEventDateAge);
     }
 

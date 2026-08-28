@@ -21,8 +21,7 @@
       await loadRisk(type);
       await loadSurveillance(window.healthFlock.id);
       enhanceDiseaseSelects();
-      renderRiskPanel(type);
-      renderSurveillance();
+      renderOverview(type);
       renderClinicalDecisionSupport();
     }catch(e){console.error("Mortality intelligence v3:",e);}
   }
@@ -52,43 +51,60 @@
       const el=document.getElementById(id); if(!el||!riskRows.length) return;
       const current=el.value;
       const opts=[...el.options];
-      const rank=new Map(riskRows.map((x,i)=>[x.name_fa,i]));
+      const rank=new Map(riskRows.map((x,i)=>[String(x.name_fa||"").trim(),i]));
       opts.slice(1).sort((a,b)=>{
-        const ar=rank.has(a.textContent)?rank.get(a.textContent):9999;
-        const br=rank.has(b.textContent)?rank.get(b.textContent):9999;
+        const ar=rank.has(a.textContent.trim())?rank.get(a.textContent.trim()):9999;
+        const br=rank.has(b.textContent.trim())?rank.get(b.textContent.trim()):9999;
         return ar-br || a.textContent.localeCompare(b.textContent,"fa");
       }).forEach(o=>el.appendChild(o));
       el.value=current;
     });
   }
 
-  function renderRiskPanel(type){
+  function renderOverview(type){
     const host=document.getElementById("healthOverview"); if(!host) return;
-    let box=document.getElementById("mortalityRiskV3");
-    if(!box){box=document.createElement("div");box.id="mortalityRiskV3";box.className="report-box";host.appendChild(box);}
-    const label=TYPE_LABEL[type]||type||"گله";
-    const high=riskRows.filter(x=>x.monitoring_priority==="high"||x.monitoring_priority==="critical");
-    const rows=(high.length?high:riskRows.slice(0,8)).map(x=>`<span class="badge">${esc(x.name_fa||x.code)}${x.mortality_relevance?" · تلفات":""}</span>`).join(" ");
-    box.innerHTML=`<strong>پروفایل پایش بیماری — ${esc(label)}</strong><div class="form-help">این فهرست برای اولویت‌بندی پایش است و به معنی تشخیص بیماری نیست.</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${rows||"<span class='form-help'>پروفایل اختصاصی ثبت نشده است.</span>"}</div>`;
+    document.getElementById("mortalityRiskV3")?.remove();
+    document.getElementById("mortalitySurveillanceV3")?.remove();
+
+    // Keep the overview intentionally quiet when there is no event data.
+    // The four KPI cards above already communicate zero counts; repeating them
+    // here adds noise without adding clinical value.
+    if(!surveillanceRows.length){
+      const box=document.createElement("div");
+      box.id="mortalitySurveillanceV3";
+      box.className="report-box";
+      box.innerHTML=`<strong>🟢 وضعیت سلامت گله</strong><div style="margin-top:8px">تاکنون رخداد سلامت برای این گله ثبت نشده است.</div><div class="form-help">با ثبت اولین رخداد، روند تلفات، تغییرات هفتگی و سیگنال‌های پایش در همین بخش نمایش داده می‌شود.</div>`;
+      host.appendChild(box);
+      return;
+    }
+
+    const latest=surveillanceRows[0];
+    const meta=LEVEL[latest.surveillance_level]||LEVEL.normal;
+    const box=document.createElement("div");
+    box.id="mortalitySurveillanceV3";
+    box.className="report-box";
+    const ratio=latest.mortality_ratio_vs_previous_week==null?"بدون خط مبنای هفته قبل":`${num(latest.mortality_ratio_vs_previous_week)} برابر هفته قبل`;
+    box.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><strong>🧠 تحلیل سلامت گله</strong><span class="badge badge-${meta.cls}">${meta.label}</span></div><div class="form-help" style="margin-top:8px">هفته ${num(latest.week_number)} · نرخ تلفات ${pct(latest.mortality_percent_of_snapshot)} · ${ratio}</div><div style="margin-top:9px">${esc(latest.surveillance_message||"")}</div>${buildTrendTable()}</div>`;
+    host.appendChild(box);
   }
 
-  function renderSurveillance(){
-    const host=document.getElementById("healthOverview"); if(!host) return;
-    let box=document.getElementById("mortalitySurveillanceV3");
-    if(!box){box=document.createElement("div");box.id="mortalitySurveillanceV3";box.className="report-box";host.appendChild(box);}
-    if(!surveillanceRows.length){box.innerHTML="<strong>پایش روند تلفات</strong><div class='form-help'>برای این گله هنوز داده هفتگی کافی برای تحلیل روند وجود ندارد.</div>";return;}
-    const r=surveillanceRows[0], meta=LEVEL[r.surveillance_level]||LEVEL.normal;
-    const ratio=r.mortality_ratio_vs_previous_week==null?"—":num(r.mortality_ratio_vs_previous_week)+" برابر";
-    box.innerHTML=`<strong>پایش روند تلفات</strong><div style="margin-top:8px"><span class="badge badge-${meta.cls}">${meta.label}</span></div><div class="form-help" style="margin-top:8px">هفته ${num(r.week_number)} · تلفات ${pct(r.mortality_percent_of_snapshot)} · نسبت به هفته قبل ${ratio}</div><div style="margin-top:8px">${esc(r.surveillance_message||"")}</div><div class="form-help" style="margin-top:8px">سیگنال پایش است و جایگزین تشخیص دامپزشکی نیست.</div>`;
+  function buildTrendTable(){
+    const rows=surveillanceRows.slice(0,6);
+    if(!rows.length) return "";
+    return `<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">📈 مشاهده روند اخیر</summary><div class="table-wrapper" style="margin-top:9px"><table class="data-table"><thead><tr><th>هفته</th><th>تلفات</th><th>حذفی</th><th>درگیر</th><th>نرخ تلفات</th><th>وضعیت</th></tr></thead><tbody>${rows.map(r=>{const m=LEVEL[r.surveillance_level]||LEVEL.normal;return `<tr><td>${num(r.week_number)}</td><td>${num(r.mortality_count)}</td><td>${num(r.cull_count)}</td><td>${num(r.affected_count)}</td><td>${pct(r.mortality_percent_of_snapshot)}</td><td><span class="badge badge-${m.cls}">${m.label}</span></td></tr>`;}).join("")}</tbody></table></div></details>`;
   }
 
   function renderClinicalDecisionSupport(){
     const panel=document.getElementById("panel-clinical"); if(!panel) return;
-    let box=document.getElementById("mortalityClinicalV3");
-    if(!box){box=document.createElement("div");box.id="mortalityClinicalV3";box.className="report-box";panel.prepend(box);}
+    document.getElementById("mortalityClinicalV3")?.remove();
+    if(!surveillanceRows.length && !riskRows.length) return;
+    const box=document.createElement("div");
+    box.id="mortalityClinicalV3";
+    box.className="report-box";
     const critical=surveillanceRows.find(x=>x.surveillance_level==="critical");
-    const steps=critical?["مرگ/بیماری را در همان روز ثبت و روند تلفات را کنترل کنید.","کالبدگشایی پرندگان تازه تلف‌شده را در صورت اندیکاسیون انجام دهید.","نوع، تعداد و زمان نمونه‌ها را ثبت کنید و در صورت نیاز آزمایش تشخیصی انجام دهید.","اقدامات کنترلی و پیگیری بعدی را در پرونده همان رخداد ثبت کنید."]:["در صورت افزایش غیرعادی تلفات، کالبدگشایی و بررسی علائم را مستندسازی کنید.","تشخیص افتراقی را با توجه به تیپ پرورشی و سندرم بالینی محدود کنید.","در صورت نیاز نمونه‌برداری و آزمایش را در پرونده همان رخداد ثبت کنید."];
-    box.innerHTML=`<strong>مسیر تصمیم‌گیری سلامت گله</strong><ol style="margin:10px 0 0;padding-right:20px">${steps.map(x=>`<li style="margin:6px 0">${esc(x)}</li>`).join("")}</ol><div class="form-help">راهنمای سیستم: ثبت رخداد، علائم، کالبدگشایی، آزمایش و پیگیری را به یک پرونده متصل نگه دارید.</div>`;
+    const steps=critical?["رخداد و روند تلفات را همان روز بررسی و مستندسازی کنید.","در صورت اندیکاسیون، پرندگان تازه تلف‌شده را کالبدگشایی کنید.","در صورت نیاز، نمونه مناسب را برای آزمایش تشخیصی ارسال و نتیجه را به همان رخداد متصل کنید.","اقدامات کنترلی و پیگیری بعدی را در پرونده ثبت کنید."]:["در صورت افزایش غیرعادی تلفات، علائم و یافته‌های کالبدگشایی را مستندسازی کنید.","تشخیص افتراقی را با توجه به تیپ پرورشی و سندرم بالینی محدود کنید.","در صورت نیاز نمونه‌برداری و آزمایش را در پرونده همان رخداد ثبت کنید."];
+    box.innerHTML=`<strong>🩺 مسیر تصمیم‌گیری سلامت گله</strong><ol style="margin:10px 0 0;padding-right:20px">${steps.map(x=>`<li style="margin:6px 0">${esc(x)}</li>`).join("")}</ol><div class="form-help">این بخش ابزار کمک‌تصمیم‌گیری و مستندسازی است و جایگزین تشخیص دامپزشکی نیست.</div>`;
+    panel.prepend(box);
   }
 
   function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}

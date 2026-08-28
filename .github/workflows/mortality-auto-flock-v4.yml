@@ -1,0 +1,42 @@
+name: Mortality Active Flock V4
+on:
+  push:
+    paths:
+      - '.github/workflows/mortality-auto-flock-v4.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integrate safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mortality.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<script src="mortality-auto-flock-v4.js"></script>'
+          if marker not in s:
+              tags=['<script src="mortality.js"></script>','<script src="./mortality.js"></script>']
+              hit=next((t for t in tags if t in s),None)
+              if not hit:
+                  raise SystemExit('Refusing unsafe change: mortality.js script tag not found')
+              s=s.replace(hit, hit+'\n'+marker, 1)
+              p.write_text(s,encoding='utf-8')
+          if marker not in p.read_text(encoding='utf-8'):
+              raise SystemExit('Integration verification failed')
+          PY
+      - name: Verify isolation
+        run: |
+          test -f mortality.js
+          test -f mortality-auto-flock-v4.js
+          grep -q 'mortality.js' mortality.html
+          grep -q 'mortality-auto-flock-v4.js' mortality.html
+      - name: Commit only mortality page
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add mortality.html
+          if git diff --cached --quiet; then echo 'Already integrated'; else git commit -m 'fix: sync mortality page with active flock'; git push; fi

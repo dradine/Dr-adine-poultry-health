@@ -1,0 +1,25 @@
+name: Health Case Workflow Validation
+
+on:
+  push:
+    branches: [health-case-workflow-v1]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JavaScript syntax
+        run: |
+          node --check mortality-case-workflow-v1.js
+          node --check mortality-disease-intelligence-v2.js
+      - name: Validate required workflow hooks
+        run: |
+          grep -q "health-case-workflow-v1.js" mortality-disease-intelligence-v2.js
+          grep -q "health_events" mortality-case-workflow-v1.js
+          grep -q "health_necropsies" mortality-case-workflow-v1.js
+          grep -q "health_event_labs" mortality-case-workflow-v1.js
+          grep -q "health_diagnoses" mortality-case-workflow-v1.js
+          grep -q "health_follow_ups" mortality-case-workflow-v1.js

@@ -1,0 +1,75 @@
+name: Fix audit history buttons
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-audit-history-buttons.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, 'audit history buttons [applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add explicit history buttons
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Health module: put History directly into every existing action group.
+          p = Path('health.js')
+          s = p.read_text(encoding='utf-8')
+          old = "function actionButtons(kind,id){ return `<div class=\"actions\"><button class=\"iconbtn\" data-edit=\"${kind}\" data-id=\"${id}\">ویرایش</button><button class=\"iconbtn\" data-delete=\"${kind}\" data-id=\"${id}\">حذف</button></div>`; }"
+          new = "function actionButtons(kind,id){ const titleMap={vaccination:'تاریخچه واکسیناسیون',treatment:'تاریخچه دارو و درمان',event:'تاریخچه بیماری/سلامت',antibody:'تاریخچه تیتر آنتی‌بادی',lab:'تاریخچه آزمایش'}; return `<div class=\"actions\"><button class=\"iconbtn\" data-edit=\"${kind}\" data-id=\"${id}\">ویرایش</button><button class=\"iconbtn\" data-delete=\"${kind}\" data-id=\"${id}\">حذف</button><button class=\"iconbtn audit-history-btn\" type=\"button\" data-audit-kind=\"${kind}\" data-audit-id=\"${id}\">تاریخچه</button></div>`; }"
+          if old not in s:
+              raise SystemExit('health.js actionButtons pattern not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+
+          # Mortality/disease module: put History beside View/Delete in each row.
+          p = Path('mortality.js')
+          s = p.read_text(encoding='utf-8')
+          old = '''                                <button
+                                    class="btn btn-danger"
+                                    type="button"
+                                    onclick="deleteHealthEvent('${row.id}')"
+                                >
+                                    حذف
+                                </button>'''
+          new = '''                                <button
+                                    class="btn btn-danger"
+                                    type="button"
+                                    onclick="deleteHealthEvent('${row.id}')"
+                                >
+                                    حذف
+                                </button>
+
+                                <button
+                                    class="btn btn-secondary audit-history-btn"
+                                    type="button"
+                                    data-audit-kind="event"
+                                    data-audit-id="${row.id}"
+                                >
+                                    تاریخچه
+                                </button>'''
+          if old not in s:
+              raise SystemExit('mortality.js history insertion pattern not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+      - name: Validate source integration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path('health.js').read_text(encoding='utf-8')
+          m=Path('mortality.js').read_text(encoding='utf-8')
+          assert 'data-audit-kind=\\"${kind}\\"' in h
+          assert 'data-audit-kind=\\"event\\"' in m
+          assert 'تاریخچه' in h and 'تاریخچه' in m
+          print('Explicit audit history buttons validated in both modules')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add health.js mortality.js
+          git diff --cached --quiet || git commit -m 'fix: add visible audit history buttons [applied]'
+          git push

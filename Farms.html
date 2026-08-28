@@ -7,10 +7,12 @@
 <title>ثبت فارم | مرکز تخصصی سلامت طیور آدینه</title>
 <link rel="stylesheet" href="app.css">
 <style>
-/* Farms: keep bottom navigation visually identical to the main app. */
-.bottom-nav button>span{display:flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:26px!important;line-height:0!important}
-.bottom-nav button>span svg{display:block!important;width:23px!important;height:23px!important;fill:none!important;stroke:currentColor!important;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.bottom-nav button.active>span{transform:scale(1.08)}
+/* Farms bottom navigation: self-contained SVG icons, identical sizing to the app navigation. */
+.bottom-nav button{position:relative;min-width:0}
+.bottom-nav button .farms-nav-icon{width:25px;height:25px;display:flex;align-items:center;justify-content:center;line-height:0;flex:0 0 25px}
+.bottom-nav button .farms-nav-icon svg{display:block;width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.bottom-nav button.active .farms-nav-icon{transform:scale(1.08)}
+.bottom-nav button small{display:block;line-height:1.2}
 </style>
 </head>
 <body>
@@ -30,35 +32,10 @@
 <section class="card"><h2 class="card-title">فارم‌های ثبت‌شده</h2><div id="farmsList">در حال بارگذاری...</div></section>
 </div></main>
 <nav class="bottom-nav" aria-label="ناوبری اصلی">
-<button type="button" onclick="window.location.href='Dashboard.html'" aria-label="خانه"><span data-icon="home"></span><small>خانه</small></button>
-<button class="active" type="button" onclick="window.location.href='Farms.html'" aria-label="فارم‌ها"><span data-icon="farm"></span><small>فارم‌ها</small></button>
-<button type="button" onclick="window.location.href='weekly.html'" aria-label="هفتگی"><span data-icon="scale"></span><small>هفتگی</small></button>
-<button type="button" onclick="window.location.href='reports.html'" aria-label="گزارش‌ها"><span data-icon="report"></span><small>گزارش</small></button>
+<button type="button" onclick="window.location.href='Dashboard.html'" aria-label="خانه"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26V20M19 41V29h10v12"/></svg></span><small>خانه</small></button>
+<button class="active" type="button" onclick="window.location.href='Farms.html'" aria-label="فارم‌ها"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 40V22l17-12 17 12v18H31V28H17v12z"/><path d="M7 40h34M7 22 24 10l17 12M17 40V28h14v12M19 22h10M24 16v6"/></svg></span><small>فارم‌ها</small></button>
+<button type="button" onclick="window.location.href='weekly.html'" aria-label="هفتگی"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 8v28M10 15h28M7 15h10l-5 10H9zM31 15h10l-5 10h-3zM14 36h20M18 40h12M20 15a4 4 0 0 1 8 0"/></svg></span><small>هفتگی</small></button>
+<button type="button" onclick="window.location.href='reports.html'" aria-label="گزارش‌ها"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 6h30v36H9zM15 13h18M15 19h18M15 35v-8M22 35V22M29 35v-5M36 35V23"/></svg></span><small>گزارش</small></button>
 </nav>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="standards.js"></script><script src="standard-data.js"></script><script src="poultry-utils.js"></script><script src="weekly-storage.js"></script><script src="comparison-engine.js"></script><script src="app-core.js"></script><script src="genetics-ui.js"></script><script src="weekly-engine.js"></script><script src="poultry-icons.js"></script>
-<script>
-/* Reliable local renderer for this page. It intentionally uses the same SVG geometry
-   as the project's poultry icon system, so Farms remains correct even if the shared
-   icon script is unavailable or cached in an older/broken version. */
-(function(){
-  'use strict';
-  const icons={
-    home:'<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26V20M19 41V29h10v12"/></svg>',
-    farm:'<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 40V22l17-12 17 12v18H31V28H17v12z"/><path d="M7 40h34M7 22 24 10l17 12M17 40V28h14v12M19 22h10M24 16v6"/></svg>',
-    scale:'<svg viewBox="0 0 48 48"><path class="icon-fill" d="M10 15h28l-5 10H15z"/><path d="M24 8v28M10 15h28M7 15h10l-5 10H9zM31 15h10l-5 10h-3zM14 36h20M18 40h12M20 15a4 4 0 0 1 8 0"/></svg>',
-    report:'<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 6h30v36H9z"/><path d="M9 6h30v36H9zM15 13h18M15 19h18M15 35v-8M22 35V22M29 35v-5M36 35V23"/></svg>'
-  };
-  function render(){
-    document.querySelectorAll('.bottom-nav [data-icon]').forEach(function(el){
-      const name=el.getAttribute('data-icon');
-      if(icons[name]){
-        el.innerHTML=icons[name];
-        el.classList.add('adi-icon-ready');
-      }
-    });
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render,{once:true});else render();
-})();
-</script>
-<script src="Farms.js"></script><script src="edit-manager.js"></script><script src="farm-house-flock-enhancements.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="standards.js"></script><script src="standard-data.js"></script><script src="poultry-utils.js"></script><script src="weekly-storage.js"></script><script src="comparison-engine.js"></script><script src="app-core.js"></script><script src="genetics-ui.js"></script><script src="weekly-engine.js"></script><script src="poultry-icons.js"></script><script src="Farms.js"></script><script src="edit-manager.js"></script><script src="farm-house-flock-enhancements.js"></script>
 </body></html>

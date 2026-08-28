@@ -5,6 +5,7 @@ on:
       - 'health.html'
       - 'mortality.html'
       - 'audit-history-ui.js'
+      - 'audit-ui-trigger.txt'
       - '.github/workflows/install-audit-history-ui.yml'
 permissions:
   contents: write
@@ -25,12 +26,10 @@ jobs:
               text=p.read_text(encoding='utf-8')
               if script not in text:
                   marker='</body>'
-                  if marker not in text:
-                      raise SystemExit(f'{name}: missing </body>')
-                  text=text.replace(marker, script+'\n'+marker, 1)
+                  if marker not in text: raise SystemExit(f'{name}: missing </body>')
+                  text=text.replace(marker,script+'\n'+marker,1)
                   p.write_text(text,encoding='utf-8')
-              assert script in text
-          print('Audit history UI integrated into health.html and mortality.html')
+              assert text.count('audit-history-ui.js') == 1
           PY
       - name: Validate
         run: |
@@ -49,5 +48,4 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add health.html mortality.html
-          git diff --cached --quiet || git commit -m 'feat: install audit history UI [applied]'
-          git push
+          if ! git diff --cached --quiet; then git commit -m 'feat: install audit history UI [applied]'; git push; fi

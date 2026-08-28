@@ -1,0 +1,37 @@
+name: Cache bust audit history UI
+on:
+  push:
+    paths:
+      - '.github/workflows/cache-bust-audit-ui.yml'
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, 'cache bust audit UI [applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version audit history script references
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          version='20260828-2'
+          for name in ['health.html','mortality.html']:
+              p=Path(name)
+              s=p.read_text(encoding='utf-8')
+              s=s.replace('audit-history-ui.js</script>', f'audit-history-ui.js?v={version}</script>')
+              s=s.replace('audit-history-ui.js?v=20260828-1?v=', f'audit-history-ui.js?v=')
+              p.write_text(s,encoding='utf-8')
+          PY
+          grep -n 'audit-history-ui.js' health.html mortality.html
+      - name: Validate
+        run: |
+          test "$(grep -o 'audit-history-ui.js?v=20260828-2' health.html | wc -l)" -eq 1
+          test "$(grep -o 'audit-history-ui.js?v=20260828-2' mortality.html | wc -l)" -eq 1
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add health.html mortality.html
+          git diff --cached --quiet || git commit -m 'fix: cache bust audit UI [applied]'
+          git push

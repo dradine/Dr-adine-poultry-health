@@ -10,20 +10,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject Persian health calendar
+      - name: Inject Persian health calendar v2
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('health.html')
           s=p.read_text(encoding='utf-8')
-          marker='<script src="health.js"></script>'
-          if 'health-date-picker.js' not in s:
+          old='<script src="health-date-picker.js"></script>'
+          new='<script src="date-system.js"></script>\n<script src="health-jalali-calendar-v2.js"></script>'
+          s=s.replace('<script src="date-system.js"></script>\n'+old,new)
+          s=s.replace(old,new)
+          if 'health-jalali-calendar-v2.js' not in s:
+              marker='<script src="health.js"></script>'
               if marker in s:
-                  s=s.replace(marker, '<script src="date-system.js"></script>\n<script src="health-date-picker.js"></script>\n'+marker)
+                  s=s.replace(marker,new+'\n'+marker)
               elif '</body>' in s:
-                  s=s.replace('</body>', '<script src="date-system.js"></script><script src="health-date-picker.js"></script></body>')
+                  s=s.replace('</body>',new+'</body>')
               else:
-                  s += '\n<script src="date-system.js"></script><script src="health-date-picker.js"></script>\n'
+                  s+='\n'+new+'\n'
           p.write_text(s,encoding='utf-8')
           PY
       - name: Commit
@@ -31,5 +35,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add health.html
-          git diff --cached --quiet || git commit -m 'fix: Persian Jalali calendar in health module [health-date-applied]'
+          git diff --cached --quiet || git commit -m 'fix: install compact Persian Jalali calendar v2 [health-date-applied]'
           git push

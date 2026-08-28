@@ -1,0 +1,44 @@
+name: mortality-persian-calendar
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[mortality-calendar-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Persian Jalali calendar for mortality and disease
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('mortality.html')
+          s = p.read_text(encoding='utf-8')
+          calendar = '<script src="date-system.js"></script>\n<script src="health-jalali-calendar-v2.js"></script>'
+          s = s.replace('<script src="date-system.js"></script>\n<script src="health-date-picker.js"></script>', calendar)
+          s = s.replace('<script src="health-date-picker.js"></script>', '')
+          if 'health-jalali-calendar-v2.js' not in s:
+              marker = '<script src="mortality.js"></script>'
+              if marker in s:
+                  s = s.replace(marker, calendar + '\n' + marker, 1)
+              elif '</body>' in s:
+                  s = s.replace('</body>', calendar + '\n</body>', 1)
+              else:
+                  s += '\n' + calendar + '\n'
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Validate calendar integration
+        run: |
+          test -f mortality.html
+          grep -q 'date-system.js' mortality.html
+          grep -q 'health-jalali-calendar-v2.js' mortality.html
+          grep -q 'mortality.js' mortality.html
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add mortality.html
+          git diff --cached --quiet || git commit -m 'fix: use Persian Jalali calendar in mortality and disease [mortality-calendar-applied]'
+          git push

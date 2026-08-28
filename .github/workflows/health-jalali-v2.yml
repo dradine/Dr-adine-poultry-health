@@ -1,0 +1,43 @@
+name: health-jalali-v2
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[health-jalali-v2-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject health-only Jalali picker
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('health.html')
+          s=p.read_text(encoding='utf-8')
+          # Remove previous health-only picker references, if any, so exactly one implementation is active.
+          import re
+          s=re.sub(r'<script[^>]+src=["\']health-date-picker\.js[^>]*></script>\s*', '', s, flags=re.I)
+          s=re.sub(r'<script[^>]+src=["\']health-jalali-v2\.js[^>]*></script>\s*', '', s, flags=re.I)
+          marker='<script src="health.js"></script>'
+          inject='<script src="health-jalali-v2.js?v=2"></script>\n'
+          if marker in s:
+              s=s.replace(marker, inject+marker, 1)
+          elif '</body>' in s:
+              s=s.replace('</body>', inject+'</body>', 1)
+          else:
+              s += '\n'+inject
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Verify health-only scope
+        run: |
+          grep -q 'health-jalali-v2.js?v=2' health.html
+          ! grep -q 'health-date-picker.js' health.html
+      - name: Commit health page only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add health.html
+          git diff --cached --quiet || git commit -m 'fix: activate Persian Jalali calendar in health module only [health-jalali-v2-applied]'
+          git push

@@ -1,0 +1,55 @@
+name: Mortality Disease V3 Integration
+
+on:
+  push:
+    paths:
+      - '.github/workflows/mortality-disease-v3-integrate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Integrate isolated intelligence layer
+        env:
+          FILE: mortality.html
+          SCRIPT: mortality-disease-intelligence-v3.js
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('mortality.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<script src="mortality-disease-intelligence-v3.js"></script>'
+          if marker not in s:
+              candidates=['<script src="mortality.js"></script>','<script src="./mortality.js"></script>']
+              hit=next((x for x in candidates if x in s),None)
+              if not hit:
+                  raise SystemExit('mortality.js script tag not found; refusing unsafe modification')
+              s=s.replace(hit, marker+'\n'+hit, 1)
+              p.write_text(s,encoding='utf-8')
+          print('integration verified')
+          PY
+
+      - name: Verify isolation
+        run: |
+          test -f mortality-disease-intelligence-v3.js
+          grep -q 'mortality-disease-intelligence-v3.js' mortality.html
+          grep -q 'mortality.js' mortality.html
+
+      - name: Commit only mortality module integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add mortality.html
+          if git diff --cached --quiet; then
+            echo 'No integration change required'
+          else
+            git commit -m 'feat: integrate mortality disease intelligence v3'
+            git push
+          fi

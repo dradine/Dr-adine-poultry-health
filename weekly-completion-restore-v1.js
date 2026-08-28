@@ -38,3 +38,42 @@ const css=document.createElement('style');css.textContent='#'+PANEL+'{display:bl
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',loadDeleteUI); else loadDeleteUI();
 })();
+
+/* =========================================================
+   UNIFY WEEKLY BOTTOM NAVIGATION WITH THE SHARED APP NAV
+   Keeps the existing four routes/behavior and only normalizes
+   structure, sizing, spacing, typography and active state.
+========================================================= */
+(function(){
+  'use strict';
+  function unify(){
+    var nav=document.getElementById('bottomNavigation') || document.querySelector('.bottom-navigation');
+    if(!nav || nav.dataset.unifiedBottomNav==='1') return;
+    nav.dataset.unifiedBottomNav='1';
+    nav.classList.add('bottom-nav');
+    nav.style.cssText += ';position:fixed!important;bottom:0!important;left:0!important;right:0!important;z-index:200!important;height:70px!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;background:rgba(255,255,255,.97)!important;border-top:1px solid #e1e8e4!important;box-shadow:0 -4px 18px rgba(0,0,0,.05)!important;padding-bottom:env(safe-area-inset-bottom)!important;border-radius:0!important;transform:none!important;width:auto!important;';
+    var items=nav.querySelectorAll('.bottom-nav-item');
+    items.forEach(function(item){
+      item.style.cssText += ';border:0!important;background:transparent!important;color:#7b8883!important;font-family:inherit!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:20px!important;cursor:pointer!important;height:100%!important;width:auto!important;border-radius:0!important;padding:0!important;';
+      if(item.classList.contains('active')) item.style.setProperty('color','#173f35','important');
+      var icon=item.querySelector('.bottom-nav-icon');
+      if(icon) icon.style.cssText += ';display:flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:26px!important;line-height:0!important;';
+      var svg=item.querySelector('.bottom-nav-icon svg');
+      if(svg) svg.style.cssText += ';display:block!important;width:23px!important;height:23px!important;fill:none!important;stroke:currentColor!important;stroke-width:2.2!important;stroke-linecap:round!important;stroke-linejoin:round!important;';
+      var labels=item.querySelectorAll(':scope > span:not(.bottom-nav-icon)');
+      labels.forEach(function(label){label.style.cssText += ';font-size:10px!important;font-weight:700!important;line-height:1.2!important;';});
+    });
+    function responsive(){
+      var compact=window.innerWidth<=520;
+      nav.style.setProperty('height',compact?'70px':'70px','important');
+      nav.style.setProperty('padding-bottom','env(safe-area-inset-bottom)','important');
+      items.forEach(function(item){
+        var label=item.querySelector(':scope > span:not(.bottom-nav-icon)');
+        if(label) label.style.setProperty('font-size',compact?'10px':'10px','important');
+      });
+    }
+    responsive();
+    window.addEventListener('resize',responsive,{passive:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',unify,{once:true}); else unify();
+})();

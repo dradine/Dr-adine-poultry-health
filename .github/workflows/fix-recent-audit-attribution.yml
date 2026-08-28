@@ -4,13 +4,14 @@ on:
   push:
     paths:
       - '.github/workflows/fix-recent-audit-attribution.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   fix:
-    if: ${{ !contains(github.event.head_commit.message, 'recent audit attribution [applied]') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'recent audit attribution [applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,8 +20,6 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
-
           p=Path('health.js')
           s=p.read_text(encoding='utf-8')
 
@@ -35,16 +34,12 @@ jobs:
       ...S.treatments.map(x=>({d:x.treatment_date,t:'درمان',s:x.medication_name,id:x.id,kind:'treatment'})),
       ...S.events.map(x=>({d:x.event_date,t:'رویداد سلامت',s:x.event_type,id:x.id,kind:'event'}))
     ].sort((a,b)=>String(b.d).localeCompare(String(a.d))).slice(0,8);
-    const byKind={vaccination:S.vaccinations,treatment:S.treatments,event:S.events};
-    const map={vaccination:'واکسیناسیون',treatment:'دارو و درمان',event:'بیماری/سلامت'};
     $('recentTimeline').innerHTML=rows.length?rows.map(r=>`<div class=\"timeline-item\" data-recent-kind=\"${r.kind}\" data-recent-id=\"${r.id}\"><div class=\"timeline-age\">${fmtDate(r.d)}</div><div class=\"timeline-main\"><b>${esc(r.t)}</b><small>${esc(r.s||'—')}</small><small class=\"audit-attribution loading\">در حال بررسی ثبت‌کننده...</small></div><button type=\"button\" class=\"tag audit-history-btn\" data-audit-kind=\"${r.kind}\" data-audit-id=\"${r.id}\">تاریخچه</button></div>`).join(''):`<div class=\"empty\">پرونده سلامت هنوز سابقه‌ای ندارد.</div>`;
     if(window.ADInehAuditHistory?.decorateRecent) window.ADInehAuditHistory.decorateRecent(rows);
   }"""
-
           if old not in s:
               raise SystemExit('renderRecent exact block not found')
-          s=s.replace(old,new,1)
-          p.write_text(s,encoding='utf-8')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
           PY
 
       - name: Patch audit UI attribution
@@ -59,7 +54,7 @@ jobs:
           addition="""
   async function decorateRecent(rows){
     for(const r of rows||[]){
-      const item=document.querySelector(`[data-recent-kind=\\\"${r.kind}\\\"][data-recent-id=\\\"${r.id}\\\"]`);
+      const item=document.querySelector(`[data-recent-kind=\"${r.kind}\"][data-recent-id=\"${r.id}\"]`);
       if(!item) continue;
       try{
         const logs=await fetchAudit({recordId:r.id,flockId:flockId(),table:TABLE_MAP[r.kind]});

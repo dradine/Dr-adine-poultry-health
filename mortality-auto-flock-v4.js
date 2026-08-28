@@ -1,11 +1,16 @@
 "use strict";
 
-/* ADINEH mortality/disease module — active flock synchronization + form UX.
-   Reads the application's canonical current_selection and refreshes this
-   module when flock/farm/house changes. It never writes selection state. */
+/* ADINEH mortality/disease module — active flock synchronization + event-date age. */
 (function(){
     let lastKey = null;
     let syncing = false;
+
+    function getHealthFlock(){
+        try {
+            if (typeof healthFlock !== "undefined" && healthFlock) return healthFlock;
+        } catch (_) {}
+        return window.healthFlock || null;
+    }
 
     function selectionKey(){
         try {
@@ -17,32 +22,60 @@
 
     function normalizeDate(value){
         if (!value) return null;
+        const raw = String(value).trim().replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+        try {
+            if (window.jalaliDate && typeof window.jalaliDate.jalaliToISO === "function") {
+                const iso = window.jalaliDate.jalaliToISO(raw);
+                if (iso) return String(iso).slice(0,10);
+            }
+        } catch (_) {}
         try {
             if (window.AdineDateSystem && typeof window.AdineDateSystem.jalaliToISO === "function") {
-                return window.AdineDateSystem.jalaliToISO(value);
+                const iso = window.AdineDateSystem.jalaliToISO(raw);
+                if (iso) return String(iso).slice(0,10);
             }
-            if (typeof window.jalaliToGregorianISO === "function") return window.jalaliToGregorianISO(value);
         } catch (_) {}
+        try {
+            if (typeof window.jalaliToGregorianISO === "function") {
+                const iso = window.jalaliToGregorianISO(raw);
+                if (iso) return String(iso).slice(0,10);
+            }
+        } catch (_) {}
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
         return null;
     }
 
+    function dateOnlyDiffDays(startISO, endISO){
+        const diffFn = window.AdineDateSystem && typeof window.AdineDateSystem.dateOnlyDiffDays === "function"
+            ? window.AdineDateSystem.dateOnlyDiffDays
+            : null;
+        if (diffFn) {
+            const n = Number(diffFn(startISO, endISO));
+            if (Number.isFinite(n)) return n;
+        }
+        const a = String(startISO).slice(0,10).split("-").map(Number);
+        const b = String(endISO).slice(0,10).split("-").map(Number);
+        if (a.length !== 3 || b.length !== 3 || a.some(Number.isNaN) || b.some(Number.isNaN)) return NaN;
+        return Math.round((Date.UTC(b[0], b[1]-1, b[2]) - Date.UTC(a[0], a[1]-1, a[2])) / 86400000);
+    }
+
+    /* سن رخداد باید بر اساس تاریخ رخداد محاسبه شود، نه تاریخ امروز. */
     function calculateAgeForDate(){
         const dateInput = document.getElementById("eventDate");
         const ageInput = document.getElementById("eventAge");
-        if (!dateInput || !ageInput || !window.healthFlock) return;
+        const flock = getHealthFlock();
+        if (!dateInput || !ageInput || !flock) return;
 
-        const placement = String(window.healthFlock.placement_date || "").slice(0,10);
+        const placement = String(flock.placement_date || "").slice(0,10);
         const eventISO = normalizeDate(dateInput.value);
+
         if (!placement || !eventISO) {
             ageInput.value = "";
             ageInput.removeAttribute("aria-invalid");
             return;
         }
 
-        const diffFn = window.AdineDateSystem && typeof window.AdineDateSystem.dateOnlyDiffDays === "function"
-            ? window.AdineDateSystem.dateOnlyDiffDays
-            : null;
-        const age = diffFn ? diffFn(placement, eventISO) : Math.round((new Date(eventISO)-new Date(placement))/86400000);
+        const age = dateOnlyDiffDays(placement, eventISO);
 
         if (!Number.isFinite(age) || age < 0) {
             ageInput.value = "";
@@ -97,7 +130,8 @@
             if (typeof renderOverview === "function") renderOverview();
             if (typeof renderHistory === "function") renderHistory();
             if (typeof window.renderReportPreview === "function" && typeof selectedEventId !== "undefined" && selectedEventId) {
-                const event = Array.isArray(window.healthEvents) ? window.healthEvents.find(x => x.id === selectedEventId) : null;
+                const events = typeof healthEvents !== "undefined" && Array.isArray(healthEvents) ? healthEvents : [];
+                const event = events.find(x => x.id === selectedEventId);
                 if (event) window.renderReportPreview(event);
             }
             bindEventDateAge();

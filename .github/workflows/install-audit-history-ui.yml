@@ -1,0 +1,53 @@
+name: Install health audit history UI
+on:
+  push:
+    paths:
+      - 'health.html'
+      - 'mortality.html'
+      - 'audit-history-ui.js'
+      - '.github/workflows/install-audit-history-ui.yml'
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, 'audit history UI [applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integrate audit viewer
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files=['health.html','mortality.html']
+          script='<script src="audit-history-ui.js"></script>'
+          for name in files:
+              p=Path(name)
+              text=p.read_text(encoding='utf-8')
+              if script not in text:
+                  marker='</body>'
+                  if marker not in text:
+                      raise SystemExit(f'{name}: missing </body>')
+                  text=text.replace(marker, script+'\n'+marker, 1)
+                  p.write_text(text,encoding='utf-8')
+              assert script in text
+          print('Audit history UI integrated into health.html and mortality.html')
+          PY
+      - name: Validate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ['health.html','mortality.html']:
+              t=Path(name).read_text(encoding='utf-8')
+              assert t.count('audit-history-ui.js') == 1, f'{name}: script count invalid'
+          j=Path('audit-history-ui.js').read_text(encoding='utf-8')
+          for token in ['health_activity_log','vaccinations','treatments','health_events','antibody_tests','DELETE','UPDATE','INSERT']:
+              assert token in j, f'missing {token}'
+          print('Audit UI validation passed')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add health.html mortality.html
+          git diff --cached --quiet || git commit -m 'feat: install audit history UI [applied]'
+          git push

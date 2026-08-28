@@ -1,24 +1,13 @@
 "use strict";
 
-/*
- ADINEH — mortality/disease bootstrap
-
-This layer is intentionally authoritative for flock context.  The old
-mortality.js loader requires current_selection.flockId and redirects when it
-is absent.  Because this file is loaded immediately before mortality.js, the
-loader is installed on the next event-loop turn, after mortality.js has
-created its global function but before DOMContentLoaded initializes the page.
-*/
+/* ADINEH — mortality/disease bootstrap + report-settings UI */
 (function(){
     let flockPromise = null;
     let intelligenceLoaded = false;
-
     const KEY = "adine_poultry_current_selection";
 
     function selection(){
-        try {
-            if(typeof getCurrentSelection === "function") return getCurrentSelection() || {};
-        } catch(e) {}
+        try { if(typeof getCurrentSelection === "function") return getCurrentSelection() || {}; } catch(e) {}
         try {
             const raw = localStorage.getItem(KEY) || localStorage.getItem("adine_poultry_current_selection");
             return raw ? JSON.parse(raw) : {};
@@ -52,8 +41,6 @@ created its global function but before DOMContentLoaded initializes the page.
             if(r.error) throw r.error;
             data = r.data || null;
         }
-
-        /* Recover the same active flock by house/farm when navigation lost flockId. */
         if(!data && sel.houseId){
             const r = await supabaseClient.from("flocks").select("*").eq("house_id", sel.houseId).eq("status", "active").order("created_at", {ascending:false}).limit(1);
             if(!r.error) data = (r.data || [])[0] || null;
@@ -62,13 +49,10 @@ created its global function but before DOMContentLoaded initializes the page.
             const r = await supabaseClient.from("flocks").select("*").eq("farm_id", sel.farmId).eq("status", "active").order("created_at", {ascending:false}).limit(1);
             if(!r.error) data = (r.data || [])[0] || null;
         }
-
-        /* Final fallback: newest active flock visible to the authenticated user. */
         if(!data){
             const r = await supabaseClient.from("flocks").select("*").eq("status", "active").order("created_at", {ascending:false}).limit(1);
             if(!r.error) data = (r.data || [])[0] || null;
         }
-
         if(!data) throw new Error("گله فعال برای ثبت رخداد سلامت پیدا نشد.");
 
         let farm = null, house = null;
@@ -81,12 +65,10 @@ created its global function but before DOMContentLoaded initializes the page.
             if(!r.error) house = r.data;
         }
 
-        /* Keep both the global property and the global lexical binding used by mortality.js. */
         try { healthFlock = data; } catch(e) {}
         try { window.healthFlock = data; } catch(e) {}
         try { healthFarm = farm; window.healthFarm = farm; } catch(e) {}
         try { healthHouse = house; window.healthHouse = house; } catch(e) {}
-
         saveSelection(data);
         return {flock:data, farm:farm, house:house};
     }
@@ -94,8 +76,8 @@ created its global function but before DOMContentLoaded initializes the page.
     function flockInfo(ctx){
         const el = document.getElementById("flockInfo");
         if(!el || !ctx?.flock) return;
-        const f = ctx.flock, farm = ctx.farm, house = ctx.house;
-        el.textContent = [farm?.name, house?.name, f.flock_name, f.strain].filter(Boolean).join(" | ") || "گله انتخاب‌شده";
+        const f=ctx.flock, farm=ctx.farm, house=ctx.house;
+        el.textContent=[farm?.name,house?.name,f.flock_name,f.strain].filter(Boolean).join(" | ") || "گله انتخاب‌شده";
     }
 
     function normalizeDigits(v){
@@ -103,7 +85,7 @@ created its global function but before DOMContentLoaded initializes the page.
     }
 
     function toISO(v){
-        const raw = normalizeDigits(v).trim();
+        const raw=normalizeDigits(v).trim();
         if(!raw) return null;
         try { if(window.jalaliDate?.jalaliToISO){ const x=window.jalaliDate.jalaliToISO(raw); if(x) return String(x).slice(0,10); } } catch(e) {}
         try { if(window.AdineDateSystem?.jalaliToISO){ const x=window.AdineDateSystem.jalaliToISO(raw); if(x) return String(x).slice(0,10); } } catch(e) {}
@@ -125,35 +107,74 @@ created its global function but before DOMContentLoaded initializes the page.
         const date=document.getElementById("eventDate"), age=document.getElementById("eventAge");
         const placement=ctx?.flock?.placement_date ? String(ctx.flock.placement_date).slice(0,10) : null;
         if(!date || !age || !placement) return;
-        age.readOnly = true;
-        age.setAttribute("aria-readonly", "true");
+        age.readOnly=true;
+        age.setAttribute("aria-readonly","true");
         let iso=toISO(date.value);
         const today=todayISO();
         if(force || !iso || iso < placement){
-            iso = today < placement ? placement : today;
+            iso=today < placement ? placement : today;
             try {
-                const j = window.jalaliDate?.isoToJalali?.(iso) || window.AdineDateSystem?.isoToJalali?.(iso);
+                const j=window.jalaliDate?.isoToJalali?.(iso) || window.AdineDateSystem?.isoToJalali?.(iso);
                 if(j) date.value=j;
             } catch(e) {}
         }
-        const n=diffDays(placement, iso);
+        const n=diffDays(placement,iso);
         age.value=Number.isFinite(n) && n>=0 ? String(n) : "";
+    }
+
+    /* Keep the four report settings in one deterministic order regardless of
+       inherited CSS or later DOM manipulation:
+       1) show in reports, 2) report level, 3) weekly report, 4) health analysis. */
+    function tidyReportSettings(){
+        const box=document.querySelector(".report-box");
+        if(!box || box.dataset.adineReportSettingsTidy === "1") return;
+        const title=box.querySelector(":scope > strong");
+        const show=box.querySelector("#showInReports")?.closest(".report-row");
+        const level=box.querySelector("#reportLevel")?.closest(".form-group");
+        const weekly=box.querySelector("#includeWeekly")?.closest(".report-row");
+        const analysis=box.querySelector("#includeAnalysis")?.closest(".report-row");
+        if(!show || !level || !weekly || !analysis) return;
+
+        /* Re-append in canonical order. Re-append does not change values/events. */
+        if(title) box.appendChild(title);
+        box.appendChild(show);
+        box.appendChild(level);
+        box.appendChild(weekly);
+        box.appendChild(analysis);
+
+        title?.classList.add("report-settings-title");
+        [show,weekly,analysis].forEach(row=>row.classList.add("report-settings-row"));
+        level.classList.add("report-settings-level");
+        box.dataset.adineReportSettingsTidy="1";
+
+        if(!document.getElementById("adineReportSettingsStyle")){
+            const style=document.createElement("style");
+            style.id="adineReportSettingsStyle";
+            style.textContent=`
+                .report-box{display:flex!important;flex-direction:column!important;gap:10px!important;align-items:stretch!important}
+                .report-box>.report-settings-title{display:block!important;order:0!important;margin:0 0 2px!important;font-size:15px!important;font-weight:800!important;color:#173f35!important;line-height:1.8!important}
+                .report-box>.report-settings-row{display:flex!important;order:initial!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;margin:0!important;padding:10px 12px!important;min-height:42px!important;box-sizing:border-box!important;border:1px solid #dfe8e3!important;border-radius:10px!important;background:#fff!important}
+                .report-box>.report-settings-row input[type=checkbox]{flex:0 0 18px!important;width:18px!important;height:18px!important;margin:0!important}
+                .report-box>.report-settings-row label{flex:1 1 auto!important;margin:0!important;padding:0!important;font-size:13px!important;line-height:1.8!important;cursor:pointer!important}
+                .report-box>.report-settings-level{order:initial!important;margin:0!important;padding:10px 12px!important;box-sizing:border-box!important;border:1px solid #dfe8e3!important;border-radius:10px!important;background:#fff!important}
+                .report-box>.report-settings-level label{display:block!important;margin:0 0 6px!important;font-size:12px!important;font-weight:700!important;color:#33443d!important}
+                .report-box>.report-settings-level select{display:block!important;width:100%!important;box-sizing:border-box!important;min-height:40px!important;margin:0!important}
+                .report-box>#showInReports-row{}
+            `;
+            document.head.appendChild(style);
+        }
     }
 
     async function authoritativeLoader(){
         if(!flockPromise) flockPromise=findFlock();
         const ctx=await flockPromise;
         flockInfo(ctx);
-        syncDateAndAge(ctx, false);
+        syncDateAndAge(ctx,false);
         return ctx.flock;
     }
 
     function installLoader(){
-        /* mortality.js is the immediately following script; wait one turn so its
-           function declaration exists, then replace it before DOMContentLoaded. */
-        setTimeout(function(){
-            window.loadCurrentFlock = authoritativeLoader;
-        }, 0);
+        setTimeout(()=>{ window.loadCurrentFlock=authoritativeLoader; },0);
     }
 
     function bindDate(){
@@ -162,15 +183,16 @@ created its global function but before DOMContentLoaded initializes the page.
         date.dataset.adineAgeBound="1";
         age.readOnly=true;
         ["input","change","blur"].forEach(ev=>date.addEventListener(ev,()=>flockPromise?.then(ctx=>syncDateAndAge(ctx,false))));
+        document.addEventListener("adine:jalali-date-selected",()=>flockPromise?.then(ctx=>syncDateAndAge(ctx,false)));
     }
 
     function loadOldSmartAnalysis(){
         if(intelligenceLoaded) return;
-        intelligenceLoaded=true;
         if(document.getElementById("adine-mortality-v2-script")) return;
+        intelligenceLoaded=true;
         const s=document.createElement("script");
         s.id="adine-mortality-v2-script";
-        s.src="mortality-disease-intelligence-v2.js?v=restore-v2";
+        s.src="mortality-disease-intelligence-v2.js?v=restore-v2-2";
         s.onload=()=>console.info("ADINEH: legacy mortality intelligence V2 restored.");
         s.onerror=e=>console.error("ADINEH: legacy mortality intelligence V2 failed to load",e);
         document.head.appendChild(s);
@@ -179,20 +201,21 @@ created its global function but before DOMContentLoaded initializes the page.
     async function start(){
         installLoader();
         bindDate();
-        try {
+        tidyReportSettings();
+        try{
             const ctx=await authoritativeLoader();
             bindDate();
+            tidyReportSettings();
             syncDateAndAge(ctx,true);
             loadOldSmartAnalysis();
-        } catch(e) {
-            console.error("ADINEH mortality flock bootstrap:", e);
+        }catch(e){
+            console.error("ADINEH mortality flock bootstrap:",e);
             const box=document.getElementById("flockInfo");
-            if(box) box.textContent="خطا در بارگذاری گله: " + e.message;
+            if(box) box.textContent="خطا در بارگذاری گله: "+e.message;
         }
     }
 
-    /* Start as soon as possible.  This script is loaded before mortality.js. */
     installLoader();
-    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, {once:true});
+    if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",start,{once:true});
     else start();
 })();

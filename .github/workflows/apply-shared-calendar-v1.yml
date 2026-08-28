@@ -1,0 +1,44 @@
+name: apply-shared-calendar-v1
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[shared-calendar-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject shared calendar without changing application logic
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          pages = ['flocks.html','weekly.html','mortality.html']
+          marker = '<script src="shared-jalali-calendar-v1.js"></script>'
+          for name in pages:
+              p=Path(name)
+              if not p.exists():
+                  continue
+              s=p.read_text(encoding='utf-8')
+              if marker not in s:
+                  if '</body>' not in s:
+                      raise SystemExit(f'{name}: missing </body>')
+                  s=s.replace('</body>', marker+'\n</body>', 1)
+                  p.write_text(s,encoding='utf-8')
+          PY
+      - name: Validate target pages and script
+        run: |
+          test -s shared-jalali-calendar-v1.js
+          for f in flocks.html weekly.html mortality.html; do
+            test -f "$f"
+            grep -q 'shared-jalali-calendar-v1.js' "$f"
+          done
+          node --check shared-jalali-calendar-v1.js
+      - name: Commit only target page integrations
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add flocks.html weekly.html mortality.html
+          git diff --cached --quiet || git commit -m 'fix: unify compact Persian Jalali calendars [shared-calendar-applied]'
+          git push

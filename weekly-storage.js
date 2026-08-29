@@ -14,9 +14,6 @@
 
 /* =========================================================
    WEEKLY DATE SAVE COMPATIBILITY FIX LOADER
-   This is the proven fix used on 2026-08-26. It intentionally runs
-   after weekly.js has defined its legacy date helpers and replaces
-   them with the central AdineDateSystem conversion functions.
 ========================================================= */
 (function loadWeeklyDateSaveFix(){
   if(document.getElementById("weekly-date-save-fix-script"))return;
@@ -25,6 +22,24 @@
     const script=document.createElement("script");
     script.id="weekly-date-save-fix-script";
     script.src="weekly-date-save-fix.js?v=20260828-2";
+    script.async=false;
+    (document.head||document.documentElement).appendChild(script);
+  };
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",load,{once:true});else load();
+})();
+
+/* =========================================================
+   STRICT WEEKLY -> REPORT ROUTE LOADER
+   Loaded after weekly.js so it can read the authoritative global
+   lexical binding `currentFlock` created by weekly.js.
+========================================================= */
+(function loadWeeklyReportRoute(){
+  if(document.getElementById("weekly-report-route-script"))return;
+  const load=function(){
+    if(document.getElementById("weekly-report-route-script"))return;
+    const script=document.createElement("script");
+    script.id="weekly-report-route-script";
+    script.src="weekly-report-route-v1.js?v=20260829-3";
     script.async=false;
     (document.head||document.documentElement).appendChild(script);
   };

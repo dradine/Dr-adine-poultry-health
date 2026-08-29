@@ -47,4 +47,5 @@ async function init(){try{await initializeReportsData();if(!requestedId){$('root
 $('back').onclick=()=>{const q='?flock_id='+encodeURIComponent(flock?.id||requestedId||'')+($('week').value?'&week='+encodeURIComponent($('week').value):'');location.href='weekly.html'+q};document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=async()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');tab=b.dataset.tab;await render()});$('week').onchange=()=>{if(tab==='weekly')renderWeekly()};await init();
 })();
 </script>
+    <script src="health-records-runtime-v2.js"></script>
 </body></html>

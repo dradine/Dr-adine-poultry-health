@@ -90,8 +90,10 @@ async function saveHealthEvent(event){
 
 async function loadEvents(){
     if(!healthFlock)return;
-    const result=await supabaseClient.from("health_reportable_events").select("*").eq("flock_id",healthFlock.id).order("event_date",{ascending:false}).limit(300);
-    if(result.error){const fallback=await supabaseClient.from("health_events").select(`*, suspected_disease:health_disease_catalog!suspected_disease_id(id,name_fa), confirmed_disease:health_disease_catalog!confirmed_disease_id(id,name_fa)`).eq("flock_id",healthFlock.id).order("event_date",{ascending:false}).limit(300);if(fallback.error)throw fallback.error;healthEvents=fallback.data||[];}else healthEvents=result.data||[];renderHistory();}
+    const result=await supabaseClient.from("health_events").select(`*, suspected_disease:health_disease_catalog!suspected_disease_id(id,name_fa), confirmed_disease:health_disease_catalog!confirmed_disease_id(id,name_fa)`).eq("flock_id",healthFlock.id).order("event_date",{ascending:false}).limit(300);
+    if(result.error)throw result.error;
+    healthEvents=result.data||[];
+    renderHistory();}
 function renderDashboard(){const mortality=healthEvents.reduce((s,r)=>s+Number(r.mortality_count||0),0),cull=healthEvents.reduce((s,r)=>s+Number(r.cull_count||0),0),disease=healthEvents.filter(r=>r.event_type==="disease"||r.event_type==="clinical_case").reduce((s,r)=>s+Number(r.affected_count||0),0),suspected=healthEvents.filter(r=>r.event_type==="suspected_disease").length;setText("statMortality",formatNumber(mortality));setText("statCull",formatNumber(cull));setText("statDisease",formatNumber(disease));setText("statSuspected",formatNumber(suspected));}
 
 function renderOverview(){const container=document.getElementById("healthOverview");if(!container)return;container.innerHTML=`<div class="overview-grid"><div><strong>گله</strong><span>${escapeHtml(healthFlock?.flock_name||"-")}</span></div><div><strong>سن</strong><span>${formatNumber(calculateFlockAge()||0)} روز</span></div><div><strong>رخدادها</strong><span>${formatNumber(healthEvents.length)}</span></div></div>`;}

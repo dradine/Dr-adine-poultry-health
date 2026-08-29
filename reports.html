@@ -4817,10 +4817,15 @@ tbody tr:hover {
                 record.disease ||
                 "",
             diagnosis: record.diagnosis || record.diagnosis_status || "",
-            count:
-                Number(record.mortality_count || 0) ||
-                Number(record.affected_count || 0) ||
-                Number(record.count || 0),
+            count: (() => {
+                const type = record.event_type ?? record.type ?? "other";
+                if (type === "disease" || type === "suspected_disease" || type === "clinical_case") {
+                    return Number(record.affected_count ?? record.affected_birds ?? record.count ?? 0) || 0;
+                }
+                if (type === "cull") return Number(record.cull_count ?? record.count ?? 0) || 0;
+                if (type === "mortality") return Number(record.mortality_count ?? record.dead_birds ?? record.count ?? 0) || 0;
+                return Number(record.affected_count ?? record.mortality_count ?? record.count ?? 0) || 0;
+            })(),
             affectedBirds: record.affected_count ?? record.affected_birds,
             deadBirds: record.mortality_count ?? record.dead_birds,
             severity: record.severity,
@@ -4842,19 +4847,9 @@ tbody tr:hover {
         });
 
         try {
-            // Primary source: the same reportable view used by the mortality/health module.
+            // Primary source: ALL health cases for the selected flock.
+            // Visibility is a reporting attribute, not a history filter.
             const primary = await supabaseClient
-                .from("health_reportable_events")
-                .select("*")
-                .eq("flock_id", reportFlock.id)
-                .order("event_date", { ascending: false });
-
-            if (!primary.error && Array.isArray(primary.data)) {
-                return primary.data.map(normalize);
-            }
-
-            // Fallback: base health events if the reporting view is unavailable.
-            const fallback = await supabaseClient
                 .from("health_events")
                 .select(`
                     *,
@@ -4864,8 +4859,8 @@ tbody tr:hover {
                 .eq("flock_id", reportFlock.id)
                 .order("event_date", { ascending: false });
 
-            if (!fallback.error && Array.isArray(fallback.data)) {
-                return fallback.data.map(row => normalize({
+            if (!primary.error && Array.isArray(primary.data)) {
+                return primary.data.map(row => normalize({
                     ...row,
                     suspected_disease_name:
                         row.suspected_disease_name || row.suspected_disease?.name_fa,

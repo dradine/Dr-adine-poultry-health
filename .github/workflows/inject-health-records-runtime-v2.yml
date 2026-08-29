@@ -1,0 +1,50 @@
+name: Inject health records runtime v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - health-records-runtime-v2.js
+      - mortality.html
+      - reports.html
+      - .github/workflows/inject-health-records-runtime-v2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inject:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject runtime script tags
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for name in ['mortality.html', 'reports.html']:
+              p = Path(name)
+              text = p.read_text(encoding='utf-8')
+              tag = '<script src="health-records-runtime-v2.js"></script>'
+              if tag not in text:
+                  marker = '</body>'
+                  if marker not in text:
+                      raise SystemExit(f'{name}: </body> not found')
+                  text = text.replace(marker, f'    {tag}\n{marker}', 1)
+                  p.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit runtime injection
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mortality.html reports.html
+          if git diff --cached --quiet; then
+            echo "No changes required"
+          else
+            git commit -m "fix: wire health records runtime into health pages"
+            git push
+          fi

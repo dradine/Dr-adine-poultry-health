@@ -1,0 +1,27 @@
+name: Restore weekly runtime
+type: 
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: ${{ !contains(github.event.head_commit.message, 'restore weekly runtime') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore weekly.js
+        run: |
+          git checkout 39217691c56792d53668e53a9db5f49203643149 -- weekly.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add weekly.js
+          git diff --cached --quiet && exit 0
+          git commit -m 'chore: restore weekly runtime from known-good commit'
+          git push

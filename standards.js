@@ -18,3 +18,20 @@ function resolvePoultryStandard({productionType,breed="",strain="",genetics="",a
 function auditCatalog(){const rows=[],cat=typeof POULTRY_CATALOG!=="undefined"?POULTRY_CATALOG:{};for(const [t,v] of Object.entries(cat))for(const g of v.genetics||[])for(const s of g.strains||[]){const id={type:t,geneticsId:g.id,strain:s,matched:true},std=directStandard(id);rows.push({type:t,geneticsId:g.id,strain:s,hasStandard:Boolean(std),sourceType:std?.sourceType||std?.official?.sourceType||null,sourceYear:std?.sourceYear||std?.official?.sourceYear||null});}return rows;}
 global.normalizePoultryResolverText=norm;global.normalizePoultryProductionType=productionType;global.findPoultryStandardIdentity=identity;global.resolvePoultryStandard=resolvePoultryStandard;global.getStandardMeta=metricMeta;global.getStandardValueAtAge=(s,m,a)=>metricMeta(s,m,a).value;global.getStandardMetricAtAge=metricMeta;global.ADINE_STANDARDS_ENGINE_VERSION=VERSION;global.ADINE_BENCHMARK_GUARD={VERSION,norm,productionType,identity,directStandard,resolve:resolvePoultryStandard,auditCatalog};
 })(typeof window!=="undefined"?window:globalThis);
+
+/* REPORT STANDARD ADAPTER — OFFICIAL ROSS 308 AS-HATCHED, AVIAGEN 2022 */
+(function(global){
+"use strict";
+const sourceType="official-performance-objective";
+const sourceLabel="استاندارد رسمی Aviagen Ross 308 — Performance Objectives 2022";
+const sourceUrl="https://aviagen.com/assets/Tech_Center/Ross_Broiler/RossxRoss308-BroilerPerformanceObjectives2022-EN.pdf";
+const row=(ageDays,bodyWeight,fcr,dailyFeed,cumulativeFeed)=>({ageDays,bodyWeight,fcr,dailyFeed,cumulativeFeed});
+const records=[row(7,213,0.780,35,166),row(14,533,1.005,67,535),row(21,1012,1.142,105,1155),row(28,1616,1.269,145,2051),row(35,2296,1.399,180,3211),row(42,2998,1.531,207,4586),row(49,3681,1.663,225,6115),row(56,4318,1.793,234,7733)];
+const standard={sourceYear:2022,sourceType,sourceLabel,sourceUrl,interpolationPolicy:"linear",official:{sourceType,sourceLabel,sourceUrl,records},records};
+const norm=v=>String(v??"").trim().toLowerCase().replace(/[‐‑‒–—−]/g,"-").replace(/\s+/g," ");
+const ptype=v=>typeof global.normalizePoultryProductionType==="function"?global.normalizePoultryProductionType(v):norm(v);
+const ross=v=>{const s=norm(v);return s==="ross 308"||s==="ross 308 ff"||s==="ross308"||s==="ross308 ff";};
+const old=typeof global.getStandard==="function"?global.getStandard:null;
+global.getStandard=function(productionType,genetics,strain){if(ptype(productionType)==="broiler"&&norm(genetics)==="aviagen_ross"&&ross(strain))return standard;return old?old(productionType,genetics,strain):null;};
+global.ADINE_REPORT_ROSS_STANDARD_V1=standard;
+})(typeof window!=="undefined"?window:globalThis);

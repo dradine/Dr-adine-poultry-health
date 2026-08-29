@@ -16,8 +16,7 @@ const asc=[...rows].sort((a,b)=>String(a.event_date).localeCompare(String(b.even
 function boot(){let n=0;const t=setInterval(()=>{if(window.supabaseClient&&typeof getCurrentSelection==='function'){clearInterval(t);run().catch(console.error)}if(++n>60)clearInterval(t)},500)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
 
-/* Unified case workflow loader. The dashboard above remains untouched. */
-(function(){
-  const load=()=>{if(document.getElementById('health-case-workflow-v1'))return;const s=document.createElement('script');s.id='health-case-workflow-v1';s.src='mortality-case-workflow-v1.js';s.defer=false;document.body.appendChild(s);};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
-})();
+/* Unified case workflow loader */
+(function(){const load=()=>{if(document.getElementById('health-case-workflow-v1'))return;const s=document.createElement('script');s.id='health-case-workflow-v1';s.src='mortality-case-workflow-v1.js';s.defer=false;document.body.appendChild(s);};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();})();
+/* Unified mortality/disease integrity */
+(function(){const load=()=>{if(document.getElementById('health-integrity-v1'))return;const s=document.createElement('script');s.id='health-integrity-v1';s.src='mortality-health-integrity-v1.js?v=1';s.defer=false;document.body.appendChild(s);};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();})();

@@ -46,3 +46,35 @@ function boot(){
 }
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',boot,{once:true}):boot();
 })();
+
+/* FINAL HEALTH REPORT BRIDGE V2
+   Runs after the existing report engine and prevents the health card from
+   disappearing when the weekly-report engine has no rows or has a stale flock.
+*/
+(function(){
+'use strict';
+if(window.__ADINE_HEALTH_FINAL_BRIDGE_V2__)return;
+window.__ADINE_HEALTH_FINAL_BRIDGE_V2__=true;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const num=v=>Number(v||0).toLocaleString('fa-IR');
+const label=v=>({mortality:'تلفات',cull:'حذفی',disease:'بیماری',suspected_disease:'بیماری مشکوک',clinical_case:'مورد بالینی',environmental:'محیطی / مدیریتی'}[v]||v||'رخداد سلامت');
+const date=v=>{try{return window.AdineDateSystem?.formatJalali?window.AdineDateSystem.formatJalali(v,true):(window.jalaliDate?.isoToJalali?window.jalaliDate.isoToJalali(v):v||'-')}catch(_){return v||'-'}};
+async function render(){
+ const select=document.getElementById('flockSelect');if(!select?.value||!window.supabaseClient)return;
+ const card=document.getElementById('healthReportCard');const body=document.getElementById('healthReportTableBody');if(!card||!body)return;
+ const r=await supabaseClient.from('health_events').select('*').eq('flock_id',select.value).order('event_date',{ascending:false}).order('created_at',{ascending:false}).limit(500);
+ if(r.error){console.error('FINAL HEALTH BRIDGE:',r.error);body.innerHTML=`<tr><td colspan="9" class="health-report-empty">خطا در دریافت health_events: ${esc(r.error.message)}</td></tr>`;card.style.display='block';return;}
+ const rows=r.data||[];card.style.display='block';
+ if(!rows.length){body.innerHTML='<tr><td colspan="9" class="health-report-empty">برای این گله در health_events پرونده‌ای پیدا نشد.</td></tr>';return;}
+ body.innerHTML=rows.map(x=>`<tr><td>${esc(date(x.event_date))}</td><td>${num(x.flock_age_days)}</td><td>${esc(label(x.event_type))}</td><td>${num(x.mortality_count||x.cull_count||x.affected_count)}</td><td>${esc(x.confirmed_disease_name||x.suspected_disease_name||'-')}</td><td>${esc(x.severity||'-')}</td><td>${x.sudden_death?'مرگ ناگهانی':'-'}</td><td>${esc(x.notes||'-')}</td><td><span class="badge ${x.show_in_reports?'badge-success':'badge-warning'}">${x.show_in_reports?'نمایش':'خصوصی'}</span></td></tr>`).join('');
+ const note=document.getElementById('healthReportNote');if(note)note.textContent=`منبع مستقیم: health_events | ${num(rows.length)} پرونده | نمایش خصوصی/عمومی فقط وضعیت گزارش است و باعث حذف پرونده از سوابق نمی‌شود.`;
+}
+async function boot(){
+ for(let i=0;i<160;i++){
+  const f=document.getElementById('flockSelect');if(f?.value){await render();setInterval(()=>{if(document.visibilityState==='visible'&&f.value)render()},15000);return}
+  await sleep(100);
+ }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();

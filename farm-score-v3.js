@@ -155,3 +155,108 @@
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', boot, { once: true });
   else boot();
 })(window, document);
+
+
+/* =========================================================
+   ADINE REPORT CANONICAL METRICS FIX V1
+   - cumulative FCR is the report/benchmark FCR
+   - weekly FCR remains separately available in production_metrics
+   - feed/water chart uses dual axes and water/feed ratio
+========================================================= */
+(function (w) {
+  'use strict';
+
+  const n = v => {
+    if (v === null || v === undefined || v === '') return null;
+    const x = Number(String(v).replace(/,/g, '').trim());
+    return Number.isFinite(x) ? x : null;
+  };
+
+  const originalFcr = w.calculateReportFCR;
+  w.calculateReportFCR = function(previous, current, productionType) {
+    const type = String(productionType || 'broiler').toLowerCase();
+    if (type === 'broiler' || type === 'گوشتی' || type === 'pullet' || type === 'پولت') {
+      const pm = current && current.productionMetrics || {};
+      const canonical = n(pm.benchmark_comparable_cumulative_fcr ?? pm.cumulative_fcr ?? current?.cumulativeFCR);
+      if (canonical !== null && canonical > 0 && canonical < 10) return Number(canonical.toFixed(3));
+    }
+    return typeof originalFcr === 'function' ? originalFcr(previous, current, productionType) : null;
+  };
+
+  const originalNormalize = w.normalizeReportRecord;
+  if (typeof originalNormalize === 'function') {
+    w.normalizeReportRecord = function(record) {
+      const r = originalNormalize(record);
+      const pm = record?.production_metrics || {};
+      r.weeklyFCR = n(pm.weekly_fcr ?? record?.fcr);
+      r.biologicalCumulativeFCR = n(pm.biological_cumulative_fcr);
+      r.benchmarkComparableCumulativeFCR = n(pm.benchmark_comparable_cumulative_fcr ?? record?.cumulative_fcr);
+      if (r.benchmarkComparableCumulativeFCR !== null) r.cumulativeFCR = r.benchmarkComparableCumulativeFCR;
+      return r;
+    };
+  }
+
+  const originalStandard = w.getReportStandardSafely;
+  w.getReportStandardSafely = function(flock) {
+    const s = typeof originalStandard === 'function' ? originalStandard(flock) : null;
+    return s;
+  };
+
+  if (w.Chart && !w.__adineCanonicalChartWrapped) {
+    const BaseChart = w.Chart;
+    function CanonicalChart(ctx, config) {
+      try {
+        const id = ctx && ctx.canvas ? ctx.canvas.id : '';
+        if (id === 'consumptionChart' && config?.data?.datasets) {
+          const ds = config.data.datasets;
+          ds.forEach(d => {
+            const label = String(d.label || '');
+            if (label.includes('آب')) d.yAxisID = 'water';
+            else if (label.includes('دان')) d.yAxisID = 'feed';
+          });
+          const feedDs = ds.find(d => String(d.label || '').includes('دان'));
+          const waterDs = ds.find(d => String(d.label || '').includes('آب'));
+          if (feedDs && waterDs && !ds.some(d => String(d.label || '').includes('آب/دان'))) {
+            const ratio = feedDs.data.map((v,i) => {
+              const f=n(v), a=n(waterDs.data[i]);
+              return f && f>0 && a!==null ? Number((a/f).toFixed(3)) : null;
+            });
+            ds.push({label:'نسبت آب/دان',data:ratio,yAxisID:'ratio',borderWidth:2,pointRadius:3,tension:.2,spanGaps:true});
+          }
+          config.options = config.options || {};
+          config.options.scales = config.options.scales || {};
+          config.options.scales.y = config.options.scales.y || {};
+          config.options.scales.y.display = false;
+          config.options.scales.feed = {position:'left',beginAtZero:true,title:{display:true,text:'دان (kg)'}};
+          config.options.scales.water = {position:'right',beginAtZero:true,title:{display:true,text:'آب (L)'},grid:{drawOnChartArea:false}};
+          config.options.scales.ratio = {position:'right',beginAtZero:false,min:0,max:3,title:{display:true,text:'آب/دان'},grid:{drawOnChartArea:false}};
+        }
+        if (id === 'fcrChart' && config?.data?.datasets) {
+          const actual = config.data.datasets.find(d => String(d.label || '') === 'FCR واقعی');
+          if (actual) actual.label = 'FCR تجمعی واقعی (قابل مقایسه)';
+        }
+      } catch (e) { console.warn('[ADINE CANONICAL CHART]', e); }
+      return new BaseChart(ctx, config);
+    }
+    Object.setPrototypeOf(CanonicalChart, BaseChart);
+    CanonicalChart.prototype = BaseChart.prototype;
+    w.Chart = CanonicalChart;
+    w.__adineCanonicalChartWrapped = true;
+  }
+
+  w.adineCalculateBroilerMetrics = function(previous, current) {
+    const prevBirds=n(previous?.liveBirds), prevWeight=n(previous?.averageWeight);
+    const birds=n(current?.liveBirds), weight=n(current?.averageWeight), feed=n(current?.feedTotalKg), water=n(current?.waterTotalLiter);
+    const gain=(birds!==null&&weight!==null&&prevBirds!==null&&prevWeight!==null) ? (birds*weight-prevBirds*prevWeight)/1000 : null;
+    return {
+      periodFeedKg:feed,
+      periodWaterLiter:water,
+      periodBiomassGainKg:gain,
+      weeklyFCR:feed!==null&&gain!==null&&gain>0?Number((feed/gain).toFixed(3)):null,
+      waterFeedRatio:feed!==null&&feed>0&&water!==null?Number((water/feed).toFixed(3)):null,
+      liveBirds:birds,
+      livability:n(current?.livability),
+      mortality:n(current?.mortality)
+    };
+  };
+})(window);

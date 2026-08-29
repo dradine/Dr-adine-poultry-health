@@ -4880,7 +4880,7 @@ tbody tr:hover {
                 return legacy.data.map(normalize);
             }
 
-            console.warn("No health report source available.", primary.error, fallback.error, legacy.error);
+            console.warn("No health report source available.", primary.error, legacy.error);
             return [];
         } catch (error) {
             console.error("Health records error:", error);

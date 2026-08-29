@@ -16,22 +16,30 @@ function interp(points,age,allow){if(!points.length||!Number.isFinite(age)||age<
 function metricMeta(s,m,age){const allow=s?.interpolationPolicy!=="exact-only",p=records(s,m),o=interp(p.official,Number(age),allow);if(o)return{value:o.value,low:o.low,high:o.high,isRange:o.low!==o.high,sourceType:s?.official?.sourceType||s?.sourceType||"official",sourceLabel:s?.official?.sourceLabel||s?.sourceLabel||"استاندارد رسمی",isFallback:false,interpolated:!p.official.some(x=>x.age===Number(age))};const mg=interp(p.management,Number(age),allow);if(mg)return{value:mg.value,low:mg.low,high:mg.high,isRange:mg.low!==mg.high,sourceType:s?.management?.sourceType||"management-standard",sourceLabel:s?.management?.sourceLabel||"استاندارد مدیریتی",isFallback:true,interpolated:!p.management.some(x=>x.age===Number(age))};return{value:null,low:null,high:null,isRange:false,sourceType:null,sourceLabel:null,isFallback:false,interpolated:false};}
 function resolvePoultryStandard({productionType,breed="",strain="",genetics="",ageDays}){const id=identity(productionType,breed||genetics,strain),s=directStandard(id),age=Number(ageDays),out={weight:null,weightLow:null,weightHigh:null,weightIsRange:false,fcr:null,fcrLow:null,fcrHigh:null,fcrIsRange:false,weightSource:null,fcrSource:null,weightSourceLabel:null,fcrSourceLabel:null,sourceType:null,sourceName:null,confidence:"none",fallbackLevel:3,weightFallbackLevel:3,fcrFallbackLevel:3,geneticsId:id.geneticsId||null,strain:id.strain||null,identityMatched:id.matched,strict:true,version:VERSION};if(!Number.isFinite(age)||!s)return out;const w=metricMeta(s,"bodyWeight",age),f=metricMeta(s,"fcr",age);if(w.value!==null){out.weight=w.value;out.weightLow=w.low;out.weightHigh=w.high;out.weightIsRange=w.isRange;out.weightSource=w.sourceType;out.weightSourceLabel=w.sourceLabel;out.weightFallbackLevel=w.isFallback?2:0;}if(f.value!==null){out.fcr=f.value;out.fcrLow=f.low;out.fcrHigh=f.high;out.fcrIsRange=f.isRange;out.fcrSource=f.sourceType;out.fcrSourceLabel=f.sourceLabel;out.fcrFallbackLevel=f.isFallback?2:0;}out.fallbackLevel=Math.max(out.weightFallbackLevel,out.fcrFallbackLevel);const src=[out.weightSource,out.fcrSource].filter(Boolean),lab=[out.weightSourceLabel,out.fcrSourceLabel].filter(Boolean);out.sourceType=src.length===2&&src[0]===src[1]?src[0]:(src[0]||src[1]||null);out.sourceName=lab.length===2&&lab[0]===lab[1]?lab[0]:(lab[0]||lab[1]||null);out.confidence=out.fallbackLevel===0?"official":out.fallbackLevel===2?"management":"none";return out;}
 function auditCatalog(){const rows=[],cat=typeof POULTRY_CATALOG!=="undefined"?POULTRY_CATALOG:{};for(const [t,v] of Object.entries(cat))for(const g of v.genetics||[])for(const s of g.strains||[]){const id={type:t,geneticsId:g.id,strain:s,matched:true},std=directStandard(id);rows.push({type:t,geneticsId:g.id,strain:s,hasStandard:Boolean(std),sourceType:std?.sourceType||std?.official?.sourceType||null,sourceYear:std?.sourceYear||std?.official?.sourceYear||null});}return rows;}
-global.normalizePoultryResolverText=norm;global.normalizePoultryProductionType=productionType;global.findPoultryStandardIdentity=identity;global.resolvePoultryStandard=resolvePoultryStandard;global.getStandardMeta=metricMeta;global.getStandardValueAtAge=(s,m,a)=>metricMeta(s,m,a).value;global.getStandardMetricAtAge=metricMeta;global.ADINE_STANDARDS_ENGINE_VERSION=VERSION;global.ADINE_BENCHMARK_GUARD={VERSION,norm,productionType,identity,directStandard,resolve:resolvePoultryStandard,auditCatalog};
-})(typeof window!=="undefined"?window:globalThis);
+const originalResolve=resolvePoultryStandard;
+function tracedResolve(args){const out=originalResolve(args);try{global.__ADINE_STANDARD_TRACE=global.__ADINE_STANDARD_TRACE||[];global.__ADINE_STANDARD_TRACE.push({ageDays:Number(args?.ageDays),productionType:productionType(args?.productionType),weightSource:out?.weightSource,weightSourceLabel:out?.weightSourceLabel,fcrSource:out?.fcrSource,fcrSourceLabel:out?.fcrSourceLabel});if(global.__ADINE_STANDARD_TRACE.length>500)global.__ADINE_STANDARD_TRACE.shift();}catch(e){}return out;}
+global.normalizePoultryResolverText=norm;global.normalizePoultryProductionType=productionType;global.findPoultryStandardIdentity=identity;global.resolvePoultryStandard=tracedResolve;global.getStandardMeta=metricMeta;global.getStandardValueAtAge=(s,m,a)=>metricMeta(s,m,a).value;global.getStandardMetricAtAge=metricMeta;global.ADINE_STANDARDS_ENGINE_VERSION=VERSION;global.ADINE_BENCHMARK_GUARD={VERSION,norm,productionType,identity,directStandard,resolve:tracedResolve,auditCatalog};
 
-/* REPORT STANDARD ADAPTER — OFFICIAL ROSS 308 AS-HATCHED, AVIAGEN 2022 */
-(function(global){
-"use strict";
-const sourceType="official-performance-objective";
-const sourceLabel="استاندارد رسمی Aviagen Ross 308 — Performance Objectives 2022";
-const sourceUrl="https://aviagen.com/assets/Tech_Center/Ross_Broiler/RossxRoss308-BroilerPerformanceObjectives2022-EN.pdf";
-const row=(ageDays,bodyWeight,fcr,dailyFeed,cumulativeFeed)=>({ageDays,bodyWeight,fcr,dailyFeed,cumulativeFeed});
-const records=[row(7,213,0.780,35,166),row(14,533,1.005,67,535),row(21,1012,1.142,105,1155),row(28,1616,1.269,145,2051),row(35,2296,1.399,180,3211),row(42,2998,1.531,207,4586),row(49,3681,1.663,225,6115),row(56,4318,1.793,234,7733)];
-const standard={sourceYear:2022,sourceType,sourceLabel,sourceUrl,interpolationPolicy:"linear",official:{sourceType,sourceLabel,sourceUrl,records},records};
-const norm=v=>String(v??"").trim().toLowerCase().replace(/[‐‑‒–—−]/g,"-").replace(/\s+/g," ");
-const ptype=v=>typeof global.normalizePoultryProductionType==="function"?global.normalizePoultryProductionType(v):norm(v);
-const ross=v=>{const s=norm(v);return s==="ross 308"||s==="ross 308 ff"||s==="ross308"||s==="ross308 ff";};
-const old=typeof global.getStandard==="function"?global.getStandard:null;
-global.getStandard=function(productionType,genetics,strain){if(ptype(productionType)==="broiler"&&norm(genetics)==="aviagen_ross"&&ross(strain))return standard;return old?old(productionType,genetics,strain):null;};
-global.ADINE_REPORT_ROSS_STANDARD_V1=standard;
+/* Report visual source marker: the report already uses the strict resolver above.
+   This only makes the active reference explicit on chart legends; it never changes values. */
+if(typeof document!=="undefined"){
+ const markCharts=()=>{try{
+   if(!global.Chart||!global.Chart.instances)return;
+   const trace=global.__ADINE_STANDARD_TRACE||[];
+   const hasMgmtWeight=trace.some(x=>x.weightSource&&x.weightSource!=="official");
+   const hasMgmtFcr=trace.some(x=>x.fcrSource&&x.fcrSource!=="official");
+   Object.values(global.Chart.instances).forEach(ch=>{
+     const box=ch?.canvas?.closest?.('.box');if(!box)return;
+     const title=(box.querySelector('h3')?.textContent||'');
+     const isWeight=/وزن/.test(title),isFcr=/FCR/.test(title);
+     const mgmt=(isWeight&&hasMgmtWeight)||(isFcr&&hasMgmtFcr);if(!mgmt)return;
+     ch.data.datasets.forEach(ds=>{if(String(ds.label||'').includes('استاندارد رسمی'))ds.label='استاندارد مدیریتی';});
+     ch.update('none');
+     let badge=box.querySelector('.standard-source-badge');
+     if(!badge){badge=document.createElement('div');badge.className='standard-source-badge';badge.style.cssText='margin:4px 0 6px;font-size:9px;font-weight:800;color:#42665a;background:#eef4f1;border-radius:8px;padding:5px 7px;display:inline-block';box.insertBefore(badge,ch.canvas);}
+     badge.textContent='مرجع ارزیابی: استاندارد مدیریتی';
+   });
+ }catch(e){}}
+ setInterval(markCharts,250);
+}
 })(typeof window!=="undefined"?window:globalThis);

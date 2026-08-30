@@ -1,139 +1,16 @@
-/* FINAL FLOCK GENETICS SELECTOR FIX
-   Source of truth: POULTRY_CATALOG in standard-data.js.
-   This file owns the three dependent selectors on flocks.html and blocks
-   older selector handlers from overwriting them.
-*/
-(function () {
-  "use strict";
-
-  function rootCatalog() {
-    try {
-      if (typeof POULTRY_CATALOG !== "undefined" && POULTRY_CATALOG) return POULTRY_CATALOG;
-    } catch (_) {}
-    return null;
-  }
-
-  function normType(v) {
-    const s = String(v ?? "").normalize("NFKC").replace(/[\u200c\u200f\u202a-\u202e]/g, "").trim().toLowerCase();
-    return ({
-      "گوشتی":"broiler", "broiler":"broiler",
-      "تخمگذار":"layer", "تخم گذار":"layer", "تخم‌گذار":"layer", "layer":"layer",
-      "پولت":"pullet", "pullet":"pullet",
-      "مادر":"breeder", "مرغ مادر":"breeder", "breeder":"breeder"
-    })[s] || s;
-  }
-
-  function groups(type) {
-    const c = rootCatalog();
-    const g = c && c[normType(type)] && c[normType(type)].genetics;
-    return Array.isArray(g) ? g : [];
-  }
-
-  function els() {
-    return {
-      type: document.getElementById("productionType"),
-      company: document.getElementById("genetics"),
-      strain: document.getElementById("flockStrain"),
-      program: document.getElementById("flockProgram")
-    };
-  }
-
-  function option(text, value) {
-    const o = document.createElement("option");
-    o.value = String(value ?? "");
-    o.textContent = String(text ?? "");
-    return o;
-  }
-
-  function fillCompanies() {
-    const e = els();
-    if (!e.type || !e.company || !e.strain) return;
-    const list = groups(e.type.value);
-
-    e.company.innerHTML = "";
-    e.company.appendChild(option("انتخاب شرکت / ژنتیک", ""));
-    list.forEach(g => e.company.appendChild(option(g.name, g.id)));
-
-    e.strain.innerHTML = "";
-    e.strain.appendChild(option("ابتدا شرکت / ژنتیک را انتخاب کنید", ""));
-    e.company.disabled = false;
-    e.strain.disabled = true;
-    if (e.program) {
-      e.program.innerHTML = "";
-      e.program.appendChild(option("انتخاب استاندارد / برنامه", ""));
-      e.program.disabled = true;
-    }
-  }
-
-  function fillStrains() {
-    const e = els();
-    if (!e.type || !e.company || !e.strain) return;
-    const g = groups(e.type.value).find(x => String(x.id) === String(e.company.value));
-    const strains = Array.isArray(g?.strains) ? g.strains : [];
-
-    e.strain.innerHTML = "";
-    e.strain.appendChild(option("انتخاب سویه / خط ژنتیکی", ""));
-    strains.forEach(s => e.strain.appendChild(option(s, s)));
-    e.strain.disabled = strains.length === 0;
-
-    if (e.program) {
-      e.program.innerHTML = "";
-      e.program.appendChild(option("انتخاب استاندارد / برنامه", ""));
-      e.program.disabled = !e.company.value;
-      if (e.company.value) fillProgram();
-    }
-  }
-
-  function fillProgram() {
-    const e = els();
-    if (!e.program || !e.company) return;
-    e.program.innerHTML = "";
-    e.program.appendChild(option("انتخاب استاندارد / برنامه", ""));
-    if (!e.company.value) { e.program.disabled = true; return; }
-    const company = e.company.selectedOptions?.[0]?.textContent || e.company.value;
-    const strain = e.strain?.value || "";
-    e.program.appendChild(option(
-      "استاندارد " + company + (strain ? " — " + strain : ""),
-      normType(e.type?.value) + "_" + e.company.value + "_" + (strain || "default")
-    ));
-    e.program.disabled = false;
-  }
-
-  function install() {
-    const e = els();
-    if (!e.type || !e.company || !e.strain) return false;
-    if (e.type.dataset.geneticsFinalFix === "1") return true;
-    e.type.dataset.geneticsFinalFix = "1";
-
-    /* The previous versions added normal/bubble listeners in flocks.js,
-       genetics-ui.js and selector-v2. Those handlers were overwriting the
-       values produced here. Capture + stopImmediatePropagation makes this
-       selector the single owner of these three controls. */
-    e.type.addEventListener("change", function (ev) {
-      ev.stopImmediatePropagation();
-      fillCompanies();
-    }, true);
-    e.company.addEventListener("change", function (ev) {
-      ev.stopImmediatePropagation();
-      fillStrains();
-    }, true);
-    e.strain.addEventListener("change", function (ev) {
-      ev.stopImmediatePropagation();
-      fillProgram();
-    }, true);
-
-    fillCompanies();
-    return true;
-  }
-
-  let tries = 0;
-  function boot() {
-    if (install()) return;
-    if (++tries < 100) setTimeout(boot, 100);
-  }
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot, { once: true });
-  } else boot();
-
-  window.AdineFinalGeneticsSelector = { refresh: fillCompanies, refreshStrains: fillStrains };
+/* FINAL FLOCK GENETICS SELECTOR FIX - v3 */
+(function(){
+'use strict';
+function cat(){try{return typeof POULTRY_CATALOG!=='undefined'?POULTRY_CATALOG:null}catch(e){return null}}
+function type(v){v=String(v??'').normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').trim().toLowerCase();return ({'گوشتی':'broiler','broiler':'broiler','تخمگذار':'layer','تخم گذار':'layer','تخم‌گذار':'layer','layer':'layer','پولت':'pullet','pullet':'pullet','مادر':'breeder','مرغ مادر':'breeder','breeder':'breeder'})[v]||v}
+function groups(v){const c=cat(),g=c&&c[type(v)]&&c[type(v)].genetics;return Array.isArray(g)?g:[]}
+function e(){return {t:document.getElementById('productionType'),g:document.getElementById('genetics'),s:document.getElementById('flockStrain'),p:document.getElementById('flockProgram')}}
+function opt(t,v){const o=document.createElement('option');o.value=String(v??'');o.textContent=String(t??'');return o}
+function companies(){const x=e();if(!x.t||!x.g||!x.s)return;const a=groups(x.t.value);x.g.disabled=false;x.g.innerHTML='';x.g.appendChild(opt('انتخاب شرکت / ژنتیک',''));a.forEach(g=>x.g.appendChild(opt(g.name,g.id)));x.s.disabled=true;x.s.innerHTML='';x.s.appendChild(opt('ابتدا شرکت / ژنتیک را انتخاب کنید',''));if(x.p){x.p.disabled=true;x.p.innerHTML='';x.p.appendChild(opt('انتخاب استاندارد / برنامه',''))}}
+function strains(){const x=e();if(!x.t||!x.g||!x.s)return;const g=groups(x.t.value).find(g=>String(g.id)===String(x.g.value));const a=Array.isArray(g&&g.strains)?g.strains:[];x.s.disabled=false;x.s.innerHTML='';x.s.appendChild(opt('انتخاب سویه / خط ژنتیکی',''));a.forEach(s=>x.s.appendChild(opt(s,s)));if(x.p){x.p.disabled=!x.g.value;x.p.innerHTML='';x.p.appendChild(opt('انتخاب استاندارد / برنامه',''));}}
+function program(){const x=e();if(!x.p)return;x.p.disabled=!x.g?.value;x.p.innerHTML='';x.p.appendChild(opt('انتخاب استاندارد / برنامه',''));if(x.g?.value)x.p.appendChild(opt('استاندارد '+(x.g.selectedOptions[0]?.textContent||x.g.value)+(x.s?.value?' — '+x.s.value:''),type(x.t?.value)+'_'+x.g.value+'_'+(x.s?.value||'default')))}
+function bind(){const x=e();if(!x.t||!x.g||!x.s)return false;if(x.t.dataset.geneticsV3==='1')return true;x.t.dataset.geneticsV3='1';document.addEventListener('change',function(ev){const z=ev.target;if(z===x.t){ev.stopImmediatePropagation();companies()}else if(z===x.g){ev.stopImmediatePropagation();strains()}else if(z===x.s){ev.stopImmediatePropagation();program()}},true);companies();setTimeout(companies,0);setTimeout(companies,500);setTimeout(companies,1500);return true}
+function boot(){if(!bind())setTimeout(boot,100)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.AdineFinalGeneticsSelector={refresh:companies,refreshStrains:strains};
 })();

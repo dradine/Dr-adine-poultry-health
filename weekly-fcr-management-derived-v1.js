@@ -37,6 +37,21 @@
     if(cumMetric){const cref=cumMetric.querySelector(".ref");if(cref)cref.textContent=`استاندارد رسمی تجمعی: ${fmt(t.cum)} | ${t.source||"Performance Objectives"} (${t.year||"—"})`;}
     wkMetric.dataset.managementFcr=String(t.value);
     if(cumMetric)cumMetric.dataset.officialCumulativeFcr=String(t.cum);
+    const addCard=(after,label,value,refText,key)=>{
+      let el=root.querySelector(`[data-adine-fcr-standard-card="${key}"]`);
+      if(!el){
+        el=document.createElement("div");
+        el.className="metric";
+        el.dataset.adineFcrStandardCard=key;
+        el.innerHTML='<div class="label"></div><div class="value"></div><div class="ref"></div>';
+        after.parentNode.insertBefore(el,after.nextSibling);
+      }
+      el.querySelector(".label").textContent=label;
+      el.querySelector(".value").textContent=fmt(value);
+      el.querySelector(".ref").textContent=refText;
+    };
+    addCard(wkMetric,"استاندارد مدیریتی FCR هفتگی",t.value,`${t.source||"Performance Objectives"} (${t.year||"—"})`,"weekly");
+    addCard(cumMetric,"استاندارد رسمی FCR تجمعی",t.cum,`${t.source||"Performance Objectives"} (${t.year||"—"})`,"cumulative");
   }
   function patchCharts(){
     const instances=g.Chart?.instances; if(!instances)return;

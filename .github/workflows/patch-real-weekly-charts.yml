@@ -1,0 +1,39 @@
+name: Patch real weekly charts
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.event.head_commit.message != 'Apply professional real Chart.js weekly charts'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch reports.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('reports.html')
+          s=p.read_text(encoding='utf-8')
+          old=re.search(r'function chart\(id,labels,datasets\)\{.*?\}\s*function fcr\(',s,re.S)
+          if not old:
+              raise SystemExit('chart function not found')
+          new=r'''function chart(id,labels,datasets){const c=document.getElementById(id);if(!c||!window.Chart)return;const old=Chart.getChart?.(c);if(old)old.destroy();const palette=['#1677ff','#f28c28','#18a673','#8b5cf6'];datasets=datasets.map((d,i)=>({...d,borderColor:palette[i%palette.length],backgroundColor:palette[i%palette.length],pointBackgroundColor:palette[i%palette.length],pointBorderColor:'#fff',pointBorderWidth:2,pointRadius:5,pointHoverRadius:8,borderWidth:3,borderDash:i===0?[]:[8,5],tension:.28,spanGaps:false}));const detail=document.createElement('div');detail.className='chart-selection-detail';detail.style.cssText='margin-top:8px;padding:9px 11px;border:1px solid #dfe8e3;border-radius:10px;background:#f7faf9;color:#344b43;font:700 10px/1.9 Tahoma;min-height:20px';c.parentElement.appendChild(detail);const ch=new Chart(c,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:true},plugins:{legend:{position:'top',align:'start',labels:{usePointStyle:true,pointStyle:'circle',font:{family:'Tahoma',size:10,weight:'bold'},padding:12}},tooltip:{backgroundColor:'#173f35',titleColor:'#fff',bodyColor:'#fff',borderColor:'#d9e5e0',borderWidth:1,padding:10,cornerRadius:9,displayColors:true}},scales:{x:{grid:{color:'rgba(23,63,53,.06)'},ticks:{color:'#52645d',font:{family:'Tahoma',size:9,weight:'bold'}}},y:{grid:{color:'rgba(23,63,53,.08)'},ticks:{color:'#52645d',font:{family:'Tahoma',size:9}},beginAtZero:false}}},plugins:[{id:'weeklyPointSelection',afterEvent(chart,event){if(event.event.type!=='click')return;const hit=chart.getElementsAtEventForMode(event.event,'nearest',{intersect:true},true)[0];if(!hit)return;const i=hit.index;chart.setActiveElements([{datasetIndex:0,index:i}]);chart.tooltip.setActiveElements([{datasetIndex:0,index:i}],{x:hit.element.x,y:hit.element.y});chart.update();const real=datasets[0]?.data?.[i],ref=datasets[1]?.data?.[i];const rn=Number(real),rf=Number(ref);const valid=Number.isFinite(rn)&&Number.isFinite(rf),diff=valid?rn-rf:null,pct=valid&&rf!==0?diff/rf*100:null;const fa=v=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toLocaleString('fa-IR',{maximumFractionDigits:3});detail.innerHTML=`<b style="color:#173f35">${labels[i]||'هفته'}</b> &nbsp; | &nbsp; واقعی: <strong>${fa(real)}</strong> &nbsp; | &nbsp; ${datasets[1]?.label||'استاندارد/هدف'}: <strong>${fa(ref)}</strong> &nbsp; | &nbsp; اختلاف: <strong>${fa(diff)}</strong>${pct==null?'':' &nbsp; | &nbsp; '+fa(pct)+'٪'}`;}}]});charts.push(ch)}function fcr('''
+          s=s[:old.start()]+new+s[old.end()-len('function fcr('):]
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Verify
+        run: |
+          grep -q "weeklyPointSelection" reports.html
+          grep -q "new Chart(c" reports.html
+          grep -q "wWeight" reports.html
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Apply professional real Chart.js weekly charts"
+          git push

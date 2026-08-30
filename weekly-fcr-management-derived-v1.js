@@ -29,11 +29,14 @@
     const root=document.getElementById("root"); if(!root)return;
     const metrics=[...root.querySelectorAll(".metric")];
     const wkMetric=metrics.find(m=>/FCR\s*هفتگی/.test(m.querySelector(".label")?.textContent||""));
+    const cumMetric=metrics.find(m=>/FCR\s*تجمعی/.test(m.querySelector(".label")?.textContent||""));
     if(!wkMetric)return;
     const weekSel=document.getElementById("week"),w=num(weekSel?.value); if(w==null)return;
     const t=targetForWeek(w); if(!t)return;
     const ref=wkMetric.querySelector(".ref"); if(ref){ref.textContent=`استاندارد مدیریتی هفتگی: ${fmt(t.value)} | ${t.source||"مرجع رسمی Performance Objectives"} (${t.year||"—"})`;}
+    if(cumMetric){const cref=cumMetric.querySelector(".ref");if(cref)cref.textContent=`استاندارد رسمی تجمعی: ${fmt(t.cum)} | ${t.source||"Performance Objectives"} (${t.year||"—"})`;}
     wkMetric.dataset.managementFcr=String(t.value);
+    if(cumMetric)cumMetric.dataset.officialCumulativeFcr=String(t.cum);
   }
   function patchCharts(){
     const instances=g.Chart?.instances; if(!instances)return;
@@ -43,10 +46,12 @@
         const title=box.querySelector("h3")?.textContent||""; if(!/FCR/.test(title))return;
         const labels=ch.data?.labels||[]; if(!labels.length)return;
         const targets=labels.map(label=>targetForWeek(num(String(label).replace(/[^0-9.]/g,"")))?.value??null);
+        const cumulative=labels.map(label=>targetForWeek(num(String(label).replace(/[^0-9.]/g,"")))?.cum??null);
         if(!targets.some(v=>v!=null))return;
         let official=ch.data.datasets.find(ds=>/استاندارد رسمی/.test(String(ds.label||"")));
         if(!official)return;
         if(!official._adineOfficialFcr){official._adineOfficialFcr=true;official.label="استاندارد رسمی تجمعی";}
+        official.data=cumulative;
         let mg=ch.data.datasets.find(ds=>ds._adineWeeklyManagementFcr);
         if(!mg){mg={label:"استاندارد مدیریتی هفتگی",data:targets,borderWidth:2,borderDash:[6,4],pointRadius:2,_adineWeeklyManagementFcr:true};ch.data.datasets.splice(2,0,mg);}else mg.data=targets;
         ch.update("none");

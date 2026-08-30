@@ -1,119 +1,24 @@
-/* ADINE — robust weekly comparison charts v1 */
+/* ADINE — weekly charts v2: replaces legacy chart area with four explicit charts */
 (function(){
-  'use strict';
-  if (window.__ADINE_WEEKLY_CHARTS_V1__) return;
-  window.__ADINE_WEEKLY_CHARTS_V1__ = true;
-
-  const $ = id => document.getElementById(id);
-  const num = v => {
-    if(v===null || v===undefined || v==='') return null;
-    const x = Number(String(v)
-      .replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-1776))
-      .replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-1632))
-      .replace(/[٬,]/g,'').replace('٫','.'));
-    return Number.isFinite(x) ? x : null;
-  };
-  const pick = (r, keys) => { for(const k of keys){ const x=num(r?.[k]); if(x!==null) return x; } return null; };
-  const fcr = (r, cumulative) => pick(r, cumulative ? ['fcr_cumulative','cumulative_fcr','cum_fcr'] : ['fcr_weekly','weekly_fcr','fcr']);
-  const weight = r => pick(r,['average_weight_g','avg_weight_g','weight_g']);
-  const standard = (flock,r,key) => {
-    try{
-      if(typeof resolvePoultryStandard!=='function') return null;
-      const s=resolvePoultryStandard({productionType:flock.production_type,genetics:flock.genetics,strain:flock.strain,variant:flock.variant,ageDays:num(r?.age_days)});
-      return num(s?.[key]);
-    }catch(e){ return null; }
-  };
-  function managementTarget(flock,rows,r){
-    const week=num(r?.week_number); if(week===null) return null;
-    try{
-      if(typeof resolvePoultryStandard!=='function') return null;
-      const cur=resolvePoultryStandard({productionType:flock.production_type,genetics:flock.genetics,strain:flock.strain,variant:flock.variant,ageDays:num(r.age_days)});
-      const prevRow=rows.find(x=>num(x.week_number)===week-1);
-      if(!prevRow) return null;
-      const prev=resolvePoultryStandard({productionType:flock.production_type,genetics:flock.genetics,strain:flock.strain,variant:flock.variant,ageDays:num(prevRow.age_days)});
-      const cc=num(cur?.fcr),pc=num(prev?.fcr),cw=num(cur?.weight),pw=num(prev?.weight);
-      if(cc===null||pc===null||cw===null||pw===null||cw<=pw) return null;
-      const gain=cw-pw;
-      return (cc*(cw-pw)-pc*pw)/gain;
-    }catch(e){return null;}
-  }
-  function weeklyGain(rows,index){
-    const direct=pick(rows[index],['weekly_weight_gain_g','weight_gain_g','weekly_gain_g','weight_gain']);
-    if(direct!==null) return direct;
-    if(index<=0) return null;
-    const a=weight(rows[index]), b=weight(rows[index-1]);
-    return a!==null&&b!==null ? a-b : null;
-  }
-  function standardGain(flock,rows,index){
-    if(index<=0) return null;
-    const a=standard(flock,rows[index],'weight'), b=standard(flock,rows[index-1],'weight');
-    return a!==null&&b!==null ? a-b : null;
-  }
-  function selectedRows(all,selected){
-    const wk=num(selected?.week_number);
-    return wk===null ? all : all.filter(r=>num(r.week_number)<=wk);
-  }
-  function makeDatasets(flock,all,selected){
-    const rs=selectedRows(all,selected), labels=rs.map(r=>'هفته '+(num(r.week_number)??''));
-    return {labels,rs,
-      weight:[rs.map(weight),rs.map(r=>standard(flock,r,'weight'))],
-      gain:[rs.map((r,i)=>weeklyGain(all,all.indexOf(r))),rs.map(r=>standardGain(flock,all,all.indexOf(r)))],
-      fcrCum:[rs.map(r=>fcr(r,true)),rs.map(r=>standard(flock,r,'fcr'))],
-      fcrWeek:[rs.map(r=>fcr(r,false)),rs.map(r=>managementTarget(flock,all,r))]
-    };
-  }
-  function chartJs(id,labels,a,b,nameA,nameB){
-    const c=$(id); if(!c || !window.Chart) return false;
-    new Chart(c,{type:'line',data:{labels,datasets:[
-      {label:nameA,data:a,spanGaps:true,tension:.25},
-      {label:nameB,data:b,spanGaps:true,tension:.25}
-    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top'}},scales:{x:{ticks:{font:{family:'Tahoma,Arial'}}},y:{beginAtZero:false,ticks:{font:{family:'Tahoma,Arial'}}}}}});
-    return true;
-  }
-  function native(id,labels,a,b,nameA,nameB){
-    const c=$(id); if(!c) return;
-    const ctx=c.getContext('2d'); if(!ctx) return;
-    const dpr=window.devicePixelRatio||1, w=Math.max(c.clientWidth,320), h=Math.max(c.clientHeight,260);
-    c.width=w*dpr; c.height=h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
-    const vals=a.concat(b).filter(x=>x!==null&&Number.isFinite(x));
-    if(!vals.length){ctx.font='14px Tahoma';ctx.fillText('داده کافی برای رسم نمودار وجود ندارد',w/2-115,h/2);return;}
-    let min=Math.min(...vals),max=Math.max(...vals); if(min===max){min-=1;max+=1;} const pad={l:48,r:18,t:32,b:42}, pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;
-    const x=i=>pad.l+(labels.length<=1?pw/2:i*pw/(labels.length-1)), y=v=>pad.t+(max-v)*ph/(max-min);
-    ctx.strokeStyle='#dfe8e3';ctx.lineWidth=1; for(let i=0;i<5;i++){const yy=pad.t+i*ph/4;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();}
-    ctx.font='10px Tahoma';ctx.fillStyle='#687770';ctx.textAlign='center'; labels.forEach((l,i)=>ctx.fillText(l,x(i),h-14));
-    const draw=(data)=>{ctx.beginPath();let started=false;data.forEach((v,i)=>{if(v===null||!Number.isFinite(v)){started=false;return;}const xx=x(i),yy=y(v);if(!started){ctx.moveTo(xx,yy);started=true;}else ctx.lineTo(xx,yy);});ctx.stroke();data.forEach((v,i)=>{if(v===null||!Number.isFinite(v))return;ctx.beginPath();ctx.arc(x(i),y(v),3,0,Math.PI*2);ctx.fill();});};
-    ctx.lineWidth=2; draw(a); ctx.setLineDash([6,4]); draw(b); ctx.setLineDash([]);
-    ctx.textAlign='right';ctx.fillText(nameA,w-pad.r,16);ctx.textAlign='left';ctx.fillText(nameB,pad.l,16);
-  }
-  function render(){
-    if(!document.querySelector('.chart canvas[id^="w"]')) return false;
-    const id=(new URLSearchParams(location.search)).get('flock_id'); if(!id || !window.supabaseClient) return false;
-    return Promise.resolve(window.supabaseClient.from('flocks').select('*').eq('id',id).maybeSingle()).then(fr=>{
-      if(fr.error||!fr.data) return false;
-      return window.supabaseClient.from('weekly_monitoring').select('*').eq('flock_id',id).order('week_number',{ascending:true}).then(wr=>{
-        if(wr.error) return false;
-        const all=wr.data||[]; if(!all.length) return false;
-        const select=$('week');
-        const selected=all[Number(select?.value)||0] || all[all.length-1];
-        const d=makeDatasets(fr.data,all,selected);
-        chartJs('wWeight',d.labels,d.weight[0],d.weight[1],'میانگین وزن واقعی','استاندارد رسمی وزن') || native('wWeight',d.labels,d.weight[0],d.weight[1],'واقعی','استاندارد');
-        chartJs('wGain',d.labels,d.gain[0],d.gain[1],'افزایش وزن واقعی','استاندارد رسمی افزایش وزن') || native('wGain',d.labels,d.gain[0],d.gain[1],'واقعی','استاندارد');
-        chartJs('wFcrCum',d.labels,d.fcrCum[0],d.fcrCum[1],'FCR تجمعی واقعی','استاندارد رسمی FCR تجمعی') || native('wFcrCum',d.labels,d.fcrCum[0],d.fcrCum[1],'واقعی','استاندارد');
-        chartJs('wFcrWeek',d.labels,d.fcrWeek[0],d.fcrWeek[1],'FCR هفتگی واقعی','هدف مدیریتی FCR هفتگی') || native('wFcrWeek',d.labels,d.fcrWeek[0],d.fcrWeek[1],'واقعی','هدف مدیریتی');
-        return true;
-      });
-    }).catch(()=>false);
-  }
-  let timer=null;
-  function boot(){
-    if(timer) return;
-    let tries=0;
-    timer=setInterval(async()=>{
-      tries++;
-      const ok=await render();
-      if(ok || tries>=30){clearInterval(timer);timer=null;}
-    },250);
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
-  document.addEventListener('change',e=>{if(e.target?.id==='week') setTimeout(boot,20);});
+'use strict';
+if(window.__ADINE_WEEKLY_CHARTS_V2__) return;
+window.__ADINE_WEEKLY_CHARTS_V2__=true;
+const $=id=>document.getElementById(id);
+const num=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-1776)).replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-1632)).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
+const pick=(r,ks)=>{for(const k of ks){const x=num(r?.[k]);if(x!==null)return x}return null};
+const weight=r=>pick(r,['average_weight_g','avg_weight_g','weight_g']);
+const fcr=(r,cum)=>pick(r,cum?['fcr_cumulative','cumulative_fcr','cum_fcr']:['fcr_weekly','weekly_fcr','fcr']);
+function std(flock,r,key){try{if(typeof resolvePoultryStandard!=='function')return null;const s=resolvePoultryStandard({productionType:flock.production_type,genetics:flock.genetics,strain:flock.strain,variant:flock.variant,ageDays:num(r?.age_days)});return num(s?.[key])}catch(e){return null}}
+function gain(rows,i){const direct=pick(rows[i],['weekly_weight_gain_g','weight_gain_g','weekly_gain_g','weight_gain']);if(direct!==null)return direct;if(i<1)return null;const a=weight(rows[i]),b=weight(rows[i-1]);return a!==null&&b!==null?a-b:null}
+function stdGain(flock,rows,i){if(i<1)return null;const a=std(flock,rows[i],'weight'),b=std(flock,rows[i-1],'weight');return a!==null&&b!==null?a-b:null}
+function target(flock,rows,r){const w=num(r?.week_number);if(w===null||w<=1)return null;try{const cur=resolvePoultryStandard({productionType:flock.production_type,genetics:flock.genetics,strain:flock.strain,variant:flock.variant,ageDays:num(r.age_days)}),pr=rows.find(x=>num(x.week_number)===w-1);if(!pr)return null;const prev=resolvePoultryStandard({productionType:flock.production_type,genetics:flock.genetics,strain:flock.strain,variant:flock.variant,ageDays:num(pr.age_days)});const cc=num(cur?.fcr),pc=num(prev?.fcr),cw=num(cur?.weight),pw=num(prev?.weight);if([cc,pc,cw,pw].some(x=>x===null)||cw<=pw)return null;return(cc*(cw-pw)-pc*pw)/(cw-pw)}catch(e){return null}}
+function buildArea(){const root=$('root');if(!root)return false;let old=root.querySelector('.grid');if(!old)return false;let area=document.getElementById('adineWeeklyChartsArea');if(area)return true;area=document.createElement('section');area.id='adineWeeklyChartsArea';area.className='section';area.innerHTML='<h2>نمودارهای هفتگی</h2><div class="adine-chart-grid"><div class="box adine-chart-box"><h3>میانگین وزن واقعی و استاندارد رسمی</h3><canvas id="adineWWeight"></canvas></div><div class="box adine-chart-box"><h3>افزایش وزن هفتگی واقعی و استاندارد رسمی</h3><canvas id="adineWGain"></canvas></div><div class="box adine-chart-box"><h3>FCR تجمعی واقعی و استاندارد رسمی</h3><canvas id="adineWFcrCum"></canvas></div><div class="box adine-chart-box"><h3>FCR هفتگی واقعی و هدف مدیریتی</h3><canvas id="adineWFcrWeek"></canvas></div></div>';
+const style=document.createElement('style');style.textContent='#adineWeeklyChartsArea .adine-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}#adineWeeklyChartsArea .adine-chart-box{height:330px;position:relative;background:#fff}#adineWeeklyChartsArea .adine-chart-box canvas{width:100%!important;height:275px!important;display:block}@media(max-width:700px){#adineWeeklyChartsArea .adine-chart-grid{grid-template-columns:1fr}}';document.head.appendChild(style);
+root.appendChild(area);return true}
+function chart(id,labels,a,b,la,lb){const c=$(id);if(!c)return;const old=Chart?.getChart?.(c);if(old)old.destroy();if(window.Chart){new Chart(c,{type:'line',data:{labels,datasets:[{label:la,data:a,spanGaps:true,tension:.25},{label:lb,data:b,spanGaps:true,tension:.25}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,position:'top'}},scales:{x:{display:true},y:{display:true,beginAtZero:false}}}});return}native(c,labels,a,b,la,lb)}
+function native(c,labels,a,b,la,lb){const ctx=c.getContext('2d');if(!ctx)return;const w=Math.max(c.clientWidth||600,320),h=Math.max(c.clientHeight||275,240),dpr=devicePixelRatio||1;c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);const vals=[...a,...b].filter(x=>Number.isFinite(x));if(!vals.length){ctx.font='14px Tahoma';ctx.textAlign='center';ctx.fillText('داده کافی برای رسم نمودار وجود ندارد',w/2,h/2);return}let min=Math.min(...vals),max=Math.max(...vals);if(min===max){min-=1;max+=1}const l=48,r=18,t=34,bot=40,pw=w-l-r,ph=h-t-bot,x=i=>l+(labels.length<2?pw/2:i*pw/(labels.length-1)),y=v=>t+(max-v)*ph/(max-min);ctx.font='10px Tahoma';ctx.textAlign='center';labels.forEach((v,i)=>ctx.fillText(v,x(i),h-12));function draw(data,dash){ctx.setLineDash(dash?[6,4]:[]);ctx.beginPath();let on=false;data.forEach((v,i)=>{if(!Number.isFinite(v)){on=false;return}const xx=x(i),yy=y(v);if(!on){ctx.moveTo(xx,yy);on=true}else ctx.lineTo(xx,yy)});ctx.stroke();ctx.setLineDash([])}ctx.lineWidth=2;draw(a,false);draw(b,true);ctx.textAlign='right';ctx.fillText(la,w-r,15);ctx.textAlign='left';ctx.fillText(lb,l,15)}
+async function render(){if(!document.getElementById('adineWeeklyChartsArea')&&!buildArea())return false;const id=(new URLSearchParams(location.search)).get('flock_id');if(!id||!window.supabaseClient)return false;const fr=await window.supabaseClient.from('flocks').select('*').eq('id',id).maybeSingle();if(fr.error||!fr.data)return false;const wr=await window.supabaseClient.from('weekly_monitoring').select('*').eq('flock_id',id).order('week_number',{ascending:true});if(wr.error)return false;const all=wr.data||[];if(!all.length)return false;const sel=$('week'),selected=all[Number(sel?.value)||0]||all[all.length-1],maxWeek=num(selected?.week_number);const rs=all.filter(r=>num(r.week_number)<=maxWeek),labels=rs.map(r=>'هفته '+num(r.week_number));chart('adineWWeight',labels,rs.map(weight),rs.map(r=>std(fr.data,r,'weight')),'وزن واقعی','استاندارد رسمی');chart('adineWGain',labels,rs.map(r=>gain(all,all.indexOf(r))),rs.map(r=>stdGain(fr.data,all,all.indexOf(r))),'افزایش وزن واقعی','استاندارد رسمی');chart('adineWFcrCum',labels,rs.map(r=>fcr(r,true)),rs.map(r=>std(fr.data,r,'fcr')),'FCR تجمعی واقعی','استاندارد رسمی');chart('adineWFcrWeek',labels,rs.map(r=>fcr(r,false)),rs.map(r=>target(fr.data,all,r)),'FCR هفتگی واقعی','هدف مدیریتی');return true}
+let running=false,lastWeek='';async function tick(){if(running)return;running=true;try{const ok=await render();const w=$('week')?.value||'';if(ok&&w!==lastWeek){lastWeek=w}}catch(e){console.warn('weekly charts:',e)}finally{running=false}}
+function boot(){let tries=0;const t=setInterval(async()=>{tries++;await tick();if(document.getElementById('adineWeeklyChartsArea')&&tries>8)clearInterval(t);if(tries>40)clearInterval(t)},300);document.addEventListener('change',e=>{if(e.target?.id==='week')setTimeout(tick,50)})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

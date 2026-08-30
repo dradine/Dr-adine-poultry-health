@@ -1,184 +1,132 @@
-/* =========================================================
-   FLOCK GENETICS SELECTOR — COMPATIBILITY FIX V1 + FINAL UI PATCH
-========================================================= */
+/* FINAL FLOCK GENETICS SELECTOR FIX
+   Source of truth: POULTRY_CATALOG in standard-data.js
+   This file deliberately owns the three dependent selects on flocks.html.
+*/
 (function () {
-    "use strict";
+  "use strict";
 
-    function catalogRoot() {
-        try {
-            if (typeof POULTRY_CATALOG !== "undefined") return POULTRY_CATALOG;
-        } catch (e) {}
-        return null;
-    }
+  function rootCatalog() {
+    try {
+      if (typeof POULTRY_CATALOG !== "undefined" && POULTRY_CATALOG) return POULTRY_CATALOG;
+    } catch (_) {}
+    return null;
+  }
 
-    function normalizeType(value) {
-        const raw = String(value ?? "").normalize("NFKC").trim().toLowerCase();
-        const map = {
-            "گوشتی": "broiler",
-            "تخمگذار": "layer",
-            "تخم گذار": "layer",
-            "تخم‌گذار": "layer",
-            "پولت": "pullet",
-            "مادر": "breeder",
-            "مرغ مادر": "breeder"
-        };
-        return map[raw] || raw;
-    }
+  function normType(v) {
+    const s = String(v ?? "").normalize("NFKC").trim().toLowerCase();
+    return ({
+      "گوشتی":"broiler", "broiler":"broiler",
+      "تخمگذار":"layer", "تخم گذار":"layer", "تخم‌گذار":"layer", "layer":"layer",
+      "پولت":"pullet", "pullet":"pullet",
+      "مادر":"breeder", "مرغ مادر":"breeder", "breeder":"breeder"
+    })[s] || s;
+  }
 
-    function getCatalogGenetics(type) {
-        const root = catalogRoot();
-        const entry = root && root[normalizeType(type)];
-        return Array.isArray(entry?.genetics) ? entry.genetics : [];
-    }
+  function groups(type) {
+    const c = rootCatalog();
+    const g = c && c[normType(type)] && c[normType(type)].genetics;
+    return Array.isArray(g) ? g : [];
+  }
 
-    function getCatalogStrains(type, geneticsId) {
-        const group = getCatalogGenetics(type).find(item => String(item?.id ?? "") === String(geneticsId ?? ""));
-        return Array.isArray(group?.strains) ? group.strains : [];
-    }
-
-    window.getGenetics = getCatalogGenetics;
-    window.getStrains = getCatalogStrains;
-
-    window.updateGenetics = function () {
-        const type = document.getElementById("productionType")?.value || "";
-        const genetics = document.getElementById("genetics");
-        const strain = document.getElementById("flockStrain");
-        const program = document.getElementById("flockProgram");
-        if (!genetics || !strain || !program) return;
-
-        genetics.innerHTML = '<option value="">انتخاب شرکت / ژنتیک</option>';
-        strain.innerHTML = '<option value="">ابتدا شرکت / ژنتیک را انتخاب کنید</option>';
-        program.innerHTML = '<option value="">انتخاب خودکار</option>';
-
-        getCatalogGenetics(type).forEach(item => {
-            const option = document.createElement("option");
-            option.value = String(item.id);
-            option.textContent = item.name;
-            genetics.appendChild(option);
-        });
-
-        genetics.disabled = genetics.options.length <= 1;
-        strain.disabled = true;
-        program.disabled = true;
+  function els() {
+    return {
+      type: document.getElementById("productionType"),
+      company: document.getElementById("genetics"),
+      strain: document.getElementById("flockStrain"),
+      program: document.getElementById("flockProgram")
     };
+  }
 
-    window.updatePrograms = function () {
-        const type = document.getElementById("productionType")?.value || "";
-        const geneticsId = document.getElementById("genetics")?.value || "";
-        const genetics = document.getElementById("genetics");
-        const strain = document.getElementById("flockStrain");
-        const program = document.getElementById("flockProgram");
-        if (!genetics || !strain || !program) return;
+  function option(text, value) {
+    const o = document.createElement("option");
+    o.value = String(value ?? "");
+    o.textContent = String(text ?? "");
+    return o;
+  }
 
-        strain.innerHTML = '<option value="">انتخاب سویه / خط ژنتیکی</option>';
-        program.innerHTML = '<option value="">انتخاب استاندارد / برنامه</option>';
+  function fillCompanies() {
+    const e = els();
+    if (!e.type || !e.company || !e.strain) return;
+    const list = groups(e.type.value);
 
-        if (!geneticsId) {
-            strain.disabled = true;
-            program.disabled = true;
-            return;
-        }
+    e.company.innerHTML = "";
+    e.company.appendChild(option("انتخاب شرکت / ژنتیک", ""));
+    list.forEach(g => e.company.appendChild(option(g.name, g.id)));
 
-        const strains = getCatalogStrains(type, geneticsId);
-        strains.forEach(item => {
-            const option = document.createElement("option");
-            option.value = String(item);
-            option.textContent = String(item);
-            strain.appendChild(option);
-        });
-
-        strain.disabled = strains.length === 0;
-        program.disabled = false;
-
-        const company = genetics.selectedOptions?.[0]?.textContent || geneticsId;
-        const selectedStrain = strain.value || "";
-        const option = document.createElement("option");
-        option.value = `${normalizeType(type)}_${geneticsId}_${selectedStrain || "default"}`;
-        option.textContent = `استاندارد ${company}${selectedStrain ? " — " + selectedStrain : ""}`;
-        program.appendChild(option);
-    };
-
-    function installFinalSelectorFix() {
-        const production = document.getElementById("productionType");
-        const genetics = document.getElementById("genetics");
-        const strain = document.getElementById("flockStrain");
-        const program = document.getElementById("flockProgram");
-        if (!production || !genetics || !strain || !program) return;
-
-        // Remove only handlers installed by this fix, if initialization is retried.
-        if (production.dataset.finalGeneticsFix === "1") return;
-        production.dataset.finalGeneticsFix = "1";
-
-        // Directly populate from the master catalog. This intentionally does
-        // not call flocks.js' lexical updateGenetics/updatePrograms functions.
-        const fillGenetics = () => {
-            const type = normalizeType(production.value);
-            const groups = getCatalogGenetics(type);
-            genetics.innerHTML = '<option value="">انتخاب شرکت / ژنتیک</option>';
-            strain.innerHTML = '<option value="">ابتدا شرکت / ژنتیک را انتخاب کنید</option>';
-            program.innerHTML = '<option value="">انتخاب خودکار</option>';
-
-            groups.forEach(group => {
-                const o = document.createElement("option");
-                o.value = String(group.id);
-                o.textContent = String(group.name ?? group.id);
-                genetics.appendChild(o);
-            });
-
-            genetics.disabled = groups.length === 0;
-            strain.disabled = true;
-            program.disabled = true;
-        };
-
-        const fillStrains = () => {
-            const type = normalizeType(production.value);
-            const groups = getCatalogGenetics(type);
-            const group = groups.find(g => String(g.id) === String(genetics.value));
-            const strains = Array.isArray(group?.strains) ? group.strains : [];
-
-            strain.innerHTML = '<option value="">انتخاب سویه / خط ژنتیکی</option>';
-            program.innerHTML = '<option value="">انتخاب استاندارد / برنامه</option>';
-
-            strains.forEach(value => {
-                const o = document.createElement("option");
-                o.value = String(value);
-                o.textContent = String(value);
-                strain.appendChild(o);
-            });
-
-            strain.disabled = strains.length === 0;
-            program.disabled = genetics.value === "";
-
-            if (strains.length === 1) strain.value = String(strains[0]);
-            fillProgram();
-        };
-
-        const fillProgram = () => {
-            program.innerHTML = '<option value="">انتخاب استاندارد / برنامه</option>';
-            if (!genetics.value) {
-                program.disabled = true;
-                return;
-            }
-            const company = genetics.selectedOptions?.[0]?.textContent || genetics.value;
-            const selectedStrain = strain.value || "";
-            const o = document.createElement("option");
-            o.value = `${normalizeType(production.value)}_${genetics.value}_${selectedStrain || "default"}`;
-            o.textContent = `استاندارد ${company}${selectedStrain ? " — " + selectedStrain : ""}`;
-            program.appendChild(o);
-            program.disabled = false;
-        };
-
-        production.addEventListener("change", fillGenetics);
-        genetics.addEventListener("change", fillStrains);
-        strain.addEventListener("change", fillProgram);
-
-        // Initial state and recovery if another script reset the selects.
-        fillGenetics();
+    e.strain.innerHTML = "";
+    e.strain.appendChild(option("ابتدا شرکت / ژنتیک را انتخاب کنید", ""));
+    e.company.disabled = false;
+    e.strain.disabled = true;
+    if (e.program) {
+      e.program.innerHTML = "";
+      e.program.appendChild(option("انتخاب استاندارد / برنامه", ""));
+      e.program.disabled = true;
     }
+  }
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", installFinalSelectorFix, { once: true });
-    } else {
-        installFinalSelectorFix();
+  function fillStrains() {
+    const e = els();
+    if (!e.type || !e.company || !e.strain) return;
+    const list = groups(e.type.value);
+    const g = list.find(x => String(x.id) === String(e.company.value));
+    const strains = Array.isArray(g && g.strains) ? g.strains : [];
+
+    e.strain.innerHTML = "";
+    e.strain.appendChild(option("انتخاب سویه / خط ژنتیکی", ""));
+    strains.forEach(s => e.strain.appendChild(option(s, s)));
+    e.strain.disabled = strains.length === 0;
+
+    if (e.program) {
+      e.program.innerHTML = "";
+      e.program.appendChild(option("انتخاب استاندارد / برنامه", ""));
+      e.program.disabled = !e.company.value;
+      if (e.company.value) fillProgram();
     }
+  }
+
+  function fillProgram() {
+    const e = els();
+    if (!e.program || !e.company) return;
+    e.program.innerHTML = "";
+    e.program.appendChild(option("انتخاب استاندارد / برنامه", ""));
+    if (!e.company.value) { e.program.disabled = true; return; }
+    const company = e.company.selectedOptions && e.company.selectedOptions[0]
+      ? e.company.selectedOptions[0].textContent : e.company.value;
+    const strain = e.strain ? e.strain.value : "";
+    e.program.appendChild(option("استاندارد " + company + (strain ? " — " + strain : ""),
+      normType(e.type ? e.type.value : "") + "_" + e.company.value + "_" + (strain || "default")));
+    e.program.disabled = false;
+  }
+
+  function install() {
+    const e = els();
+    if (!e.type || !e.company || !e.strain) return false;
+    if (e.type.dataset.geneticsFinalFix === "1") return true;
+    e.type.dataset.geneticsFinalFix = "1";
+
+    /* Capture listeners run before the older flocks.js listeners and therefore
+       keep the actual DOM selectors populated from the master catalog. */
+    e.type.addEventListener("change", fillCompanies, true);
+    e.company.addEventListener("change", fillStrains, true);
+    e.strain.addEventListener("change", fillProgram, true);
+
+    fillCompanies();
+    return true;
+  }
+
+  /* flocks.js and this script are both loaded at the end of body. Retry briefly
+     so async page initialization or another script cannot leave empty selects. */
+  let tries = 0;
+  function boot() {
+    if (install()) return;
+    if (++tries < 50) setTimeout(boot, 100);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else boot();
+
+  window.AdineFinalGeneticsSelector = {
+    refresh: fillCompanies,
+    refreshStrains: fillStrains
+  };
 })();

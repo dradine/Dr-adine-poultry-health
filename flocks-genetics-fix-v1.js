@@ -1,6 +1,7 @@
 /* FINAL FLOCK GENETICS SELECTOR FIX
-   Source of truth: POULTRY_CATALOG in standard-data.js
-   This file deliberately owns the three dependent selects on flocks.html.
+   Source of truth: POULTRY_CATALOG in standard-data.js.
+   This file owns the three dependent selectors on flocks.html and blocks
+   older selector handlers from overwriting them.
 */
 (function () {
   "use strict";
@@ -13,7 +14,7 @@
   }
 
   function normType(v) {
-    const s = String(v ?? "").normalize("NFKC").trim().toLowerCase();
+    const s = String(v ?? "").normalize("NFKC").replace(/[\u200c\u200f\u202a-\u202e]/g, "").trim().toLowerCase();
     return ({
       "گوشتی":"broiler", "broiler":"broiler",
       "تخمگذار":"layer", "تخم گذار":"layer", "تخم‌گذار":"layer", "layer":"layer",
@@ -67,9 +68,8 @@
   function fillStrains() {
     const e = els();
     if (!e.type || !e.company || !e.strain) return;
-    const list = groups(e.type.value);
-    const g = list.find(x => String(x.id) === String(e.company.value));
-    const strains = Array.isArray(g && g.strains) ? g.strains : [];
+    const g = groups(e.type.value).find(x => String(x.id) === String(e.company.value));
+    const strains = Array.isArray(g?.strains) ? g.strains : [];
 
     e.strain.innerHTML = "";
     e.strain.appendChild(option("انتخاب سویه / خط ژنتیکی", ""));
@@ -90,11 +90,12 @@
     e.program.innerHTML = "";
     e.program.appendChild(option("انتخاب استاندارد / برنامه", ""));
     if (!e.company.value) { e.program.disabled = true; return; }
-    const company = e.company.selectedOptions && e.company.selectedOptions[0]
-      ? e.company.selectedOptions[0].textContent : e.company.value;
-    const strain = e.strain ? e.strain.value : "";
-    e.program.appendChild(option("استاندارد " + company + (strain ? " — " + strain : ""),
-      normType(e.type ? e.type.value : "") + "_" + e.company.value + "_" + (strain || "default")));
+    const company = e.company.selectedOptions?.[0]?.textContent || e.company.value;
+    const strain = e.strain?.value || "";
+    e.program.appendChild(option(
+      "استاندارد " + company + (strain ? " — " + strain : ""),
+      normType(e.type?.value) + "_" + e.company.value + "_" + (strain || "default")
+    ));
     e.program.disabled = false;
   }
 
@@ -104,29 +105,35 @@
     if (e.type.dataset.geneticsFinalFix === "1") return true;
     e.type.dataset.geneticsFinalFix = "1";
 
-    /* Capture listeners run before the older flocks.js listeners and therefore
-       keep the actual DOM selectors populated from the master catalog. */
-    e.type.addEventListener("change", fillCompanies, true);
-    e.company.addEventListener("change", fillStrains, true);
-    e.strain.addEventListener("change", fillProgram, true);
+    /* The previous versions added normal/bubble listeners in flocks.js,
+       genetics-ui.js and selector-v2. Those handlers were overwriting the
+       values produced here. Capture + stopImmediatePropagation makes this
+       selector the single owner of these three controls. */
+    e.type.addEventListener("change", function (ev) {
+      ev.stopImmediatePropagation();
+      fillCompanies();
+    }, true);
+    e.company.addEventListener("change", function (ev) {
+      ev.stopImmediatePropagation();
+      fillStrains();
+    }, true);
+    e.strain.addEventListener("change", function (ev) {
+      ev.stopImmediatePropagation();
+      fillProgram();
+    }, true);
 
     fillCompanies();
     return true;
   }
 
-  /* flocks.js and this script are both loaded at the end of body. Retry briefly
-     so async page initialization or another script cannot leave empty selects. */
   let tries = 0;
   function boot() {
     if (install()) return;
-    if (++tries < 50) setTimeout(boot, 100);
+    if (++tries < 100) setTimeout(boot, 100);
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot, { once: true });
   } else boot();
 
-  window.AdineFinalGeneticsSelector = {
-    refresh: fillCompanies,
-    refreshStrains: fillStrains
-  };
+  window.AdineFinalGeneticsSelector = { refresh: fillCompanies, refreshStrains: fillStrains };
 })();

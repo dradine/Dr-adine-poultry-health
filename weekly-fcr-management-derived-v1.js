@@ -1,4 +1,4 @@
-/* ADINE POULTRY HEALTH — BROILER FCR REPORT PATCH V5 */
+/* ADINE POULTRY HEALTH — WEEKLY MANAGEMENT FCR TARGET ONLY */
 "use strict";
 (function(g){
   const page=String(location.pathname||"").toLowerCase().split("/").pop();
@@ -8,32 +8,29 @@
   const fmt=v=>v==null?"—":Number(v).toLocaleString("fa-IR",{minimumFractionDigits:3,maximumFractionDigits:3});
   let flock=null,rows=[],loading=false;
   function id(){const p=new URLSearchParams(location.search);return p.get("flock_id")||p.get("flockId")||p.get("id")||null;}
-  function meta(r,key){try{if(typeof g.resolvePoultryStandard!=="function")return null;const s=g.resolvePoultryStandard({productionType:flock?.production_type,genetics:flock?.genetics,strain:flock?.strain,variant:flock?.variant,ageDays:num(r?.age_days)});const k=key==="fcr"?"fcr":"weight";return {value:num(s?.[k]),source:s?.[k+"Source"]||null,label:s?.[k+"SourceLabel"]||null};}catch(_){return null;}}
-  function official(r,key){const m=meta(r,key);return m&&m.source==="official"&&m.value!=null?m.value:null;}
-  function entryWeight(){for(const k of ["initial_weight_g","initialWeightG","chick_weight_g","chickWeightG","placement_weight_g","placementWeightG"]){const v=num(flock?.[k]);if(v!=null&&v>0)return v;}return 45;}
-  /* Scientific weekly target:
-     cumulative official feed at age = cumulative official FCR × (target live weight − placement weight).
-     Weekly target = change in cumulative target feed ÷ change in target live weight.
-     Week 1 is the placement-to-day-7 interval, so its target equals the official
-     cumulative FCR when the same placement-weight basis is used. */
+  function official(r,key){try{if(typeof g.resolvePoultryStandard!=="function")return null;const s=g.resolvePoultryStandard({productionType:flock?.production_type,genetics:flock?.genetics,strain:flock?.strain,variant:flock?.variant,ageDays:num(r?.age_days)});const v=num(s?.[key]);return s?.[key+"Source"]==="official"&&v!=null?v:null;}catch(_){return null;}}
+  function placementWeight(){for(const k of ["initial_weight_g","initialWeightG","chick_weight_g","chickWeightG","placement_weight_g","placementWeightG"]){const v=num(flock?.[k]);if(v!=null&&v>0)return v;}return 45;}
   function target(r){
-    const w=num(r?.week_number),curF=official(r,"fcr"),curW=official(r,"weight"),ew=entryWeight();
-    if(w==null||curF==null||curW==null||!(curW>ew))return null;
-    if(w===1)return curF;
+    const w=num(r?.week_number),cw=official(r,"weight"),cf=official(r,"fcr"),ew=placementWeight();
+    if(w==null||cw==null||cf==null||cw<=ew)return null;
+    if(w===1)return cf;
     const prev=rows.find(x=>num(x.week_number)===w-1);if(!prev)return null;
-    const prevF=official(prev,"fcr"),prevW=official(prev,"weight");
-    if(prevF==null||prevW==null||!(prevW>ew)||!(curW>prevW))return null;
-    const feedCur=curF*(curW-ew),feedPrev=prevF*(prevW-ew),gain=curW-prevW;
-    const v=(feedCur-feedPrev)/gain;
+    const pw=official(prev,"weight"),pf=official(prev,"fcr");
+    if(pw==null||pf==null||pw<=ew||cw<=pw)return null;
+    // Weekly target is derived from official cumulative objectives, not copied from a single official weekly number.
+    const feedCumNow=cf*(cw-ew);
+    const feedCumPrev=pf*(pw-ew);
+    const weeklyFeed=feedCumNow-feedCumPrev;
+    const weeklyGain=cw-pw;
+    const v=weeklyFeed/weeklyGain;
     return Number.isFinite(v)&&v>0?v:null;
   }
-  function rowForCurrent(){const sel=document.getElementById("week");if(!sel||!rows.length)return null;return rows[num(sel.value)||0]||null;}
+  function current(){const s=document.getElementById("week");return s&&rows.length?rows[num(s.value)||0]:null;}
   function metric(label){return [...document.querySelectorAll(".metric")].find(x=>String(x.querySelector(".label")?.textContent||"").trim()===label);}
   function setRef(el,text){if(!el)return;let ref=el.querySelector(".ref");if(!ref){ref=document.createElement("div");ref.className="ref";el.appendChild(ref);}ref.textContent=text;}
-  function patchCards(){const r=rowForCurrent();if(!r||String(flock?.production_type||"").toLowerCase().search(/broiler|گوشتی|meat/)<0)return;const wt=target(r),of=official(r,"fcr");const wk=metric("FCR هفتگی"),cu=metric("FCR تجمعی");if(wk)setRef(wk,`هدف مدیریتی FCR هفتگی: ${fmt(wt)}`);if(cu)setRef(cu,`استاندارد رسمی FCR تجمعی: ${fmt(of)}`);}
-  function patchChart(){const Chart=g.Chart;if(!Chart?.instances)return;const r=rowForCurrent();if(!r)return;const upto=rows.filter(x=>num(x.week_number)<=num(r.week_number));const labels=upto.map(x=>`هفته ${num(x.week_number)}`);Object.values(Chart.instances).forEach(ch=>{try{const title=String(ch.canvas?.closest(".box")?.querySelector("h3")?.textContent||"");if(!/FCR/.test(title))return;const ds=ch.data.datasets||[];const set=(key,label,data)=>{let d=ds.find(x=>x._adineFcrKey===key);if(!d){d={label,data,borderWidth:2,pointRadius:2,_adineFcrKey:key};ds.push(d);}else d.data=data;d.label=label;};set("weekly","FCR هفتگی واقعی",upto.map(x=>num(x.fcr_weekly??x.weekly_fcr??x.fcr)));set("management","هدف مدیریتی FCR هفتگی",upto.map(x=>target(x)));set("cumulative","FCR تجمعی واقعی",upto.map(x=>num(x.fcr_cumulative??x.cumulative_fcr??x.cum_fcr)));set("official-cumulative","استاندارد رسمی FCR تجمعی",upto.map(x=>official(x,"fcr")));ch.data.labels=labels;ch.update("none");}catch(_){}});}
+  function patch(){const r=current();if(!r||!flock||!/broiler|گوشتی|meat/i.test(String(flock.production_type||"")))return;setRef(metric("FCR هفتگی"),`هدف مدیریتی FCR هفتگی: ${fmt(target(r))}`);}
   async function load(){if(loading)return;const fid=id();if(!fid)return;loading=true;try{const fr=await db.from("flocks").select("*").eq("id",fid).maybeSingle();if(fr.error||!fr.data)return;flock=fr.data;const wr=await db.from("weekly_records").select("*").eq("flock_id",fid).order("week_number",{ascending:true});if(wr.error)return;rows=wr.data||[];}finally{loading=false;}}
-  async function apply(){await load();patchCards();patchChart();}
-  function start(){apply();const w=document.getElementById("week");if(w&&!w.__adineFcrV5){w.addEventListener("change",()=>setTimeout(apply,50));w.__adineFcrV5=true;}const root=document.getElementById("root")||document.body;if(root&&!root.__adineFcrV5Obs){new MutationObserver(()=>{patchCards();patchChart();}).observe(root,{childList:true,subtree:true});root.__adineFcrV5Obs=true;}setInterval(()=>{patchCards();patchChart();},500);}
+  async function apply(){await load();patch();}
+  function start(){apply();const w=document.getElementById("week");if(w&&!w.__adineMgmtFcr){w.addEventListener("change",()=>setTimeout(patch,50));w.__adineMgmtFcr=true;}const root=document.getElementById("root")||document.body;if(root&&!root.__adineMgmtFcrObs){new MutationObserver(()=>patch()).observe(root,{childList:true,subtree:true});root.__adineMgmtFcrObs=true;}}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })(window);

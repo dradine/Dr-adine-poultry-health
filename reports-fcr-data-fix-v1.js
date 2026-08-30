@@ -1,7 +1,7 @@
-/* ADINE REPORTS — CANONICAL BROILER FCR COMPARISON V3 */
+/* ADINE REPORTS — CANONICAL BROILER FCR COMPARISON V4 */
 (function(w,d){
 'use strict';
-if(w.__ADINE_REPORTS_FCR_FIX_V3__)return; w.__ADINE_REPORTS_FCR_FIX_V3__=true;
+if(w.__ADINE_REPORTS_FCR_FIX_V4__)return; w.__ADINE_REPORTS_FCR_FIX_V4__=true;
 const $=id=>d.getElementById(id), n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.').trim());return Number.isFinite(x)?x:null};
 const fmt=(v,dig=3)=>n(v)==null?'—':n(v).toLocaleString('fa-IR',{minimumFractionDigits:dig,maximumFractionDigits:dig});
 const esc=s=>String(s??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -11,19 +11,13 @@ const isBroiler=()=>/broiler|گوشتی|meat/i.test(String(flock?.production_typ
 const aw=r=>n(r?.weekly_fcr), ac=r=>n(r?.cumulative_fcr), off=r=>n(r?.official_cumulative_fcr), mg=r=>n(r?.management_weekly_fcr);
 const source=r=>r?.official_source?`${r.official_source}${r.official_year?` (${r.official_year})`:''}`:'استاندارد رسمی عملکرد سویه';
 function weightStd(r){try{if(typeof w.resolvePoultryStandard!=='function')return null;return n(w.resolvePoultryStandard({productionType:flock.production_type,genetics:flock.genetics,strain:flock.strain,variant:flock.variant,ageDays:n(r.age_days)})?.weight)}catch(_){return null}}
-function comparisonHtml(a){
- const actual=aw(a), target=mg(a); if(actual==null||target==null)return '<div class="ref">هدف مدیریتی برای این سن/سویه در موتور محاسباتی موجود نیست.</div>';
- const diff=actual-target, pct=target?diff/target*100:null;
- const status=diff<=0?'در هدف یا بهتر از هدف':'بالاتر از هدف';
- return `<div class="ref">هدف مدیریتی: ${fmt(target)} | اختلاف: ${diff>0?'+':''}${fmt(diff)} (${pct>0?'+':''}${fmt(pct,1)}٪) | ${status}</div>`;
-}
+function comparisonHtml(a){const actual=aw(a),target=mg(a);if(actual==null||target==null)return '<div class="ref">هدف مدیریتی برای این سن/سویه در موتور محاسباتی موجود نیست.</div>';const diff=actual-target,pct=target?diff/target*100:null,status=diff<=0?'در هدف یا بهتر از هدف':'بالاتر از هدف';return `<div class="ref">هدف مدیریتی: ${fmt(target)} | اختلاف: ${diff>0?'+':''}${fmt(diff)} (${pct>0?'+':''}${fmt(pct,1)}٪) | ${status}</div>`;}
 function renderWeekly(){
  const sel=$('week');if(!sel||!rows.length)return;const idx=Math.max(0,Math.min(Number(sel.value)||0,rows.length-1)),r=rows[idx];const a=analysis.find(x=>String(x.record_id)===String(r.id))||{};
  const items=[['سن',n(r.age_days)==null?'—':fmt(r.age_days,0)+' روز',''],['میانگین وزن',n(r.average_weight_g)==null?'—':fmt(r.average_weight_g,1)+' گرم',weightStd(r)!=null?'استاندارد رسمی: '+fmt(weightStd(r),1)+' گرم':''],['CV',n(r.cv_percent)==null?'—':fmt(r.cv_percent,2)+' %',''],['یکنواختی ±10',n(r.uniformity_10_percent)==null?'—':fmt(r.uniformity_10_percent,1)+' %',''],['یکنواختی ±15',n(r.uniformity_15_percent)==null?'—':fmt(r.uniformity_15_percent,1)+' %',''],['دان',n(r.feed_total_kg)==null?'—':fmt(r.feed_total_kg,1)+' kg',''],['آب',n(r.water_total_liter)==null?'—':fmt(r.water_total_liter,1)+' L',''],['تلفات',n(r.mortality_count)==null?'—':fmt(r.mortality_count,0)+' قطعه','']];
  if(isBroiler()){
    items.push(['FCR هفتگی',fmt(aw(a)),comparisonHtml(a)]);
    items.push(['FCR تجمعی',fmt(ac(a)),off(a)!=null?`استاندارد رسمی FCR تجمعی: ${fmt(off(a))} — ${esc(source(a))}`:'استاندارد رسمی برای این سن/سویه یافت نشد']);
-   items.push(['FCR مدیریتی',fmt(mg(a)),mg(a)!=null?'هدف مدیریتی FCR هفتگی — عدد قابل مقایسه با FCR هفتگی واقعی':'هدف مدیریتی برای این سن/سویه در موتور محاسباتی موجود نیست.']);
  }
  $('root').innerHTML=`<section class="section"><h2>گزارش هفتگی — هفته ${esc(r.week_number)}</h2><div class="cards">${items.map(x=>`<div class="metric"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="ref">${x[2]||''}</div></div>`).join('')}</div></section><section class="section"><div class="grid"><div class="box chart"><h3>وزن واقعی و استاندارد</h3><canvas id="w1"></canvas></div><div class="box chart"><h3>${isBroiler()?'مقایسه FCR واقعی با هدف مدیریتی و استاندارد رسمی':'CV و یکنواختی'}</h3><canvas id="w2"></canvas></div></div></section>`;
  const rs=rows.slice(0,idx+1),labs=rs.map(x=>'هفته '+n(x.week_number)),wc=$('w1');if(wc&&w.Chart)new w.Chart(wc,{type:'line',data:{labels:labs,datasets:[{label:'واقعی',data:rs.map(x=>n(x.average_weight_g))},{label:'استاندارد رسمی',data:rs.map(x=>weightStd(x))}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:false}}}});

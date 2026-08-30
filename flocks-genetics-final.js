@@ -97,12 +97,14 @@
   function fillStrains() {
     var x = els();
     if (!x.t || !x.g || !x.s) return false;
+    var old = x.s.value;
     var list = groups();
     var selected = list.find(function (g) { return String(g.id) === String(x.g.value); });
     var strains = selected && Array.isArray(selected.strains) ? selected.strains : [];
     x.s.disabled = false;
     reset(x.s, "انتخاب سویه / خط ژنتیکی");
     strains.forEach(function (s) { addOption(x.s, s, s); });
+    if (strains.some(function (s) { return String(s) === String(old); })) x.s.value = old;
     if (x.p) { x.p.disabled = !x.g.value; reset(x.p, "انتخاب استاندارد / برنامه"); }
     return true;
   }
@@ -130,16 +132,31 @@
       if (x.p) { x.p.disabled = true; reset(x.p, "انتخاب استاندارد / برنامه"); }
       return;
     }
+
     var list = groups();
     x.g.disabled = false;
-    var valid = list.some(function (g) { return String(g.id) === String(x.g.value); });
-    if (x.g.options.length !== list.length + 1 || (!valid && x.g.value)) fillCompanies();
-    if (!x.g.value) {
-      if (x.g.options.length <= 1) fillCompanies();
-      x.s.disabled = true;
+    var validCompany = list.some(function (g) { return String(g.id) === String(x.g.value); });
+    if (x.g.options.length !== list.length + 1 || (x.g.value && !validCompany)) {
+      fillCompanies();
       return;
     }
-    fillStrains();
+
+    if (!x.g.value) {
+      x.s.disabled = true;
+      if (x.s.options.length !== 1) reset(x.s, "ابتدا شرکت / ژنتیک را انتخاب کنید");
+      return;
+    }
+
+    var selected = list.find(function (g) { return String(g.id) === String(x.g.value); });
+    var strains = selected && Array.isArray(selected.strains) ? selected.strains : [];
+    var validStrain = strains.some(function (s) { return String(s) === String(x.s.value); });
+    if (x.s.disabled || x.s.options.length !== strains.length + 1 || (x.s.value && !validStrain)) {
+      fillStrains();
+      return;
+    }
+
+    x.s.disabled = false;
+    if (x.p && x.p.disabled) fillProgram();
   }
 
   function bind() {
@@ -156,7 +173,7 @@
 
     var observer = new MutationObserver(function () { sync(); });
     [x.g, x.s, x.p].forEach(function (el) {
-      if (el) observer.observe(el, { attributes: true, attributeFilter: ["disabled"], childList: true, subtree: true });
+      if (el) observer.observe(el, { attributes: true, attributeFilter: ["disabled"], childList: true });
     });
 
     sync();

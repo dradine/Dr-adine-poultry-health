@@ -2,11 +2,12 @@ name: Inject health records runtime v2
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/weekly-analysis-safe-wire-2026-08-31]
     paths:
       - health-records-runtime-v2.js
       - mortality.html
       - reports.html
+      - weekly-analysis-engine.js
       - .github/workflows/inject-health-records-runtime-v2.yml
   workflow_dispatch:
 
@@ -34,7 +35,16 @@ jobs:
                   if marker not in text:
                       raise SystemExit(f'{name}: </body> not found')
                   text = text.replace(marker, f'    {tag}\n{marker}', 1)
-                  p.write_text(text, encoding='utf-8')
+              if name == 'reports.html':
+                  analysis_tag = '<script src="weekly-analysis-engine.js"></script>'
+                  if analysis_tag not in text:
+                      marker = '<script src="health-records-runtime-v2.js"></script>'
+                      if marker not in text:
+                          raise SystemExit('reports.html: runtime marker not found')
+                      if text.count(marker) != 1:
+                          raise SystemExit('reports.html: runtime marker is not unique')
+                      text = text.replace(marker, analysis_tag + marker, 1)
+              p.write_text(text, encoding='utf-8')
           PY
 
       - name: Commit runtime injection
@@ -45,6 +55,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes required"
           else
-            git commit -m "fix: wire health records runtime into health pages"
+            git commit -m "feat: wire weekly analysis engine into reports"
             git push
           fi

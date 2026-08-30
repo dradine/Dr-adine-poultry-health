@@ -13,12 +13,25 @@
   function target(r){
     const w=num(r?.week_number),cw=official(r,"weight"),cf=official(r,"fcr"),ew=placementWeight();
     if(w==null||cw==null||cf==null||cw<=ew)return null;
-    if(w===1)return cf;
+
+    // Management Weekly FCR Target:
+    //   (CumFeed_end - CumFeed_start) / (Weight_end - Weight_start)
+    // The official cumulative FCR and official weight objective are used to
+    // reconstruct the corresponding cumulative feed objective consistently:
+    //   CumFeed = CumFCR * (Weight - placement weight)
+    // This is a derived weekly management target, NOT an official weekly FCR.
+    const feedCumNow=cf*(cw-ew);
+    const weeklyGainEnd=cw-ew;
+
+    if(w===1){
+      const v=feedCumNow/weeklyGainEnd;
+      return Number.isFinite(v)&&v>0?v:null;
+    }
+
     const prev=rows.find(x=>num(x.week_number)===w-1);if(!prev)return null;
     const pw=official(prev,"weight"),pf=official(prev,"fcr");
     if(pw==null||pf==null||pw<=ew||cw<=pw)return null;
-    // Weekly target is derived from official cumulative objectives, not copied from a single official weekly number.
-    const feedCumNow=cf*(cw-ew);
+
     const feedCumPrev=pf*(pw-ew);
     const weeklyFeed=feedCumNow-feedCumPrev;
     const weeklyGain=cw-pw;
@@ -28,7 +41,7 @@
   function current(){const s=document.getElementById("week");return s&&rows.length?rows[num(s.value)||0]:null;}
   function metric(label){return [...document.querySelectorAll(".metric")].find(x=>String(x.querySelector(".label")?.textContent||"").trim()===label);}
   function setRef(el,text){if(!el)return;let ref=el.querySelector(".ref");if(!ref){ref=document.createElement("div");ref.className="ref";el.appendChild(ref);}ref.textContent=text;}
-  function patch(){const r=current();if(!r||!flock||!/broiler|گوشتی|meat/i.test(String(flock.production_type||"")))return;setRef(metric("FCR هفتگی"),`هدف مدیریتی FCR هفتگی: ${fmt(target(r))}`);}
+  function patch(){const r=current();if(!r||!flock||!/broiler|گوشتی|meat/i.test(String(flock.production_type||"")))return;setRef(metric("FCR هفتگی"),`استاندارد مدیریتی هفتگی: ${fmt(target(r))}`);}
   async function load(){if(loading)return;const fid=id();if(!fid)return;loading=true;try{const fr=await db.from("flocks").select("*").eq("id",fid).maybeSingle();if(fr.error||!fr.data)return;flock=fr.data;const wr=await db.from("weekly_records").select("*").eq("flock_id",fid).order("week_number",{ascending:true});if(wr.error)return;rows=wr.data||[];}finally{loading=false;}}
   async function apply(){await load();patch();}
   function start(){apply();const w=document.getElementById("week");if(w&&!w.__adineMgmtFcr){w.addEventListener("change",()=>setTimeout(patch,50));w.__adineMgmtFcr=true;}const root=document.getElementById("root")||document.body;if(root&&!root.__adineMgmtFcrObs){new MutationObserver(()=>patch()).observe(root,{childList:true,subtree:true});root.__adineMgmtFcrObs=true;}}

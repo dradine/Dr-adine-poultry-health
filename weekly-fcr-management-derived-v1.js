@@ -9,30 +9,38 @@
   let flock=null,rows=[],loading=false;
   function id(){const p=new URLSearchParams(location.search);return p.get("flock_id")||p.get("flockId")||p.get("id")||null;}
   function official(r,key){try{if(typeof g.resolvePoultryStandard!=="function")return null;const s=g.resolvePoultryStandard({productionType:flock?.production_type,genetics:flock?.genetics,strain:flock?.strain,variant:flock?.variant,ageDays:num(r?.age_days)});const v=num(s?.[key]);return s?.[key+"Source"]==="official"&&v!=null?v:null;}catch(_){return null;}}
-  function placementWeight(){for(const k of ["initial_weight_g","initialWeightG","chick_weight_g","chickWeightG","placement_weight_g","placementWeightG"]){const v=num(flock?.[k]);if(v!=null&&v>0)return v;}return 45;}
   function target(r){
-    const w=num(r?.week_number),cw=official(r,"weight"),cf=official(r,"fcr"),ew=placementWeight();
-    if(w==null||cw==null||cf==null||cw<=ew)return null;
+    const w=num(r?.week_number),cw=official(r,"weight"),cf=official(r,"fcr");
+    if(w==null||cw==null||cf==null||cw<=0)return null;
 
-    // Management Weekly FCR Target:
-    //   (CumFeed_end - CumFeed_start) / (Weight_end - Weight_start)
-    // The official cumulative FCR and official weight objective are used to
-    // reconstruct the corresponding cumulative feed objective consistently:
-    //   CumFeed = CumFCR * (Weight - placement weight)
-    // This is a derived weekly management target, NOT an official weekly FCR.
-    const feedCumNow=cf*(cw-ew);
-    const weeklyGainEnd=cw-ew;
+    /*
+      Management Weekly FCR Target — Ross 308 AP
 
-    if(w===1){
-      const v=feedCumNow/weeklyGainEnd;
-      return Number.isFinite(v)&&v>0?v:null;
-    }
+      Week 1:
+        The first week has no preceding weekly interval, so the target is
+        exactly the official cumulative FCR at day 7.
 
-    const prev=rows.find(x=>num(x.week_number)===w-1);if(!prev)return null;
+      Week 2 onward:
+        Weekly target = (CumFeed_end - CumFeed_start)
+                        / (Weight_end - Weight_start)
+
+        The official cumulative feed objective is reconstructed from the
+        official cumulative FCR and body-weight objective using the same
+        convention as the Ross performance table:
+          CumFeed = CumFCR * BodyWeight
+
+      This is a derived Management Weekly FCR Target, NOT an official
+      weekly FCR published by Aviagen.
+    */
+    if(w===1)return cf;
+
+    const prev=rows.find(x=>num(x.week_number)===w-1);
+    if(!prev)return null;
     const pw=official(prev,"weight"),pf=official(prev,"fcr");
-    if(pw==null||pf==null||pw<=ew||cw<=pw)return null;
+    if(pw==null||pf==null||cw<=pw)return null;
 
-    const feedCumPrev=pf*(pw-ew);
+    const feedCumNow=cf*cw;
+    const feedCumPrev=pf*pw;
     const weeklyFeed=feedCumNow-feedCumPrev;
     const weeklyGain=cw-pw;
     const v=weeklyFeed/weeklyGain;

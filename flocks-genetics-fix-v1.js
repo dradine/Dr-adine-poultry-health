@@ -1,22 +1,7 @@
 /* DEFINITIVE FLOCK GENETICS SELECTOR */
 (function(){
 'use strict';
-var FALLBACK={
- broiler:[
-  {id:'aviagen_ross',name:'Aviagen / Ross',strains:['Ross 308','Ross 308 FF','Ross 708','Ross 308 AP']},
-  {id:'cobb',name:'Cobb',strains:['Cobb500','Cobb800']},
-  {id:'aviagen_arbor',name:'Aviagen / Arbor Acres',strains:['Arbor Acres Plus','Arbor Acres Plus S']},
-  {id:'aviagen_indian',name:'Aviagen / Indian River',strains:['Indian River','Indian River FF']},
-  {id:'hubbard',name:'Hubbard',strains:['Efficiency Plus','Hubbard EDGE']},
-  {id:'arian',name:'آرین ایران',strains:['Arian']}
- ],
- layer:[
-  {id:'hyline',name:'Hy-Line',strains:['W-36','W-80','W-80 Plus','W-80 Pro','Brown']},
-  {id:'hendrix',name:'Hendrix Genetics',strains:['ISA Brown','ISA White','Dekalb White','Dekalb Brown','Bovans White','Bovans Brown','Shaver White','Shaver Brown','Hisex White','Hisex Brown']},
-  {id:'lohmann',name:'Lohmann',strains:['Lohmann Brown-Classic','Lohmann Brown-Lite','Lohmann Brown-Extra','Lohmann LSL-Classic','Lohmann LSL-Lite','Lohmann LSL-Extra','Lohmann Sandy','Lohmann Tradition']}
- ],
- pullet:[],breeder:[]
-};
+var FALLBACK={broiler:[{id:'aviagen_ross',name:'Aviagen / Ross',strains:['Ross 308','Ross 308 FF','Ross 708','Ross 308 AP']},{id:'cobb',name:'Cobb',strains:['Cobb500','Cobb800']},{id:'aviagen_arbor',name:'Aviagen / Arbor Acres',strains:['Arbor Acres Plus','Arbor Acres Plus S']},{id:'aviagen_indian',name:'Aviagen / Indian River',strains:['Indian River','Indian River FF']},{id:'hubbard',name:'Hubbard',strains:['Efficiency Plus','Hubbard EDGE']},{id:'arian',name:'آرین ایران',strains:['Arian']}],layer:[{id:'hyline',name:'Hy-Line',strains:['W-36','W-80','W-80 Plus','W-80 Pro','Brown']},{id:'hendrix',name:'Hendrix Genetics',strains:['ISA Brown','ISA White','Dekalb White','Dekalb Brown','Bovans White','Bovans Brown','Shaver White','Shaver Brown','Hisex White','Hisex Brown']},{id:'lohmann',name:'Lohmann',strains:['Lohmann Brown-Classic','Lohmann Brown-Lite','Lohmann Brown-Extra','Lohmann LSL-Classic','Lohmann LSL-Lite','Lohmann LSL-Extra','Lohmann Sandy','Lohmann Tradition']}],pullet:[],breeder:[]};
 function norm(v){return String(v==null?'':v).normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/ي/g,'ی').replace(/ك/g,'ک').trim().toLowerCase()}
 function pkey(v){var k=norm(v);return ({'گوشتی':'broiler','broiler':'broiler','meat':'broiler','تخمگذار':'layer','تخم گذار':'layer','تخم‌گذار':'layer','layer':'layer','پولت':'pullet','pullet':'pullet','مادر':'breeder','مرغ مادر':'breeder','breeder':'breeder'})[k]||k}
 function catalog(){try{if(typeof POULTRY_CATALOG!=='undefined'&&POULTRY_CATALOG)return POULTRY_CATALOG}catch(e){}return window.POULTRY_CATALOG||null}
@@ -27,7 +12,8 @@ function add(sel,text,value){var o=document.createElement('option');o.value=Stri
 function fillCompanies(){var x=els();if(!x.t||!x.g||!x.s)return;var a=list();x.g.disabled=false;reset(x.g,'انتخاب شرکت / ژنتیک');a.forEach(function(g){add(x.g,g.name,g.id)});x.s.disabled=true;reset(x.s,'ابتدا شرکت / ژنتیک را انتخاب کنید');if(x.p){x.p.disabled=true;reset(x.p,'ابتدا سویه را انتخاب کنید')}}
 function fillStrains(){var x=els();if(!x.t||!x.g||!x.s)return;var g=list().find(function(v){return String(v.id)===String(x.g.value)}),a=g&&Array.isArray(g.strains)?g.strains:[];x.s.disabled=false;reset(x.s,'انتخاب سویه / خط ژنتیکی');a.forEach(function(s){add(x.s,s,s)});if(x.p){x.p.disabled=true;reset(x.p,'ابتدا سویه را انتخاب کنید')}}
 function fillProgram(){var x=els();if(!x.p)return;if(!x.s||!x.s.value){x.p.disabled=true;reset(x.p,'ابتدا سویه را انتخاب کنید');return}x.p.disabled=false;reset(x.p,'انتخاب استاندارد / برنامه');add(x.p,'استاندارد '+(x.g.selectedOptions[0]?x.g.selectedOptions[0].textContent:x.g.value)+' — '+x.s.value,pkey(x.t.value)+'_'+x.g.value+'_'+x.s.value)}
-function install(){var x=els();if(!x.t||!x.g||!x.s)return false;if(!x.t.__adineBound){x.t.__adineBound=true;x.t.addEventListener('change',fillCompanies,false)}if(!x.g.__adineBound){x.g.__adineBound=true;x.g.addEventListener('change',fillStrains,false)}if(!x.s.__adineBound){x.s.__adineBound=true;x.s.addEventListener('change',fillProgram,false)}if(x.t.value)fillCompanies();else{x.g.disabled=false;reset(x.g,'ابتدا نوع پرورش را انتخاب کنید');x.s.disabled=true;reset(x.s,'ابتدا شرکت / ژنتیک را انتخاب کنید');if(x.p){x.p.disabled=true;reset(x.p,'ابتدا سویه را انتخاب کنید')}}return true}
+function repair(fn){fn();setTimeout(fn,0);setTimeout(fn,50);setTimeout(fn,250)}
+function install(){var x=els();if(!x.t||!x.g||!x.s)return false;if(!x.t.__adineBound){x.t.__adineBound=true;x.t.addEventListener('change',function(){repair(fillCompanies)},false)}if(!x.g.__adineBound){x.g.__adineBound=true;x.g.addEventListener('change',function(){repair(fillStrains)},false)}if(!x.s.__adineBound){x.s.__adineBound=true;x.s.addEventListener('change',function(){repair(fillProgram)},false)}if(x.t.value)repair(fillCompanies);else{x.g.disabled=false;reset(x.g,'ابتدا نوع پرورش را انتخاب کنید');x.s.disabled=true;reset(x.s,'ابتدا شرکت / ژنتیک را انتخاب کنید');if(x.p){x.p.disabled=true;reset(x.p,'ابتدا سویه را انتخاب کنید')}}return true}
 function boot(){if(install())return;setTimeout(boot,100)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 window.AdineFinalGeneticsSelector={refresh:fillCompanies,refreshStrains:fillStrains,refreshProgram:fillProgram,sync:install};

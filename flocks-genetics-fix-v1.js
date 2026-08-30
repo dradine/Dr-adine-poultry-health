@@ -1,18 +1,14 @@
 /* =========================================================
-   FLOCK GENETICS SELECTOR — COMPATIBILITY FIX V1
-   Fixes the selector returning no genetics/strains after the
-   catalog was moved to standard-data.js.
+   FLOCK GENETICS SELECTOR — COMPATIBILITY FIX V1 + FINAL UI PATCH
 ========================================================= */
 (function () {
     "use strict";
 
     function catalogRoot() {
-        // standard-data.js declares POULTRY_CATALOG as a global lexical
-        // binding, so prefer the direct binding over window.POULTRY_CATALOG.
         try {
             if (typeof POULTRY_CATALOG !== "undefined") return POULTRY_CATALOG;
         } catch (e) {}
-        return window.POULTRY_CATALOG || null;
+        return null;
     }
 
     function normalizeType(value) {
@@ -36,56 +32,46 @@
     }
 
     function getCatalogStrains(type, geneticsId) {
-        const group = getCatalogGenetics(type).find(
-            item => String(item?.id ?? "") === String(geneticsId ?? "")
-        );
+        const group = getCatalogGenetics(type).find(item => String(item?.id ?? "") === String(geneticsId ?? ""));
         return Array.isArray(group?.strains) ? group.strains : [];
     }
 
-    // Keep compatibility with older pages that expect these helpers.
-    if (typeof window.getGenetics !== "function") {
-        window.getGenetics = getCatalogGenetics;
-    }
-    if (typeof window.getStrains !== "function") {
-        window.getStrains = getCatalogStrains;
-    }
+    window.getGenetics = getCatalogGenetics;
+    window.getStrains = getCatalogStrains;
 
-    // flocks.js resolves these functions at initialization time. Re-define
-    // them here so the existing event wiring uses the corrected catalog path.
-    window.updateGenetics = function updateGeneticsFixed() {
-        const type = typeof getValue === "function" ? getValue("productionType") : document.getElementById("productionType")?.value || "";
+    window.updateGenetics = function () {
+        const type = document.getElementById("productionType")?.value || "";
         const genetics = document.getElementById("genetics");
         const strain = document.getElementById("flockStrain");
         const program = document.getElementById("flockProgram");
         if (!genetics || !strain || !program) return;
 
         genetics.innerHTML = '<option value="">انتخاب شرکت / ژنتیک</option>';
-        strain.innerHTML = '<option value="">انتخاب سویه / خط ژنتیکی</option>';
+        strain.innerHTML = '<option value="">ابتدا شرکت / ژنتیک را انتخاب کنید</option>';
         program.innerHTML = '<option value="">انتخاب خودکار</option>';
 
-        const catalog = getCatalogGenetics(type);
-        catalog.forEach(item => {
+        getCatalogGenetics(type).forEach(item => {
             const option = document.createElement("option");
-            option.value = item.id;
+            option.value = String(item.id);
             option.textContent = item.name;
             genetics.appendChild(option);
         });
 
-        genetics.disabled = catalog.length === 0;
+        genetics.disabled = genetics.options.length <= 1;
         strain.disabled = true;
         program.disabled = true;
     };
 
-    window.updatePrograms = function updateProgramsFixed() {
-        const type = typeof getValue === "function" ? getValue("productionType") : document.getElementById("productionType")?.value || "";
-        const geneticsId = typeof getValue === "function" ? getValue("genetics") : document.getElementById("genetics")?.value || "";
+    window.updatePrograms = function () {
+        const type = document.getElementById("productionType")?.value || "";
+        const geneticsId = document.getElementById("genetics")?.value || "";
         const genetics = document.getElementById("genetics");
         const strain = document.getElementById("flockStrain");
         const program = document.getElementById("flockProgram");
         if (!genetics || !strain || !program) return;
 
         strain.innerHTML = '<option value="">انتخاب سویه / خط ژنتیکی</option>';
-        program.innerHTML = '<option value="">انتخاب خودکار</option>';
+        program.innerHTML = '<option value="">انتخاب استاندارد / برنامه</option>';
 
         if (!geneticsId) {
             strain.disabled = true;
@@ -96,50 +82,103 @@
         const strains = getCatalogStrains(type, geneticsId);
         strains.forEach(item => {
             const option = document.createElement("option");
-            option.value = item;
-            option.textContent = item;
+            option.value = String(item);
+            option.textContent = String(item);
             strain.appendChild(option);
         });
 
         strain.disabled = strains.length === 0;
         program.disabled = false;
 
-        if (strains.length === 1) strain.value = strains[0];
-        window.updateStrainProgram();
-    };
-
-    window.updateStrainProgram = function updateStrainProgramFixed() {
-        const type = typeof getValue === "function" ? getValue("productionType") : document.getElementById("productionType")?.value || "";
-        const geneticsId = typeof getValue === "function" ? getValue("genetics") : document.getElementById("genetics")?.value || "";
-        const strainValue = typeof getValue === "function" ? getValue("flockStrain") : document.getElementById("flockStrain")?.value || "";
-        const genetics = document.getElementById("genetics");
-        const program = document.getElementById("flockProgram");
-        if (!program) return;
-
-        program.innerHTML = '<option value="">انتخاب استاندارد / برنامه</option>';
-        if (!geneticsId) {
-            program.disabled = true;
-            return;
-        }
-
-        const company = genetics?.selectedOptions?.[0]?.textContent || geneticsId;
+        const company = genetics.selectedOptions?.[0]?.textContent || geneticsId;
+        const selectedStrain = strain.value || "";
         const option = document.createElement("option");
-        option.value = `${normalizeType(type)}_${geneticsId}_${strainValue || "default"}`;
-        option.textContent = `استاندارد ${company}${strainValue ? " — " + strainValue : ""}`;
+        option.value = `${normalizeType(type)}_${geneticsId}_${selectedStrain || "default"}`;
+        option.textContent = `استاندارد ${company}${selectedStrain ? " — " + selectedStrain : ""}`;
         program.appendChild(option);
-        program.disabled = false;
     };
 
-    // Replace setup so the change handlers always point to the fixed functions.
-    window.setupGenetics = function setupGeneticsFixed() {
+    function installFinalSelectorFix() {
         const production = document.getElementById("productionType");
         const genetics = document.getElementById("genetics");
         const strain = document.getElementById("flockStrain");
-        if (!production || !genetics || !strain) return;
+        const program = document.getElementById("flockProgram");
+        if (!production || !genetics || !strain || !program) return;
 
-        production.addEventListener("change", window.updateGenetics);
-        genetics.addEventListener("change", window.updatePrograms);
-        strain.addEventListener("change", window.updateStrainProgram);
-        window.updateGenetics();
-    };
+        // Remove only handlers installed by this fix, if initialization is retried.
+        if (production.dataset.finalGeneticsFix === "1") return;
+        production.dataset.finalGeneticsFix = "1";
+
+        // Directly populate from the master catalog. This intentionally does
+        // not call flocks.js' lexical updateGenetics/updatePrograms functions.
+        const fillGenetics = () => {
+            const type = normalizeType(production.value);
+            const groups = getCatalogGenetics(type);
+            genetics.innerHTML = '<option value="">انتخاب شرکت / ژنتیک</option>';
+            strain.innerHTML = '<option value="">ابتدا شرکت / ژنتیک را انتخاب کنید</option>';
+            program.innerHTML = '<option value="">انتخاب خودکار</option>';
+
+            groups.forEach(group => {
+                const o = document.createElement("option");
+                o.value = String(group.id);
+                o.textContent = String(group.name ?? group.id);
+                genetics.appendChild(o);
+            });
+
+            genetics.disabled = groups.length === 0;
+            strain.disabled = true;
+            program.disabled = true;
+        };
+
+        const fillStrains = () => {
+            const type = normalizeType(production.value);
+            const groups = getCatalogGenetics(type);
+            const group = groups.find(g => String(g.id) === String(genetics.value));
+            const strains = Array.isArray(group?.strains) ? group.strains : [];
+
+            strain.innerHTML = '<option value="">انتخاب سویه / خط ژنتیکی</option>';
+            program.innerHTML = '<option value="">انتخاب استاندارد / برنامه</option>';
+
+            strains.forEach(value => {
+                const o = document.createElement("option");
+                o.value = String(value);
+                o.textContent = String(value);
+                strain.appendChild(o);
+            });
+
+            strain.disabled = strains.length === 0;
+            program.disabled = genetics.value === "";
+
+            if (strains.length === 1) strain.value = String(strains[0]);
+            fillProgram();
+        };
+
+        const fillProgram = () => {
+            program.innerHTML = '<option value="">انتخاب استاندارد / برنامه</option>';
+            if (!genetics.value) {
+                program.disabled = true;
+                return;
+            }
+            const company = genetics.selectedOptions?.[0]?.textContent || genetics.value;
+            const selectedStrain = strain.value || "";
+            const o = document.createElement("option");
+            o.value = `${normalizeType(production.value)}_${genetics.value}_${selectedStrain || "default"}`;
+            o.textContent = `استاندارد ${company}${selectedStrain ? " — " + selectedStrain : ""}`;
+            program.appendChild(o);
+            program.disabled = false;
+        };
+
+        production.addEventListener("change", fillGenetics);
+        genetics.addEventListener("change", fillStrains);
+        strain.addEventListener("change", fillProgram);
+
+        // Initial state and recovery if another script reset the selects.
+        fillGenetics();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", installFinalSelectorFix, { once: true });
+    } else {
+        installFinalSelectorFix();
+    }
 })();

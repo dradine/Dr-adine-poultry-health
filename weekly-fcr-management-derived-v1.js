@@ -1,65 +1,24 @@
-/* ADINE POULTRY HEALTH — SCIENTIFIC WEEKLY MANAGEMENT FCR V3 */
+/* ADINE POULTRY HEALTH — BROILER FCR REPORT PATCH V4 */
 "use strict";
 (function(g){
   const page=String(location.pathname||"").toLowerCase().split("/").pop();
-  if(page!=="reports.html" && page!=="reports-v2.html") return;
-  const client=g.supabaseClient; if(!client)return;
+  if(page!=="reports.html"&&page!=="reports-v2.html")return;
+  const db=g.supabaseClient;if(!db)return;
   const num=v=>{const x=Number(String(v??"").replace(/[٬,]/g,"").replace("٫","."));return Number.isFinite(x)?x:null;};
   const fmt=v=>v==null?"—":Number(v).toLocaleString("fa-IR",{minimumFractionDigits:3,maximumFractionDigits:3});
-  function flockId(){
-    const s=document.getElementById("flock"); if(s?.value)return s.value;
-    const p=new URLSearchParams(location.search); const d=p.get("flock_id")||p.get("flockId")||p.get("id"); if(d)return d;
-    try{const o=JSON.parse(localStorage.getItem("adine_poultry_current_selection")||"null");if(o)return o.flockId||o.flock_id||null;}catch(_){ }
-    try{return localStorage.getItem("selectedFlockId")||localStorage.getItem("activeFlockId")||null;}catch(_){return null;}
-  }
-  let standards=[],loadedFor=null;
-  async function load(){
-    const id=flockId();if(!id)return false;if(loadedFor===id&&standards.length)return true;
-    const {data:f,error:fe}=await client.from("flocks").select("id,production_type,genetics,strain").eq("id",id).maybeSingle();
-    if(fe||!f||!/broiler|گوشتی|meat/i.test(String(f.production_type||"")))return false;
-    const {data,error}=await client.rpc("get_broiler_weekly_management_fcr",{p_strain:f.strain,p_genetics:f.genetics||null});
-    if(error||!Array.isArray(data)||!data.length)return false;
-    standards=data.map(x=>({week:num(x.week_number),age:num(x.age_days),target:num(x.weekly_fcr),officialCum:num(x.cumulative_fcr),source:x.source_name,year:x.source_year,method:x.method})).filter(x=>x.week!=null&&x.target!=null&&x.officialCum!=null);
-    loadedFor=id;return !!standards.length;
-  }
-  const target=w=>standards.find(x=>x.week===num(w))||null;
-  function week(){return num(document.getElementById("week")?.value)||num(new URLSearchParams(location.search).get("week"));}
-  function kpi(label){return [...document.querySelectorAll(".kpi")].find(x=>new RegExp(label).test(x.querySelector("b")?.textContent||""));}
-  function actualValue(el){
-    if(!el)return null;
-    const nodes=[...el.querySelectorAll("strong,.value,[data-value],span")];
-    for(const n of nodes){const v=num(n.textContent);if(v!=null)return v;}
-    return num(el.textContent);
-  }
-  function source(t){return `${t?.source||"Ross Broiler Performance Objectives"} (${t?.year||"—"})`;}
-  function classify(actual,t){
-    if(actual==null||!t)return null;
-    const d=actual-t.target, pct=(d/t.target)*100;
-    // Lower FCR is better. Thresholds are deliberately expressed relative to the weekly target.
-    if(pct<=2)return {status:"مطلوب",className:"good",delta:d,pct};
-    if(pct<=5)return {status:"قابل پیگیری",className:"warn",delta:d,pct};
-    return {status:"نیازمند بررسی",className:"bad",delta:d,pct};
-  }
-  function patch(){
-    const w=week(),t=target(w);if(!t)return false;
-    const weekly=kpi("FCR هفتگی"),cum=kpi("FCR تجمعی");
-    if(weekly){
-      weekly.dataset.managementFcrTarget=String(t.target);
-      const small=weekly.querySelector("small");if(small)small.textContent=`هدف مدیریتی FCR هفتگی: ${fmt(t.target)} | ${source(t)}`;
-      let ev=weekly.querySelector("[data-adine-fcr-evaluation]");if(!ev){ev=document.createElement("div");ev.dataset.adineFcrEvaluation="true";ev.style.fontSize="12px";ev.style.marginTop="4px";weekly.appendChild(ev);}
-      const a=actualValue(weekly),c=classify(a,t);
-      if(c)ev.textContent=`انحراف از هدف: ${c.delta>=0?"+":""}${fmt(c.delta)} (${c.pct>=0?"+":""}${c.pct.toFixed(1)}٪) — ${c.status}`;
-    }
-    if(cum){
-      cum.dataset.officialCumulativeFcr=String(t.officialCum);
-      const small=cum.querySelector("small");if(small)small.textContent=`استاندارد رسمی FCR تجمعی تا روز ${t.age}: ${fmt(t.officialCum)} | ${source(t)}`;
-    }
-    // Existing duplicate standard cards are updated, not added repeatedly.
-    const cards=[...document.querySelectorAll('[data-adine-fcr-standard-card]')];
-    cards.forEach(card=>{const key=card.dataset.adineFcrStandardCard;const b=card.querySelector("b"),s=card.querySelector("strong"),sm=card.querySelector("small");if(key==="weekly"){if(b)b.textContent="هدف مدیریتی FCR هفتگی";if(s)s.textContent=fmt(t.target);if(sm)sm.textContent=`مشتق‌شده علمی از اهداف رسمی عملکرد — ${source(t)}`;}if(key==="cumulative"){if(b)b.textContent="استاندارد رسمی FCR تجمعی";if(s)s.textContent=fmt(t.officialCum);if(sm)sm.textContent=`استاندارد رسمی در سن ${t.age} روز — ${source(t)}`;}});
-    return true;
-  }
-  async function apply(){if(await load())patch();}
-  function start(){apply();const w=document.getElementById("week");if(w&&!w.__adineFcr){w.addEventListener("change",()=>setTimeout(apply,100));w.__adineFcr=true;}const f=document.getElementById("flock");if(f&&!f.__adineFcr){f.addEventListener("change",()=>{loadedFor=null;standards=[];setTimeout(apply,200);});f.__adineFcr=true;}const r=document.getElementById("root")||document.body;if(r&&!r.__adineFcrObs){new MutationObserver(()=>patch()).observe(r,{childList:true,subtree:true});r.__adineFcrObs=true;}}
+  let flock=null,rows=[],cache=new Map(),loading=false;
+  function id(){const p=new URLSearchParams(location.search);return p.get("flock_id")||p.get("flockId")||p.get("id")||null;}
+  function meta(r,key){try{if(typeof g.resolvePoultryStandard!=="function")return null;const s=g.resolvePoultryStandard({productionType:flock?.production_type,genetics:flock?.genetics,strain:flock?.strain,variant:flock?.variant,ageDays:num(r?.age_days)});const k=key==="fcr"?"fcr":"weight";return {value:num(s?.[k]),source:s?.[k+"Source"]||null,label:s?.[k+"SourceLabel"]||null};}catch(_){return null;}}
+  function official(r,key){const m=meta(r,key);return m&&m.source==="official"&&m.value!=null?m.value:null;}
+  function entryWeight(){for(const k of ["initial_weight_g","initialWeightG","chick_weight_g","chickWeightG","placement_weight_g","placementWeightG"]){const v=num(flock?.[k]);if(v!=null&&v>0)return v;}return 45;}
+  function target(r){const w=num(r?.week_number),curF=official(r,"fcr"),curW=official(r,"weight");if(w==null||curF==null||curW==null)return null;if(w===1)return curF;const prev=rows.find(x=>num(x.week_number)===w-1);if(!prev)return null;const prevF=official(prev,"fcr"),prevW=official(prev,"weight"),ew=entryWeight();if(prevF==null||prevW==null||!(curW>prevW&&prevW>ew))return null;const feedNow=curF*(curW-ew),feedPrev=prevF*(prevW-ew),gain=curW-prevW,v=(feedNow-feedPrev)/gain;return Number.isFinite(v)&&v>0?v:null;}
+  function rowForCurrent(){const sel=document.getElementById("week");if(!sel||!rows.length)return null;return rows[num(sel.value)||0]||null;}
+  function metric(label){return [...document.querySelectorAll(".metric")].find(x=>String(x.querySelector(".label")?.textContent||"").trim()===label);}
+  function setRef(el,text){if(!el)return;let ref=el.querySelector(".ref");if(!ref){ref=document.createElement("div");ref.className="ref";el.appendChild(ref);}ref.textContent=text;}
+  function patchCards(){const r=rowForCurrent();if(!r||String(flock?.production_type||"").toLowerCase().search(/broiler|گوشتی|meat/)<0)return;const wt=target(r),of=official(r,"fcr");const wk=metric("FCR هفتگی"),cu=metric("FCR تجمعی");if(wk)setRef(wk,`هدف مدیریتی FCR هفتگی: ${fmt(wt)}`);if(cu)setRef(cu,`استاندارد رسمی FCR تجمعی: ${fmt(of)}`);}
+  function patchChart(){const Chart=g.Chart;if(!Chart?.instances)return;const r=rowForCurrent();if(!r)return;const upto=rows.filter(x=>num(x.week_number)<=num(r.week_number));const labels=upto.map(x=>`هفته ${num(x.week_number)}`);Object.values(Chart.instances).forEach(ch=>{try{const title=String(ch.canvas?.closest(".box")?.querySelector("h3")?.textContent||"");if(!/FCR/.test(title))return;const ds=ch.data.datasets||[];const set=(label,data)=>{let d=ds.find(x=>x._adineFcrKey===label);if(!d){d={label,data,borderWidth:2,pointRadius:2,_adineFcrKey:label};ds.push(d);}else d.data=data;d.label=label;};set("FCR هفتگی واقعی",upto.map(x=>num(x.fcr_weekly??x.weekly_fcr??x.fcr)));set("هدف مدیریتی FCR هفتگی",upto.map(x=>target(x)));set("FCR تجمعی واقعی",upto.map(x=>num(x.fcr_cumulative??x.cumulative_fcr??x.cum_fcr)));set("استاندارد رسمی FCR تجمعی",upto.map(x=>official(x,"fcr")));ch.data.labels=labels;ch.update("none");}catch(_){}});}
+  async function load(){if(loading)return;const fid=id();if(!fid)return;loading=true;try{const fr=await db.from("flocks").select("*").eq("id",fid).maybeSingle();if(fr.error||!fr.data)return;flock=fr.data;const wr=await db.from("weekly_monitoring").select("*").eq("flock_id",fid).order("week_number",{ascending:true});if(!wr.error)rows=wr.data||[];cache.clear();}finally{loading=false;}}
+  async function apply(){if(!flock||!rows.length)await load();patchCards();patchChart();}
+  function start(){apply();const w=document.getElementById("week");if(w&&!w.__adineFcrV4){w.addEventListener("change",()=>setTimeout(apply,50));w.__adineFcrV4=true;}const root=document.getElementById("root")||document.body;if(root&&!root.__adineFcrV4Obs){new MutationObserver(()=>{patchCards();patchChart();}).observe(root,{childList:true,subtree:true});root.__adineFcrV4Obs=true;}setInterval(()=>{patchCards();patchChart();},500);}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",start,{once:true});else start();
 })(window);

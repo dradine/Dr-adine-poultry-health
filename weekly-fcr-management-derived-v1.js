@@ -14,7 +14,11 @@
     const exact=candidates.filter(x=>!flock?.strain||String(x.strain||'').trim().toLowerCase()===String(flock.strain||'').trim().toLowerCase());
     const pool=exact.length?exact:candidates;
     const withGen=pool.filter(x=>flock?.genetics&&String(x.genetics||'').trim().toLowerCase()===String(flock.genetics||'').trim().toLowerCase());
-    return (withGen[0]||pool[0])?.target_value==null?null:num((withGen[0]||pool[0]).target_value);
+    const ranked=(withGen.length?withGen:pool).slice().sort((a,b)=>{
+      const av=num(a.target_value),bv=num(b.target_value);
+      return (av??Infinity)-(bv??Infinity);
+    });
+    return ranked[0]?.target_value==null?null:num(ranked[0].target_value);
   }
   function target(r){return targetsByWeek.get(num(r?.week_number))??null;}
   function buildTargets(standards){
@@ -69,7 +73,7 @@
     try{
       const fr=await db.from("flocks").select("*").eq("id",fid).maybeSingle();
       if(fr.error||!fr.data)return; flock=fr.data;
-      const wr=await db.from("weekly_monitoring").select("*").eq("flock_id",fid).order("week_number",{ascending:true});
+      const wr=await db.from("weekly_records").select("*").eq("flock_id",fid).order("week_number",{ascending:true});
       if(wr.error)return; rows=wr.data||[];
       const ages=[...new Set(rows.map(r=>num(r.age_days)).filter(Number.isFinite))];
       if(!ages.length)return;

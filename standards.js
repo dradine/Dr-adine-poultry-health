@@ -26,4 +26,10 @@ global.normalizePoultryResolverText=norm;global.normalizePoultryProductionType=p
 if(typeof document!=="undefined"){
  const markCharts=()=>{try{if(!global.Chart||!global.Chart.instances)return;const trace=global.__ADINE_STANDARD_TRACE||[];const hasMgmtWeight=trace.some(x=>x.weightSource&&x.weightSource!=="official");const hasMgmtFcr=trace.some(x=>x.fcrSource&&x.fcrSource!=="official");Object.values(global.Chart.instances).forEach(ch=>{const box=ch?.canvas?.closest?.('.box');if(!box)return;const title=(box.querySelector('h3')?.textContent||'');const isWeight=/وزن/.test(title),isFcr=/FCR/.test(title);const mgmt=(isWeight&&hasMgmtWeight)||(isFcr&&hasMgmtFcr);if(!mgmt)return;ch.data.datasets.forEach(ds=>{if(String(ds.label||'').includes('استاندارد رسمی'))ds.label='استاندارد مدیریتی';});ch.update('none');let badge=box.querySelector('.standard-source-badge');if(!badge){badge=document.createElement('div');badge.className='standard-source-badge';badge.style.cssText='margin:4px 0 6px;font-size:9px;font-weight:800;color:#42665a;background:#eef4f1;border-radius:8px;padding:5px 7px;display:inline-block';box.insertBefore(badge,ch.canvas);}badge.textContent='مرجع ارزیابی: استاندارد مدیریتی';});}catch(e){}};setInterval(markCharts,250);
 }
+if(typeof document!=="undefined"&&String(location.pathname||"").toLowerCase().split("/").pop()==="reports.html"){
+  const s=document.createElement("script");
+  s.src="weekly-fcr-management-derived-v1.js";
+  s.async=false;
+  document.head.appendChild(s);
+}
 })(typeof window!=="undefined"?window:globalThis);

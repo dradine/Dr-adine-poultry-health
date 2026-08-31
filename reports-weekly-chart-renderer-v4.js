@@ -37,4 +37,5 @@
       ]},options:opts});
     }
   };
+  // V5.1: click-to-week navigation is intentionally delegated to the existing report selector.
 })();

@@ -1,0 +1,48 @@
+name: One-shot FCR chart rendering fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/one-shot-fcr-chart-render-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch reports visual layer only
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('reports.html')
+          text = p.read_text(encoding='utf-8')
+
+          cleanup_tag = '<script src="reports-weekly-extra-chart-cleanup-v1.js?v=20260831-fcr-render"></script>'
+          if cleanup_tag not in text:
+              marker = '</body>'
+              if marker not in text:
+                  raise SystemExit('reports.html: </body> not found')
+              text = text.replace(marker, cleanup_tag + marker, 1)
+
+          visual_css = '<style id="adine-fcr-chart-render-css">.wa2{display:block!important}.wa2-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wa2-box{border:1px solid #e0e8e4;border-radius:11px;padding:10px;background:#fff;overflow:hidden}.wa2-title{font-weight:900;font-size:12px;margin-bottom:8px}.wa2-title small{font-weight:700;color:#687770}.wa2-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:9px;margin-bottom:5px}.wa2-legend span{display:inline-flex;align-items:center;gap:4px}.wa2-legend i{display:inline-block;width:9px;height:9px;border-radius:50%}.wa2-box svg{display:block;width:100%;height:auto}.wa2-sub{font-size:9px;color:#687770;margin:-5px 0 10px}.wa2-analysis{margin-top:10px;padding:10px;background:#f7faf8;border:1px solid #e0e8e4;border-radius:9px;font-size:9px;line-height:2}@media(max-width:850px){.wa2-grid{grid-template-columns:1fr}}</style>'
+          if 'id="adine-fcr-chart-render-css"' not in text:
+              text = text.replace('</head>', visual_css + '</head>', 1)
+
+          p.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit patched reports page and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/one-shot-fcr-chart-render-fix.yml
+          git add reports.html .github/workflows/one-shot-fcr-chart-render-fix.yml
+          git commit -m "fix: correct weekly FCR chart rendering only"
+          git push

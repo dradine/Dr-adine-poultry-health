@@ -28,8 +28,6 @@ jobs:
 
           s = p.read_text(encoding='utf-8')
 
-          # Keep the baseline report runtime intact. Only remove the previous
-          # CSS rule that hid charts and replace the chart renderer itself.
           s = re.sub(
               r'\.chart\{display:none!important;height:0!important;overflow:hidden!important\}\.chart canvas\{display:none!important\}',
               '',
@@ -37,7 +35,6 @@ jobs:
               count=1
           )
 
-          # Load the visual-only design before the report IIFE executes.
           marker = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
           tag = marker + '<script src="reports-weekly-chart-renderer-v4.js"></script>'
           if 'reports-weekly-chart-renderer-v4.js' not in s:
@@ -45,9 +42,6 @@ jobs:
                   raise SystemExit('Chart.js marker not found')
               s = s.replace(marker, tag, 1)
 
-          # The report's existing weekly() function already prepares labels and
-          # datasets from its weekly-record data. Replace ONLY the renderer so
-          # those exact arrays are consumed; no new data is fetched or derived.
           pattern = r'function chart\(id,labels,datasets\)\{.*?\}function fcr\('
           replacement = '''function chart(id,labels,datasets){
             const text=(datasets||[]).map(d=>String(d?.label||'')).join(' ');
@@ -60,7 +54,7 @@ jobs:
             if(/افزایش\\s*وزن/.test(text)) return WeeklyChartDesignV4.line(id,labels,actual,reference,labelsText,'gain');
             return WeeklyChartDesignV4.line(id,labels,actual,reference,labelsText,'weight');
           }function fcr('''
-          s2, n = re.subn(pattern, replacement, s, count=1, flags=re.S)
+          s2, n = re.subn(pattern, lambda m: replacement, s, count=1, flags=re.S)
           if n != 1:
               raise SystemExit('weekly chart renderer function was not found exactly once')
           s = s2
@@ -78,8 +72,6 @@ jobs:
           if missing:
               raise SystemExit('critical report runtime missing: '+repr(missing))
 
-          # Safety assertions: the renderer must consume the weekly() arrays and
-          # must not introduce a Supabase query or FCR/standard calculation.
           injected = s[s.find('function chart(id,labels,datasets)'):s.find('function fcr(')]
           forbidden = ['supabaseClient', 'calculateReportFCR', 'resolvePoultryStandard', 'cumulative_fcr']
           bad = [x for x in forbidden if x in injected]

@@ -1,0 +1,81 @@
+name: Remove weekly report chart layer
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Restore and surgically remove chart layer
+        shell: python
+        run: |
+          import re
+          from pathlib import Path
+          p=Path('reports.html')
+          # Always start from the known-good report baseline so the prior malformed
+          # chart-only edit cannot propagate. Then remove visualization only.
+          import subprocess
+          subprocess.run(['git','checkout','e0e004312ebf83c75932e57685b06b93dc4b36ce','--','reports.html'],check=True)
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>','')
+          s=s.replace('.chart{height:300px}','')
+          s=s.replace('<script src="weekly-analysis-v7.js"></script>','')
+          s=s.replace('destroy();','')
+          s=s.replace(',charts=[]','')
+          def remove_function(src, marker):
+              start=src.find(marker)
+              if start<0:return src
+              brace=src.find('{',start)
+              if brace<0:return src
+              depth=0; i=brace
+              while i<len(src):
+                  if src[i]=='{': depth+=1
+                  elif src[i]=='}':
+                      depth-=1
+                      if depth==0:return src[:start]+src[i+1:]
+                  i+=1
+              raise RuntimeError('unbalanced function: '+marker)
+          for marker in ['function destroy(){','function chart(id,labels,datasets){','function weeklyGain(r,index,sourceRows){','function standardWeeklyGain(r,sourceRows,index){']:
+              s=remove_function(s,marker)
+          # Remove every report section whose content contains a canvas.
+          while '<section class="section"><div class="grid">' in s:
+              start=s.find('<section class="section"><div class="grid">')
+              end=s.find('</section>',start)
+              if end<0: raise RuntimeError('chart section not closed')
+              block=s[start:end+10]
+              if '<canvas' not in block: break
+              s=s[:start]+s[end+10:]
+          # Remove chart(...) calls with balanced parentheses.
+          while True:
+              start=s.find('chart(')
+              if start<0: break
+              depth=0; i=start
+              while i<len(s):
+                  if s[i]=='(': depth+=1
+                  elif s[i]==')':
+                      depth-=1
+                      if depth==0:
+                          j=i+1
+                          if j<len(s) and s[j]==';': j+=1
+                          s=s[:start]+s[j:]
+                          break
+                  i+=1
+              else: raise RuntimeError('unbalanced chart call')
+          p.write_text(s,encoding='utf-8')
+          # Hard verification: no chart rendering surface remains in reports.html.
+          forbidden=['chart.js','new Chart','<canvas','weekly-analysis-v7','function chart(','chart(','class="chart"']
+          bad=[x for x in forbidden if x in s]
+          if bad: raise RuntimeError('chart residue: '+repr(bad))
+      - name: Commit clean report and remove this temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports.html
+          git commit -m 'Remove weekly report chart rendering safely'
+          git rm .github/workflows/remove-weekly-charts-final.yml
+          git commit -m 'Remove temporary chart cleanup workflow'
+          git push

@@ -1,0 +1,30 @@
+name: Reports regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'reports.js'
+      - 'reports-router.js'
+      - 'broiler-report-engine.js'
+      - 'tests/reports-architecture.test.js'
+  pull_request:
+    paths:
+      - 'reports.js'
+      - 'reports-router.js'
+      - 'broiler-report-engine.js'
+      - 'tests/reports-architecture.test.js'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check reports.js
+          node --check reports-router.js
+          node --check broiler-report-engine.js
+      - name: Domain regression test
+        run: node tests/reports-architecture.test.js

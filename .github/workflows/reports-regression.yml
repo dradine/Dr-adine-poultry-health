@@ -6,13 +6,17 @@ on:
       - 'reports.js'
       - 'reports-router.js'
       - 'broiler-report-engine.js'
-      - 'tests/reports-architecture.test.js'
+      - 'reports.html'
+      - 'reports.css'
+      - 'tests/**'
   pull_request:
     paths:
       - 'reports.js'
       - 'reports-router.js'
       - 'broiler-report-engine.js'
-      - 'tests/reports-architecture.test.js'
+      - 'reports.html'
+      - 'reports.css'
+      - 'tests/**'
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -28,3 +32,5 @@ jobs:
           node --check broiler-report-engine.js
       - name: Domain regression test
         run: node tests/reports-architecture.test.js
+      - name: Shell isolation test
+        run: node tests/reports-shell.test.js

@@ -1,56 +1,34 @@
-/* Weekly chart presentation layer V11.
- * VISUALIZATION ONLY.
- * Source data, calculations, official standards and management targets are not changed.
- * Reads the already-created Chart.js datasets and redraws them as clearer comparison charts.
+/* Weekly chart presentation layer V12.
+ * VISUALIZATION ONLY. Does not calculate, write, or mutate source data/standards.
+ * Replaces the four existing weekly Chart.js line charts with grouped comparison bars.
  */
 (function(){
   'use strict';
   const IDS=['wWeight','wGain','wFcrCum','wFcrWeek'];
-  const STYLE_ID='weekly-chart-presentation-v11';
-  const DONE='data-wa-v11';
-  const C={actual:'#1769d2',reference:'#ed8b25',management:'#c73535',grid:'#dfe8e4',axis:'#263d34',text:'#20382f'};
-
-  function injectStyle(){
-    if(document.getElementById(STYLE_ID))return;
-    const s=document.createElement('style');s.id=STYLE_ID;
-    s.textContent=`
-      .wa-v11-box{position:relative!important;padding:18px!important;background:#fff!important;border:1px solid #d6e2dc!important;border-radius:16px!important;overflow:visible!important}
-      .wa-v11-title{font-size:16px!important;font-weight:900!important;color:#17382d!important;margin:0 0 12px!important}
-      .wa-v11-wrap{position:relative!important;width:100%!important;height:390px!important;min-height:390px!important}
-      .wa-v11-wrap canvas{display:block!important;width:100%!important;height:100%!important}
-      .wa-v11-legend{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 14px;padding:10px 13px;background:#f5f8f6;border:1px solid #dfe8e4;border-radius:10px;font-size:13px;font-weight:900;color:#29443a}
-      .wa-v11-key{display:inline-flex;align-items:center;gap:8px}.wa-v11-swatch{width:28px;height:7px;border-radius:6px;display:inline-block}.wa-v11-dash{background:repeating-linear-gradient(90deg,#ed8b25 0 10px,transparent 10px 16px)}
-      .wa-v11-info{margin-top:12px;padding:11px 13px;min-height:24px;background:#f2f7f4;border:1px solid #d9e5df;border-radius:10px;color:#24443a;font-size:13px;font-weight:800;line-height:2}
-      @media(max-width:700px){.wa-v11-box{padding:14px 10px!important}.wa-v11-wrap{height:350px!important;min-height:350px!important}.wa-v11-legend{font-size:12px;gap:8px 14px}.wa-v11-swatch{width:23px}}
-    `;document.head.appendChild(s);
-  }
-  function kind(label){const x=String(label||'');if(/واقعی|گله/.test(x))return'actual';if(/هدف مدیریتی/.test(x))return'management';return'reference'}
-  function val(v,id){if(v==null||!Number.isFinite(Number(v)))return'—';const d=/Fcr/i.test(id)?3:1;return Number(v).toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d})}
-  function setupBox(canvas,chart){
-    const box=canvas.closest('.box');if(!box)return null;box.classList.add('wa-v11-box');
-    const h=box.querySelector('h3');if(h)h.classList.add('wa-v11-title');
-    let wrap=box.querySelector('.wa-v11-wrap');if(!wrap){wrap=document.createElement('div');wrap.className='wa-v11-wrap';canvas.parentNode.insertBefore(wrap,canvas);wrap.appendChild(canvas)}
-    let legend=box.querySelector('.wa-v11-legend');if(!legend){legend=document.createElement('div');legend.className='wa-v11-legend';if(h)h.insertAdjacentElement('afterend',legend);else box.insertBefore(legend,wrap)}
-    legend.innerHTML='';chart.data.datasets.forEach((ds,i)=>{const k=kind(ds.label),item=document.createElement('span');item.className='wa-v11-key';const sw=document.createElement('i');sw.className='wa-v11-swatch'+(k==='reference'?' wa-v11-dash':'');sw.style.background=k==='actual'?C.actual:k==='management'?C.management:C.reference;const t=document.createElement('span');t.textContent=ds.label||('سری '+(i+1));item.append(sw,t);legend.appendChild(item)});
-    let info=box.querySelector('.wa-v11-info');if(!info){info=document.createElement('div');info.className='wa-v11-info';info.textContent='برای مشاهده ارقام، روی ستون یا نقطه همان هفته لمس کنید.';box.appendChild(info)}
-    return info;
-  }
+  const MARK='data-weekly-v12';
+  const C={actual:'#1565c0',official:'#ef8c24',management:'#c62828',grid:'#dfe7e3',axis:'#233b32',text:'#19352c'};
+  const fa=v=>Number(v).toLocaleString('fa-IR',{maximumFractionDigits:/Fcr/.test(location.hash)?3:1});
+  function css(){if(document.getElementById('weekly-v12-css'))return;const s=document.createElement('style');s.id='weekly-v12-css';s.textContent=`
+    .wv12-box{padding:18px!important;border-radius:16px!important;background:#fff!important;overflow:visible!important}
+    .wv12-box h3{font-size:16px!important;font-weight:900!important;margin:0 0 12px!important;color:${C.text}!important}
+    .wv12-wrap{height:430px!important;min-height:430px!important;position:relative!important;width:100%!important;margin-top:4px!important}
+    .wv12-wrap canvas{width:100%!important;height:100%!important;display:block!important}
+    .wv12-legend{display:flex!important;flex-wrap:wrap!important;gap:10px 24px!important;padding:11px 14px!important;margin:0 0 12px!important;background:#f5f8f6!important;border:1px solid #dce6e1!important;border-radius:10px!important;font-size:13px!important;font-weight:900!important;color:${C.text}!important}
+    .wv12-key{display:inline-flex;align-items:center;gap:8px}.wv12-dot{width:16px;height:16px;border-radius:4px;display:inline-block}
+    .wv12-info{margin-top:12px!important;padding:12px 14px!important;min-height:24px!important;background:#f3f7f5!important;border:1px solid #d9e4de!important;border-radius:10px!important;font-size:13px!important;font-weight:900!important;line-height:2!important;color:${C.text}!important}
+    @media(max-width:700px){.wv12-box{padding:14px 10px!important}.wv12-wrap{height:390px!important;min-height:390px!important}.wv12-legend{font-size:12px!important;gap:8px 14px!important}}
+  `;document.head.appendChild(s)}
+  function kind(label){const s=String(label||'');if(/هدف مدیریتی/.test(s))return'management';if(/استاندارد رسمی|رسمی|استاندارد/.test(s))return'official';return'actual'}
+  function color(k){return C[k]}
+  function decorate(box,chart){box.classList.add('wv12-box');const h=box.querySelector('h3');if(h)h.classList.add('wv12-title');let wrap=box.querySelector('.wv12-wrap');if(!wrap){wrap=document.createElement('div');wrap.className='wv12-wrap';const canvas=chart.canvas;canvas.parentNode.insertBefore(wrap,canvas);wrap.appendChild(canvas)}let legend=box.querySelector('.wv12-legend');if(!legend){legend=document.createElement('div');legend.className='wv12-legend';h?h.insertAdjacentElement('afterend',legend):box.insertBefore(legend,wrap)}legend.innerHTML='';chart.data.datasets.forEach((d,i)=>{const item=document.createElement('span');item.className='wv12-key';const dot=document.createElement('i');dot.className='wv12-dot';dot.style.background=color(kind(d.label));const t=document.createElement('span');t.textContent=d.label||`سری ${i+1}`;item.append(dot,t);legend.appendChild(item)});let info=box.querySelector('.wv12-info');if(!info){info=document.createElement('div');info.className='wv12-info';info.textContent='برای مشاهده جزئیات، روی ستون هر هفته لمس کنید.';box.appendChild(info)}return info}
   function redraw(canvas){
-    if(!window.Chart)return false;
-    if(canvas.getAttribute(DONE)==='1')return true;
+    if(!window.Chart||!canvas||canvas.dataset[MARK]==='1')return false;
     const old=Chart.getChart(canvas);if(!old)return false;
-    const original={labels:Array.from(old.data.labels||[]),datasets:(old.data.datasets||[]).map(d=>({label:d.label,data:Array.from(d.data||[])}))};
-    const id=canvas.id, info=setupBox(canvas,old);
-    if(!info)return false;
-    const fcr=/Fcr/i.test(id), config={type:fcr?'bar':'bar',data:{labels:original.labels,datasets:original.datasets.map((d,i)=>{const k=kind(d.label);return{label:d.label,data:d.data,backgroundColor:k==='actual'?C.actual:k==='management'?C.management:C.reference,borderColor:k==='actual'?C.actual:k==='management'?C.management:C.reference,borderWidth:2,borderRadius:6,maxBarThickness:32}})},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:true},plugins:{legend:{display:false},tooltip:{enabled:true,rtl:true,displayColors:true,padding:12,titleFont:{size:14,weight:'bold'},bodyFont:{size:13,weight:'bold'},callbacks:{label:ctx=>` ${ctx.dataset.label}: ${val(ctx.raw,id)}`}}},scales:{x:{offset:true,grid:{color:C.grid,lineWidth:1},border:{color:C.axis,width:3},ticks:{color:C.text,font:{family:'Tahoma,Arial,sans-serif',size:15,weight:'bold'},padding:10,maxRotation:0,minRotation:0}},y:{beginAtZero:!fcr,grace:'10%',grid:{color:C.grid,lineWidth:1},border:{color:C.axis,width:3},ticks:{color:C.text,font:{family:'Tahoma,Arial,sans-serif',size:14,weight:'bold'},padding:10,maxTicksLimit:7}}}}};
-    if(fcr){config.options.indexAxis='y';config.options.scales.x.beginAtZero=false;config.options.scales.x.grace='12%';config.options.scales.y.beginAtZero=true;config.options.scales.y.grace=undefined;config.options.scales.y.ticks.autoSkip=false;config.options.scales.y.ticks.font={family:'Tahoma,Arial,sans-serif',size:14,weight:'bold'};}
-    old.destroy();
-    const fresh=new Chart(canvas,config);
-    canvas.setAttribute(DONE,'1');
-    canvas.onclick=function(ev){const hits=fresh.getElementsAtEventForMode(ev,'nearest',{intersect:true},true);if(!hits.length)return;const idx=hits[0].index;const week=fresh.data.labels?.[idx]||'هفته انتخاب‌شده';const parts=fresh.data.datasets.map(ds=>`${ds.label}: ${val(ds.data?.[idx],id)}`);info.innerHTML=`<strong>${week}</strong> — ${parts.join(' | ')}`};
-    return true;
+    const labels=[...(old.data.labels||[])];const data=(old.data.datasets||[]).map(d=>({label:d.label||'',data:[...(d.data||[])]}));const box=canvas.closest('.box');if(!box)return false;const info=decorate(box,old);old.destroy();
+    const isFcr=/Fcr/i.test(canvas.id);const cfg={type:'bar',data:{labels,datasets:data.map(d=>{const k=kind(d.label);return{label:d.label,data:d.data,backgroundColor:color(k),borderColor:color(k),borderWidth:1,borderRadius:7,borderSkipped:false,maxBarThickness:42,categoryPercentage:.72,barPercentage:.88}})},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:true},plugins:{legend:{display:false},tooltip:{enabled:true,rtl:true,displayColors:true,padding:12,titleFont:{family:'Tahoma',size:14,weight:'bold'},bodyFont:{family:'Tahoma',size:13,weight:'bold'},callbacks:{label:ctx=>` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('fa-IR',{minimumFractionDigits:isFcr?3:1,maximumFractionDigits:isFcr?3:1})}`}}},layout:{padding:{top:10,right:28,bottom:28,left:28}},scales:{x:{offset:true,grid:{display:false},border:{color:C.axis,width:3},ticks:{color:C.text,padding:12,font:{family:'Tahoma,Arial,sans-serif',size:16,weight:'bold'},maxRotation:0,minRotation:0}},y:{beginAtZero:isFcr?false:true,grace:'12%',grid:{color:C.grid,lineWidth:1},border:{color:C.axis,width:3},ticks:{color:C.text,padding:12,font:{family:'Tahoma,Arial,sans-serif',size:15,weight:'bold'},maxTicksLimit:7}}}}};
+    const fresh=new Chart(canvas,cfg);canvas.dataset[MARK]='1';canvas.onclick=function(ev){const hits=fresh.getElementsAtEventForMode(ev,'nearest',{intersect:true},true);if(!hits.length)return;const i=hits[0].index;const week=labels[i]||`هفته ${i+1}`;info.innerHTML=`<strong>${week}</strong><br>${fresh.data.datasets.map(d=>`${d.label}: ${d.data[i]==null?'—':Number(d.data[i]).toLocaleString('fa-IR',{minimumFractionDigits:isFcr?3:1,maximumFractionDigits:isFcr?3:1})}`).join(' &nbsp; | &nbsp; ')}`};return true
   }
-  function scan(){injectStyle();let n=0;IDS.forEach(id=>{const c=document.getElementById(id);if(c&&redraw(c))n++});return n}
-  function start(){injectStyle();let tries=0;const t=setInterval(()=>{tries++;const n=scan();if(n===IDS.length||tries>80)clearInterval(t)},200);const root=document.getElementById('root');if(root)new MutationObserver(()=>setTimeout(scan,40)).observe(root,{childList:true,subtree:true});window.addEventListener('resize',()=>setTimeout(()=>{IDS.forEach(id=>{const c=document.getElementById(id);if(c){const ch=Chart.getChart(c);if(ch)ch.resize()}})},80),{passive:true})}
+  function scan(){css();let n=0;IDS.forEach(id=>{const c=document.getElementById(id);if(c&&redraw(c))n++});return n}
+  function start(){css();let tries=0;const t=setInterval(()=>{tries++;const n=scan();if(n===IDS.length||tries>=120)clearInterval(t)},150);const root=document.getElementById('root');if(root)new MutationObserver(()=>setTimeout(scan,20)).observe(root,{childList:true,subtree:true});window.addEventListener('resize',()=>setTimeout(scan,100),{passive:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();

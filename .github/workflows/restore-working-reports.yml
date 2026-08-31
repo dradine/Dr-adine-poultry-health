@@ -1,89 +1,22 @@
 name: Restore working weekly reports
+
+# Disabled automatic restore: this workflow previously overwrote reports.html
+# after every push and silently reverted report changes.
+# It remains manually dispatchable for emergency recovery only.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   restore:
-    if: github.event.head_commit.message != 'Restore reports runtime with weekly-data charts'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Restore known-good reports runtime and attach visual-only charts
-        shell: python
+      - name: Emergency recovery notice
         run: |
-          import re
-          import subprocess
-          from pathlib import Path
-
-          p = Path('reports.html')
-          subprocess.run([
-              'git','checkout',
-              'e0e004312ebf83c75932e57685b06b93dc4b36ce',
-              '--','reports.html'
-          ], check=True)
-
-          s = p.read_text(encoding='utf-8')
-
-          s = re.sub(
-              r'\.chart\{display:none!important;height:0!important;overflow:hidden!important\}\.chart canvas\{display:none!important\}',
-              '',
-              s,
-              count=1
-          )
-
-          marker = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
-          tag = marker + '<script src="reports-weekly-chart-renderer-v4.js"></script>'
-          if 'reports-weekly-chart-renderer-v4.js' not in s:
-              if marker not in s:
-                  raise SystemExit('Chart.js marker not found')
-              s = s.replace(marker, tag, 1)
-
-          pattern = r'function chart\(id,labels,datasets\)\{.*?\}function fcr\('
-          replacement = '''function chart(id,labels,datasets){
-            const text=(datasets||[]).map(d=>String(d?.label||'')).join(' ');
-            const actual=Array.isArray(datasets?.[0]?.data)?datasets[0].data.slice():[];
-            const reference=Array.isArray(datasets?.[1]?.data)?datasets[1].data.slice():[];
-            const labelsText={actual:String(datasets?.[0]?.label||'واقعی'),reference:String(datasets?.[1]?.label||'مرجع')};
-            if(!window.WeeklyChartDesignV4)return null;
-            if(/FCR\\s*هفتگی|هدف\\s*مدیریتی/.test(text)) return WeeklyChartDesignV4.dumbbell(id,labels,actual,reference,labelsText,'fcr');
-            if(/FCR\\s*تجمعی|تجمعی/.test(text)) return WeeklyChartDesignV4.line(id,labels,actual,reference,labelsText,'fcr');
-            if(/افزایش\\s*وزن/.test(text)) return WeeklyChartDesignV4.line(id,labels,actual,reference,labelsText,'gain');
-            return WeeklyChartDesignV4.line(id,labels,actual,reference,labelsText,'weight');
-          }function fcr('''
-          s2, n = re.subn(pattern, lambda m: replacement, s, count=1, flags=re.S)
-          if n != 1:
-              raise SystemExit('weekly chart renderer function was not found exactly once')
-          s = s2
-
-          required = [
-              'supabase-config.js',
-              'standard-data.js',
-              'standards.js',
-              'weekly_monitoring',
-              'function weekly()',
-              'reports-weekly-chart-renderer-v4.js',
-              'function chart(id,labels,datasets)'
-          ]
-          missing = [x for x in required if x not in s]
-          if missing:
-              raise SystemExit('critical report runtime missing: '+repr(missing))
-
-          injected = s[s.find('function chart(id,labels,datasets)'):s.find('function fcr(')]
-          forbidden = ['supabaseClient', 'calculateReportFCR', 'resolvePoultryStandard', 'cumulative_fcr']
-          bad = [x for x in forbidden if x in injected]
-          if bad:
-              raise SystemExit('visual-only renderer contains forbidden logic: '+repr(bad))
-
-          p.write_text(s, encoding='utf-8')
-
-      - name: Commit restored report
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add reports.html
-          git commit -m 'Restore reports runtime with weekly-data charts'
-          git push
+          echo "Automatic report restoration is disabled."
+          echo "reports.html will no longer be overwritten by this workflow."

@@ -1,42 +1,33 @@
-/* Weekly reports UI-only cleanup. Does not read/write or alter calculations, standards, or Supabase data. */
+/* Weekly reports chart removal ONLY. Does not read/write or alter calculations, standards, weekly data, FCR engines, or Supabase data. */
 (function(){
   'use strict';
   if(String(location.pathname||'').toLowerCase().split('/').pop()!=='reports.html') return;
-  const targets=[
-    'وزن واقعی و استاندارد',
-    'مقایسه FCR واقعی با هدف مدیریتی و استاندارد رسمی'
-  ];
-  function removeExtraBlocks(){
-    let removed=0;
-    const all=document.querySelectorAll('h1,h2,h3,h4,h5,h6,div,span,p');
-    all.forEach(el=>{
-      const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
-      if(!text || !targets.some(t=>text===t || text.includes(t))) return;
-      let node=el;
-      for(let i=0;i<6 && node.parentElement;i++){
-        if(node.classList?.contains('box') || node.classList?.contains('chart') || node.classList?.contains('section') || node.querySelector?.('canvas')){
-          node.remove(); removed++; return;
-        }
-        node=node.parentElement;
+
+  function removeCharts(){
+    const root=document.getElementById('root')||document.body;
+    if(!root) return;
+    root.querySelectorAll('canvas, .chart, [data-chart], [id*="chart" i], [id^="wWeight"], [id^="wGain"], [id^="wFcr"], [id^="o1"], [id^="o2"]').forEach(el=>{
+      const box=el.closest('.box');
+      if(box) box.remove(); else el.remove();
+    });
+    root.querySelectorAll('.section').forEach(section=>{
+      const text=String(section.textContent||'');
+      if(/میانگین وزن.*استاندارد رسمی|افزایش وزن هفتگی.*استاندارد رسمی|FCR تجمعی.*استاندارد رسمی|FCR هفتگی.*هدف مدیریتی|تحلیل واقعی و نمودارهای ارزیابی|نمودارهای ارزیابی/.test(text)){
+        if(section.querySelector('canvas,.chart,[data-chart]')) section.remove();
       }
     });
-    return removed;
   }
-  function run(){
-    removeExtraBlocks();
-    if(window.__adineWeeklyExtraChartCleanupObserver) return;
+
+  function start(){
+    removeCharts();
     const root=document.getElementById('root');
     if(!root) return;
-    let tries=0;
-    const observer=new MutationObserver(function(){
-      if(removeExtraBlocks()>=2 || ++tries>20){
-        observer.disconnect();
-        window.__adineWeeklyExtraChartCleanupObserver=null;
-      }
-    });
-    window.__adineWeeklyExtraChartCleanupObserver=observer;
+    if(window.__adineWeeklyChartRemovalObserver) return;
+    const observer=new MutationObserver(removeCharts);
+    window.__adineWeeklyChartRemovalObserver=observer;
     observer.observe(root,{childList:true,subtree:true});
-    setTimeout(function(){try{observer.disconnect()}catch(e){} window.__adineWeeklyExtraChartCleanupObserver=null},4000);
   }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',run,{once:true}); else run();
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
+  else start();
 })();

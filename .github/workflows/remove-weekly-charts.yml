@@ -9,7 +9,6 @@ permissions:
 
 jobs:
   remove-charts:
-    if: github.event.head_commit.message != 'Remove weekly report chart rendering safely'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,33 +24,19 @@ jobs:
         run: |
           import re
           from pathlib import Path
-
           p = Path('reports.html')
           s = p.read_text(encoding='utf-8')
-
-          # Remove the Chart.js dependency used only by report visualization.
           s = s.replace('<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>', '')
-
-          # Remove chart-only CSS without touching report/card/table styles.
           s = s.replace('.chart{height:300px}', '')
-
-          # Remove chart-only state and renderer helpers.
           s = re.sub(r',charts=\[\]', '', s)
           s = re.sub(r'function destroy\(\)\{.*?\}', '', s, count=1)
           s = re.sub(r'function chart\(id,labels,datasets\)\{.*?\}', '', s, count=1)
           s = re.sub(r'function weeklyGain\(r,index,sourceRows\)\{.*?\}', '', s, count=1)
           s = re.sub(r'function standardWeeklyGain\(r,sourceRows,index\)\{.*?\}', '', s, count=1)
           s = s.replace('destroy();', '')
-
-          # Remove the weekly and overall visualization sections containing canvases.
           s = re.sub(r'<section class="section"><div class="grid">.*?</section>', '', s, flags=re.S)
-
-          # Remove every chart invocation left in the page.
           s = re.sub(r'chart\([^;]*?\);', '', s)
-
-          # Remove the independent renderer script; it is visualization-only.
           s = s.replace('<script src="weekly-analysis-v7.js"></script>', '')
-
           p.write_text(s, encoding='utf-8')
 
       - name: Verify no report chart renderer remains
@@ -62,7 +47,7 @@ jobs:
           ! grep -q 'weekly-analysis-v7' reports.html
           ! grep -q 'class="chart"' reports.html
 
-      - name: Commit and push
+      - name: Commit and push cleaned report
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

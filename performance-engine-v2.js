@@ -1,25 +1,19 @@
-/* ADINE PERFORMANCE ENGINE V3 - scientific/industry aligned */
-(function(){'use strict';
-const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
-const r=(v,d=3)=>n(v)==null?null:Number(Number(v).toFixed(d));
-const typeOf=f=>{const t=String(f?.production_type||f?.productionType||'broiler').toLowerCase();return t==='گوشتی'?'broiler':t==='تخمگذار'||t==='تخم‌گذار'?'layer':t==='مادر'||t==='مرغ مادر'?'breeder':t==='پولت'?'pullet':t};
-const ageOf=x=>n(x?.age_days??x?.ageDays), feedOf=x=>n(x?.feed_total_kg??x?.feedTotalKg??x?.feed), birdsOf=x=>n(x?.live_birds??x?.liveBirds), weightOf=x=>n(x?.average_weight_g??x?.averageWeightG??x?.average_weight), pm=x=>x?.production_metrics||x?.productionMetrics||{};
-function rows(a){return (Array.isArray(a)?a:[]).filter(Boolean).slice().sort((a,b)=>(ageOf(a)??0)-(ageOf(b)??0)||String(a.evaluation_date||a.date||'').localeCompare(String(b.evaluation_date||b.date||'')))}
-function biomassGainKg(ob,ow,cb,cw){if(![ob,ow,cb,cw].every(x=>n(x)!=null)||ob<=0||cb<=0||ow<0||cw<=0)return null;const g=(cb*cw-ob*ow)/1000;return g>0?g:null}
-function broilerWeeklyFCR({feedKg,openBirds,openWeight,closeBirds,closeWeight}){const f=n(feedKg),ob=n(openBirds),ow=n(openWeight),cb=n(closeBirds),cw=n(closeWeight);if(f==null||f<=0||ob==null||ob<=0||ow==null||cb==null||cb<=0||cw==null)return null;const gainKg=biomassGainKg(ob,ow,cb,cw);return gainKg!=null?r(f/gainKg):null}
-function mortalityCorrectedFCR({feedKg,openBirds,openWeight,closeBirds,closeWeight,deaths,deadAverageWeightG}){const f=n(feedKg),ob=n(openBirds),ow=n(openWeight),cb=n(closeBirds),cw=n(closeWeight),d=n(deaths),dw=n(deadAverageWeightG);if(f==null||f<=0||ob==null||ow==null||cb==null||cw==null||d==null||d<=0||dw==null||dw<=0)return null;const survivors=biomassGainKg(ob,ow,cb,cw);if(survivors==null)return null;const mortalityGain=(d*(dw-ow))/1000;const correctedGain=survivors+mortalityGain;return correctedGain>0?r(f/correctedGain):null}
-function broilerCumulativeFCR(all,flock){const a=rows(all);if(!a.length)return null;const feed=a.reduce((s,x)=>s+(feedOf(x)||0),0),last=a.at(-1);if(feed<=0||birdsOf(last)<=0||weightOf(last)<=0)return null;let ob=n(flock?.initial_bird_count),ow=n(flock?.initial_average_weight_g??flock?.baseline_average_weight_g);if(ob==null||ob<=0)ob=birdsOf(a[0]);if(ow==null){const age=ageOf(a[0]);if(age!=null&&age<=7)ow=42}if(ob==null||ow==null)return null;const g=biomassGainKg(ob,ow,birdsOf(last),weightOf(last));return g?r(feed/g):null}
-function eggMassKg({eggs,eggWeightG,henHousedPct,henHoused}){const ew=n(eggWeightG);let e=n(eggs);if(e==null&&n(henHousedPct)!=null&&n(henHoused)!=null)e=n(henHousedPct)*n(henHoused)*7/100;return e>0&&ew>0?r(e*ew/1000):null}
-function layerWeekly(feedKg,eggMassKgValue){const f=n(feedKg),e=n(eggMassKgValue);return f>0&&e>0?r(f/e):null}
-function layerCumulative(a){let f=0,e=0;for(const x of rows(a)){f+=feedOf(x)||0;e+=n(pm(x).egg_mass_kg)||0}return f>0&&e>0?r(f/e):null}
-function cumulativeFeedKg(a){return rows(a).reduce((s,x)=>s+(feedOf(x)||0),0)}
-function cumulativeEggMassKg(a){return rows(a).reduce((s,x)=>s+(n(pm(x).egg_mass_kg)||0),0)}
-function cumulativeBiomassGainKg(a,flock){const rr=rows(a),last=rr.at(-1);if(!last)return null;const ob=n(flock?.initial_bird_count??rr[0]?.live_birds),ow=n(flock?.initial_average_weight_g??42);if(ob==null||ow==null)return null;return biomassGainKg(ob,ow,birdsOf(last),weightOf(last))}
-function feedUtilization(f,e){return n(f)>0&&n(e)>0?r(n(e)/n(f)):null}
-function adjustedFCR(actual,target,weight){const a=n(actual),t=n(target),w=n(weight);if(a==null||t==null||w==null||t<=0||w<=0)return {value:null,reason:'target_unavailable'};if(Math.abs(t-w)>227)return {value:null,reason:'target_weight_distance_too_large'};return {value:r(a+(t-w)/4500),factor_g:4500}}
-function epef(livability,weightG,ageDays,fcr){const l=n(livability),w=n(weightG),a=n(ageDays),f=n(fcr);return l!=null&&w>0&&a>0&&f>0?r((l*(w/1000)*100)/(a*f),1):null}
-function quality(x){const issues=[];if(ageOf(x)==null||ageOf(x)<0)issues.push('age_unavailable');if(weightOf(x)==null||weightOf(x)<=0)issues.push('weight_missing');if(birdsOf(x)==null||birdsOf(x)<=0)issues.push('live_birds_missing');if(feedOf(x)!=null&&feedOf(x)<0)issues.push('negative_feed');if(n(x?.sample_count)!=null&&n(x.sample_count)<2)issues.push('small_weight_sample');return {ok:!issues.length,issues}}
-window.AdinePerformance={version:'3.0.0',typeOf,rows,biomassGainKg,broilerWeeklyFCR,mortalityCorrectedFCR,broilerCumulativeFCR,eggMassKg,layerWeekly,layerCumulative,cumulativeFeedKg,cumulativeEggMassKg,cumulativeBiomassGainKg,feedUtilization,adjustedFCR,epef,quality};
-window.calculateWeeklyFCR=function(flockId,currentWeight,currentFeed,currentLiveBirds,previousRecord,productionType,productionMetrics){const t=String(productionType||'broiler').toLowerCase();if(t==='layer'||t==='تخمگذار'||t==='تخم‌گذار'||t==='breeder'||t==='مادر'||t==='مرغ مادر')return layerWeekly(currentFeed,productionMetrics?.egg_mass_kg);if(!previousRecord)return null;return broilerWeeklyFCR({feedKg:currentFeed,openBirds:birdsOf(previousRecord),openWeight:weightOf(previousRecord),closeBirds:currentLiveBirds,closeWeight:currentWeight})};
-window.calculateWeeklyCumulativeConversion=function(records,current,type){const all=[...(Array.isArray(records)?records:[]).filter(x=>String(x.id)!==String(current?.id)),current].filter(Boolean),t=String(type||'broiler').toLowerCase();if(t==='layer'||t==='تخمگذار'||t==='تخم‌گذار'||t==='breeder'||t==='مادر'||t==='مرغ مادر')return layerCumulative(all);return broilerCumulativeFCR(all,window.currentFlockForSpecialized||window.currentFlock||{})};
-})();
+/* ADINE POULTRY HEALTH — CALCULATION COMPATIBILITY ADAPTER
+   Canonical calculation owner: broiler-fcr-engine-v11.js
+   This file intentionally contains NO independent calculation formulas.
+   It exists only so legacy weekly-page callers do not break while the
+   report architecture is being rebuilt around isolated production engines.
+*/
+(function(global){'use strict';
+  const engine=global.AdineBroilerFCR;
+  if(!engine) throw new Error('Canonical Broiler FCR Engine must load before performance-engine-v2.js');
+  const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
+  const rows=a=>(Array.isArray(a)?a:[]).filter(Boolean).slice().sort((a,b)=>(n(a.age_days??a.ageDays)??0)-(n(b.age_days??b.ageDays)??0));
+  const biomassGainKg=(openBirds,openWeight,closeBirds,closeWeight)=>{const ob=n(openBirds),ow=n(openWeight),cb=n(closeBirds),cw=n(closeWeight);if(!(ob>0&&ow>=0&&cb>0&&cw>0))return null;const g=(cb*cw-ob*ow)/1000;return g>0?g:null};
+  const broilerWeeklyFCR=({feedKg,openBirds,openWeight,closeBirds,closeWeight})=>{const f=n(feedKg),g=biomassGainKg(openBirds,openWeight,closeBirds,closeWeight);return f>0&&g>0?f/g:null};
+  const broilerCumulativeFCR=(records,flock)=>{const out=engine.canonical(records,flock);return out.length?out[out.length-1].cumulativeFcr:null};
+  const typeOf=f=>String(f?.production_type??f?.productionType??'').trim().toLowerCase()==='گوشتی'?'broiler':String(f?.production_type??f?.productionType??'').trim().toLowerCase();
+  global.AdinePerformance={version:'CANONICAL-ADAPTER-1',typeOf,rows,biomassGainKg,broilerWeeklyFCR,broilerCumulativeFCR,quality:x=>({ok:true,issues:[]})};
+  global.calculateWeeklyFCR=function(flockId,currentWeight,currentFeed,currentLiveBirds,previousRecord,productionType){if(typeOf({production_type:productionType})!=='broiler')return null;return broilerWeeklyFCR({feedKg:currentFeed,openBirds:previousRecord?.live_birds??previousRecord?.liveBirds,openWeight:previousRecord?.average_weight_g??previousRecord?.averageWeight,closeBirds:currentLiveBirds,closeWeight:currentWeight})};
+  global.calculateWeeklyCumulativeConversion=function(records,current,type){if(typeOf({production_type:type})!=='broiler')return null;return broilerCumulativeFCR([...(Array.isArray(records)?records:[]).filter(x=>String(x.id)!==String(current?.id)),current].filter(Boolean),global.currentFlockForSpecialized||global.currentFlock||{})};
+})(typeof window!=='undefined'?window:globalThis);

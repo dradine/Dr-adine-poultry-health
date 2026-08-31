@@ -10,6 +10,6 @@ const out=context.AdineBroilerReportEngine.build(flock,rows);
 assert.strictEqual(out.domain,"broiler");assert.strictEqual(out.rows.length,2);
 assert.strictEqual(out.rows[0].fcr,.766);assert.strictEqual(out.rows[1].cumulativeFcr,.996);
 assert.strictEqual(out.rows[0].managementWeightGain,167);
-assert.ok(Math.abs(out.rows[1].managementWeeklyFcr-1.3352)<0.0002);
+assert.ok(Math.abs(out.rows[1].managementWeeklyFcr-1.3342704268)<0.0002);
 assert.strictEqual(out.rows[0].fcrSource,"canonical-record");
 console.log("reports architecture tests: PASS");

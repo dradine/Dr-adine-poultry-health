@@ -6,6 +6,7 @@ on:
       - 'reports.js'
       - 'reports-router.js'
       - 'broiler-report-engine.js'
+      - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
       - 'tests/**'
@@ -14,6 +15,7 @@ on:
       - 'reports.js'
       - 'reports-router.js'
       - 'broiler-report-engine.js'
+      - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
       - 'tests/**'
@@ -30,6 +32,7 @@ jobs:
           node --check reports.js
           node --check reports-router.js
           node --check broiler-report-engine.js
+          node --check standards-resolver-core-v1.js
       - name: Domain regression test
         run: node tests/reports-architecture.test.js
       - name: Shell isolation test

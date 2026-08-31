@@ -1,0 +1,38 @@
+name: Restore working weekly reports
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  restore:
+    if: github.event.head_commit.message != 'Restore reports runtime without charts'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore known-good reports runtime
+        shell: python
+        run: |
+          import subprocess
+          from pathlib import Path
+          p=Path('reports.html')
+          subprocess.run(['git','checkout','e0e004312ebf83c75932e57685b06b93dc4b36ce','--','reports.html'],check=True)
+          s=p.read_text(encoding='utf-8')
+          # Keep every report calculation and data path exactly as the known-good baseline.
+          # Only hide the chart presentation layer; do not remove its runtime dependencies.
+          marker='<style>'
+          if marker not in s: raise SystemExit('style block not found')
+          s=s.replace(marker, marker+'.chart{display:none!important}.chart+*{display:none!important}',1)
+          p.write_text(s,encoding='utf-8')
+          # Ensure we restored the original runtime rather than the broken edited page.
+          if 'supabase-config.js' not in s or 'standard-data.js' not in s or 'standards.js' not in s or 'weekly_monitoring' not in s:
+              raise SystemExit('critical report runtime missing')
+      - name: Commit restored report
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add reports.html
+          git commit -m 'Restore reports runtime without charts'
+          git push

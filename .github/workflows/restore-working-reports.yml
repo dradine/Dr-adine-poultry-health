@@ -20,15 +20,15 @@ jobs:
           p=Path('reports.html')
           subprocess.run(['git','checkout','e0e004312ebf83c75932e57685b06b93dc4b36ce','--','reports.html'],check=True)
           s=p.read_text(encoding='utf-8')
-          # Keep every report calculation and data path exactly as the known-good baseline.
-          # Only hide the chart presentation layer; do not remove its runtime dependencies.
           marker='<style>'
           if marker not in s: raise SystemExit('style block not found')
-          s=s.replace(marker, marker+'.chart{display:none!important}.chart+*{display:none!important}',1)
+          # Hide only the chart presentation. All report JS, Supabase queries,
+          # calculations and standard resolution remain exactly at the baseline.
+          s=s.replace(marker, marker+'.chart{display:none!important;height:0!important;overflow:hidden!important}.chart canvas{display:none!important}',1)
           p.write_text(s,encoding='utf-8')
-          # Ensure we restored the original runtime rather than the broken edited page.
-          if 'supabase-config.js' not in s or 'standard-data.js' not in s or 'standards.js' not in s or 'weekly_monitoring' not in s:
-              raise SystemExit('critical report runtime missing')
+          required=['supabase-config.js','standard-data.js','standards.js','weekly_monitoring','function weekly()']
+          missing=[x for x in required if x not in s]
+          if missing: raise SystemExit('critical report runtime missing: '+repr(missing))
       - name: Commit restored report
         run: |
           git config user.name 'github-actions[bot]'

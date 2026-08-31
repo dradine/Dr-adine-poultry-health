@@ -1,1 +1,0 @@
-The renderer in reports-weekly-chart-renderer-v4.js is intentionally isolated. Integration must replace only the chart constructor calls in the weekly-report presentation layer. Do not change metric extraction, resolvePoultryStandard, FCR calculation, RPCs, or Supabase writes.

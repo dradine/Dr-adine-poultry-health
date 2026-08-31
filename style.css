@@ -1,9 +1,3 @@
 /* Global stylesheet wrapper. The original stylesheet is pinned to the known-good commit; mobile overrides are loaded afterward. */
 @import url("https://raw.githubusercontent.com/dradine/Dr-adine-poultry-health/df5c078bef603acbfa1e4b482c53d9c247532d91/style.css");
 @import url("mobile-compact.css");
-
-/* Reports: only the canonical weekly report is exposed. */
-body:has(.tabs .tab[data-tab="weekly"]) .tabs .tab[data-tab="overall"],
-body:has(.tabs .tab[data-tab="weekly"]) .tabs .tab[data-tab="compare"] {
-  display: none !important;
-}

@@ -9,8 +9,10 @@ on:
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
       - 'voice-shenava-network.js'
+      - 'voice-universal-controls.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
+      - 'tests/voice-universal-controls.test.js'
       - 'config.js'
       - 'supabase-config.js'
       - '.github/workflows/voice-fallback-regression.yml'
@@ -21,8 +23,10 @@ on:
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
       - 'voice-shenava-network.js'
+      - 'voice-universal-controls.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
+      - 'tests/voice-universal-controls.test.js'
       - 'config.js'
       - 'supabase-config.js'
       - '.github/workflows/voice-fallback-regression.yml'
@@ -43,14 +47,18 @@ jobs:
           node --check voice-shenava.js
           node --check voice-shenava-runtime.js
           node --check voice-shenava-network.js
+          node --check voice-universal-controls.js
           node --check tests/voice-shenava.test.js
           node --check tests/voice-shenava-runtime.test.js
+          node --check tests/voice-universal-controls.test.js
           node --check config.js
           node --check supabase-config.js
       - name: Shenava normalization regression
         run: node tests/voice-shenava.test.js
       - name: Shenava raw-PCM runtime smoke
         run: node tests/voice-shenava-runtime.test.js
+      - name: Universal controller regression
+        run: node tests/voice-universal-controls.test.js
       - name: Local voice architecture assertions
         run: |
           node <<'NODE'
@@ -58,13 +66,14 @@ jobs:
           const shenava = fs.readFileSync('voice-shenava.js', 'utf8');
           const runtime = fs.readFileSync('voice-shenava-runtime.js', 'utf8');
           const network = fs.readFileSync('voice-shenava-network.js', 'utf8');
+          const universal = fs.readFileSync('voice-universal-controls.js', 'utf8');
           const config = fs.readFileSync('config.js', 'utf8');
           const assert = (condition, message) => { if (!condition) throw new Error(message); };
           assert(/Shenava-Rizeh-v1\.0-ONNX-fp16/.test(runtime), 'Shenava Rizeh engine missing');
           assert(/processed_signal/.test(runtime) && /processed_signal_length/.test(runtime), 'ONNX input contract missing');
           assert(/2005/.test(runtime) && /80/.test(runtime) && /16000/.test(runtime), 'Shenava preprocessing contract missing');
           assert(/pad:256/.test(runtime), 'NeMo center padding contract missing');
-          assert(/pre\[i\]=x\[i\]-.97\*x\[i-1\]/.test(runtime), 'NeMo pre-emphasis contract missing');
+          assert(/pre\[i\]=v-.97\*prev/.test(runtime), 'NeMo pre-emphasis contract missing');
           assert(/Math\.log\(z\+5\.960464477539063e-8\)/.test(runtime), 'NeMo log guard contract missing');
           assert(/getUserMedia/.test(runtime) && /ScriptProcessor/.test(runtime), 'raw local PCM microphone capture missing');
           assert(!/MediaRecorder/.test(runtime), 'container-based MediaRecorder capture must not be used');
@@ -75,9 +84,10 @@ jobs:
           assert(/hf-mirror\.com/.test(runtime) && /huggingface\.co/.test(runtime), 'model mirror/official endpoints missing');
           assert(!/OPENAI_API_KEY/.test(`${shenava}\n${runtime}\n${network}`), 'paid provider secret must never ship to browser');
           assert(!/supabaseClient|weekly_records|cumulative_fcr/.test(`${shenava}\n${runtime}\n${network}`), 'voice engine must not couple to application data');
-          assert(/voice-shenava\.js\?v=3\.0\.0/.test(config), 'global Shenava adapter loader missing');
-          assert(/voice-shenava-runtime\.js\?v=4\.0\.0/.test(config), 'global Shenava runtime loader missing');
-          assert(/voice-shenava-network\.js\?v=1\.1\.0/.test(config), 'network adapter loader missing');
+          assert(/voice-shenava-runtime\.js\?v=6\.3\.0/.test(config), 'current Shenava runtime loader missing');
+          assert(/voice-universal-controls\.js\?v=6\.3\.0/.test(config), 'current universal voice controller loader missing');
+          assert(/version:'6\.3\.0'/.test(universal), 'universal voice controller version mismatch');
+          assert(/inferPCM\(pcm,st\.sampleRate\|\|16000\)/.test(universal), 'actual capture sample rate is not forwarded');
           assert(!/OPENAI_API_KEY/.test(config), 'provider secret must never ship to browser');
           console.log('Local Shenava voice architecture assertions: PASS');
           NODE

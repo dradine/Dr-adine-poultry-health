@@ -5,6 +5,7 @@ on:
     paths:
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
+      - 'voice-shenava-network.js'
       - 'config.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
+      - 'voice-shenava-network.js'
       - 'config.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
@@ -32,6 +34,7 @@ jobs:
         run: |
           node --check voice-shenava.js
           node --check voice-shenava-runtime.js
+          node --check voice-shenava-network.js
           node --check config.js
           node --check tests/voice-shenava.test.js
           node --check tests/voice-shenava-runtime.test.js
@@ -46,10 +49,10 @@ jobs:
           node tests/voice-shenava-model.test.js
       - name: Guard against paid/cloud voice dependencies
         run: |
-          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js voice-shenava-runtime.js; then exit 1; fi
+          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js; then exit 1; fi
       - name: Guard against application data coupling
         run: |
-          if grep -nE 'supabaseClient|weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js; then exit 1; fi
+          if grep -nE 'supabaseClient|weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js; then exit 1; fi
       - name: Guard Shenava fixed-window contract
         run: |
           grep -n 'processed_signal' voice-shenava-runtime.js
@@ -59,4 +62,6 @@ jobs:
           grep -n '16000' voice-shenava-runtime.js
           grep -n 'blank:1024' voice-shenava-runtime.js
           grep -n 'pad:256' voice-shenava-runtime.js
-          grep -n 'audio/mp4' voice-shenava-runtime.js
+          grep -n 'getUserMedia' voice-shenava-runtime.js
+          grep -n 'ScriptProcessor' voice-shenava-runtime.js
+          grep -n 'baseMirror' voice-shenava-runtime.js

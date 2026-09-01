@@ -4,6 +4,7 @@ const assert = require('assert');
 
 const source = fs.readFileSync('voice-shenava-runtime.js', 'utf8');
 const listeners = {};
+const MODEL_BYTES = 58982673;
 const document = {
   addEventListener(name, fn) { listeners[name] = fn; },
   createElement() { return { setAttribute(){}, appendChild(){}, addEventListener(){}, dataset:{}, className:'', textContent:'' }; },
@@ -12,17 +13,23 @@ const document = {
 };
 const sandbox = {
   window: {}, document, console,
-  navigator: { mediaDevices: { getUserMedia: async()=>({ getTracks:()=>[] }) } },
+  navigator: { userAgent:'Android Chrome', mediaDevices: { getUserMedia: async()=>({ getTracks:()=>[] }) } },
   Float32Array, Uint16Array, Uint32Array, BigInt64Array,
-  setTimeout, clearTimeout,
+  setTimeout, clearTimeout, Math, Number, String, Error, Object, Array, Promise,
   fetch: async (url) => ({
     ok:true,
+    async arrayBuffer(){ return new ArrayBuffer(MODEL_BYTES); },
     async json(){
-      if (String(url).includes('tokens.json')) {
+      const u=String(url);
+      if (u.includes('tokens.json')) {
         const tokens = Array.from({length:1025},()=>'<unk>');
         tokens[10] = 'سلام';
         return { tokens };
       }
+      if (u.includes('preprocessor.json')) return {
+        sample_rate:16000,n_fft:512,win_length:400,hop_length:160,n_mels:80,
+        center_pad:256,fixed_frames:2005,blank_id:1024
+      };
       return Array.from({length:80},()=>Array(257).fill(0));
     }
   }),
@@ -57,6 +64,6 @@ assert(sandbox.window.AdineShenavaRuntime);
   const text = await sandbox.window.AdineShenavaRuntime.inferPCM(pcm,16000);
   assert.strictEqual(text,'سلام');
   assert(lastInput);
-  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'4.2.0');
-  console.log('Shenava raw-PCM runtime smoke: PASS (PCM/resample/fbank/tensor/CTC)');
+  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'5.0.0');
+  console.log('Shenava raw-PCM runtime smoke: PASS (PCM/resample/reflect-fbank/tensor/CTC)');
 })().catch(err=>{console.error(err);process.exitCode=1;});

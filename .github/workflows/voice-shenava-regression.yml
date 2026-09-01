@@ -10,6 +10,7 @@ on:
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
       - 'tests/voice-shenava-model.test.js'
+      - 'tests/voice-shenava-static.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
   pull_request:
     paths:
@@ -20,6 +21,7 @@ on:
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
       - 'tests/voice-shenava-model.test.js'
+      - 'tests/voice-shenava-static.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
 
 jobs:
@@ -39,10 +41,13 @@ jobs:
           node --check tests/voice-shenava.test.js
           node --check tests/voice-shenava-runtime.test.js
           node --check tests/voice-shenava-model.test.js
+          node --check tests/voice-shenava-static.test.js
       - name: Local normalization regression
         run: node tests/voice-shenava.test.js
       - name: Runtime preprocessing and CTC smoke
         run: node tests/voice-shenava-runtime.test.js
+      - name: Static cross-platform runtime guards
+        run: node tests/voice-shenava-static.test.js
       - name: Actual Shenava ONNX model inference
         run: |
           npm install --no-save --no-package-lock onnxruntime-node@1.24.1

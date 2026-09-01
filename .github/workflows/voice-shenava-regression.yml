@@ -42,6 +42,7 @@ jobs:
         run: |
           grep -n 'processed_signal' voice-shenava-runtime.js
           grep -n 'processed_signal_length' voice-shenava-runtime.js
-          grep -n '80,2005' voice-shenava-runtime.js
+          grep -n 'nMels:80' voice-shenava-runtime.js
+          grep -n 'frames:2005\|frames: 2005' voice-shenava-runtime.js
           grep -n '16000' voice-shenava-runtime.js
-          grep -n '1024' voice-shenava-runtime.js
+          grep -n 'blank:1024' voice-shenava-runtime.js

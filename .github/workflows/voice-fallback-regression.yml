@@ -8,6 +8,7 @@ on:
       - 'voice-fallback.js'
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
+      - 'voice-shenava-network.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
       - 'config.js'
@@ -19,6 +20,7 @@ on:
       - 'voice-fallback.js'
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
+      - 'voice-shenava-network.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
       - 'config.js'
@@ -40,13 +42,14 @@ jobs:
           node --check voice-fallback.js
           node --check voice-shenava.js
           node --check voice-shenava-runtime.js
+          node --check voice-shenava-network.js
           node --check tests/voice-shenava.test.js
           node --check tests/voice-shenava-runtime.test.js
           node --check config.js
           node --check supabase-config.js
       - name: Shenava normalization regression
         run: node tests/voice-shenava.test.js
-      - name: Shenava runtime smoke
+      - name: Shenava raw-PCM runtime smoke
         run: node tests/voice-shenava-runtime.test.js
       - name: Local voice architecture assertions
         run: |
@@ -54,6 +57,7 @@ jobs:
           const fs = require('fs');
           const shenava = fs.readFileSync('voice-shenava.js', 'utf8');
           const runtime = fs.readFileSync('voice-shenava-runtime.js', 'utf8');
+          const network = fs.readFileSync('voice-shenava-network.js', 'utf8');
           const config = fs.readFileSync('config.js', 'utf8');
           const assert = (condition, message) => { if (!condition) throw new Error(message); };
           assert(/Shenava-Rizeh-v1\.0-ONNX-fp16/.test(runtime), 'Shenava Rizeh engine missing');
@@ -62,27 +66,30 @@ jobs:
           assert(/pad:256/.test(runtime), 'NeMo center padding contract missing');
           assert(/pre\[i\]=x\[i\]-.97\*x\[i-1\]/.test(runtime), 'NeMo pre-emphasis contract missing');
           assert(/Math\.log\(z\+5\.960464477539063e-8\)/.test(runtime), 'NeMo log guard contract missing');
-          assert(/MediaRecorder/.test(runtime) && /getUserMedia/.test(runtime), 'local microphone capture missing');
-          assert(/audio\/mp4/.test(runtime), 'iOS audio/mp4 support missing');
+          assert(/getUserMedia/.test(runtime) && /ScriptProcessor/.test(runtime), 'raw local PCM microphone capture missing');
+          assert(!/MediaRecorder/.test(runtime), 'container-based MediaRecorder capture must not be used');
           assert(/webgpu/.test(runtime) && /wasm/.test(runtime), 'runtime fallback providers missing');
+          assert(/baseMirror/.test(runtime) && /baseOfficial/.test(runtime), 'model network fallback missing');
           assert(/Reza2kn\/Shenava-Rizeh-v1\.0-ONNX-fp16/.test(runtime), 'pinned model repository missing');
           assert(/d393dce04e8b8f4ae87e7cbc0c2d7c48072c44a2/.test(runtime), 'model revision is not pinned');
-          assert(!/OPENAI_API_KEY/.test(`${shenava}\n${runtime}`), 'paid provider secret must never ship to browser');
-          assert(!/supabaseClient|weekly_records|cumulative_fcr/.test(`${shenava}\n${runtime}`), 'voice engine must not couple to application data');
+          assert(/hf-mirror\.com/.test(runtime) && /huggingface\.co/.test(runtime), 'model mirror/official endpoints missing');
+          assert(!/OPENAI_API_KEY/.test(`${shenava}\n${runtime}\n${network}`), 'paid provider secret must never ship to browser');
+          assert(!/supabaseClient|weekly_records|cumulative_fcr/.test(`${shenava}\n${runtime}\n${network}`), 'voice engine must not couple to application data');
           assert(/voice-shenava\.js\?v=3\.0\.0/.test(config), 'global Shenava adapter loader missing');
-          assert(/voice-shenava-runtime\.js\?v=3\.1\.0/.test(config), 'global Shenava runtime loader missing');
+          assert(/voice-shenava-runtime\.js\?v=4\.0\.0/.test(config), 'global Shenava runtime loader missing');
+          assert(/voice-shenava-network\.js\?v=1\.1\.0/.test(config), 'network adapter loader missing');
           assert(!/OPENAI_API_KEY/.test(config), 'provider secret must never ship to browser');
           console.log('Local Shenava voice architecture assertions: PASS');
           NODE
       - name: Paid/cloud dependency guard
         run: |
-          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech' voice-shenava.js voice-shenava-runtime.js; then
+          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js; then
             echo 'Forbidden paid/cloud voice dependency detected'; exit 1;
           fi
           echo 'Paid/cloud dependency guard: PASS'
       - name: Application-data isolation guard
         run: |
-          if grep -nE 'supabaseClient|weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js; then
+          if grep -nE 'supabaseClient|weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js; then
             echo 'Voice/application data coupling detected'; exit 1;
           fi
           echo 'Application-data isolation guard: PASS'

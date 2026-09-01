@@ -1,39 +1,28 @@
+# Strict browser regression for Shenava Rizeh 32M 7.6
 name: Voice Shenava Rizeh 32M Regression
 
 on:
   push:
-    paths:
-      - 'voice-sherpa-runtime.js'
-      - 'voice-sherpa-worker.js'
-      - 'voice-universal-controls.js'
-      - 'config.js'
-      - 'supabase-config.js'
-      - 'tests/voice-shenava-rizeh32-sherpa.test.js'
-      - 'tests/voice-shenava-browser-smoke.js'
-      - '.github/workflows/voice-shenava-regression.yml'
+    paths: [ 'voice-sherpa-runtime.js', 'voice-sherpa-worker.js', 'voice-universal-controls.js', 'config.js', 'supabase-config.js', 'tests/voice-shenava-rizeh32-sherpa.test.js', 'tests/voice-shenava-browser-smoke.js', '.github/workflows/voice-shenava-regression.yml' ]
   pull_request:
-    paths:
-      - 'voice-sherpa-runtime.js'
-      - 'voice-sherpa-worker.js'
-      - 'voice-universal-controls.js'
-      - 'config.js'
-      - 'supabase-config.js'
-      - 'tests/voice-shenava-rizeh32-sherpa.test.js'
-      - 'tests/voice-shenava-browser-smoke.js'
-      - '.github/workflows/voice-shenava-regression.yml'
+    paths: [ 'voice-sherpa-runtime.js', 'voice-sherpa-worker.js', 'voice-universal-controls.js', 'config.js', 'supabase-config.js', 'tests/voice-shenava-rizeh32-sherpa.test.js', 'tests/voice-shenava-browser-smoke.js', '.github/workflows/voice-shenava-regression.yml' ]
 
 jobs:
   regression:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit, firefox]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+        with: { node-version: 22 }
       - name: Syntax checks
         run: |
           node --check voice-sherpa-runtime.js
+          node --check voice-sherpa-worker.js
           node --check voice-universal-controls.js
           node --check config.js
           node --check supabase-config.js
@@ -41,20 +30,22 @@ jobs:
           node --check tests/voice-shenava-browser-smoke.js
       - name: Strict architecture regression
         run: node tests/voice-shenava-rizeh32-sherpa.test.js
-      - name: Browser WASM + model initialization
+      - name: Network/model preflight
+        run: |
+          curl -fsSI --max-time 30 'https://cdn.jsdelivr.net/npm/@sherpaw/asr@0.0.2/dist/index.js' >/dev/null
+          curl -fsSI --max-time 30 'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/model.onnx?download=true' >/dev/null
+          curl -fsSI --max-time 30 'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/tokens.txt?download=true' >/dev/null
+      - name: Browser WASM + real 32M model/session initialization
+        env: { BROWSER: ${{ matrix.browser }} }
         run: |
           npm install --no-save --no-package-lock playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps ${{ matrix.browser }}
           node tests/voice-shenava-browser-smoke.js
       - name: Legacy loader guard
-        run: |
-          if grep -R -nE 'voice-shenava-runtime\.js\?v=6\.|voice-universal-controls\.js\?v=6\.' config.js supabase-config.js; then exit 1; fi
+        run: if grep -R -nE 'voice-shenava-runtime\.js\?v=6\.|voice-universal-controls\.js\?v=6\.' config.js supabase-config.js; then exit 1; fi
       - name: Custom ONNX pipeline guard
-        run: |
-          if grep -nE 'onnxruntime-web|processed_signal|processed_signal_length|mel_filters|function fft\(|float16Data' voice-sherpa-runtime.js voice-sherpa-worker.js; then exit 1; fi
+        run: if grep -nE 'onnxruntime-web|processed_signal|processed_signal_length|mel_filters|function fft\(|float16Data' voice-sherpa-runtime.js voice-sherpa-worker.js; then exit 1; fi
       - name: Application-data isolation guard
-        run: |
-          if grep -nE 'weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-sherpa-runtime.js voice-sherpa-worker.js voice-universal-controls.js; then exit 1; fi
+        run: if grep -nE 'weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-sherpa-runtime.js voice-sherpa-worker.js voice-universal-controls.js; then exit 1; fi
       - name: Cloud credential isolation guard
-        run: |
-          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech' voice-sherpa-runtime.js voice-sherpa-worker.js; then exit 1; fi
+        run: if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech' voice-sherpa-runtime.js voice-sherpa-worker.js; then exit 1; fi

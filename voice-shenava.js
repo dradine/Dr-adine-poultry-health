@@ -10,9 +10,14 @@
 
   const CFG = Object.freeze({
     lang: 'fa-IR',
-    repo: 'Reza2kn/Shenava-Rizeh-v1.0-ONNX-fp16',
-    hfApi: 'https://huggingface.co/api/models/Reza2kn/Shenava-Rizeh-v1.0-ONNX-fp16',
+    modelRevision: 'd393dce04e8b8f4ae87e7cbc0c2d7c48072c44a2',
+    modelBase: 'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-ONNX-fp16/resolve/d393dce04e8b8f4ae87e7cbc0c2d7c48072c44a2/',
+    modelFile: 'shenava-32m-v5_ctc_fixed2005_len_att70_13_fp16_full_io_embedded.onnx',
+    tokensFile: 'tokens.json',
+    preFile: 'preprocessor.json',
+    melFile: 'mel_filters_slaney_80x257.json',
     ortCdn: 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.24.1/dist/ort.min.js',
+    ortCdnFallback: 'https://unpkg.com/onnxruntime-web@1.24.1/dist/ort.min.js',
     sampleRate: 16000,
     nFft: 512,
     winLength: 400,
@@ -23,7 +28,7 @@
     maxSeconds: 20,
     buttonClass: 'adine-voice-button',
     wrapperClass: 'adine-voice-field',
-    version: '2.0.0-shenava-rizeh'
+    version: '2.1.0-shenava-rizeh'
   });
 
   const DENY = /(password|passwd|secret|token|code|otp|captcha|search|url|email|phone|mobile|username|user-name|farmcode|flockcode|verification)/i;
@@ -131,179 +136,59 @@
     const p = el.closest('label');
     return p ? p.textContent.trim() : 'متن';
   }
+  function status(s,text,kind){if(s.status){s.status.textContent=text||'';s.status.dataset.state=kind||'';}}
+  function inputEvent(el){el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}
+  function setText(el,value){const v=normalizeTerms(value);if(el.value!==v){el.value=v;inputEvent(el);}}
+  function getState(el){let s=state.get(el);if(!s){s={button:null,status:null,recording:false,stopping:false,stream:null,recorder:null,chunks:[],base:'',timer:null};state.set(el,s);}return s;}
+  function bestMime(){const c=['audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/webm;codecs=opus','audio/webm'];if(!window.MediaRecorder||!MediaRecorder.isTypeSupported)return '';return c.find(x=>MediaRecorder.isTypeSupported(x))||'';}
 
-  function status(s, text, kind) {
-    if (s.status) { s.status.textContent = text || ''; s.status.dataset.state = kind || ''; }
-  }
-  function inputEvent(el) {
-    el.dispatchEvent(new Event('input', {bubbles:true}));
-    el.dispatchEvent(new Event('change', {bubbles:true}));
-  }
-  function setText(el, value) {
-    const v = normalizeTerms(value);
-    if (el.value !== v) { el.value = v; inputEvent(el); }
-  }
+  function loadScript(src){return new Promise((resolve,reject)=>{if(window.ort)return resolve(window.ort);const s=document.createElement('script');s.src=src;s.async=true;s.onload=()=>window.ort?resolve(window.ort):reject(new Error('ORT_LOAD_FAILED'));s.onerror=()=>reject(new Error('ORT_LOAD_FAILED'));document.head.appendChild(s);});}
+  async function json(url){const r=await fetch(url,{cache:'force-cache'});if(!r.ok)throw new Error('FETCH_FAILED:'+r.status);return r.json();}
+  function asset(name){return CFG.modelBase+name;}
 
-  function getState(el) {
-    let s = state.get(el);
-    if (!s) { s = {button:null,status:null,recording:false,stopping:false,stream:null,recorder:null,chunks:[],base:'',timer:null}; state.set(el,s); }
-    return s;
-  }
-
-  function bestMime() {
-    const candidates = ['audio/mp4','audio/mp4;codecs=mp4a.40.2','audio/webm;codecs=opus','audio/webm'];
-    if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
-    return candidates.find(x => MediaRecorder.isTypeSupported(x)) || '';
-  }
-
-  function loadScript(src) {
-    return new Promise((resolve,reject) => {
-      if (window.ort) return resolve(window.ort);
-      const s = document.createElement('script'); s.src = src; s.async = true;
-      s.onload = () => window.ort ? resolve(window.ort) : reject(new Error('ORT_LOAD_FAILED'));
-      s.onerror = () => reject(new Error('ORT_LOAD_FAILED'));
-      document.head.appendChild(s);
-    });
-  }
-
-  async function json(url) { const r = await fetch(url, {cache:'force-cache'}); if (!r.ok) throw new Error('FETCH_FAILED:' + r.status); return r.json(); }
-
-  async function discover() {
-    const meta = await json(CFG.hfApi);
-    const names = (meta.siblings || []).map(x => x.rfilename || '');
-    const onnx = names.find(n => /embedded\.onnx$/i.test(n)) || names.find(n => /\.onnx$/i.test(n));
-    const tokens = names.find(n => /tokens\.json$/i.test(n));
-    const pre = names.find(n => /preprocessor\.json$/i.test(n));
-    const mel = names.find(n => /mel_filters.*\.json$/i.test(n));
-    if (!onnx || !tokens || !pre || !mel) throw new Error('SHENAVA_ASSETS_MISSING');
-    const base = 'https://huggingface.co/' + CFG.repo + '/resolve/main/';
-    return {onnx:base + encodeURI(onnx), tokens:base + encodeURI(tokens), pre:base + encodeURI(pre), mel:base + encodeURI(mel)};
-  }
-
-  function melFilters(raw) {
-    if (Array.isArray(raw)) return raw;
-    if (Array.isArray(raw.filters)) return raw.filters;
-    if (Array.isArray(raw.mel_filters)) return raw.mel_filters;
-    throw new Error('MEL_FILTERS_INVALID');
-  }
-
-  function tokenTable(raw) {
-    if (Array.isArray(raw)) return raw;
-    if (raw && Array.isArray(raw.tokens)) return raw.tokens;
-    if (raw && raw.vocab && typeof raw.vocab === 'object') return Object.entries(raw.vocab).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
-    if (raw && typeof raw === 'object') {
-      const entries = Object.entries(raw).filter(x => /^\d+$/.test(String(x[1]))).sort((a,b)=>Number(a[1])-Number(b[1]));
-      if (entries.length) return entries.map(x=>x[0]);
-    }
+  function tokenTable(raw){
+    if(Array.isArray(raw))return raw;
+    if(raw&&Array.isArray(raw.tokens))return raw.tokens;
+    if(raw&&raw.vocab&&typeof raw.vocab==='object')return Object.entries(raw.vocab).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+    if(raw&&typeof raw==='object'){const e=Object.entries(raw).filter(x=>/^\d+$/.test(String(x[1]))).sort((a,b)=>Number(a[1])-Number(b[1]));if(e.length)return e.map(x=>x[0]);}
     throw new Error('TOKENS_INVALID');
   }
+  function melFilters(raw){if(Array.isArray(raw))return raw;if(raw&&Array.isArray(raw.filters))return raw.filters;if(raw&&Array.isArray(raw.mel_filters))return raw.mel_filters;throw new Error('MEL_FILTERS_INVALID');}
 
-  function fftReal(input, n) {
-    const re = new Float64Array(n), im = new Float64Array(n); re.set(input.subarray(0, Math.min(input.length,n)));
-    for (let i=0,j=0;i<n;i++){if(i<j){let t=re[i];re[i]=re[j];re[j]=t;}let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;}
-    for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,c=Math.cos(a),s=Math.sin(a);for(let i=0;i<n;i+=len){let wr=1,wi=0;for(let j=0;j<len/2;j++){const u=re[i+j],v=re[i+j+len/2]*wr-im[i+j+len/2]*wi;const vi=re[i+j+len/2]*wi+im[i+j+len/2]*wr;re[i+j]=u+v;im[i+j]=im[i+j]+vi;re[i+j+len/2]=u-v;im[i+j+len/2]=im[i+j]-vi;const nr=wr*c-wi*s;wi=wr*s+wi*c;wr=nr;}}}
-    return {re,im};
+  function fftReal(input,n){const re=new Float64Array(n),im=new Float64Array(n);re.set(input.subarray(0,Math.min(input.length,n)));for(let i=0,j=0;i<n;i++){if(i<j){let t=re[i];re[i]=re[j];re[j]=t;}let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;}for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,c=Math.cos(a),s=Math.sin(a);for(let i=0;i<n;i+=len){let wr=1,wi=0;for(let j=0;j<len/2;j++){const u=re[i+j],v=re[i+j+len/2]*wr-im[i+j+len/2]*wi;const vi=re[i+j+len/2]*wi+im[i+j+len/2]*wr;re[i+j]=u+v;im[i+j]=im[i+j]+vi;re[i+j+len/2]=u-v;im[i+j+len/2]=im[i+j]-vi;const nr=wr*c-wi*s;wi=wr*s+wi*c;wr=nr;}}}return{re,im};}
+  function reflectIndex(i,n){if(n<=1)return 0;while(i<0||i>=n)i=i<0?-i:i>=n?2*n-2-i:i;return i;}
+  function makeFeatures(samples,filters){const x=samples.length>CFG.sampleRate*CFG.maxSeconds?samples.subarray(0,CFG.sampleRate*CFG.maxSeconds):samples;const pre=new Float32Array(x.length);let prev=0;for(let i=0;i<x.length;i++){const v=x[i];pre[i]=v-0.97*prev;prev=v;}const frames=Math.max(1,Math.min(CFG.fixedFrames,Math.floor(pre.length/CFG.hopLength)+1));const out=new Float32Array(CFG.nMels*CFG.fixedFrames);const win=new Float64Array(CFG.winLength);for(let i=0;i<CFG.winLength;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(CFG.winLength-1));for(let f=0;f<frames;f++){const center=f*CFG.hopLength,buf=new Float64Array(CFG.nFft);for(let j=0;j<CFG.winLength;j++){const idx=reflectIndex(center-CFG.winLength/2+j,pre.length);buf[j]=(pre[idx]||0)*win[j];}const{re,im}=fftReal(buf,CFG.nFft);const power=new Float64Array(CFG.nFft/2+1);for(let k=0;k<power.length;k++)power[k]=re[k]*re[k]+im[k]*im[k];for(let m=0;m<CFG.nMels;m++){const row=filters[m]||[];let sum=0;for(let k=0;k<row.length&&k<power.length;k++)sum+=Number(row[k]||0)*power[k];out[m*CFG.fixedFrames+f]=Math.log(sum+5.960464477539063e-8);}}return{data:out,frames};}
+
+  function ctcDecode(logits,lengths,tokens){const steps=Math.min(Number(lengths[0]||logits.dims[1]),logits.dims[1]);const vocab=logits.dims[2];let prev=-1,out='';for(let t=0;t<steps;t++){let best=0,bestVal=-Infinity;for(let v=0;v<vocab;v++){const val=logits.data[t*vocab+v];if(val>bestVal){bestVal=val;best=v;}}if(best!==CFG.blankId&&best!==prev){const tok=tokens[best]==null?'':String(tokens[best]);if(!(tok.startsWith('<')&&tok.endsWith('>')))out+=tok;}prev=best;}return out.replace(/▁/g,' ').replace(/\s+/g,' ').trim();}
+
+  async function initEngine(){
+    let ort;
+    try{ort=await loadScript(CFG.ortCdn);}catch(_){ort=await loadScript(CFG.ortCdnFallback);}
+    ort.env.wasm.numThreads=1;ort.env.wasm.simd=true;
+    const [pre,mel,tok]=await Promise.all([json(asset(CFG.preFile)),json(asset(CFG.melFile)),json(asset(CFG.tokensFile))]);
+    const filters=melFilters(mel),tokens=tokenTable(tok);const providers=[];if(navigator.gpu)providers.push('webgpu');providers.push('wasm');
+    const session=await ort.InferenceSession.create(asset(CFG.modelFile),{executionProviders:providers,graphOptimizationLevel:'all'});
+    return{ort,session,filters,tokens,pre,providers};
+  }
+  async function engine(){if(!enginePromise)enginePromise=initEngine().catch(e=>{enginePromise=null;throw e;});return enginePromise;}
+
+  function toFloat16Bits(v){if(v===0)return 0;if(!Number.isFinite(v))return v<0?0xfc00:0x7c00;const s=v<0?0x8000:0;v=Math.abs(v);let e=Math.floor(Math.log2(v)),m=v/Math.pow(2,e)-1;if(e>15)return s|0x7c00;if(e<-14)return s|Math.round(v/Math.pow(2,-24));return s|((e+15)<<10)|Math.round(m*1024);}
+  function float16Data(f32){if(typeof Float16Array==='function')return new Float16Array(f32);const u=new Uint16Array(f32.length);for(let i=0;i<f32.length;i++)u[i]=toFloat16Bits(f32[i]);return u;}
+
+  async function decodeBlob(blob){
+    if(!blob||!blob.size)throw new Error('EMPTY_AUDIO');const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw new Error('AUDIO_DECODE_UNAVAILABLE');const ctx=new AC();
+    try{const ab=await blob.arrayBuffer(),audio=await ctx.decodeAudioData(ab.slice(0));const mono=new Float32Array(audio.length);for(let c=0;c<audio.numberOfChannels;c++){const ch=audio.getChannelData(c);for(let i=0;i<ch.length;i++)mono[i]+=ch[i]/audio.numberOfChannels;}const target=Math.max(1,Math.round(mono.length*CFG.sampleRate/audio.sampleRate)),rs=new Float32Array(target);for(let i=0;i<target;i++){const p=i*(mono.length-1)/Math.max(1,target-1),a=Math.floor(p),b=Math.min(a+1,mono.length-1),f=p-a;rs[i]=mono[a]*(1-f)+mono[b]*f;}const e=await engine(),feat=makeFeatures(rs,e.filters),inputData=float16Data(feat.data),tensor=new e.ort.Tensor('float16',inputData,[1,CFG.nMels,CFG.fixedFrames]),len=new e.ort.Tensor('int64',BigInt64Array.from([BigInt(feat.frames)]),[1]);const out=await e.session.run({processed_signal:tensor,processed_signal_length:len});return normalizeTerms(ctcDecode(out.logits,out.encoded_lengths,e.tokens));}
+    finally{try{await ctx.close();}catch(_){} }
   }
 
-  function reflectIndex(i,n) { if(n<=1)return 0; while(i<0||i>=n) i=i<0?-i:i>=n?2*n-2-i:i; return i; }
+  async function transcribe(el,s){if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder)throw new Error('MEDIARECORDER_UNAVAILABLE');const mime=bestMime();s.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});s.chunks=[];const r=new MediaRecorder(s.stream,mime?{mimeType:mime}:undefined);s.recorder=r;const blobPromise=new Promise((resolve,reject)=>{r.ondataavailable=e=>{if(e.data&&e.data.size)s.chunks.push(e.data);};r.onerror=()=>reject(new Error('RECORDING_FAILED'));r.onstop=()=>resolve(new Blob(s.chunks,{type:r.mimeType||mime||'audio/mp4'}));});r.start(250);s.recording=true;status(s,'در حال ضبط… دوباره بزنید تا تبدیل شود.','recording');s.timer=setTimeout(()=>{if(s.recording){s.stopping=true;try{r.stop();}catch(_){}status(s,'حداکثر زمان رسید؛ در حال تبدیل…','processing');}},CFG.maxSeconds*1000);const blob=await blobPromise;clearTimeout(s.timer);s.timer=null;s.recording=false;s.recorder=null;s.stream.getTracks().forEach(t=>t.stop());s.stream=null;status(s,'در حال تبدیل گفتار فارسی…','processing');const text=await decodeBlob(blob);setText(el,`${s.base}${s.base&&text?' ':''}${text}`.trim());status(s,'','');s.stopping=false;}
+  async function toggle(el){const s=getState(el);if(active&&active!==el){const old=getState(active);try{old.recorder&&old.recorder.stop();}catch(_){}old.stream&&old.stream.getTracks().forEach(t=>t.stop());active=null;}if(s.recording){s.stopping=true;status(s,'در حال تکمیل متن…','processing');try{s.recorder&&s.recorder.stop();}catch(_){}return;}s.base=normalizeTerms(el.value||'').trim();active=el;try{await transcribe(el,s);}catch(e){if(s.timer)clearTimeout(s.timer);s.timer=null;s.recording=false;s.recorder=null;if(s.stream){s.stream.getTracks().forEach(t=>t.stop());s.stream=null;}const msg={MEDIARECORDER_UNAVAILABLE:'ضبط صدا در این مرورگر در دسترس نیست.',AUDIO_DECODE_UNAVAILABLE:'پردازش صوت در این دستگاه در دسترس نیست.',EMPTY_AUDIO:'صدایی دریافت نشد؛ دوباره تلاش کنید.',RECORDING_FAILED:'ضبط صدا با خطا متوقف شد.',ORT_LOAD_FAILED:'موتور محلی گفتار بارگذاری نشد.',TOKENS_INVALID:'واژگان مدل قابل بارگذاری نیست.',MEL_FILTERS_INVALID:'فیلترهای صوتی مدل قابل بارگذاری نیست.',FETCH_FAILED: 'فایل‌های مدل شنوا در دسترس نیست؛ اتصال اینترنت را بررسی کنید.'};status(s,msg[e.message]||'تبدیل گفتار به متن با خطا مواجه شد؛ دوباره تلاش کنید.','error');}finally{if(active===el)active=null;s.stopping=false;}}
 
-  function makeFeatures(samples, filters) {
-    const x = samples.length > CFG.sampleRate*CFG.maxSeconds ? samples.subarray(0,CFG.sampleRate*CFG.maxSeconds) : samples;
-    const pre = new Float32Array(x.length); let prev=0;
-    for(let i=0;i<x.length;i++){const v=x[i];pre[i]=v-0.97*prev;prev=v;}
-    const frames = Math.max(1, Math.min(CFG.fixedFrames, Math.floor(pre.length/CFG.hopLength)+1));
-    const out = new Float32Array(CFG.nMels*CFG.fixedFrames);
-    const win = new Float64Array(CFG.winLength);
-    for(let i=0;i<CFG.winLength;i++) win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(CFG.winLength-1));
-    for(let f=0;f<frames;f++){
-      const center=f*CFG.hopLength, buf=new Float64Array(CFG.nFft);
-      for(let j=0;j<CFG.winLength;j++){const idx=reflectIndex(center-CFG.winLength/2+j,pre.length);buf[j]=(pre[idx]||0)*win[j];}
-      const {re,im}=fftReal(buf,CFG.nFft); const power=new Float64Array(CFG.nFft/2+1);
-      for(let k=0;k<power.length;k++) power[k]=re[k]*re[k]+im[k]*im[k];
-      for(let m=0;m<CFG.nMels;m++){const row=filters[m]||[];let sum=0;for(let k=0;k<row.length&&k<power.length;k++)sum+=Number(row[k]||0)*power[k];out[m*CFG.fixedFrames+f]=Math.log(sum+5.960464477539063e-8);}
-    }
-    return {data:out,frames};
-  }
-
-  function ctcDecode(logits, lengths, tokens) {
-    const steps = Math.min(Number(lengths[0] || logits.dims[1]), logits.dims[1]);
-    const vocab = logits.dims[2]; let prev=-1, out='';
-    for(let t=0;t<steps;t++){
-      let best=0,bestVal=-Infinity;
-      for(let v=0;v<vocab;v++){const val=logits.data[t*vocab+v];if(val>bestVal){bestVal=val;best=v;}}
-      if(best!==CFG.blankId && best!==prev){const tok=tokens[best] == null ? '' : String(tokens[best]);if(tok!=='<blank>'&&tok!=='<blk>')out+=tok;}
-      prev=best;
-    }
-    return out.replace(/▁/g,' ').replace(/\s+/g,' ').trim();
-  }
-
-  async function initEngine() {
-    const ort = await loadScript(CFG.ortCdn);
-    ort.env.wasm.numThreads = 1;
-    ort.env.wasm.simd = true;
-    const assets = await discover();
-    const [pre,mel,tok] = await Promise.all([json(assets.pre),json(assets.mel),json(assets.tokens)]);
-    const filters = melFilters(mel); const tokens = tokenTable(tok);
-    const providers = [];
-    if (navigator.gpu) providers.push('webgpu');
-    providers.push('wasm');
-    const session = await ort.InferenceSession.create(assets.onnx, {executionProviders:providers, graphOptimizationLevel:'all'});
-    return {ort,session,filters,tokens,pre,providers};
-  }
-
-  async function engine() { if(!enginePromise) enginePromise=initEngine().catch(e=>{enginePromise=null;throw e;}); return enginePromise; }
-
-  async function decodeBlob(blob) {
-    if (!blob || !blob.size) throw new Error('EMPTY_AUDIO');
-    if (!window.AudioContext && !window.webkitAudioContext) throw new Error('AUDIO_DECODE_UNAVAILABLE');
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    try {
-      const ab = await blob.arrayBuffer(); const audio = await ctx.decodeAudioData(ab.slice(0));
-      const mono = new Float32Array(audio.length); for(let c=0;c<audio.numberOfChannels;c++){const ch=audio.getChannelData(c);for(let i=0;i<ch.length;i++)mono[i]+=ch[i]/audio.numberOfChannels;}
-      const target = Math.max(1,Math.round(mono.length*CFG.sampleRate/audio.sampleRate)); const rs=new Float32Array(target);
-      for(let i=0;i<target;i++){const p=i*(mono.length-1)/Math.max(1,target-1),a=Math.floor(p),b=Math.min(a+1,mono.length-1),f=p-a;rs[i]=mono[a]*(1-f)+mono[b]*f;}
-      const e=await engine(); const feat=makeFeatures(rs,e.filters); const inputData = typeof Float16Array==='function' ? new Float16Array(feat.data) : feat.data;
-      const tensor = new e.ort.Tensor(typeof Float16Array==='function'?'float16':'float32', inputData, [1,CFG.nMels,CFG.fixedFrames]);
-      const len = new e.ort.Tensor('int64', BigInt64Array.from([BigInt(feat.frames)]), [1]);
-      const out=await e.session.run({processed_signal:tensor,processed_signal_length:len});
-      const logits=out.logits, lengths=out.encoded_lengths;
-      return normalizeTerms(ctcDecode(logits,lengths,e.tokens));
-    } finally { try{await ctx.close();}catch(_){} }
-  }
-
-  async function transcribe(el,s) {
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) throw new Error('MEDIARECORDER_UNAVAILABLE');
-    const mime=bestMime(); s.stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-    s.chunks=[]; const r=new MediaRecorder(s.stream,mime?{mimeType:mime}:undefined); s.recorder=r;
-    const blobPromise=new Promise((resolve,reject)=>{r.ondataavailable=e=>{if(e.data&&e.data.size)s.chunks.push(e.data);};r.onerror=()=>reject(new Error('RECORDING_FAILED'));r.onstop=()=>resolve(new Blob(s.chunks,{type:r.mimeType||mime||'audio/mp4'}));});
-    r.start(250); s.recording=true; status(s,'در حال ضبط… دوباره بزنید تا تبدیل شود.','recording');
-    s.timer=setTimeout(()=>{if(s.recording){s.stopping=true;try{r.stop();}catch(_){}status(s,'حداکثر زمان رسید؛ در حال تبدیل…','processing');}},CFG.maxSeconds*1000);
-    const blob=await blobPromise; clearTimeout(s.timer);s.timer=null;s.recording=false;s.recorder=null;s.stream.getTracks().forEach(t=>t.stop());s.stream=null;
-    status(s,'در حال تبدیل گفتار فارسی…','processing'); const text=await decodeBlob(blob); setText(el,`${s.base}${s.base&&text?' ':''}${text}`.trim());
-    status(s,'',''); s.stopping=false;
-  }
-
-  async function toggle(el) {
-    const s=getState(el);
-    if(active && active!==el){const old=getState(active);try{old.recorder&&old.recorder.stop();}catch(_){};old.stream&&old.stream.getTracks().forEach(t=>t.stop());active=null;}
-    if(s.recording){s.stopping=true;status(s,'در حال تکمیل متن…','processing');try{s.recorder&&s.recorder.stop();}catch(_){}return;}
-    s.base=normalizeTerms(el.value||'').trim();active=el;
-    try{await transcribe(el,s);}catch(e){if(s.timer)clearTimeout(s.timer);s.timer=null;s.recording=false;s.recorder=null;if(s.stream){s.stream.getTracks().forEach(t=>t.stop());s.stream=null;}const msg={MEDIARECORDER_UNAVAILABLE:'ضبط صدا در این مرورگر در دسترس نیست.',AUDIO_DECODE_UNAVAILABLE:'پردازش صوت در این دستگاه در دسترس نیست.',EMPTY_AUDIO:'صدایی دریافت نشد؛ دوباره تلاش کنید.',RECORDING_FAILED:'ضبط صدا با خطا متوقف شد.',SHENAVA_ASSETS_MISSING:'مدل فارسی شنوا در دسترس نیست؛ اتصال اینترنت را بررسی کنید.',ORT_LOAD_FAILED:'موتور محلی گفتار بارگذاری نشد.',TOKENS_INVALID:'واژگان مدل قابل بارگذاری نیست.',MEL_FILTERS_INVALID:'فیلترهای صوتی مدل قابل بارگذاری نیست.'};status(s,msg[e.message]||'تبدیل گفتار به متن با خطا مواجه شد؛ دوباره تلاش کنید.','error');}finally{if(active===el)active=null;s.stopping=false;}
-  }
-
-  function make(el){
-    if(!eligible(el)||el.parentElement&&el.parentElement.querySelector('.'+CFG.buttonClass))return;
-    const s=getState(el), wrap=document.createElement('span');wrap.className=CFG.wrapperClass;
-    const b=document.createElement('button');b.type='button';b.className=CFG.buttonClass;b.innerHTML='<span aria-hidden="true">🎙️</span>';b.title='گفتار به متن فارسی (شنوا ریزه)';b.setAttribute('aria-label','تبدیل گفتار به متن برای '+label(el));
-    const st=document.createElement('span');st.className='adine-voice-status';st.setAttribute('aria-live','polite');
-    wrap.appendChild(b);wrap.appendChild(st);el.parentNode.insertBefore(wrap,el.nextSibling);s.button=b;s.status=st;b.addEventListener('click',()=>toggle(el));
-  }
-
-  function styles(){if(document.getElementById('adine-shenava-voice-style'))return;const st=document.createElement('style');st.id='adine-shenava-voice-style';st.textContent='.adine-voice-field{display:inline-flex;align-items:center;gap:6px;max-width:100%}.adine-voice-field>.adine-voice-button{flex:0 0 auto;border:0;background:transparent;cursor:pointer;font-size:20px;line-height:1;padding:5px;border-radius:9px}.adine-voice-field>.adine-voice-button[data-recording="true"]{background:rgba(220,38,38,.12)}.adine-voice-status{font-size:11px;white-space:nowrap}.adine-voice-status[data-state="error"]{color:#b91c1c}.adine-voice-status[data-state="recording"],.adine-voice-status[data-state="processing"]{color:#2563eb}';document.head.appendChild(st);}
-  function scan(root){const r=root&&root.querySelectorAll?root:document; r.querySelectorAll('textarea,input[type="text"]').forEach(make);}
-
+  function make(el){if(!eligible(el)||el.parentElement&&el.parentElement.querySelector('.'+CFG.buttonClass))return;const s=getState(el),wrap=document.createElement('span');wrap.className=CFG.wrapperClass;const b=document.createElement('button');b.type='button';b.className=CFG.buttonClass;b.innerHTML='<span aria-hidden="true">🎙️</span>';b.title='گفتار به متن فارسی (شنوا ریزه)';b.setAttribute('aria-label','تبدیل گفتار به متن برای '+label(el));const st=document.createElement('span');st.className='adine-voice-status';st.setAttribute('aria-live','polite');wrap.appendChild(b);wrap.appendChild(st);el.parentNode.insertBefore(wrap,el.nextSibling);s.button=b;s.status=st;b.addEventListener('click',()=>toggle(el));}
+  function styles(){if(document.getElementById('adine-shenava-voice-style'))return;const st=document.createElement('style');st.id='adine-shenava-voice-style';st.textContent='.adine-voice-field{display:inline-flex;align-items:center;gap:6px;max-width:100%}.adine-voice-field>.adine-voice-button{flex:0 0 auto;border:0;background:transparent;cursor:pointer;font-size:20px;line-height:1;padding:5px;border-radius:9px}.adine-voice-status{font-size:11px;white-space:nowrap}.adine-voice-status[data-state="error"]{color:#b91c1c}.adine-voice-status[data-state="recording"],.adine-voice-status[data-state="processing"]{color:#2563eb}';document.head.appendChild(st);}
+  function scan(root){const r=root&&root.querySelectorAll?root:document;r.querySelectorAll('textarea,input[type="text"]').forEach(make);}
   function boot(){styles();scan(document);observer=new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n);})));observer.observe(document.documentElement,{childList:true,subtree:true});}
 
-  window.AdineVoiceInput={version:CFG.version,engine:'Shenava-Rizeh-v1.0-ONNX-fp16',local:true,normalize:normalizeTerms,ready:true,preload:()=>engine().then(()=>true),supported:()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder&&window.AudioContext||window.webkitAudioContext)};
+  window.AdineVoiceInput={version:CFG.version,engine:'Shenava-Rizeh-v1.0-ONNX-fp16',modelRevision:CFG.modelRevision,local:true,normalize:normalizeTerms,ready:true,preload:()=>engine().then(()=>true),supported:()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder&&(window.AudioContext||window.webkitAudioContext))};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();

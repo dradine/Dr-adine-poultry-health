@@ -8,6 +8,7 @@ on:
       - 'config.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
+      - 'tests/voice-shenava-model.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - 'config.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
+      - 'tests/voice-shenava-model.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
 
 jobs:
@@ -27,17 +29,27 @@ jobs:
         with:
           node-version: 22
       - name: Syntax check
-        run: node --check voice-shenava.js && node --check voice-shenava-runtime.js && node --check config.js && node --check tests/voice-shenava.test.js && node --check tests/voice-shenava-runtime.test.js
+        run: |
+          node --check voice-shenava.js
+          node --check voice-shenava-runtime.js
+          node --check config.js
+          node --check tests/voice-shenava.test.js
+          node --check tests/voice-shenava-runtime.test.js
+          node --check tests/voice-shenava-model.test.js
       - name: Local normalization regression
         run: node tests/voice-shenava.test.js
-      - name: Real inference pipeline smoke
+      - name: Runtime preprocessing and CTC smoke
         run: node tests/voice-shenava-runtime.test.js
+      - name: Actual Shenava ONNX model inference
+        run: |
+          npm install --no-save --no-package-lock onnxruntime-node@1.24.1
+          node tests/voice-shenava-model.test.js
       - name: Guard against paid/cloud voice dependencies
         run: |
-          ! grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js voice-shenava-runtime.js
+          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js voice-shenava-runtime.js; then exit 1; fi
       - name: Guard against application data coupling
         run: |
-          ! grep -nE 'supabaseClient|weekly_records|cumulative_fcr' voice-shenava.js voice-shenava-runtime.js
+          if grep -nE 'supabaseClient|weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js; then exit 1; fi
       - name: Guard Shenava fixed-window contract
         run: |
           grep -n 'processed_signal' voice-shenava-runtime.js
@@ -46,3 +58,5 @@ jobs:
           grep -n 'frames:2005\|frames: 2005' voice-shenava-runtime.js
           grep -n '16000' voice-shenava-runtime.js
           grep -n 'blank:1024' voice-shenava-runtime.js
+          grep -n 'pad:256' voice-shenava-runtime.js
+          grep -n 'audio/mp4' voice-shenava-runtime.js

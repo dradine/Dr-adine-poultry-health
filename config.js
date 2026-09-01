@@ -30,7 +30,7 @@ window.supabaseClient =
     try {
         if (window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-voice="1"]')) return;
         const script = document.createElement("script");
-        script.src = "voice-shenava.js?v=2.1.0";
+        script.src = "voice-shenava.js?v=2.2.0";
         script.async = false;
         script.dataset.adineShenavaVoice = "1";
         (document.head || document.documentElement).appendChild(script);

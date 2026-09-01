@@ -3,11 +3,16 @@ const assert = require('assert');
 
 const runtime = fs.readFileSync('voice-shenava-runtime.js', 'utf8');
 const config = fs.readFileSync('config.js', 'utf8');
+const supabaseConfig = fs.readFileSync('supabase-config.js', 'utf8');
 const network = fs.readFileSync('voice-shenava-network.js', 'utf8');
 
 assert.match(runtime, /ADINE SHENAVA RUNTIME 5\.1/);
 assert.match(runtime, /version:'5\.1\.0'/);
 assert.match(config, /voice-shenava-runtime\.js\?v=5\.1\.0/);
+assert.match(supabaseConfig, /voice-shenava-runtime\.js\?v=5\.1\.0/);
+assert.match(supabaseConfig, /voice-shenava\.js\?v=3\.0\.0/);
+assert.doesNotMatch(supabaseConfig, /voice-input\.js/);
+assert.doesNotMatch(supabaseConfig, /voice-fallback\.js/);
 assert.match(runtime, /executionProviders:\[provider\]/);
 assert.match(runtime, /order=isMobile\(\)\?\['wasm','webgpu'\]:\['webgpu','wasm'\]/);
 assert.match(runtime, /ort\.env\.wasm\.numThreads=1/);

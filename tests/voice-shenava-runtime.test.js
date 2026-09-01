@@ -15,24 +15,7 @@ const sandbox = {
   window: {}, document, console,
   navigator: { userAgent:'Android Chrome', mediaDevices: { getUserMedia: async()=>({ getTracks:()=>[] }) } },
   Float32Array, Uint16Array, Uint32Array, BigInt64Array,
-  setTimeout, clearTimeout, Math, Number, String, Error, Object, Array, Promise,
-  fetch: async (url) => ({
-    ok:true,
-    async arrayBuffer(){ return new ArrayBuffer(MODEL_BYTES); },
-    async json(){
-      const u=String(url);
-      if (u.includes('tokens.json')) {
-        const tokens = Array.from({length:1025},()=>'<unk>');
-        tokens[10] = 'سلام';
-        return { tokens };
-      }
-      if (u.includes('preprocessor.json')) return {
-        sample_rate:16000,n_fft:512,win_length:400,hop_length:160,n_mels:80,
-        center_pad:256,fixed_frames:2005,blank_id:1024
-      };
-      return Array.from({length:80},()=>Array(257).fill(0));
-    }
-  }),
+  setTimeout, clearTimeout, AbortController, Math, Number, String, Error, Object, Array, Promise,
 };
 sandbox.window = sandbox;
 let lastInput = null;
@@ -49,13 +32,30 @@ sandbox.ort = {
         assert.strictEqual(inputs.processed_signal.data.length,80*2005);
         assert.strictEqual(Array.from(inputs.processed_signal_length.dims).join(','),'1');
         assert.strictEqual(Number(inputs.processed_signal_length.data[0]),201);
-        const data = new Float32Array(252*1025);
-        for(let t=0;t<252;t++) data[t*1025+10]=10;
-        return {logits:{type:'float32',data,dims:[1,252,1025]},encoded_lengths:{data:BigInt64Array.from([BigInt(252)]),dims:[1]}};
+        const data = new Uint16Array(252*1025);
+        for(let t=0;t<252;t++) data[t*1025+10]=0x4900; // float16(10.0)
+        return {logits:{type:'float16',data,dims:[1,252,1025]},encoded_lengths:{data:BigInt64Array.from([252n]),dims:[1]}};
       }};
     }
   }
 };
+sandbox.fetch = async (url) => ({
+  ok:true,
+  async arrayBuffer(){ return new ArrayBuffer(MODEL_BYTES); },
+  async json(){
+    const u=String(url);
+    if (u.includes('tokens.json')) {
+      const tokens = Array.from({length:1025},()=>'<unk>');
+      tokens[10] = 'سلام';
+      return { tokens };
+    }
+    if (u.includes('preprocessor.json')) return {
+      sample_rate:16000,n_fft:512,win_length:400,hop_length:160,n_mels:80,
+      center_pad:256,fixed_frames:2005,blank_id:1024
+    };
+    return Array.from({length:80},()=>Array(257).fill(0));
+  }
+});
 vm.runInNewContext(source, sandbox, {filename:'voice-shenava-runtime.js'});
 assert(sandbox.window.AdineShenavaRuntime);
 (async()=>{
@@ -64,6 +64,6 @@ assert(sandbox.window.AdineShenavaRuntime);
   const text = await sandbox.window.AdineShenavaRuntime.inferPCM(pcm,16000);
   assert.strictEqual(text,'سلام');
   assert(lastInput);
-  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'5.0.0');
-  console.log('Shenava raw-PCM runtime smoke: PASS (PCM/resample/reflect-fbank/tensor/CTC)');
+  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'5.1.0');
+  console.log('Shenava raw-PCM runtime smoke: PASS (PCM/resample/reflect-fbank/float16 tensor/float16 logits/CTC)');
 })().catch(err=>{console.error(err);process.exitCode=1;});

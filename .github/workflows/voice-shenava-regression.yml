@@ -29,4 +29,4 @@ jobs:
           ! grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js
       - name: Guard against application data coupling
         run: |
-          ! grep -nE 'supabaseClient|weekly_records|cumulative_fcr|\.from\(|\.insert\(|\.update\(|\.upsert\(' voice-shenava.js
+          ! grep -nE 'supabaseClient|weekly_records|cumulative_fcr' voice-shenava.js

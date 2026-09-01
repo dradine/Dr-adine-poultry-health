@@ -1,64 +1,18 @@
-/* ADINE SHENAVA WORKER 7.1
- * Official Shenava Rizeh v1.0 (32M) via Sherpaw/sherpa-onnx WASM.
- * Browser-safe ESM + explicit WASM location; runs off the UI thread.
+/* ADINE SHENAVA WORKER 7.2
+ * Official Shenava Rizeh v1.0 (32M) via browser-native pinned Sherpaw WASM.
+ * The package bundle is deliberately bypassed because its CDN bundle can inject Node shims.
  */
-import { initASRModule, OfflineRecognizer } from 'https://cdn.jsdelivr.net/npm/@sherpaw/asr@0.0.2/+esm';
-
-const C=Object.freeze({
-  modelUrl:'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/model.onnx?download=true',
-  tokensUrl:'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/tokens.txt?download=true',
-  wasmUrl:'https://cdn.jsdelivr.net/npm/@sherpaw/asr@0.0.2/module.wasm',
-  modelName:'model.onnx',tokensName:'tokens.txt',minBytes:30000000,maxBytes:50000000,
-  sampleRate:16000,tokenCount:1025,timeoutMs:150000,
-});
-let modulePromise=null,recognizerPromise=null;
-function fail(code,message){const e=new Error(message||code);e.code=code;return e;}
-function post(id,ok,payload={}){self.postMessage({id,ok,...payload});}
-function progress(id,stage,detail){self.postMessage({id,type:'progress',stage,detail});}
-function withTimeout(p,ms,code){let t;return Promise.race([p,new Promise((_,r)=>t=setTimeout(()=>r(fail(code)),ms))]).finally(()=>clearTimeout(t));}
-async function fetchBytes(url,label){const r=await fetch(url,{cache:'force-cache',mode:'cors'});if(!r.ok)throw fail(`${label}_HTTP_${r.status}`);return r.arrayBuffer();}
-async function getModule(){
-  if(modulePromise)return modulePromise;
-  modulePromise=(async()=>{
-    progress(0,'wasm');
-    let m;
-    try{m=await initASRModule({locateFile:()=>C.wasmUrl});}
-    catch(e){throw fail('WASM_INIT',e?.message||String(e));}
-    if(!m?.FS_createDataFile)throw fail('WASM_FS_UNAVAILABLE');
-    return m;
-  })().catch(e=>{modulePromise=null;throw e});
-  return modulePromise;
-}
-async function getRecognizer(id){
-  if(recognizerPromise)return recognizerPromise;
-  recognizerPromise=(async()=>{
-    const Module=await getModule();
-    progress(id,'model');
-    const [model,tokens]=await Promise.all([
-      fetchBytes(C.modelUrl,'MODEL'),
-      fetch(C.tokensUrl,{cache:'force-cache',mode:'cors'}).then(async r=>{if(!r.ok)throw fail(`TOKENS_HTTP_${r.status}`);return r.text()})
-    ]);
-    if(model.byteLength<C.minBytes||model.byteLength>C.maxBytes)throw fail('MODEL_SIZE',`Unexpected Shenava Rizeh model size: ${model.byteLength}`);
-    if(tokens.split(/\r?\n/).filter(Boolean).length!==C.tokenCount)throw fail('TOKEN_COUNT');
-    try{
-      Module.FS_unlink?.(`/${C.modelName}`);Module.FS_unlink?.(`/${C.tokensName}`);
-      Module.FS_createDataFile('/',C.modelName,new Uint8Array(model),true,true,true);
-      Module.FS_createDataFile('/',C.tokensName,new TextEncoder().encode(tokens),true,true,true);
-    }catch(e){throw fail('MODEL_FS',e?.message||String(e));}
-    progress(id,'session');
-    let rec;
-    try{rec=new OfflineRecognizer({featConfig:{sampleRate:C.sampleRate,featureDim:80},modelConfig:{nemoCtc:{model:`/${C.modelName}`},tokens:`/${C.tokensName}`,numThreads:1,provider:'cpu',debug:0},decodingMethod:'greedy_search'},Module);}
-    catch(e){throw fail('SESSION_INIT',e?.message||String(e));}
-    return {rec,Module};
-  })().catch(e=>{recognizerPromise=null;throw e});
-  return recognizerPromise;
-}
-async function infer(id,pcm,sampleRate){
-  if(!pcm?.length)throw fail('EMPTY_AUDIO');if(sampleRate!==C.sampleRate)throw fail('BAD_SAMPLE_RATE');
-  const e=await withTimeout(getRecognizer(id),C.timeoutMs,'MODEL_INIT_TIMEOUT');progress(id,'decode');
-  const stream=e.rec.createStream();
-  try{stream.acceptWaveform(C.sampleRate,pcm);e.rec.decode(stream);const result=e.rec.getResult(stream);const text=String(result?.text||'').replace(/\s+/g,' ').trim();if(!text)throw fail('EMPTY_TEXT');progress(id,'done',{chars:text.length});return text;}
-  catch(err){if(err?.code)throw err;throw fail('DECODE_ERROR',err?.message||String(err));}
-  finally{try{stream.free?.()}catch(_) {}}
-}
-self.onmessage=async e=>{const m=e.data||{},id=m.id;try{if(m.type==='preload'){await getRecognizer(id);post(id,true,{text:''});return;}if(m.type==='infer'){const pcm=m.pcm instanceof Float32Array?m.pcm:new Float32Array(m.pcm||[]);post(id,true,{text:await infer(id,pcm,m.sampleRate)});return;}throw fail('UNKNOWN_WORKER_COMMAND');}catch(err){post(id,false,{code:err?.code||'ASR_WORKER_ERROR',message:err?.message||String(err)});}};
+const SHERPA_REV='a4e5cac67bd12f1835811427d219889cee2ffcc4';
+const SHERPA_BASE=`https://raw.githubusercontent.com/moeru-ai/sherpaw/${SHERPA_REV}/packages/asr/src`;
+const C=Object.freeze({modelUrl:'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/model.onnx?download=true',tokensUrl:'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/tokens.txt?download=true',wasmUrl:`${SHERPA_BASE}/prebuilt/asr.wasm`,modelName:'model.onnx',tokensName:'tokens.txt',minBytes:30000000,maxBytes:50000000,sampleRate:16000,tokenCount:1025,timeoutMs:150000});
+let depsPromise=null,modulePromise=null,recognizerPromise=null;
+function fail(code,message){const e=new Error(message||code);e.code=code;return e}
+function post(id,ok,payload={}){self.postMessage({id,ok,...payload})}
+function progress(id,stage,detail){self.postMessage({id,type:'progress',stage,detail})}
+function withTimeout(p,ms,code){let t;return Promise.race([p,new Promise((_,r)=>t=setTimeout(()=>r(fail(code)),ms))]).finally(()=>clearTimeout(t))}
+async function getDeps(){if(depsPromise)return depsPromise;depsPromise=(async()=>{try{const [factory,api]=await Promise.all([import(`${SHERPA_BASE}/prebuilt/asr.js`),import(`${SHERPA_BASE}/asr.js`)]);const init=factory.default||factory,OfflineRecognizer=api.OfflineRecognizer;if(typeof init!=='function'||typeof OfflineRecognizer!=='function')throw fail('SHERPA_API_EXPORT');return{init,OfflineRecognizer}}catch(e){throw fail('SHERPA_IMPORT',e?.message||String(e))}})().catch(e=>{depsPromise=null;throw e});return depsPromise}
+async function getModule(){if(modulePromise)return modulePromise;modulePromise=(async()=>{progress(0,'wasm');const{init}=await getDeps();try{const m=await init({locateFile:()=>C.wasmUrl});if(!m?.FS_createDataFile)throw fail('WASM_FS_UNAVAILABLE');return m}catch(e){throw fail('WASM_INIT',e?.message||String(e))}})().catch(e=>{modulePromise=null;throw e});return modulePromise}
+async function fetchModel(){const[mr,tr]=await Promise.all([fetch(C.modelUrl,{cache:'force-cache',mode:'cors'}),fetch(C.tokensUrl,{cache:'force-cache',mode:'cors'})]);if(!mr.ok)throw fail(`MODEL_HTTP_${mr.status}`);if(!tr.ok)throw fail(`TOKENS_HTTP_${tr.status}`);const[model,tokens]=await Promise.all([mr.arrayBuffer(),tr.text()]);if(model.byteLength<C.minBytes||model.byteLength>C.maxBytes)throw fail('MODEL_SIZE',`Unexpected Shenava Rizeh model size: ${model.byteLength}`);if(tokens.split(/\r?\n/).filter(Boolean).length!==C.tokenCount)throw fail('TOKEN_COUNT');return{model,tokens}}
+async function getRecognizer(id){if(recognizerPromise)return recognizerPromise;recognizerPromise=(async()=>{const Module=await getModule();progress(id,'model');const{model,tokens}=await fetchModel();try{Module.FS_unlink?.(`/${C.modelName}`);Module.FS_unlink?.(`/${C.tokensName}`);Module.FS_createDataFile('/',C.modelName,new Uint8Array(model),true,true,true);Module.FS_createDataFile('/',C.tokensName,new TextEncoder().encode(tokens),true,true,true)}catch(e){throw fail('MODEL_FS',e?.message||String(e))}progress(id,'session');const{OfflineRecognizer}=await getDeps();try{return{rec:new OfflineRecognizer({featConfig:{sampleRate:C.sampleRate,featureDim:80},modelConfig:{nemoCtc:{model:`/${C.modelName}`},tokens:`/${C.tokensName}`,numThreads:1,provider:'cpu',debug:0},decodingMethod:'greedy_search'},Module),Module}}catch(e){throw fail('SESSION_INIT',e?.message||String(e))}})().catch(e=>{recognizerPromise=null;throw e});return recognizerPromise}
+async function infer(id,pcm,sampleRate){if(!pcm?.length)throw fail('EMPTY_AUDIO');if(sampleRate!==C.sampleRate)throw fail('BAD_SAMPLE_RATE');const e=await withTimeout(getRecognizer(id),C.timeoutMs,'MODEL_INIT_TIMEOUT');progress(id,'decode');const stream=e.rec.createStream();try{stream.acceptWaveform(C.sampleRate,pcm);e.rec.decode(stream);const result=e.rec.getResult(stream);const text=String(result?.text||'').replace(/\s+/g,' ').trim();if(!text)throw fail('EMPTY_TEXT');progress(id,'done',{chars:text.length});return text}catch(err){if(err?.code)throw err;throw fail('DECODE_ERROR',err?.message||String(err))}finally{try{stream.free()}catch(_){}}}
+self.onmessage=async e=>{const m=e.data||{},id=m.id;try{if(m.type==='preload'){await getRecognizer(id);post(id,true,{text:''});return}if(m.type==='infer'){const pcm=m.pcm instanceof Float32Array?m.pcm:new Float32Array(m.pcm||[]);post(id,true,{text:await infer(id,pcm,m.sampleRate)});return}throw fail('UNKNOWN_WORKER_COMMAND')}catch(err){post(id,false,{code:err?.code||'ASR_WORKER_ERROR',message:err?.message||String(err)})}}

@@ -23,30 +23,18 @@ window.supabaseClient =
         }
     );
 
-/* Global Persian voice input loader. UI-only; no data/business logic. */
-(function loadAdineVoiceInput(){
+/* Global local Persian voice input loader.
+   Shenava Rizeh runs on-device through ONNX Runtime Web.
+   No paid API, no Supabase calls, no audio upload. */
+(function loadAdineShenavaVoice(){
     try {
-        if (window.AdineVoiceInput || document.querySelector('script[data-adine-voice-input="1"]')) return;
+        if (window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-voice="1"]')) return;
         const script = document.createElement("script");
-        script.src = "voice-input.js?v=1.1.2";
+        script.src = "voice-shenava.js?v=2.0.0";
         script.async = false;
-        script.dataset.adineVoiceInput = "1";
+        script.dataset.adineShenavaVoice = "1";
         (document.head || document.documentElement).appendChild(script);
     } catch (error) {
-        console.warn("Adine voice input loader:", error);
-    }
-})();
-
-/* MediaRecorder fallback for browsers where native speech service is unavailable. */
-(function loadAdineVoiceFallback(){
-    try {
-        if (window.AdineVoiceFallback || document.querySelector('script[data-adine-voice-fallback="1"]')) return;
-        const script = document.createElement("script");
-        script.src = "voice-fallback.js?v=1.0.0";
-        script.async = false;
-        script.dataset.adineVoiceFallback = "1";
-        (document.head || document.documentElement).appendChild(script);
-    } catch (error) {
-        console.warn("Adine voice fallback loader:", error);
+        console.warn("Adine Shenava voice loader:", error);
     }
 })();

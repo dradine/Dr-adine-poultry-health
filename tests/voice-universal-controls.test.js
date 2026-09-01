@@ -15,10 +15,8 @@ function makeEl(tag='div') {
   };
 }
 const document = {
-  readyState:'loading',
-  documentElement:{appendChild(){}}, head:{appendChild(){}},
-  addEventListener(name,fn){listeners[name]=fn},
-  createElement(tag){return makeEl(tag)},
+  readyState:'loading', documentElement:{appendChild(){}}, head:{appendChild(){}},
+  addEventListener(name,fn){listeners[name]=fn}, createElement(tag){return makeEl(tag)},
   getElementById(){return null}, querySelector(){return null}, querySelectorAll(){return []}
 };
 const sandbox = {
@@ -29,6 +27,6 @@ const sandbox = {
 sandbox.window=sandbox;
 vm.runInNewContext(source,sandbox,{filename:'voice-universal-controls.js'});
 assert(sandbox.window.AdineUniversalVoice);
-assert.strictEqual(sandbox.window.AdineUniversalVoice.version,'6.0.0');
+assert.strictEqual(sandbox.window.AdineUniversalVoice.version,'6.1.0');
 assert.strictEqual(sandbox.window.AdineUniversalVoice.normalize('۱۲۳۴ اف سی آر'), '۱۲۳۴ FCR');
 console.log('Universal voice controller regression: PASS (API/version/normalization/syntax)');

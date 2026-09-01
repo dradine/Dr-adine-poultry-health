@@ -4,12 +4,18 @@ on:
   push:
     paths:
       - 'voice-shenava.js'
+      - 'voice-shenava-runtime.js'
+      - 'config.js'
       - 'tests/voice-shenava.test.js'
+      - 'tests/voice-shenava-runtime.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
   pull_request:
     paths:
       - 'voice-shenava.js'
+      - 'voice-shenava-runtime.js'
+      - 'config.js'
       - 'tests/voice-shenava.test.js'
+      - 'tests/voice-shenava-runtime.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
 
 jobs:
@@ -21,12 +27,22 @@ jobs:
         with:
           node-version: 22
       - name: Syntax check
-        run: node --check voice-shenava.js && node --check tests/voice-shenava.test.js
+        run: node --check voice-shenava.js && node --check voice-shenava-runtime.js && node --check config.js && node --check tests/voice-shenava.test.js && node --check tests/voice-shenava-runtime.test.js
       - name: Local normalization regression
         run: node tests/voice-shenava.test.js
+      - name: Real inference pipeline smoke
+        run: node tests/voice-shenava-runtime.test.js
       - name: Guard against paid/cloud voice dependencies
         run: |
-          ! grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js
+          ! grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js voice-shenava-runtime.js
       - name: Guard against application data coupling
         run: |
-          ! grep -nE 'supabaseClient|weekly_records|cumulative_fcr' voice-shenava.js
+          ! grep -nE 'supabaseClient|weekly_records|cumulative_fcr' voice-shenava.js voice-shenava-runtime.js
+      - name: Guard Shenava fixed-window contract
+        run: |
+          grep -n 'processed_signal' voice-shenava-runtime.js
+          grep -n 'processed_signal_length' voice-shenava-runtime.js
+          grep -n 'mels:80' voice-shenava-runtime.js
+          grep -n 'frames:2005\|frames: 2005' voice-shenava-runtime.js
+          grep -n '16000' voice-shenava-runtime.js
+          grep -n 'blank:1024' voice-shenava-runtime.js

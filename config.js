@@ -23,14 +23,25 @@ window.supabaseClient =
         }
     );
 
-/* Global local Persian voice input loader.
+/* Global local Persian voice input.
    Shenava Rizeh runs on-device through ONNX Runtime Web.
    No paid API, no Supabase calls, no audio upload. */
 (function loadAdineShenavaVoice(){
     try {
-        if (window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-voice="1"]')) return;
+        if (window.AdineShenavaRuntime || window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-runtime="1"]')) return;
+
+        /* Runtime MUST register its capture-phase handler first. This remains
+           correct even when config.js is evaluated after DOMContentLoaded. */
+        const runtime = document.createElement("script");
+        runtime.src = "voice-shenava-runtime.js?v=3.1.0";
+        runtime.async = false;
+        runtime.dataset.adineShenavaRuntime = "1";
+        (document.head || document.documentElement).appendChild(runtime);
+
+        /* Legacy adapter supplies the established Persian/veterinary
+           normalization layer. Runtime owns the actual audio/ASR path. */
         const script = document.createElement("script");
-        script.src = "voice-shenava.js?v=2.2.0";
+        script.src = "voice-shenava.js?v=3.0.0";
         script.async = false;
         script.dataset.adineShenavaVoice = "1";
         (document.head || document.documentElement).appendChild(script);

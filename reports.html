@@ -24,7 +24,14 @@
 <section class="report-card report-toolbar"><div class="toolbar-left"><b>هفته گزارش:</b><select id="week" aria-label="هفته گزارش"></select></div><span id="scope" class="scope-badge">در حال بارگذاری…</span></section>
 <section id="root" class="report-card"><div class="empty">در حال بارگذاری اطلاعات گله…</div></section>
 </main>
-<nav class="bottom-navigation" aria-label="ناوبری اصلی"><button class="bottom-nav-item" onclick="location.href='Dashboard.html'"><span>خانه</span></button><button class="bottom-nav-item" onclick="location.href='flocks.html'"><span>گله‌ها</span></button><button class="bottom-nav-item" onclick="location.href='weekly.html'"><span>ثبت هفتگی</span></button><button class="bottom-nav-item active"><span>گزارش‌ها</span></button></nav>
+
+<nav class="bottom-nav" aria-label="ناوبری اصلی">
+<button type="button" onclick="window.location.href='Dashboard.html'" aria-label="خانه"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26V20M19 41V29h10v12"/></svg></span><small>خانه</small></button>
+<button type="button" onclick="window.location.href='Farms.html'" aria-label="فارم‌ها"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M7 40V22l17-12 17 12v18H31V28H17v12z"/><path d="M7 40h34M7 22 24 10l17 12M17 40V28h14v12M19 22h10M24 16v6"/></svg></span><small>فارم‌ها</small></button>
+<button type="button" onclick="window.location.href='weekly.html'" aria-label="هفتگی"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M24 8v28M10 15h28M7 15h10l-5 10H9zM31 15h10l-5 10h-3zM14 36h20M18 40h12M20 15a4 4 0 0 1 8 0"/></svg></span><small>هفتگی</small></button>
+<button class="active" type="button" onclick="window.location.href='reports.html'" aria-label="گزارش‌ها"><span class="farms-nav-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 6h30v36H9zM15 13h18M15 19h18M15 35v-8M22 35V22M29 35v-5M36 35V23"/></svg></span><small>گزارش</small></button>
+</nav>
+
 <script src="reports.js?v=20260901.8"></script>
 <script src="reports-performance-intelligence-v1.js?v=20260901.11"></script>
 <script>window.dispatchEvent(new Event('adine:report-ready'));</script>

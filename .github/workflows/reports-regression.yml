@@ -6,6 +6,8 @@ on:
       - 'reports.js'
       - 'reports-router.js'
       - 'broiler-report-engine.js'
+      - 'broiler-official-standards-v1.js'
+      - 'standard-data.js'
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
@@ -15,6 +17,8 @@ on:
       - 'reports.js'
       - 'reports-router.js'
       - 'broiler-report-engine.js'
+      - 'broiler-official-standards-v1.js'
+      - 'standard-data.js'
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
@@ -32,7 +36,11 @@ jobs:
           node --check reports.js
           node --check reports-router.js
           node --check broiler-report-engine.js
+          node --check broiler-official-standards-v1.js
           node --check standards-resolver-core-v1.js
+          node --check standard-data.js
+      - name: Official registry test
+        run: node tests/broiler-official-standards.test.js
       - name: Domain regression test
         run: node tests/reports-architecture.test.js
       - name: Shell isolation test

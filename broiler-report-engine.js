@@ -1,8 +1,8 @@
-/* ADINE REPORTS — BROILER DOMAIN ENGINE V3
-   Read-only reporting adapter. Canonical actual FCR values come from weekly_records.
-   Official standards are resolved strain-first from the official broiler registry.
-   Weekly official FCR is derived from consecutive official cumulative FCR/weight points;
-   cumulative official FCR remains the breeder's published cumulative value.
+/* ADINE REPORTS — BROILER DOMAIN ENGINE V4
+   Read-only reporting adapter.
+   Actual values come from canonical weekly_records.
+   Official references come ONLY from the exact selected strain's official registry.
+   Weekly and cumulative gain are separate metrics.
 */
 "use strict";
 (function(global){
@@ -20,23 +20,40 @@
   const u15=r=>val(r,['uniformity_15_percent','uniformity_15']);
   const live=r=>val(r,['live_birds','bird_count']);
   const ratio=r=>val(r,['water_feed_ratio']);
+  const norm=v=>String(v??'').normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').trim().toLowerCase();
+
+  function registryFor(strain){
+    const registry=global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{};
+    if(registry[strain])return registry[strain];
+    const key=norm(strain);
+    const found=Object.keys(registry).find(k=>norm(k)===key);
+    return found?registry[found]:null;
+  }
 
   function standardFor(flock,r){
     const strain=String(flock?.strain??'').trim();
-    const registry=global.BROILER_OFFICIAL_STANDARDS_V1?.strains?.[strain];
+    const registry=registryFor(strain);
     const a=age(r);
     if(registry && Number.isFinite(a)){
       const hit=(registry.records||[]).find(x=>Number(x[0])===a);
       if(hit){
-        return {weight:n(hit[1]),fcr:n(hit[2]),weightSourceLabel:registry.sourceLabel,fcrSourceLabel:registry.sourceLabel,sourceType:registry.sourceType,sourceUrl:registry.sourceUrl,official:true};
+        return {
+          weight:n(hit[1]),
+          fcr:n(hit[2]),
+          weightSourceLabel:registry.sourceLabel,
+          fcrSourceLabel:registry.sourceLabel,
+          sourceType:registry.sourceType,
+          sourceUrl:registry.sourceUrl,
+          official:true,
+          strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain
+        };
       }
     }
-    if(typeof global.resolvePoultryStandard!=="function")return null;
-    try{return global.resolvePoultryStandard({productionType:flock?.production_type,genetics:flock?.genetics,strain,ageDays:a})||null}catch(e){return null}
+    return null;
   }
 
-  // Converts published cumulative FCR points into the FCR attributable to THIS WEEK.
-  // For week 1, weekly FCR equals the published cumulative FCR at day 7.
+  // Published cumulative FCR points are converted to the FCR attributable to THIS week.
+  // Week 1 is necessarily equal to the published day-7 cumulative FCR.
   function officialWeeklyFcr(flock,rows,index){
     const current=standardFor(flock,rows[index]);
     const cc=n(current?.fcr),cw=n(current?.weight);
@@ -48,31 +65,54 @@
     return (cc*cw-pc*pw)/(cw-pw);
   }
 
-  function managementWeeklyFcr(flock,rows,index){
-    return officialWeeklyFcr(flock,rows,index);
+  function actualWeeklyGain(rows,index,flock){
+    const current=weight(rows[index]);
+    if(current===null)return null;
+    const previous=index>0?weight(rows[index-1]):n(flock?.initial_average_weight_g);
+    return previous===null?null:current-previous;
   }
 
-  function managementWeightGain(flock,rows,index){
-    const current=standardFor(flock,rows[index]),cw=n(current?.weight);if(cw===null)return null;
-    if(index===0){const initial=n(flock.initial_average_weight_g);return initial===null?null:cw-initial}
-    const previous=standardFor(flock,rows[index-1]),pw=n(previous?.weight);return pw===null?null:cw-pw;
+  function actualCumulativeGain(rows,index,flock){
+    const current=weight(rows[index]),initial=n(flock?.initial_average_weight_g);
+    return current===null||initial===null?null:current-initial;
   }
+
+  function officialWeeklyGain(flock,rows,index){
+    const current=standardFor(flock,rows[index]),cw=n(current?.weight);
+    if(cw===null)return null;
+    if(index===0)return null; // no official day-0 body-weight point exists in the registry
+    const previous=standardFor(flock,rows[index-1]),pw=n(previous?.weight);
+    return pw===null?null:cw-pw;
+  }
+
+  function officialCumulativeGain(flock,rows,index){
+    const current=standardFor(flock,rows[index]),cw=n(current?.weight);
+    if(cw===null)return null;
+    return officialWeeklyGain(flock,rows,index)===null && index>0?null:cw;
+  }
+
+  function managementWeeklyFcr(flock,rows,index){return officialWeeklyFcr(flock,rows,index)}
+
+  function managementWeightGain(flock,rows,index){return officialWeeklyGain(flock,rows,index)}
 
   function qualityTargets(){return{cv:10,uniformity10:80,uniformity15:90}}
-  function classify(actual,target,direction){if(actual===null||target===null)return"neutral";if(direction==='lower')return actual<=target?'good':'warn';if(direction==='higher')return actual>=target?'good':'warn';return'neutral'}
+  function classify(actual,target,direction){if(actual===null||target===null)return'neutral';if(direction==='lower')return actual<=target?'good':'warn';if(direction==='higher')return actual>=target?'good':'warn';return'neutral'}
 
   function makeRow(flock,rows,index){
-    const r=rows[index],s=standardFor(flock,r),weeklyStandardFcr=officialWeeklyFcr(flock,rows,index),mGain=managementWeightGain(flock,rows,index),q=qualityTargets();
-    const actualWeight=weight(r),actualFcr=fcr(r),actualCum=cumulativeFcr(r),prevWeight=index?weight(rows[index-1]):null,actualGain=actualWeight!==null&&prevWeight!==null?actualWeight-prevWeight:null;
+    const r=rows[index],s=standardFor(flock,r),weeklyStandardFcr=officialWeeklyFcr(flock,rows,index),q=qualityTargets();
+    const actualWeight=weight(r),actualFcr=fcr(r),actualCum=cumulativeFcr(r);
+    const actualWeekly=actualWeeklyGain(rows,index,flock),actualCumulative=actualCumulativeGain(rows,index,flock);
+    const standardWeeklyGain=officialWeeklyGain(flock,rows,index);
     return{
       raw:r,index,week:week(r),age:age(r),weight:actualWeight,
       standardWeight:n(s?.weight),weightSource:s?.sourceType||null,weightSourceLabel:s?.weightSourceLabel||null,
-      weightGain:actualGain,managementWeightGain:mGain,
+      weightGain:actualWeekly,weeklyWeightGain:actualWeekly,cumulativeWeightGain:actualCumulative,
+      managementWeightGain:standardWeeklyGain,standardWeeklyWeightGain:standardWeeklyGain,
+      standardCumulativeWeightGain:officialCumulativeGain(flock,rows,index),
       fcr:actualFcr,cumulativeFcr:actualCum,
       standardWeeklyFcr:n(weeklyStandardFcr),officialWeeklyFcr:n(weeklyStandardFcr),
-      standardCumulativeFcr:n(s?.fcr),
-      managementWeeklyFcr:n(weeklyStandardFcr),
-      fcrSource:s?.sourceType||r?.production_metrics?.calculation_version||'canonical-record',fcrSourceLabel:s?.fcrSourceLabel||null,
+      standardCumulativeFcr:n(s?.fcr),managementWeeklyFcr:n(weeklyStandardFcr),
+      fcrSource:r?.production_metrics?.calculation_version||'canonical-record',fcrSourceLabel:s?.fcrSourceLabel||null,
       cv:cv(r),cvStandard:q.cv,uniformity10:u10(r),uniformity10Standard:q.uniformity10,uniformity15:u15(r),uniformity15Standard:q.uniformity15,
       feed:feed(r),water:water(r),mortalityPercent:val(r,['mortality']),mortalityCount:val(r,['mortality_count']),liveBirds:live(r),waterFeedRatio:ratio(r),
       weightStatus:classify(actualWeight,n(s?.weight),'higher'),fcrStatus:classify(actualFcr,n(weeklyStandardFcr),'lower'),
@@ -80,6 +120,9 @@
     }
   }
 
-  function build(flock,rows){const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));return{domain:'broiler',engineVersion:'BROILER-REPORT-V3',calculationAuthority:'canonical-weekly-record',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}}
-  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V3',build,standardFor,officialWeeklyFcr,managementWeeklyFcr,managementWeightGain};
+  function build(flock,rows){
+    const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));
+    return{domain:'broiler',engineVersion:'BROILER-REPORT-V4',calculationAuthority:'canonical-weekly-record',standardAuthority:'exact-strain-official-registry',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}
+  }
+  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V4',build,standardFor,officialWeeklyFcr,actualWeeklyGain,actualCumulativeGain,officialWeeklyGain,officialCumulativeGain,managementWeeklyFcr,managementWeightGain};
 })(typeof window!=='undefined'?window:globalThis);

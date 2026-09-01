@@ -46,10 +46,10 @@ sandbox.ort = {
   InferenceSession:{
     async create(){
       return { async run(inputs){
-        assert.deepStrictEqual(inputs.processed_signal.dims,[1,80,2005]);
+        assert.strictEqual(Array.from(inputs.processed_signal.dims).join(','),'1,80,2005');
         assert.strictEqual(inputs.processed_signal.type,'float16');
         assert.strictEqual(inputs.processed_signal.data.length,80*2005);
-        assert.deepStrictEqual(inputs.processed_signal_length.dims,[1]);
+        assert.strictEqual(Array.from(inputs.processed_signal_length.dims).join(','),'1');
         assert.strictEqual(Number(inputs.processed_signal_length.data[0]),201);
         const data = new Float32Array(252*1025);
         for(let t=0;t<252;t++) data[t*1025+10]=10;

@@ -23,23 +23,27 @@ window.supabaseClient =
         }
     );
 
-/* Global local Persian voice input.
-   Shenava Rizeh runs on-device through ONNX Runtime Web.
-   No paid API, no Supabase calls, no audio upload. */
-(function loadAdineShenavaVoice(){
+/* Global Persian voice input.
+   Primary path: local Shenava Rizeh through ONNX Runtime Web.
+   UI: explicit Start and Stop buttons; Stop automatically transcribes.
+   Fallback: existing authenticated STT function if local inference fails. */
+(function loadAdineVoice(){
     try {
-        if (window.AdineShenavaRuntime || window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-runtime="1"]')) return;
-        const runtime = document.createElement("script");
-        runtime.src = "voice-shenava-runtime.js?v=5.1.0";
-        runtime.async = false;
-        runtime.dataset.adineShenavaRuntime = "1";
-        (document.head || document.documentElement).appendChild(runtime);
-        const script = document.createElement("script");
-        script.src = "voice-shenava.js?v=3.0.0";
-        script.async = false;
-        script.dataset.adineShenavaVoice = "1";
-        (document.head || document.documentElement).appendChild(script);
+        const load = (src, attr) => new Promise((resolve, reject) => {
+            const existing = document.querySelector(`script[${attr}="1"]`);
+            if (existing) { resolve(); return; }
+            const s = document.createElement("script");
+            s.src = src;
+            s.async = false;
+            s.setAttribute(attr, "1");
+            s.onload = resolve;
+            s.onerror = reject;
+            (document.head || document.documentElement).appendChild(s);
+        });
+        load("voice-shenava-runtime.js?v=6.0.0", "data-adine-shenava-runtime")
+            .then(() => load("voice-universal-controls.js?v=6.0.0", "data-adine-universal-voice"))
+            .catch(error => console.warn("Adine voice loader:", error));
     } catch (error) {
-        console.warn("Adine Shenava voice loader:", error);
+        console.warn("Adine voice loader:", error);
     }
 })();

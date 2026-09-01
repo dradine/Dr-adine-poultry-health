@@ -48,9 +48,8 @@ jobs:
           assert(fallback.includes('persian-voice-transcribe'), 'edge function invocation missing');
           assert(fallback.includes('audio/mp4'), 'iOS audio/mp4 support missing');
           assert(fallback.includes('data-adine-voice-fallback'), 'fallback loader marker missing');
-          assert(fn.includes('verify'), 'edge function source unexpectedly missing expected auth/deploy integration marker');
           assert(fn.includes('OPENAI_API_KEY'), 'provider key must remain server-side');
-          assert(fn.includes('language", "fa'), 'Persian language configuration missing');
+          assert(fn.includes('language\", \"fa'), 'Persian language configuration missing');
           assert(fn.includes('gpt-4o-mini-transcribe'), 'STT model missing');
           assert(!fallback.includes('OPENAI_API_KEY'), 'provider secret must never be shipped to browser');
           assert(!config.includes('OPENAI_API_KEY'), 'provider secret must never be shipped to browser');

@@ -1,0 +1,59 @@
+name: Voice Fallback Regression
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'voice-input.js'
+      - 'voice-fallback.js'
+      - 'config.js'
+      - 'supabase-config.js'
+      - 'supabase/functions/persian-voice-transcribe/**'
+      - '.github/workflows/voice-fallback-regression.yml'
+  pull_request:
+    paths:
+      - 'voice-input.js'
+      - 'voice-fallback.js'
+      - 'config.js'
+      - 'supabase-config.js'
+      - 'supabase/functions/persian-voice-transcribe/**'
+      - '.github/workflows/voice-fallback-regression.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  static-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: JavaScript syntax
+        run: |
+          node --check voice-input.js
+          node --check voice-fallback.js
+          node --check config.js
+          node --check supabase-config.js
+      - name: Fallback safety assertions
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const fallback = fs.readFileSync('voice-fallback.js', 'utf8');
+          const fn = fs.readFileSync('supabase/functions/persian-voice-transcribe/index.ts', 'utf8');
+          const config = fs.readFileSync('config.js', 'utf8');
+          const supabaseConfig = fs.readFileSync('supabase-config.js', 'utf8');
+          const assert = (condition, message) => { if (!condition) { console.error(message); process.exit(1); } };
+          assert(fallback.includes('MediaRecorder'), 'MediaRecorder fallback missing');
+          assert(fallback.includes('getUserMedia'), 'microphone capture missing');
+          assert(fallback.includes('persian-voice-transcribe'), 'edge function invocation missing');
+          assert(fallback.includes('audio/mp4'), 'iOS audio/mp4 support missing');
+          assert(fallback.includes('data-adine-voice-fallback'), 'fallback loader marker missing');
+          assert(fn.includes('verify'), 'edge function source unexpectedly missing expected auth/deploy integration marker');
+          assert(fn.includes('OPENAI_API_KEY'), 'provider key must remain server-side');
+          assert(fn.includes('language", "fa'), 'Persian language configuration missing');
+          assert(fn.includes('gpt-4o-mini-transcribe'), 'STT model missing');
+          assert(!fallback.includes('OPENAI_API_KEY'), 'provider secret must never be shipped to browser');
+          assert(!config.includes('OPENAI_API_KEY'), 'provider secret must never be shipped to browser');
+          assert(!supabaseConfig.includes('OPENAI_API_KEY'), 'provider secret must never be shipped to browser');
+          console.log('Voice fallback safety assertions: PASS');
+          NODE

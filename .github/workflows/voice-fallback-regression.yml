@@ -59,7 +59,9 @@ jobs:
           assert(/Shenava-Rizeh-v1\.0-ONNX-fp16/.test(runtime), 'Shenava Rizeh engine missing');
           assert(/processed_signal/.test(runtime) && /processed_signal_length/.test(runtime), 'ONNX input contract missing');
           assert(/2005/.test(runtime) && /80/.test(runtime) && /16000/.test(runtime), 'Shenava preprocessing contract missing');
-          assert(/centerPad:\s*256/.test(runtime), 'NeMo center padding contract missing');
+          assert(/pad:256/.test(runtime), 'NeMo center padding contract missing');
+          assert(/pre\[i\]=x\[i\]-.97\*x\[i-1\]/.test(runtime), 'NeMo pre-emphasis contract missing');
+          assert(/Math\.log\(z\+5\.960464477539063e-8\)/.test(runtime), 'NeMo log guard contract missing');
           assert(/MediaRecorder/.test(runtime) && /getUserMedia/.test(runtime), 'local microphone capture missing');
           assert(/audio\/mp4/.test(runtime), 'iOS audio/mp4 support missing');
           assert(/webgpu/.test(runtime) && /wasm/.test(runtime), 'runtime fallback providers missing');
@@ -72,3 +74,15 @@ jobs:
           assert(!/OPENAI_API_KEY/.test(config), 'provider secret must never ship to browser');
           console.log('Local Shenava voice architecture assertions: PASS');
           NODE
+      - name: Paid/cloud dependency guard
+        run: |
+          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech' voice-shenava.js voice-shenava-runtime.js; then
+            echo 'Forbidden paid/cloud voice dependency detected'; exit 1;
+          fi
+          echo 'Paid/cloud dependency guard: PASS'
+      - name: Application-data isolation guard
+        run: |
+          if grep -nE 'supabaseClient|weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js; then
+            echo 'Voice/application data coupling detected'; exit 1;
+          fi
+          echo 'Application-data isolation guard: PASS'

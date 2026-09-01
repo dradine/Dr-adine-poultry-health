@@ -1,20 +1,36 @@
+# Final local Persian ASR regression matrix
 name: Voice Input Regression
 
 on:
   push:
-    branches:
-      - feature/global-persian-voice-input-v1
+    branches: [main, feature/global-persian-voice-input-v1]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   voice-input:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit, firefox]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Run Voice regression tests
+        with: { node-version: 22 }
+      - name: Existing voice regression tests
         run: node tests/voice-input.test.js
+      - name: Shenava 32M architecture regression
+        run: node tests/voice-shenava-rizeh32-sherpa.test.js
+      - name: Network/model preflight
+        run: |
+          curl -fsSI --max-time 30 'https://cdn.jsdelivr.net/npm/@sherpaw/vad-asr@0.0.2/dist/index.js' >/dev/null
+          curl -fsSI --max-time 30 'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/model.onnx?download=true' >/dev/null
+          curl -fsSI --max-time 30 'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/tokens.txt?download=true' >/dev/null
+      - name: Browser WASM + real Shenava Rizeh 32M model/session
+        env: { BROWSER: ${{ matrix.browser }} }
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps ${{ matrix.browser }}
+          node tests/voice-shenava-browser-smoke.js

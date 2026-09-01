@@ -13,16 +13,7 @@ const document = {
 const sandbox = {
   window: {}, document, console,
   navigator: { mediaDevices: { getUserMedia: async()=>({ getTracks:()=>[] }) } },
-  MediaRecorder: class {},
-  AudioContext: class {
-    async decodeAudioData() {
-      const samples = new Float32Array(32000);
-      for (let i=0;i<samples.length;i++) samples[i] = Math.sin(i/17) * 0.05;
-      return { sampleRate:16000, length:samples.length, numberOfChannels:1, getChannelData:()=>samples };
-    }
-    async close() {}
-  },
-  BigInt64Array, Float32Array, Uint16Array, Uint32Array,
+  Float32Array, Uint16Array, Uint32Array, BigInt64Array,
   setTimeout, clearTimeout,
   fetch: async (url) => ({
     ok:true,
@@ -53,10 +44,7 @@ sandbox.ort = {
         assert.strictEqual(Number(inputs.processed_signal_length.data[0]),201);
         const data = new Float32Array(252*1025);
         for(let t=0;t<252;t++) data[t*1025+10]=10;
-        return {
-          logits:{type:'float32',data,dims:[1,252,1025]},
-          encoded_lengths:{data:BigInt64Array.from([BigInt(252)]),dims:[1]}
-        };
+        return {logits:{type:'float32',data,dims:[1,252,1025]},encoded_lengths:{data:BigInt64Array.from([BigInt(252)]),dims:[1]}};
       }};
     }
   }
@@ -64,9 +52,11 @@ sandbox.ort = {
 vm.runInNewContext(source, sandbox, {filename:'voice-shenava-runtime.js'});
 assert(sandbox.window.AdineShenavaRuntime);
 (async()=>{
-  const blob = new Blob([new Uint8Array([1,2,3])], {type:'audio/mp4'});
-  const text = await sandbox.window.AdineShenavaRuntime.infer(blob);
+  const pcm = new Float32Array(32000);
+  for(let i=0;i<pcm.length;i++) pcm[i] = Math.sin(i/17) * 0.05;
+  const text = await sandbox.window.AdineShenavaRuntime.inferPCM(pcm,16000);
   assert.strictEqual(text,'سلام');
   assert(lastInput);
-  console.log('Shenava real-inference runtime smoke: PASS (capture/decode/resample/fbank/tensor/CTC)');
+  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'4.0.0');
+  console.log('Shenava raw-PCM runtime smoke: PASS (PCM/resample/fbank/tensor/CTC)');
 })().catch(err=>{console.error(err);process.exitCode=1;});

@@ -30,8 +30,16 @@ window.supabaseClient =
     try {
         if (window.AdineShenavaRuntime || window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-runtime="1"]')) return;
 
-        /* Runtime MUST register its capture-phase handler first. This remains
-           correct even when config.js is evaluated after DOMContentLoaded. */
+        /* Network adapter only affects Shenava model/sidecar downloads.
+           It tries the pinned official model first and then a public mirror,
+           which is important for restricted networks such as Iran. */
+        const network = document.createElement("script");
+        network.src = "voice-shenava-network.js?v=1.0.0";
+        network.async = false;
+        network.dataset.adineShenavaNetwork = "1";
+        (document.head || document.documentElement).appendChild(network);
+
+        /* Runtime MUST register its capture-phase handler first. */
         const runtime = document.createElement("script");
         runtime.src = "voice-shenava-runtime.js?v=3.1.0";
         runtime.async = false;

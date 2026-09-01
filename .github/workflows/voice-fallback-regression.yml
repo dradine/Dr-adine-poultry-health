@@ -6,17 +6,19 @@ on:
     paths:
       - 'voice-input.js'
       - 'voice-fallback.js'
+      - 'voice-shenava.js'
+      - 'tests/voice-shenava.test.js'
       - 'config.js'
       - 'supabase-config.js'
-      - 'supabase/functions/persian-voice-transcribe/**'
       - '.github/workflows/voice-fallback-regression.yml'
   pull_request:
     paths:
       - 'voice-input.js'
       - 'voice-fallback.js'
+      - 'voice-shenava.js'
+      - 'tests/voice-shenava.test.js'
       - 'config.js'
       - 'supabase-config.js'
-      - 'supabase/functions/persian-voice-transcribe/**'
       - '.github/workflows/voice-fallback-regression.yml'
 
 permissions:
@@ -32,27 +34,29 @@ jobs:
         run: |
           node --check voice-input.js
           node --check voice-fallback.js
+          node --check voice-shenava.js
+          node --check tests/voice-shenava.test.js
           node --check config.js
           node --check supabase-config.js
-      - name: Fallback safety assertions
+      - name: Shenava normalization regression
+        run: node tests/voice-shenava.test.js
+      - name: Local voice architecture assertions
         run: |
           node <<'NODE'
           const fs = require('fs');
-          const fallback = fs.readFileSync('voice-fallback.js', 'utf8');
-          const fn = fs.readFileSync('supabase/functions/persian-voice-transcribe/index.ts', 'utf8');
+          const shenava = fs.readFileSync('voice-shenava.js', 'utf8');
           const config = fs.readFileSync('config.js', 'utf8');
-          const supabaseConfig = fs.readFileSync('supabase-config.js', 'utf8');
           const assert = (condition, message) => { if (!condition) throw new Error(message); };
-          assert(/MediaRecorder/.test(fallback), 'MediaRecorder fallback missing');
-          assert(/getUserMedia/.test(fallback), 'microphone capture missing');
-          assert(/persian-voice-transcribe/.test(fallback), 'edge function invocation missing');
-          assert(/audio\/mp4/.test(fallback), 'iOS audio/mp4 support missing');
-          assert(/data-adine-voice-fallback/.test(fallback), 'fallback marker missing');
-          assert(/OPENAI_API_KEY/.test(fn), 'provider key must remain server-side');
-          assert(/gpt-4o-mini-transcribe/.test(fn), 'STT model missing');
-          assert(/language/.test(fn) && /fa/.test(fn), 'Persian language configuration missing');
-          assert(!/OPENAI_API_KEY/.test(fallback), 'provider secret must never be shipped to browser');
-          assert(!/OPENAI_API_KEY/.test(config), 'provider secret must never be shipped to browser');
-          assert(!/OPENAI_API_KEY/.test(supabaseConfig), 'provider secret must never be shipped to browser');
-          console.log('Voice fallback safety assertions: PASS');
+          assert(/Shenava-Rizeh-v1\.0-ONNX-fp16/.test(shenava), 'Shenava Rizeh engine missing');
+          assert(/processed_signal/.test(shenava) && /processed_signal_length/.test(shenava), 'ONNX input contract missing');
+          assert(/2005/.test(shenava) && /80/.test(shenava) && /16000/.test(shenava), 'Shenava preprocessing contract missing');
+          assert(/MediaRecorder/.test(shenava) && /getUserMedia/.test(shenava), 'local microphone capture missing');
+          assert(/audio\/mp4/.test(shenava), 'iOS audio/mp4 support missing');
+          assert(/webgpu/.test(shenava) && /wasm/.test(shenava), 'runtime fallback providers missing');
+          assert(/Reza2kn\/Shenava-Rizeh-v1\.0-ONNX-fp16/.test(shenava), 'pinned model repository missing');
+          assert(!/OPENAI_API_KEY/.test(shenava), 'paid provider secret must never ship to browser');
+          assert(!/supabaseClient|weekly_records|cumulative_fcr/.test(shenava), 'voice engine must not couple to application data');
+          assert(/voice-shenava\.js\?v=2\.1\.0/.test(config), 'global Shenava loader missing');
+          assert(!/OPENAI_API_KEY/.test(config), 'provider secret must never ship to browser');
+          console.log('Local Shenava voice architecture assertions: PASS');
           NODE

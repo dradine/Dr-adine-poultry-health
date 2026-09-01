@@ -12,7 +12,7 @@ const sandbox={window:{},document,console,navigator:{mediaDevices:null},Mutation
 sandbox.window=sandbox;
 vm.runInNewContext(source,sandbox,{filename:'voice-universal-controls.js'});
 assert(sandbox.window.AdineUniversalVoice);
-assert.strictEqual(sandbox.window.AdineUniversalVoice.version,'6.3.0');
+assert.strictEqual(sandbox.window.AdineUniversalVoice.version,'6.4.0');
 assert.strictEqual(sandbox.window.AdineUniversalVoice.normalize('۱۲۳۴ اف سی آر'),'۱۲۳۴ FCR');
 assert(source.includes('شروع ضبط'));
 assert(source.includes('توقف و تبدیل'));
@@ -25,5 +25,8 @@ assert(source.includes('sampleRate=ac.sampleRate||16000'));
 assert(source.includes('در حال آماده‌سازی موتور گفتار'));
 assert(source.includes('VOICE_SERVICE_NOT_CONFIGURED'));
 assert(source.includes('CLOUD_503'));
+assert(source.includes('runtimeVersion:\'6.4.0\''));
+assert(source.includes('voice-shenava-runtime.js?v=6.4.0'));
+assert(source.includes('راه‌اندازی موتور گفتار روی این دستگاه ناموفق بود'));
 assert(source.includes('در حال تبدیل گفتار به متن'));
-console.log('Universal voice controller regression: PASS (API/version/normalization/two-button/sample-rate/first-run timeout/fallback/status guards)');
+console.log('Universal voice controller regression: PASS (API/version/normalization/two-button/sample-rate/runtime guard/fallback/status guards)');

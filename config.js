@@ -31,16 +31,16 @@ window.supabaseClient =
         if (window.AdineShenavaRuntime || window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-runtime="1"]')) return;
 
         /* Runtime owns the complete cross-platform raw-PCM microphone,
-           model/assets download, fallback and ASR path. Keeping network
-           fallback in one place avoids competing fetch monkey-patches. */
+           model/assets download, fallback and ASR path. */
         const runtime = document.createElement("script");
-        runtime.src = "voice-shenava-runtime.js?v=4.2.0";
+        runtime.src = "voice-shenava-runtime.js?v=5.0.0";
         runtime.async = false;
         runtime.dataset.adineShenavaRuntime = "1";
         (document.head || document.documentElement).appendChild(runtime);
 
         /* Legacy adapter supplies the established Persian/veterinary
-           normalization layer. Runtime owns the actual audio/ASR path. */
+           normalization layer and creates the voice buttons. Runtime owns
+           the actual audio/ASR path through the capture-phase handler. */
         const script = document.createElement("script");
         script.src = "voice-shenava.js?v=3.0.0";
         script.async = false;

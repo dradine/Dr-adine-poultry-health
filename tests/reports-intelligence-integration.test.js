@@ -1,0 +1,15 @@
+"use strict";
+const fs=require("fs"),assert=require("assert");
+const html=fs.readFileSync("reports.html","utf8");
+const intelligence=fs.readFileSync("performance-intelligence-v1.js","utf8");
+const integration=fs.readFileSync("reports-performance-intelligence-v1.js","utf8");
+assert.ok(html.includes("performance-intelligence-v1.js"),"reports.html must load intelligence engine");
+assert.ok(html.includes("reports-performance-intelligence-v1.js"),"reports.html must load report integration");
+assert.ok(intelligence.includes("normalizedTrend"),"engine must expose age-normalized trend");
+assert.ok(intelligence.includes("adaptiveAlert"),"engine must expose adaptive alerts");
+assert.ok(intelligence.includes("targetOverride"),"engine must support report-engine targets without recalculation");
+assert.ok(!intelligence.includes("*1.05"),"fixed 5% forecast alert threshold must not be used");
+assert.ok(integration.includes("AdineBroilerReportEngine.build"),"integration must consume broiler report engine output");
+assert.ok(integration.includes("targetOverride:target"),"integration must pass authoritative report targets into intelligence");
+assert.ok(integration.includes("\"fcr\""),"integration must include FCR analysis");
+console.log("reports intelligence integration tests: PASS");

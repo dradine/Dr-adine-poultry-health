@@ -1,51 +1,5 @@
-/* =========================================================
-   ADINE POULTRY HEALTH CENTER
-   AUTH CLIENT CONFIGURATION
-   ========================================================= */
-
-const SUPABASE_URL =
-    "https://vzcczkavlopznljnnehp.supabase.co";
-
-const SUPABASE_ANON_KEY =
-    "sb_publishable_4jMgvqKI__-MsmMQtEiCig_M9WjhvN9";
-
-window.supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY,
-        {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true,
-                detectSessionInUrl: true,
-                flowType: "implicit"
-            }
-        }
-    );
-
-/* Global Persian voice input.
-   Primary: official Shenava Rizeh v1.0 (32M) through sherpa-onnx/Sherpaw WASM.
-   The recognizer runs in a Worker; no hand-written Mel/FFT/CTC path is used.
-   Fallback remains the existing authenticated STT function. */
-(function loadAdineVoice(){
-    try {
-        const load = (src, attr, version) => new Promise((resolve, reject) => {
-            const existing = document.querySelector(`script[${attr}="1"]`);
-            if (existing && existing.dataset.adineVoiceVersion === version) { resolve(); return; }
-            if (existing) existing.remove();
-            const s = document.createElement("script");
-            s.src = src;
-            s.async = false;
-            s.setAttribute(attr, "1");
-            s.dataset.adineVoiceVersion = version;
-            s.onload = resolve;
-            s.onerror = reject;
-            (document.head || document.documentElement).appendChild(s);
-        });
-        load("voice-sherpa-runtime.js?v=7.0.0", "data-adine-shenava-runtime", "7.0.0")
-            .then(() => load("voice-universal-controls.js?v=7.0.0", "data-adine-universal-voice", "7.0.0"))
-            .catch(error => console.warn("Adine voice loader:", error));
-    } catch (error) {
-        console.warn("Adine voice loader:", error);
-    }
-})();
+/* ADINE POULTRY HEALTH CENTER - AUTH CLIENT CONFIGURATION */
+const SUPABASE_URL="https://vzcczkavlopznljnnehp.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_4jMgvqKI__-MsmMQtEiCig_M9WjhvN9";
+window.supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:"implicit"}});
+(function loadAdineVoice(){try{const load=(src,attr,version)=>new Promise((resolve,reject)=>{const existing=document.querySelector(`script[${attr}="1"]`);if(existing&&existing.dataset.adineVoiceVersion===version){resolve();return}if(existing)existing.remove();const s=document.createElement('script');s.src=src;s.async=false;s.setAttribute(attr,'1');s.dataset.adineVoiceVersion=version;s.onload=resolve;s.onerror=reject;(document.head||document.documentElement).appendChild(s)});load('voice-sherpa-runtime.js?v=7.1.0','data-adine-shenava-runtime','7.1.0').then(()=>load('voice-universal-controls.js?v=7.1.0','data-adine-universal-voice','7.1.0')).catch(e=>console.warn('Adine voice loader:',e))}catch(e){console.warn('Adine voice loader:',e)}})();

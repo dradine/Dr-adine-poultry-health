@@ -4,8 +4,9 @@ const assert = require('assert');
 
 const source = fs.readFileSync('voice-shenava-runtime.js', 'utf8');
 const listeners = {};
-const MODEL_BYTES = 58982673;
+const MODEL_BYTES = 17098975;
 const document = {
+  readyState: 'complete',
   addEventListener(name, fn) { listeners[name] = fn; },
   createElement() { return { setAttribute(){}, appendChild(){}, addEventListener(){}, dataset:{}, className:'', textContent:'' }; },
   head: { appendChild(){} },
@@ -33,7 +34,7 @@ sandbox.ort = {
         assert.strictEqual(Array.from(inputs.processed_signal_length.dims).join(','),'1');
         assert.strictEqual(Number(inputs.processed_signal_length.data[0]),201);
         const data = new Uint16Array(252*1025);
-        for(let t=0;t<252;t++) data[t*1025+10]=0x4900; // float16(10.0)
+        for(let t=0;t<252;t++) data[t*1025+10]=0x4900;
         return {logits:{type:'float16',data,dims:[1,252,1025]},encoded_lengths:{data:BigInt64Array.from([252n]),dims:[1]}};
       }};
     }
@@ -64,6 +65,6 @@ assert(sandbox.window.AdineShenavaRuntime);
   const text = await sandbox.window.AdineShenavaRuntime.inferPCM(pcm,16000);
   assert.strictEqual(text,'سلام');
   assert(lastInput);
-  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'5.1.0');
-  console.log('Shenava raw-PCM runtime smoke: PASS (PCM/resample/reflect-fbank/float16 tensor/float16 logits/CTC)');
+  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'6.4.0');
+  console.log('Shenava raw-PCM runtime smoke: PASS (Pizeh model size/session/PCM/fbank/float16/CTC)');
 })().catch(err=>{console.error(err);process.exitCode=1;});

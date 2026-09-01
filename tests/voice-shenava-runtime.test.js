@@ -57,6 +57,6 @@ assert(sandbox.window.AdineShenavaRuntime);
   const text = await sandbox.window.AdineShenavaRuntime.inferPCM(pcm,16000);
   assert.strictEqual(text,'سلام');
   assert(lastInput);
-  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'4.0.0');
+  assert.strictEqual(sandbox.window.AdineShenavaRuntime.version,'4.2.0');
   console.log('Shenava raw-PCM runtime smoke: PASS (PCM/resample/fbank/tensor/CTC)');
 })().catch(err=>{console.error(err);process.exitCode=1;});

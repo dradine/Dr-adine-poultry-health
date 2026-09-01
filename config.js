@@ -40,8 +40,8 @@ window.supabaseClient =
             s.onerror = reject;
             (document.head || document.documentElement).appendChild(s);
         });
-        load("voice-shenava-runtime.js?v=6.1.0", "data-adine-shenava-runtime")
-            .then(() => load("voice-universal-controls.js?v=6.1.0", "data-adine-universal-voice"))
+        load("voice-shenava-runtime.js?v=6.2.0", "data-adine-shenava-runtime")
+            .then(() => load("voice-universal-controls.js?v=6.2.0", "data-adine-universal-voice"))
             .catch(error => console.warn("Adine voice loader:", error));
     } catch (error) {
         console.warn("Adine voice loader:", error);

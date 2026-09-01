@@ -1,80 +1,60 @@
-name: Voice Shenava Regression
+name: Voice Shenava Rizeh 32M Regression
 
 on:
   push:
     paths:
-      - 'voice-shenava.js'
-      - 'voice-shenava-runtime.js'
-      - 'voice-shenava-network.js'
+      - 'voice-sherpa-runtime.js'
+      - 'voice-sherpa-worker.js'
       - 'voice-universal-controls.js'
       - 'config.js'
-      - 'tests/voice-shenava.test.js'
-      - 'tests/voice-shenava-runtime.test.js'
-      - 'tests/voice-shenava-model.test.js'
-      - 'tests/voice-shenava-static.test.js'
-      - 'tests/voice-universal-controls.test.js'
+      - 'supabase-config.js'
+      - 'tests/voice-shenava-rizeh32-sherpa.test.js'
+      - 'tests/voice-shenava-browser-smoke.js'
       - '.github/workflows/voice-shenava-regression.yml'
   pull_request:
     paths:
-      - 'voice-shenava.js'
-      - 'voice-shenava-runtime.js'
-      - 'voice-shenava-network.js'
+      - 'voice-sherpa-runtime.js'
+      - 'voice-sherpa-worker.js'
       - 'voice-universal-controls.js'
       - 'config.js'
-      - 'tests/voice-shenava.test.js'
-      - 'tests/voice-shenava-runtime.test.js'
-      - 'tests/voice-shenava-model.test.js'
-      - 'tests/voice-shenava-static.test.js'
-      - 'tests/voice-universal-controls.test.js'
+      - 'supabase-config.js'
+      - 'tests/voice-shenava-rizeh32-sherpa.test.js'
+      - 'tests/voice-shenava-browser-smoke.js'
       - '.github/workflows/voice-shenava-regression.yml'
 
 jobs:
   regression:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Syntax check
+      - name: Syntax checks
         run: |
-          node --check voice-shenava.js
-          node --check voice-shenava-runtime.js
-          node --check voice-shenava-network.js
+          node --check voice-sherpa-runtime.js
           node --check voice-universal-controls.js
           node --check config.js
-          node --check tests/voice-shenava.test.js
-          node --check tests/voice-shenava-runtime.test.js
-          node --check tests/voice-shenava-model.test.js
-          node --check tests/voice-shenava-static.test.js
-          node --check tests/voice-universal-controls.test.js
-      - name: Local normalization regression
-        run: node tests/voice-shenava.test.js
-      - name: Runtime preprocessing and CTC smoke
-        run: node tests/voice-shenava-runtime.test.js
-      - name: Universal two-button controller regression
-        run: node tests/voice-universal-controls.test.js
-      - name: Static cross-platform runtime guards
-        run: node tests/voice-shenava-static.test.js
-      - name: Actual Shenava ONNX model inference
+          node --check supabase-config.js
+          node --check tests/voice-shenava-rizeh32-sherpa.test.js
+          node --check tests/voice-shenava-browser-smoke.js
+      - name: Strict architecture regression
+        run: node tests/voice-shenava-rizeh32-sherpa.test.js
+      - name: Browser WASM + model initialization
         run: |
-          npm install --no-save --no-package-lock onnxruntime-node@1.24.1
-          node tests/voice-shenava-model.test.js
-      - name: Guard against accidental cloud dependency in local Shenava engine
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+          node tests/voice-shenava-browser-smoke.js
+      - name: Legacy loader guard
         run: |
-          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js; then exit 1; fi
-      - name: Guard against application data coupling
+          if grep -R -nE 'voice-shenava-runtime\.js\?v=6\.|voice-universal-controls\.js\?v=6\.' config.js supabase-config.js; then exit 1; fi
+      - name: Custom ONNX pipeline guard
         run: |
-          if grep -nE 'weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js voice-universal-controls.js; then exit 1; fi
-      - name: Guard Shenava fixed-window contract
+          if grep -nE 'onnxruntime-web|processed_signal|processed_signal_length|mel_filters|function fft\(|float16Data' voice-sherpa-runtime.js voice-sherpa-worker.js; then exit 1; fi
+      - name: Application-data isolation guard
         run: |
-          grep -n 'processed_signal' voice-shenava-runtime.js
-          grep -n 'processed_signal_length' voice-shenava-runtime.js
-          grep -n 'mels:80' voice-shenava-runtime.js
-          grep -n 'frames:2005\|frames: 2005' voice-shenava-runtime.js
-          grep -n '16000' voice-shenava-runtime.js
-          grep -n 'blank:1024' voice-shenava-runtime.js
-          grep -n 'pad:256' voice-shenava-runtime.js
-          grep -n 'getUserMedia' voice-shenava-runtime.js
-          grep -n 'ScriptProcessor' voice-shenava-runtime.js
-          grep -n 'baseMirror' voice-shenava-runtime.js
+          if grep -nE 'weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-sherpa-runtime.js voice-sherpa-worker.js voice-universal-controls.js; then exit 1; fi
+      - name: Cloud credential isolation guard
+        run: |
+          if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech' voice-sherpa-runtime.js voice-sherpa-worker.js; then exit 1; fi

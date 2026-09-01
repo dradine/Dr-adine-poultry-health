@@ -1,0 +1,32 @@
+name: Voice Shenava Regression
+
+on:
+  push:
+    paths:
+      - 'voice-shenava.js'
+      - 'tests/voice-shenava.test.js'
+      - '.github/workflows/voice-shenava-regression.yml'
+  pull_request:
+    paths:
+      - 'voice-shenava.js'
+      - 'tests/voice-shenava.test.js'
+      - '.github/workflows/voice-shenava-regression.yml'
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: node --check voice-shenava.js && node --check tests/voice-shenava.test.js
+      - name: Local normalization regression
+        run: node tests/voice-shenava.test.js
+      - name: Guard against paid/cloud voice dependencies
+        run: |
+          ! grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js
+      - name: Guard against application data coupling
+        run: |
+          ! grep -nE 'supabaseClient|from\(|insert\(|update\(|upsert\(|weekly_records|FCR|cumulative_fcr' voice-shenava.js

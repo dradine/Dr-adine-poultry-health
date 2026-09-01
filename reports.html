@@ -8,6 +8,7 @@
 <script src="supabase-config.js"></script>
 <script src="standard-data.js"></script>
 <script src="broiler-official-standards-v1.js"></script>
+<script src="broiler-standards-bridge.js"></script>
 <script src="standards-resolver-core-v1.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="broiler-report-engine.js"></script>
@@ -15,14 +16,13 @@
 </head>
 <body>
 <main class="reports-shell">
-<header class="report-card report-header"><div><h1>گزارش عملکرد گله</h1><p>گزارش فقط از همان گله‌ای ساخته می‌شود که از ثبت هفتگی وارد شده است.</p></div><div class="report-actions"><button class="report-btn secondary" id="back">بازگشت به ثبت گزارش</button><button class="report-btn primary" id="print">چاپ گزارش</button></div></div></header>
+<header class="report-card report-header"><div><h1>گزارش عملکرد گله</h1><p>گزارش فقط از همان گله‌ای ساخته می‌شود که از ثبت هفتگی وارد شده است.</p></div><div class="report-actions"><button class="report-btn secondary" id="back">بازگشت به ثبت گزارش</button><button class="report-btn primary" id="print">چاپ گزارش</button></div></header>
 <section class="report-card flock-identity"><div id="identity" class="identity-grid"><div class="empty">در حال دریافت اطلاعات گله…</div></div></section>
 <nav class="report-card report-tabs" aria-label="انواع گزارش"><button class="report-tab active" data-tab="weekly">گزارش هفتگی</button><button class="report-tab" data-tab="overall">گزارش جامع عملکرد گله</button><button class="report-tab" data-tab="compare">گزارش مقایسه‌ای</button></nav>
 <section class="report-card report-toolbar"><div class="toolbar-left"><b>هفته گزارش:</b><select id="week" aria-label="هفته گزارش"></select></div><span id="scope" class="scope-badge">در حال بارگذاری…</span></section>
 <section id="root" class="report-card"><div class="empty">در حال بارگذاری اطلاعات گله…</div></section>
 </main>
-<nav class="bottom-navigation" aria-label="ناوبری اصلی"><button class="bottom-nav-item" onclick="location.href='Dashboard.html'"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M9 21v-6h6v6"></path></svg></span><span>خانه</span></button><button class="bottom-nav-item" onclick="location.href='flocks.html'"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"></path><path d="M7 21v-7h10v7"></path><path d="M9 10h6"></path><path d="M12 7v3"></path></svg></span><span>گله‌ها</span></button><button class="bottom-nav-item" onclick="location.href='weekly.html'"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19V5"></path><path d="M4 19h17"></path><path d="M6.5 15l-4 2 3-4 4-6"></path></svg></span><span>ثبت هفتگی</span></button><button class="bottom-nav-item active"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h6"></path><path d="M9 16h6"></path><path d="M9 8h2"></path></svg></span><span>گزارش‌ها</span></button></nav>
+<nav class="bottom-navigation" aria-label="ناوبری اصلی"><button class="bottom-nav-item" onclick="location.href='Dashboard.html'"><span>خانه</span></button><button class="bottom-nav-item" onclick="location.href='flocks.html'"><span>گله‌ها</span></button><button class="bottom-nav-item" onclick="location.href='weekly.html'"><span>ثبت هفتگی</span></button><button class="bottom-nav-item active"><span>گزارش‌ها</span></button></nav>
 <script src="reports.js"></script>
-    <script src="health-records-runtime-v2.js"></script>
 </body>
 </html>

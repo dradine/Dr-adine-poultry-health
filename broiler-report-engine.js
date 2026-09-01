@@ -38,13 +38,8 @@
       const hit=(registry.records||[]).find(x=>Number(x[0])===a);
       if(hit){
         return {
-          weight:n(hit[1]),
-          fcr:n(hit[2]),
-          weightSourceLabel:registry.sourceLabel,
-          fcrSourceLabel:registry.sourceLabel,
-          sourceType:registry.sourceType,
-          sourceUrl:registry.sourceUrl,
-          official:true,
+          weight:n(hit[1]),fcr:n(hit[2]),weightSourceLabel:registry.sourceLabel,fcrSourceLabel:registry.sourceLabel,
+          sourceType:registry.sourceType,sourceUrl:registry.sourceUrl,official:true,
           strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain
         };
       }
@@ -52,8 +47,6 @@
     return null;
   }
 
-  // Published cumulative FCR points are converted to the FCR attributable to THIS week.
-  // Week 1 is necessarily equal to the published day-7 cumulative FCR.
   function officialWeeklyFcr(flock,rows,index){
     const current=standardFor(flock,rows[index]);
     const cc=n(current?.fcr),cw=n(current?.weight);
@@ -79,22 +72,18 @@
 
   function officialWeeklyGain(flock,rows,index){
     const current=standardFor(flock,rows[index]),cw=n(current?.weight);
-    if(cw===null)return null;
-    if(index===0)return null; // no official day-0 body-weight point exists in the registry
+    if(cw===null||index===0)return null;
     const previous=standardFor(flock,rows[index-1]),pw=n(previous?.weight);
     return pw===null?null:cw-pw;
   }
 
-  function officialCumulativeGain(flock,rows,index){
-    const current=standardFor(flock,rows[index]),cw=n(current?.weight);
-    if(cw===null)return null;
-    return officialWeeklyGain(flock,rows,index)===null && index>0?null:cw;
-  }
+  // The official registry starts at day 7. Without an official day-0 weight,
+  // an official cumulative gain would be fabricated. Keep it null until such
+  // a baseline is explicitly defined in the official source.
+  function officialCumulativeGain(){return null}
 
   function managementWeeklyFcr(flock,rows,index){return officialWeeklyFcr(flock,rows,index)}
-
   function managementWeightGain(flock,rows,index){return officialWeeklyGain(flock,rows,index)}
-
   function qualityTargets(){return{cv:10,uniformity10:80,uniformity15:90}}
   function classify(actual,target,direction){if(actual===null||target===null)return'neutral';if(direction==='lower')return actual<=target?'good':'warn';if(direction==='higher')return actual>=target?'good':'warn';return'neutral'}
 
@@ -107,10 +96,8 @@
       raw:r,index,week:week(r),age:age(r),weight:actualWeight,
       standardWeight:n(s?.weight),weightSource:s?.sourceType||null,weightSourceLabel:s?.weightSourceLabel||null,
       weightGain:actualWeekly,weeklyWeightGain:actualWeekly,cumulativeWeightGain:actualCumulative,
-      managementWeightGain:standardWeeklyGain,standardWeeklyWeightGain:standardWeeklyGain,
-      standardCumulativeWeightGain:officialCumulativeGain(flock,rows,index),
-      fcr:actualFcr,cumulativeFcr:actualCum,
-      standardWeeklyFcr:n(weeklyStandardFcr),officialWeeklyFcr:n(weeklyStandardFcr),
+      managementWeightGain:standardWeeklyGain,standardWeeklyWeightGain:standardWeeklyGain,standardCumulativeWeightGain:null,
+      fcr:actualFcr,cumulativeFcr:actualCum,standardWeeklyFcr:n(weeklyStandardFcr),officialWeeklyFcr:n(weeklyStandardFcr),
       standardCumulativeFcr:n(s?.fcr),managementWeeklyFcr:n(weeklyStandardFcr),
       fcrSource:r?.production_metrics?.calculation_version||'canonical-record',fcrSourceLabel:s?.fcrSourceLabel||null,
       cv:cv(r),cvStandard:q.cv,uniformity10:u10(r),uniformity10Standard:q.uniformity10,uniformity15:u15(r),uniformity15Standard:q.uniformity15,

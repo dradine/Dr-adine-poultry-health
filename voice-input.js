@@ -15,7 +15,7 @@
     maxAlternatives: 1,
     buttonClass: 'adine-voice-button',
     wrapperClass: 'adine-voice-field',
-    version: '1.0.0'
+    version: '1.0.1'
   };
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -23,7 +23,7 @@
   let active = null;
 
   const DENY_ID = /(password|passwd|secret|token|code|otp|captcha|search|url|email|phone|mobile|username|user-name)/i;
-  const DENY_NAME = /(password|passwd|secret|token|code|otp|captcha|email|phone|mobile|username|url)/i;
+  const DENY_NAME = /(password|passwd|secret|token|otp|captcha|email|phone|mobile|username|url)/i;
   const NUMERIC_MODE = /^(numeric|decimal|tel)$/i;
 
   function toPersianDigits(value) {
@@ -61,7 +61,7 @@
     const words = '(?:صفر|یک|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|یازده|دوازده|سیزده|چهارده|پانزده|شانزده|هفده|هجده|نوزده|بیست|سی|چهل|پنجاه|شصت|هفتاد|هشتاد|نود|صد|یکصد|دویست|سیصد|چهارصد|پانصد|ششصد|هفتصد|هشتصد|نهصد|هزار|میلیون|میلیارد|و)';
     const re = new RegExp('(^|\\s)(' + words + '(?:\\s+' + words + ')*)($|\\s)', 'g');
     return text.replace(re, (all, before, phrase, after) => {
-      const parsed = parsePersianNumberWords(phrase.trim().split(/\\s+/));
+      const parsed = parsePersianNumberWords(phrase.trim().split(/\s+/));
       return parsed == null ? all : before + toPersianDigits(parsed) + after;
     });
   }
@@ -78,7 +78,15 @@
   }
 
   function normalizePoultryTerms(value) {
-    let text = normalizeArabicPersianText(value);
+    let text = String(value == null ? '' : value);
+    const protectedTokens = [
+      [/پی\s*سی\s*آر/gi, '__ADINE_PCR__'],
+      [/ال\s*ای\s*زا/gi, '__ADINE_ELISA__'],
+      [/اف\s*سی\s*آر/gi, '__ADINE_FCR__'],
+      [/سی\s*وی/gi, '__ADINE_CV__']
+    ];
+    for (const [pattern, token] of protectedTokens) text = text.replace(pattern, token);
+    text = normalizeArabicPersianText(text);
     const replacements = [
       [/مایکو\s*پلاسما/g, 'مایکوپلاسما'],
       [/مایکو\s*پلازما/g, 'مایکوپلاسما'],
@@ -91,14 +99,14 @@
       [/تراشه/g, 'تراشه'],
       [/کوکسیدیوز/g, 'کوکسیدیوز'],
       [/آنتی\s*بیوگرام/g, 'آنتی‌بیوگرام'],
-      [/آنتی\s*بادی/g, 'آنتی‌بادی'],
-      [/پی\s*سی\s*آر/g, 'PCR'],
-      [/ال\s*ای\s*زا/g, 'ELISA'],
-      [/سی\s*وی/g, 'CV'],
-      [/اف\s*سی\s*آر/g, 'FCR']
+      [/آنتی\s*بادی/g, 'آنتی‌بادی']
     ];
     for (const [pattern, replacement] of replacements) text = text.replace(pattern, replacement);
-    return text;
+    return text
+      .replace(/__ADINE_PCR__/g, 'PCR')
+      .replace(/__ADINE_ELISA__/g, 'ELISA')
+      .replace(/__ADINE_FCR__/g, 'FCR')
+      .replace(/__ADINE_CV__/g, 'CV');
   }
 
   function isEligible(el) {
@@ -192,7 +200,7 @@
 
   function cleanupActive() {
     if (!active) return;
-    const { el, s } = active;
+    const { s } = active;
     try { s.recognition && s.recognition.abort(); } catch (_) {}
     s.recognition = null;
     s.stopping = false;
@@ -202,15 +210,6 @@
     }
     setStatus(s, '', '');
     active = null;
-  }
-
-  function stop(el) {
-    const s = getState(el);
-    if (!s.recognition) return;
-    s.stopping = true;
-    if (s.button) s.button.dataset.processing = 'true';
-    setStatus(s, 'در حال تکمیل متن…', 'processing');
-    try { s.recognition.stop(); } catch (_) { finish(el); }
   }
 
   function finish(el) {
@@ -224,6 +223,15 @@
     }
     setStatus(s, '', '');
     if (active && active.el === el) active = null;
+  }
+
+  function stop(el) {
+    const s = getState(el);
+    if (!s.recognition) return;
+    s.stopping = true;
+    if (s.button) s.button.dataset.processing = 'true';
+    setStatus(s, 'در حال تکمیل متن…', 'processing');
+    try { s.recognition.stop(); } catch (_) { finish(el); }
   }
 
   function start(el) {

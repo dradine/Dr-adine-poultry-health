@@ -28,7 +28,7 @@ window.supabaseClient =
     try {
         if (window.AdineVoiceInput || document.querySelector('script[data-adine-voice-input="1"]')) return;
         const script = document.createElement("script");
-        script.src = "voice-input.js?v=1.0.0";
+        script.src = "voice-input.js?v=1.0.1";
         script.async = false;
         script.dataset.adineVoiceInput = "1";
         (document.head || document.documentElement).appendChild(script);

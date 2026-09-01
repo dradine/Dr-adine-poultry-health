@@ -39,7 +39,7 @@ window.supabaseClient =
 
         /* Runtime owns the cross-platform raw-PCM microphone and ASR path. */
         const runtime = document.createElement("script");
-        runtime.src = "voice-shenava-runtime.js?v=4.1.0";
+        runtime.src = "voice-shenava-runtime.js?v=4.2.0";
         runtime.async = false;
         runtime.dataset.adineShenavaRuntime = "1";
         (document.head || document.documentElement).appendChild(runtime);

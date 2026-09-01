@@ -30,18 +30,16 @@ window.supabaseClient =
     try {
         if (window.AdineShenavaRuntime || window.AdineVoiceInput || document.querySelector('script[data-adine-shenava-runtime="1"]')) return;
 
-        /* Network adapter only affects Shenava model/sidecar downloads.
-           It tries the pinned public mirror first inside the runtime and
-           falls back to the official pinned release. */
+        /* Network adapter only affects Shenava model/sidecar downloads. */
         const network = document.createElement("script");
         network.src = "voice-shenava-network.js?v=1.1.0";
         network.async = false;
         network.dataset.adineShenavaNetwork = "1";
         (document.head || document.documentElement).appendChild(network);
 
-        /* Runtime owns the capture-phase microphone handler. */
+        /* Runtime owns the cross-platform raw-PCM microphone and ASR path. */
         const runtime = document.createElement("script");
-        runtime.src = "voice-shenava-runtime.js?v=4.0.0";
+        runtime.src = "voice-shenava-runtime.js?v=4.1.0";
         runtime.async = false;
         runtime.dataset.adineShenavaRuntime = "1";
         (document.head || document.documentElement).appendChild(runtime);

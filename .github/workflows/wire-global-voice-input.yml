@@ -1,0 +1,49 @@
+name: Wire global Persian voice input
+
+on:
+  push:
+    branches:
+      - feature/global-persian-voice-input-v1
+
+permissions:
+  contents: write
+
+jobs:
+  wire-voice:
+    if: github.event.head_commit.message != 'chore(voice): wire global voice input'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inject voice input script into HTML pages
+        shell: python
+        run: |
+          from pathlib import Path
+          marker = '<script src="voice-input.js?v=1.0.0"></script>'
+          changed = []
+          for path in Path('.').glob('*.html'):
+              text = path.read_text(encoding='utf-8')
+              if marker in text or 'voice-input.js' in text:
+                  continue
+              lower = text.lower()
+              if '</body>' not in lower:
+                  continue
+              idx = lower.rfind('</body>')
+              text = text[:idx] + marker + '\n' + text[idx:]
+              path.write_text(text, encoding='utf-8', newline='')
+              changed.append(path.name)
+          print('Changed:', ', '.join(changed) if changed else 'none')
+
+      - name: Commit wiring changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No HTML changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '*.html'
+          git commit -m 'chore(voice): wire global voice input'
+          git push

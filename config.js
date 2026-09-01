@@ -24,24 +24,26 @@ window.supabaseClient =
     );
 
 /* Global Persian voice input.
-   Primary path: local Shenava Rizeh through ONNX Runtime Web.
-   UI: explicit Start and Stop buttons; Stop automatically transcribes.
-   Fallback: existing authenticated STT function if local inference fails. */
+   Primary: official Shenava Rizeh v1.0 (32M) through sherpa-onnx/Sherpaw WASM.
+   The recognizer runs in a Worker; no hand-written Mel/FFT/CTC path is used.
+   Fallback remains the existing authenticated STT function. */
 (function loadAdineVoice(){
     try {
-        const load = (src, attr) => new Promise((resolve, reject) => {
+        const load = (src, attr, version) => new Promise((resolve, reject) => {
             const existing = document.querySelector(`script[${attr}="1"]`);
-            if (existing) { resolve(); return; }
+            if (existing && existing.dataset.adineVoiceVersion === version) { resolve(); return; }
+            if (existing) existing.remove();
             const s = document.createElement("script");
             s.src = src;
             s.async = false;
             s.setAttribute(attr, "1");
+            s.dataset.adineVoiceVersion = version;
             s.onload = resolve;
             s.onerror = reject;
             (document.head || document.documentElement).appendChild(s);
         });
-        load("voice-shenava-runtime.js?v=6.4.0", "data-adine-shenava-runtime")
-            .then(() => load("voice-universal-controls.js?v=6.3.0", "data-adine-universal-voice"))
+        load("voice-sherpa-runtime.js?v=7.0.0", "data-adine-shenava-runtime", "7.0.0")
+            .then(() => load("voice-universal-controls.js?v=7.0.0", "data-adine-universal-voice", "7.0.0"))
             .catch(error => console.warn("Adine voice loader:", error));
     } catch (error) {
         console.warn("Adine voice loader:", error);

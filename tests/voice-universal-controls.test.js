@@ -12,7 +12,7 @@ const sandbox={window:{},document,console,navigator:{mediaDevices:null},Mutation
 sandbox.window=sandbox;
 vm.runInNewContext(source,sandbox,{filename:'voice-universal-controls.js'});
 assert(sandbox.window.AdineUniversalVoice);
-assert.strictEqual(sandbox.window.AdineUniversalVoice.version,'6.1.0');
+assert.strictEqual(sandbox.window.AdineUniversalVoice.version,'6.2.0');
 assert.strictEqual(sandbox.window.AdineUniversalVoice.normalize('۱۲۳۴ اف سی آر'),'۱۲۳۴ FCR');
 assert(source.includes('شروع ضبط'));
 assert(source.includes('توقف و تبدیل'));
@@ -20,4 +20,5 @@ assert(source.includes('MediaRecorder'));
 assert(source.includes('AdineShenavaRuntime'));
 assert(source.includes('persian-voice-transcribe'));
 assert(source.includes('LOCAL_TIMEOUT'));
-console.log('Universal voice controller regression: PASS (API/version/normalization/two-button/local+fallback guards)');
+assert(source.includes('در حال تبدیل گفتار به متن'));
+console.log('Universal voice controller regression: PASS (API/version/normalization/two-button/local+fallback/status guards)');

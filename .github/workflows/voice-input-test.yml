@@ -1,4 +1,4 @@
-# Final local Persian ASR regression matrix
+# Final local Persian ASR regression matrix - rerun after 7.7 OfflineRecognizer correction
 name: Voice Input Regression
 
 on:

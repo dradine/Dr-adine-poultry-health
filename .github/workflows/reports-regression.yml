@@ -11,6 +11,8 @@ on:
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
+      - 'performance-intelligence-v1.js'
+      - 'reports-performance-intelligence-v1.js'
       - 'tests/**'
   pull_request:
     paths:
@@ -22,6 +24,8 @@ on:
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
+      - 'performance-intelligence-v1.js'
+      - 'reports-performance-intelligence-v1.js'
       - 'tests/**'
 jobs:
   test:
@@ -39,9 +43,15 @@ jobs:
           node --check broiler-official-standards-v1.js
           node --check standards-resolver-core-v1.js
           node --check standard-data.js
+          node --check performance-intelligence-v1.js
+          node --check reports-performance-intelligence-v1.js
       - name: Official registry test
         run: node tests/broiler-official-standards.test.js
       - name: Domain regression test
         run: node tests/reports-architecture.test.js
+      - name: Intelligence engine test
+        run: node tests/performance-intelligence-v12.test.js
+      - name: Reports integration guard test
+        run: node tests/reports-intelligence-integration.test.js
       - name: Shell isolation test
         run: node tests/reports-shell.test.js

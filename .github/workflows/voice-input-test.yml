@@ -1,4 +1,4 @@
-# Final local Persian ASR regression matrix - explicit YAML form
+# Final local Persian ASR regression matrix - browser binaries only
 name: Voice Input Regression
 
 on:
@@ -39,8 +39,8 @@ jobs:
           curl -fsSI --max-time 30 'https://huggingface.co/Reza2kn/Shenava-Rizeh-v1.0-sherpa-onnx/resolve/main/tokens.txt?download=true' >/dev/null
       - name: Install Playwright
         run: npm install --no-save --no-package-lock playwright@1.55.0
-      - name: Install browser
-        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Install browser binary
+        run: npx playwright install ${{ matrix.browser }}
       - name: Browser WASM and real Shenava Rizeh 32M model/session
         env:
           BROWSER: ${{ matrix.browser }}

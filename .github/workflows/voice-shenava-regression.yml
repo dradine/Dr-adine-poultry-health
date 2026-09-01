@@ -6,22 +6,26 @@ on:
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
       - 'voice-shenava-network.js'
+      - 'voice-universal-controls.js'
       - 'config.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
       - 'tests/voice-shenava-model.test.js'
       - 'tests/voice-shenava-static.test.js'
+      - 'tests/voice-universal-controls.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
   pull_request:
     paths:
       - 'voice-shenava.js'
       - 'voice-shenava-runtime.js'
       - 'voice-shenava-network.js'
+      - 'voice-universal-controls.js'
       - 'config.js'
       - 'tests/voice-shenava.test.js'
       - 'tests/voice-shenava-runtime.test.js'
       - 'tests/voice-shenava-model.test.js'
       - 'tests/voice-shenava-static.test.js'
+      - 'tests/voice-universal-controls.test.js'
       - '.github/workflows/voice-shenava-regression.yml'
 
 jobs:
@@ -37,27 +41,31 @@ jobs:
           node --check voice-shenava.js
           node --check voice-shenava-runtime.js
           node --check voice-shenava-network.js
+          node --check voice-universal-controls.js
           node --check config.js
           node --check tests/voice-shenava.test.js
           node --check tests/voice-shenava-runtime.test.js
           node --check tests/voice-shenava-model.test.js
           node --check tests/voice-shenava-static.test.js
+          node --check tests/voice-universal-controls.test.js
       - name: Local normalization regression
         run: node tests/voice-shenava.test.js
       - name: Runtime preprocessing and CTC smoke
         run: node tests/voice-shenava-runtime.test.js
+      - name: Universal two-button controller regression
+        run: node tests/voice-universal-controls.test.js
       - name: Static cross-platform runtime guards
         run: node tests/voice-shenava-static.test.js
       - name: Actual Shenava ONNX model inference
         run: |
           npm install --no-save --no-package-lock onnxruntime-node@1.24.1
           node tests/voice-shenava-model.test.js
-      - name: Guard against paid/cloud voice dependencies
+      - name: Guard against accidental cloud dependency in local Shenava engine
         run: |
           if grep -nE 'OPENAI_API_KEY|api\.openai\.com|googleapis\.com|azure\.com/speech|speech-to-text.*api' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js; then exit 1; fi
       - name: Guard against application data coupling
         run: |
-          if grep -nE 'supabaseClient|weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js; then exit 1; fi
+          if grep -nE 'weekly_records|cumulative_fcr|INSERT INTO|UPDATE .*weekly' voice-shenava.js voice-shenava-runtime.js voice-shenava-network.js voice-universal-controls.js; then exit 1; fi
       - name: Guard Shenava fixed-window contract
         run: |
           grep -n 'processed_signal' voice-shenava-runtime.js

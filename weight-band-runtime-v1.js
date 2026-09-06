@@ -1,35 +1,45 @@
-/* ADINE POULTRY HEALTH — WEIGHT BAND UI / STORAGE BRIDGE V1
-   Additive only. Existing weight, SD, CV, uniformity, FCR and standards
-   engines are not replaced or modified.
+/* ADINE POULTRY HEALTH — WEIGHT BAND UI / STORAGE BRIDGE V1.1
+   Safe additive bridge.
+   IMPORTANT: This file NEVER replaces calculateWeekly() or saveWeeklyRecord().
+   Existing weight, SD, CV, uniformity, FCR and standards engines remain untouched.
 */
 (function () {
   "use strict";
 
   const ENGINE = () => window.AdineWeightBandEngine;
-  const state = { saveWrapped: false, calculateWrapped: false, lastResult: null };
+  const state = { lastResult: null, bound: false };
 
   function num(v) {
     if (v === null || v === undefined || v === "") return null;
-    const s = String(v).replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+    const s = String(v)
+      .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
       .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
-      .replace(/[٬,]/g, "").replace("٫", ".");
+      .replace(/[٬,]/g, "")
+      .replace("٫", ".");
     const n = Number(s);
     return Number.isFinite(n) ? n : null;
   }
 
   function fa(v, digits = 0) {
     const n = num(v);
-    return n === null ? "—" : n.toLocaleString("fa-IR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    return n === null ? "—" : n.toLocaleString("fa-IR", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
   }
 
   function pct(v, digits = 1) {
     const n = num(v);
-    return n === null ? "—" : n.toLocaleString("fa-IR", { minimumFractionDigits: digits, maximumFractionDigits: digits }) + "٪";
+    return n === null ? "—" : n.toLocaleString("fa-IR", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    }) + "٪";
   }
 
   function weights() {
     return Array.from(document.querySelectorAll("#weightsContainer .bird-weight"))
-      .map(el => num(el.value)).filter(v => Number.isFinite(v) && v > 0);
+      .map(el => num(el.value))
+      .filter(v => Number.isFinite(v) && v > 0);
   }
 
   function statistics() {
@@ -43,7 +53,9 @@
           }
         }
       }
-    } catch (e) { console.warn("Adine weight-band statistics bridge:", e); }
+    } catch (e) {
+      console.warn("Adine weight-band statistics bridge:", e);
+    }
     return null;
   }
 
@@ -56,7 +68,12 @@
     const s = statistics();
     const ws = weights();
     if (!e || !s || ws.length < 2) return null;
-    return e.calculate({ weights: ws, mean: s.mean, cv: s.cv, flockSize: flockSize() });
+    return e.calculate({
+      weights: ws,
+      mean: s.mean,
+      cv: s.cv,
+      flockSize: flockSize()
+    });
   }
 
   function ensureStyles() {
@@ -70,7 +87,6 @@
       .adine-weight-band .awb-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
       .adine-weight-band .awb-box{border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:11px;min-height:62px}.adine-weight-band .awb-label{font-size:11px;opacity:.68}.adine-weight-band .awb-value{font-size:18px;font-weight:800;margin-top:5px}
       .adine-weight-band .awb-note{margin:12px 0 0;font-size:11px;line-height:1.9;opacity:.72}
-      .adine-weight-band input[readonly]{background:rgba(148,163,184,.08);cursor:default}
       @media(max-width:680px){.adine-weight-band .awb-grid{grid-template-columns:1fr}.adine-weight-band .awb-head{display:block}}
       .adine-weight-band-report{margin-top:14px}.adine-weight-band-report .chart-area{height:260px;position:relative}
     `;
@@ -95,17 +111,17 @@
         <div class="awb-box"><div class="awb-label">میانگین وزن از موتور موجود</div><div id="awbMean" class="awb-value">—</div></div>
         <div class="awb-box"><div class="awb-label">CV از موتور موجود</div><div id="awbCv" class="awb-value">—</div></div>
       </div>
-      <p class="awb-note">نکته: چون محدوده هدف دقیقاً برابر حداقل تا حداکثر نمونه است، درصد مشاهده‌شده در خود نمونه ذاتاً ۱۰۰٪ است. شاخص «تحلیل آدینه» برآورد آماری درصد پرندگان کل گله در همین محدوده است و جایگزین CV، یکنواختی ±۱۰/±۱۵ یا استاندارد رسمی نیست.</p>
+      <p class="awb-note">این تحلیل افزونه‌ای است و جایگزین CV، یکنواختی ±۱۰/±۱۵ یا استاندارد رسمی سویه نیست. درصد مشاهده‌شده نمونه از حداقل تا حداکثر، با هر دو کران، ۱۰۰٪ است؛ درصد برآوردی گله با CDF و کران پایین L&lt;X محاسبه می‌شود.</p>
     `;
     container.insertAdjacentElement("afterend", section);
   }
 
   function renderWeekly(result) {
     ensureWeeklySection();
-    const ids = ["awbMin","awbMax","awbPredicted","awbFlockCount","awbMean","awbCv"];
+    const ids = ["awbMin", "awbMax", "awbPredicted", "awbFlockCount", "awbMean", "awbCv"];
     if (!ids.every(id => document.getElementById(id))) return;
     if (!result || !result.ok) {
-      ids.forEach(id => document.getElementById(id).textContent = "—");
+      ids.forEach(id => { document.getElementById(id).textContent = "—"; });
       return;
     }
     document.getElementById("awbMin").textContent = fa(result.lower, 0);
@@ -121,18 +137,6 @@
     state.lastResult = result;
     renderWeekly(result);
     return result;
-  }
-
-  function wrapCalculate() {
-    if (state.calculateWrapped || typeof window.calculateWeekly !== "function") return;
-    const original = window.calculateWeekly;
-    window.calculateWeekly = function () {
-      const result = original.apply(this, arguments);
-      window.setTimeout(sync, 0);
-      window.setTimeout(sync, 120);
-      return result;
-    };
-    state.calculateWrapped = true;
   }
 
   function isoDate() {
@@ -151,21 +155,29 @@
     const flockId = window.currentFlock?.id || window.currentFlockForSpecialized?.id;
     const date = isoDate();
     if (!flockId || !date) return;
+
     try {
-      let q = await window.supabaseClient.from("weekly_records")
+      let row = null;
+      const q = await window.supabaseClient.from("weekly_records")
         .select("id,production_metrics,updated_at")
-        .eq("flock_id", flockId).eq("evaluation_date", date)
-        .order("updated_at", { ascending: false }).limit(1);
-      let row = q.data?.[0];
+        .eq("flock_id", flockId)
+        .eq("evaluation_date", date)
+        .order("updated_at", { ascending: false })
+        .limit(1);
+      row = q.data?.[0] || null;
+
       if (!row) {
         const q2 = await window.supabaseClient.from("weekly_records")
           .select("id,production_metrics,updated_at")
-          .eq("flock_id", flockId).eq("record_date", date)
-          .order("updated_at", { ascending: false }).limit(1);
-        row = q2.data?.[0];
+          .eq("flock_id", flockId)
+          .eq("record_date", date)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+        row = q2.data?.[0] || null;
       }
+
       if (!row) return;
-      const pm = (row.production_metrics && typeof row.production_metrics === "object") ? row.production_metrics : {};
+      const pm = row.production_metrics && typeof row.production_metrics === "object" ? row.production_metrics : {};
       const band = {
         version: result.version,
         method: result.method,
@@ -180,47 +192,70 @@
         observed_percent: Number(result.observedPercent),
         observed_count: Number(result.observedCount)
       };
-      const { error } = await window.supabaseClient.from("weekly_records").update({
-        production_metrics: { ...pm, _weightBand: band }
-      }).eq("id", row.id).eq("flock_id", flockId);
+
+      const { error } = await window.supabaseClient.from("weekly_records")
+        .update({ production_metrics: { ...pm, _weightBand: band } })
+        .eq("id", row.id)
+        .eq("flock_id", flockId);
       if (error) console.warn("Adine weight-band persistence error:", error);
     } catch (error) {
       console.warn("Adine weight-band persistence skipped:", error);
     }
   }
 
-  function wrapSave() {
-    if (state.saveWrapped || typeof window.saveWeeklyRecord !== "function") return;
-    const original = window.saveWeeklyRecord;
-    window.saveWeeklyRecord = async function () {
-      const result = sync();
-      const response = await original.apply(this, arguments);
-      if (result && result.ok) {
-        await new Promise(resolve => setTimeout(resolve, 250));
-        await persist(result);
-      }
-      return response;
-    };
-    state.saveWrapped = true;
+  function findCalculateButton(target) {
+    const el = target?.closest?.("button, input[type='button'], input[type='submit']");
+    if (!el) return false;
+    const action = String(el.getAttribute("onclick") || "").replace(/\s/g, "");
+    return action.includes("calculateWeekly()") || action.includes("calculateWeekly(");
   }
 
-  function bindInputs() {
+  function findSaveButton(target) {
+    const el = target?.closest?.("button, input[type='button'], input[type='submit']");
+    if (!el) return false;
+    const action = String(el.getAttribute("onclick") || "").replace(/\s/g, "");
+    return action.includes("saveWeeklyRecord()") || action.includes("saveWeeklyRecord(");
+  }
+
+  function bindActions() {
+    if (state.bound) return;
+    state.bound = true;
+
+    document.addEventListener("click", event => {
+      if (findCalculateButton(event.target)) {
+        window.setTimeout(sync, 0);
+        window.setTimeout(sync, 150);
+        return;
+      }
+
+      if (findSaveButton(event.target)) {
+        const result = sync();
+        window.setTimeout(async () => {
+          try {
+            await persist(result || current());
+          } catch (e) {
+            console.warn("Adine weight-band save bridge:", e);
+          }
+        }, 700);
+      }
+    }, false);
+
     const c = document.getElementById("weightsContainer");
-    if (c && !c.dataset.awbBound) {
-      c.dataset.awbBound = "1";
+    if (c) {
       c.addEventListener("input", () => { ensureWeeklySection(); sync(); }, false);
       c.addEventListener("change", () => { ensureWeeklySection(); sync(); }, false);
     }
+
     const live = document.getElementById("liveBirds");
-    if (live && !live.dataset.awbBound) {
-      live.dataset.awbBound = "1";
-      live.addEventListener("input", sync, false);
-    }
+    if (live) live.addEventListener("input", sync, false);
   }
 
   function installWeekly() {
     if (!ENGINE()) return false;
-    ensureStyles(); ensureWeeklySection(); bindInputs(); wrapCalculate(); wrapSave(); sync();
+    ensureStyles();
+    ensureWeeklySection();
+    bindActions();
+    sync();
     return true;
   }
 
@@ -229,42 +264,93 @@
     const params = new URLSearchParams(location.search);
     let flockId = params.get("flockId");
     if (!flockId) {
-      try { flockId = JSON.parse(localStorage.getItem("adine_poultry_current_selection") || "{}").flockId; } catch (_) {}
+      try {
+        flockId = JSON.parse(localStorage.getItem("adine_poultry_current_selection") || "{}").flockId;
+      } catch (_) {}
     }
     if (!flockId) return [];
+
     const { data, error } = await window.supabaseClient.from("weekly_records")
       .select("week_number,production_week,age_days,evaluation_date,record_date,production_metrics")
-      .eq("flock_id", flockId).order("age_days", { ascending: true });
+      .eq("flock_id", flockId)
+      .order("age_days", { ascending: true });
     if (error || !Array.isArray(data)) return [];
+
     return data.map(r => {
       const b = r.production_metrics?._weightBand;
       if (!b || !Number.isFinite(Number(b.predicted_percent))) return null;
-      return { week: Number(r.week_number ?? r.production_week), age: Number(r.age_days), date: r.evaluation_date || r.record_date, band: b };
+      return {
+        week: Number(r.week_number ?? r.production_week),
+        age: Number(r.age_days),
+        date: r.evaluation_date || r.record_date,
+        band: b
+      };
     }).filter(Boolean);
   }
 
-  let reportCache = null, reportChart = null;
+  let reportCache = null;
+  let reportChart = null;
+
   async function renderReportBand() {
     const root = document.getElementById("root");
     if (!root || !document.querySelector('.report-tab.active[data-tab="overall"]')) return;
     if (document.getElementById("adineWeightBandReport")) return;
+
     const rows = reportCache || await reportData();
     reportCache = rows;
     if (!rows.length) return;
+
     const charts = root.querySelector(".charts");
     if (!charts) return;
+
     const box = document.createElement("div");
     box.id = "adineWeightBandReport";
     box.className = "chart-box wide adine-weight-band-report";
     box.innerHTML = `<h3>روند پرندگان در محدوده وزن هدف</h3><div class="chart-area"><canvas id="adineWeightBandTrend"></canvas></div>`;
     charts.appendChild(box);
+
     const canvas = document.getElementById("adineWeightBandTrend");
     if (!canvas || typeof Chart === "undefined") return;
-    if (reportChart) { try { reportChart.destroy(); } catch (_) {} }
+    if (reportChart) {
+      try { reportChart.destroy(); } catch (_) {}
+    }
+
     reportChart = new Chart(canvas, {
       type: "line",
-      data: { labels: rows.map(r => `هفته ${fa(r.week,0)}`), datasets: [{ label: "آدینه — درصد برآوردی داخل محدوده", data: rows.map(r => Number(r.band.predicted_percent)), borderWidth: 2, pointRadius: 3, tension: .25, fill: false }] },
-      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { position: "top", labels: { font: { family: "Tahoma", size: 10 } } }, tooltip: { rtl: true, callbacks: { afterBody: function(items) { const i = items?.[0]?.dataIndex; const r = rows[i]; if (!r) return []; return [`محدوده نمونه: ${fa(r.band.lower_g,0)} تا ${fa(r.band.upper_g,0)} گرم`]; } } } }, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "٪", font: { family: "Tahoma", size: 9 } } }, x: { ticks: { font: { family: "Tahoma", size: 9 } } } } }
+      data: {
+        labels: rows.map(r => `هفته ${fa(r.week, 0)}`),
+        datasets: [{
+          label: "آدینه — درصد برآوردی داخل محدوده",
+          data: rows.map(r => Number(r.band.predicted_percent)),
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: .25,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "top", labels: { font: { family: "Tahoma", size: 10 } } },
+          tooltip: {
+            rtl: true,
+            callbacks: {
+              afterBody: function(items) {
+                const i = items?.[0]?.dataIndex;
+                const r = rows[i];
+                if (!r) return [];
+                return [`محدوده نمونه: ${fa(r.band.lower_g,0)} تا ${fa(r.band.upper_g,0)} گرم`];
+              }
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "٪", font: { family: "Tahoma", size: 9 } } },
+          x: { ticks: { font: { family: "Tahoma", size: 9 } } }
+        }
+      }
     });
   }
 
@@ -272,22 +358,43 @@
     const root = document.getElementById("root");
     if (!root || root.dataset.awbReportObserver) return;
     root.dataset.awbReportObserver = "1";
-    const observer = new MutationObserver(() => { window.setTimeout(renderReportBand, 0); });
+
+    const observer = new MutationObserver(() => {
+      window.setTimeout(renderReportBand, 0);
+    });
     observer.observe(root, { childList: true, subtree: true });
-    document.addEventListener("click", e => { if (e.target?.closest?.('.report-tab[data-tab="overall"]')) window.setTimeout(renderReportBand, 80); }, true);
-    window.setTimeout(renderReportBand, 200);
+
+    document.addEventListener("click", e => {
+      if (e.target?.closest?.('.report-tab[data-tab="overall"]')) {
+        window.setTimeout(renderReportBand, 100);
+      }
+    }, true);
+
+    window.setTimeout(renderReportBand, 250);
   }
 
   function boot() {
     if (location.pathname.toLowerCase().endsWith("reports.html")) {
-      ensureStyles(); installReportObserver();
+      ensureStyles();
+      installReportObserver();
       return;
     }
+
     if (!installWeekly()) {
-      let n = 0; const t = setInterval(() => { n++; if (installWeekly() || n >= 120) clearInterval(t); }, 100);
+      let n = 0;
+      const timer = setInterval(() => {
+        n++;
+        if (installWeekly() || n >= 120) clearInterval(timer);
+      }, 100);
     }
   }
 
-  window.AdineWeightBand = { calculate: current, sync, persist, version: "1.0.0" };
+  window.AdineWeightBand = {
+    calculate: current,
+    sync,
+    persist,
+    version: "1.1.0"
+  };
+
   boot();
 })();

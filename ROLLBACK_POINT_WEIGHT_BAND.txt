@@ -1,2 +1,0 @@
-Rollback reference only: pre-weight-band production baseline commit 1e618a580fc5b991ccde6db0560d30ffacb86fd8.
-This file is temporary and should not remain in production.

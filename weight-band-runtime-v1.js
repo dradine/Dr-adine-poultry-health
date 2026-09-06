@@ -1,4 +1,4 @@
-/* ADINE POULTRY HEALTH — WEIGHT BAND RUNTIME V1.2
+/* ADINE POULTRY HEALTH — WEIGHT BAND RUNTIME V1.2.1
    Safe additive integration.
    NEVER replaces calculateWeekly(), saveWeeklyRecord(), weekly-engine.js,
    FCR engines, standards, or existing calculation functions.
@@ -126,6 +126,27 @@
     return result;
   }
 
+  function repairCoreResultsIfNeeded() {
+    const card = document.getElementById("resultsCard");
+    const results = document.getElementById("results");
+    if (!card || !results) return;
+
+    const hidden = getComputedStyle(card).display === "none";
+    const hasResults = results.children && results.children.length > 0;
+
+    // If the original inline handler did not fire, retry the ORIGINAL function only.
+    // No formulas are duplicated or replaced here.
+    if (hidden && !hasResults && typeof window.calculateWeekly === "function") {
+      try { window.calculateWeekly(); } catch (e) { console.error("Weekly calculation fallback:", e); }
+    }
+
+    // If calculation rendered correctly but a later chart/UI operation interrupted
+    // before the original function could reveal the card, reveal the already-rendered results.
+    if (getComputedStyle(card).display === "none" && results.children && results.children.length > 0) {
+      card.style.display = "block";
+    }
+  }
+
   function isoDate() {
     const value = String(document.getElementById("evaluationDate")?.value || "").trim();
     if (!value) return null;
@@ -169,7 +190,10 @@
       if (!el) return;
       const action = String(el.getAttribute("onclick") || "").replace(/\s/g, "");
       if (action.includes("calculateWeekly(")) {
-        setTimeout(sync,0); setTimeout(sync,150);
+        setTimeout(repairCoreResultsIfNeeded, 80);
+        setTimeout(repairCoreResultsIfNeeded, 220);
+        setTimeout(sync, 0);
+        setTimeout(sync, 150);
       } else if (action.includes("saveWeeklyRecord(")) {
         const result = state.lastResult || sync();
         setTimeout(() => persist(result || calculate()),900);
@@ -230,7 +254,7 @@
     run();
   }
 
-  window.AdineWeightBand={calculate:calculate,sync:sync,persist:persist,version:"1.2.0"};
+  window.AdineWeightBand={calculate:calculate,sync:sync,persist:persist,version:"1.2.1"};
 
   if (location.pathname.toLowerCase().endsWith("reports.html")) bootReport();
   else bootWeekly();

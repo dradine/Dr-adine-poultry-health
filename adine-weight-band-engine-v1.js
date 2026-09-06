@@ -1,6 +1,6 @@
 /* ADINE POULTRY HEALTH — WEIGHT BAND ENGINE V1
    Statistical model aligned with the Aviagen UniPlus single-population method:
-   P(L < X <= U) = NORM.DIST(U, mean, SD, TRUE) - NORM.DIST(L, mean, SD, TRUE)
+   P(L < X <= U) = NORM.DIST(U, mean, SD, TRUE) - NORM.DIST(L, Mean, SD, TRUE)
 */
 "use strict";
 
@@ -59,7 +59,7 @@
   function observedBand(weights, lower, upper) {
     const ws = Array.isArray(weights) ? weights.map(Number).filter(v => Number.isFinite(v) && v > 0) : [];
     if (!ws.length) return { count: 0, percent: null };
-    const n = ws.filter(v => v > Number(lower) && v <= Number(upper)).length;
+    const n = ws.filter(v => v >= Number(lower) && v <= Number(upper)).length;
     return { count: n, percent: 100 * n / ws.length };
   }
 

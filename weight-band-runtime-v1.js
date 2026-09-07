@@ -1,261 +1,53 @@
-/* ADINE POULTRY HEALTH — WEIGHT BAND RUNTIME V1.2.1
+/* ADINE POULTRY HEALTH — WEIGHT BAND RUNTIME V2.0
    Safe additive integration.
    NEVER replaces calculateWeekly(), saveWeeklyRecord(), weekly-engine.js,
    FCR engines, standards, or existing calculation functions.
 */
 (function () {
   "use strict";
-
   const ENGINE = () => window.AdineWeightBandEngine;
-  const state = { bound: false, reportBound: false, lastResult: null };
+  const state = { bound:false, reportBound:false, lastResult:null };
+  const MANAGEMENT_TOLERANCE = 10;
 
-  function num(v) {
-    if (v === null || v === undefined || v === "") return null;
-    const s = String(v)
-      .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
-      .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
-      .replace(/[٬,]/g, "")
-      .replace("٫", ".");
-    const n = Number(s);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function fa(v, digits = 0) {
-    const n = num(v);
-    return n === null ? "—" : n.toLocaleString("fa-IR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-  }
-
-  function pct(v, digits = 1) {
-    const n = num(v);
-    return n === null ? "—" : n.toLocaleString("fa-IR", { minimumFractionDigits: digits, maximumFractionDigits: digits }) + "٪";
-  }
-
-  function getSampleWeights() {
-    return Array.from(document.querySelectorAll("#weightsContainer .bird-weight"))
-      .map(el => num(el.value)).filter(v => Number.isFinite(v) && v > 0);
-  }
-
-  function getStats() {
-    try {
-      if (typeof getWeights !== "function" || typeof calculateWeightStatistics !== "function") return null;
-      const ws = getWeights();
-      if (!Array.isArray(ws) || ws.length < 2) return null;
-      const s = calculateWeightStatistics(ws);
-      if (!s || !Number.isFinite(Number(s.mean)) || !Number.isFinite(Number(s.cv))) return null;
-      return { mean: Number(s.mean), cv: Number(s.cv) };
-    } catch (e) {
-      console.warn("Adine weight-band statistics bridge:", e);
-      return null;
-    }
-  }
-
-  function calculate() {
-    const engine = ENGINE();
-    const stats = getStats();
-    const weights = getSampleWeights();
-    if (!engine || !stats || weights.length < 2) return null;
-    return engine.calculate({
-      weights,
-      mean: stats.mean,
-      cv: stats.cv,
-      flockSize: num(document.getElementById("liveBirds")?.value)
-    });
-  }
-
-  function styles() {
-    if (document.getElementById("adine-weight-band-style")) return;
-    const s = document.createElement("style");
-    s.id = "adine-weight-band-style";
-    s.textContent = `
-      .adine-weight-band{margin-top:16px;border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:16px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.05)}
-      .adine-weight-band .awb-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
-      .adine-weight-band h3{margin:0;font-size:16px}.adine-weight-band .awb-sub{margin:5px 0 0;font-size:12px;opacity:.72;line-height:1.8}
-      .adine-weight-band .awb-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-      .adine-weight-band .awb-box{border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:11px;min-height:62px}
-      .adine-weight-band .awb-label{font-size:11px;opacity:.68}.adine-weight-band .awb-value{font-size:18px;font-weight:800;margin-top:5px}
-      .adine-weight-band .awb-note{margin:12px 0 0;font-size:11px;line-height:1.9;opacity:.72}
-      .adine-weight-band-report{margin-top:14px}.adine-weight-band-report .chart-area{height:260px;position:relative}
-      @media(max-width:680px){.adine-weight-band .awb-grid{grid-template-columns:1fr}.adine-weight-band .awb-head{display:block}}
-    `;
-    document.head.appendChild(s);
-  }
-
-  function ensureWeeklySection() {
-    const c = document.getElementById("weightsContainer");
-    if (!c) return false;
-    if (document.getElementById("adineWeightBandSection")) return true;
-    const section = document.createElement("section");
-    section.id = "adineWeightBandSection";
-    section.className = "adine-weight-band";
-    section.innerHTML = `
-      <div class="awb-head"><div><h3>سلامت طیور آدینه — تحلیل محدوده وزنی</h3><p class="awb-sub">محدوده هدف به‌صورت خودکار از حداقل و حداکثر وزن همین نمونه تعیین می‌شود.</p></div></div>
-      <div class="awb-grid">
-        <div class="awb-box"><div class="awb-label">حداقل محدوده نمونه (گرم)</div><div id="awbMin" class="awb-value">—</div></div>
-        <div class="awb-box"><div class="awb-label">حداکثر محدوده نمونه (گرم)</div><div id="awbMax" class="awb-value">—</div></div>
-        <div class="awb-box"><div class="awb-label">تحلیل آدینه — درصد برآوردی داخل محدوده</div><div id="awbPredicted" class="awb-value">—</div></div>
-      </div>
-      <div class="awb-grid" style="margin-top:10px">
-        <div class="awb-box"><div class="awb-label">تعداد برآوردی در گله</div><div id="awbFlockCount" class="awb-value">—</div></div>
-        <div class="awb-box"><div class="awb-label">میانگین وزن از موتور موجود</div><div id="awbMean" class="awb-value">—</div></div>
-        <div class="awb-box"><div class="awb-label">CV از موتور موجود</div><div id="awbCv" class="awb-value">—</div></div>
-      </div>
-      <p class="awb-note">این تحلیل افزونه‌ای است و جایگزین CV، یکنواختی ±۱۰/±۱۵ یا استاندارد رسمی سویه نیست. درصد مشاهده‌شده نمونه از حداقل تا حداکثر با هر دو کران ۱۰۰٪ است؛ درصد برآوردی گله با CDF و کران پایین L&lt;X محاسبه می‌شود.</p>`;
-    c.insertAdjacentElement("afterend", section);
-    return true;
-  }
-
-  function renderWeekly(result) {
-    if (!ensureWeeklySection()) return;
-    const ids = ["awbMin","awbMax","awbPredicted","awbFlockCount","awbMean","awbCv"];
-    if (!result || !result.ok) {
-      ids.forEach(id => { const e = document.getElementById(id); if (e) e.textContent = "—"; });
-      return;
-    }
-    document.getElementById("awbMin").textContent = fa(result.lower);
-    document.getElementById("awbMax").textContent = fa(result.upper);
-    document.getElementById("awbPredicted").textContent = pct(result.predictedPercent);
-    document.getElementById("awbFlockCount").textContent = result.estimatedFlockCount === null ? "—" : fa(result.estimatedFlockCount) + " قطعه";
-    document.getElementById("awbMean").textContent = fa(result.mean, 1) + " گرم";
-    document.getElementById("awbCv").textContent = pct(result.cv, 2);
-  }
-
-  function sync() {
-    const result = calculate();
-    state.lastResult = result;
-    renderWeekly(result);
-    return result;
-  }
-
-  function repairCoreResultsIfNeeded() {
-    const card = document.getElementById("resultsCard");
-    const results = document.getElementById("results");
-    if (!card || !results) return;
-
-    const hidden = getComputedStyle(card).display === "none";
-    const hasResults = results.children && results.children.length > 0;
-
-    // If the original inline handler did not fire, retry the ORIGINAL function only.
-    // No formulas are duplicated or replaced here.
-    if (hidden && !hasResults && typeof window.calculateWeekly === "function") {
-      try { window.calculateWeekly(); } catch (e) { console.error("Weekly calculation fallback:", e); }
-    }
-
-    // If calculation rendered correctly but a later chart/UI operation interrupted
-    // before the original function could reveal the card, reveal the already-rendered results.
-    if (getComputedStyle(card).display === "none" && results.children && results.children.length > 0) {
-      card.style.display = "block";
-    }
-  }
-
-  function isoDate() {
-    const value = String(document.getElementById("evaluationDate")?.value || "").trim();
-    if (!value) return null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-    try {
-      const iso = window.AdineDateSystem?.jalaliToISO?.(value);
-      return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || "")) ? iso : null;
-    } catch (_) { return null; }
-  }
-
-  async function persist(result) {
-    if (!result?.ok || !window.supabaseClient) return;
-    const flockId = window.currentFlock?.id || window.currentFlockForSpecialized?.id;
-    const date = isoDate();
-    if (!flockId || !date) return;
-    try {
-      let row = null;
-      const q1 = await window.supabaseClient.from("weekly_records").select("id,production_metrics,updated_at").eq("flock_id",flockId).eq("evaluation_date",date).order("updated_at",{ascending:false}).limit(1);
-      row = q1.data?.[0] || null;
-      if (!row) {
-        const q2 = await window.supabaseClient.from("weekly_records").select("id,production_metrics,updated_at").eq("flock_id",flockId).eq("record_date",date).order("updated_at",{ascending:false}).limit(1);
-        row = q2.data?.[0] || null;
-      }
-      if (!row) return;
-      const pm = row.production_metrics && typeof row.production_metrics === "object" ? row.production_metrics : {};
-      const band = {version:result.version,method:result.method,lower_g:Number(result.lower),upper_g:Number(result.upper),mean_g:Number(result.mean),cv_percent:Number(result.cv),sd_g:Number(result.sd),predicted_percent:Number(result.predictedPercent),estimated_flock_count:result.estimatedFlockCount===null?null:Number(result.estimatedFlockCount),sample_count:Number(result.sampleCount),observed_percent:Number(result.observedPercent),observed_count:Number(result.observedCount)};
-      const {error} = await window.supabaseClient.from("weekly_records").update({production_metrics:{...pm,_weightBand:band}}).eq("id",row.id).eq("flock_id",flockId);
-      if (error) console.warn("Adine weight-band persistence error:",error);
-    } catch(e) { console.warn("Adine weight-band persistence skipped:",e); }
-  }
-
-  function bindWeekly() {
-    if (state.bound) return true;
-    const c = document.getElementById("weightsContainer");
-    if (!c) return false;
-    state.bound = true;
-    c.addEventListener("input", () => { ensureWeeklySection(); sync(); });
-    c.addEventListener("change", () => { ensureWeeklySection(); sync(); });
-    document.addEventListener("click", event => {
-      const el = event.target?.closest?.("button,input[type='button'],input[type='submit']");
-      if (!el) return;
-      const action = String(el.getAttribute("onclick") || "").replace(/\s/g, "");
-      if (action.includes("calculateWeekly(")) {
-        setTimeout(repairCoreResultsIfNeeded, 80);
-        setTimeout(repairCoreResultsIfNeeded, 220);
-        setTimeout(sync, 0);
-        setTimeout(sync, 150);
-      } else if (action.includes("saveWeeklyRecord(")) {
-        const result = state.lastResult || sync();
-        setTimeout(() => persist(result || calculate()),900);
-      }
-    });
-    const live = document.getElementById("liveBirds");
-    if (live) live.addEventListener("input", sync);
-    sync();
-    return true;
-  }
-
-  async function reportRows() {
-    if (!window.supabaseClient) return [];
-    let flockId = new URLSearchParams(location.search).get("flockId");
-    if (!flockId) flockId = new URLSearchParams(location.search).get("flock");
-    if (!flockId) { try { flockId = JSON.parse(localStorage.getItem("adine_poultry_current_selection")||"{}").flockId; } catch(_){} }
-    if (!flockId) return [];
-    const {data,error} = await window.supabaseClient.from("weekly_records").select("week_number,production_week,age_days,evaluation_date,record_date,production_metrics").eq("flock_id",flockId).order("age_days",{ascending:true});
-    if (error || !Array.isArray(data)) return [];
-    return data.map(r => { const b=r.production_metrics?._weightBand; return b && Number.isFinite(Number(b.predicted_percent)) ? {week:Number(r.week_number??r.production_week),band:b} : null; }).filter(Boolean);
-  }
-
-  async function renderReport() {
-    const root=document.getElementById("root");
-    const active=document.querySelector('.report-tab.active[data-tab="overall"]');
-    if(!root || !active || document.getElementById("adineWeightBandReport")) return;
-    const rows=await reportRows();
-    if(!rows.length) return;
-    const charts=root.querySelector(".charts");
-    if(!charts) return;
-    const box=document.createElement("div");
-    box.id="adineWeightBandReport"; box.className="chart-box wide adine-weight-band-report";
-    box.innerHTML='<h3>روند پرندگان در محدوده وزن هدف</h3><div class="chart-area"><canvas id="adineWeightBandTrend"></canvas></div>';
-    charts.appendChild(box);
-    const canvas=document.getElementById("adineWeightBandTrend");
-    if(!canvas || typeof Chart==="undefined") return;
-    new Chart(canvas,{type:"line",data:{labels:rows.map(r=>`هفته ${fa(r.week)}`),datasets:[{label:"آدینه — درصد برآوردی داخل محدوده",data:rows.map(r=>Number(r.band.predicted_percent)),borderWidth:2,pointRadius:3,tension:.25,fill:false}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+"٪"}}}}});
-  }
-
-  function bootWeekly() {
-    styles();
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => { bindWeekly(); }, {once:true});
-    } else if (!bindWeekly()) {
-      let n=0; const t=setInterval(()=>{if(bindWeekly()||++n>=120)clearInterval(t);},100);
-    }
-  }
-
-  function bootReport() {
-    styles();
-    const root=document.getElementById("root");
-    if(!root) { setTimeout(bootReport,100); return; }
-    if(state.reportBound) return;
-    state.reportBound=true;
-    const run=()=>setTimeout(renderReport,100);
-    new MutationObserver(run).observe(root,{childList:true,subtree:true});
-    document.addEventListener("click",e=>{if(e.target?.closest?.('.report-tab[data-tab="overall"]')) run();},true);
-    run();
-  }
-
-  window.AdineWeightBand={calculate:calculate,sync:sync,persist:persist,version:"1.2.1"};
-
-  if (location.pathname.toLowerCase().endsWith("reports.html")) bootReport();
-  else bootWeekly();
+  function num(v){if(v===null||v===undefined||v==="")return null;const s=String(v).replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))).replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[٬,]/g,"").replace("٫",".");const n=Number(s);return Number.isFinite(n)?n:null;}
+  function fa(v,d=0){const n=num(v);return n===null?"—":n.toLocaleString("fa-IR",{minimumFractionDigits:d,maximumFractionDigits:d});}
+  function pct(v,d=1){const n=num(v);return n===null?"—":n.toLocaleString("fa-IR",{minimumFractionDigits:d,maximumFractionDigits:d})+"٪";}
+  function weights(){return Array.from(document.querySelectorAll("#weightsContainer .bird-weight")).map(e=>num(e.value)).filter(v=>Number.isFinite(v)&&v>0);}
+  function stats(){try{if(typeof getWeights!=="function"||typeof calculateWeightStatistics!=="function")return null;const w=getWeights();if(!Array.isArray(w)||w.length<2)return null;const s=calculateWeightStatistics(w);if(!s||!Number.isFinite(Number(s.mean))||!Number.isFinite(Number(s.cv)))return null;return{mean:Number(s.mean),cv:Number(s.cv)};}catch(e){console.warn("Adine Weight Band statistics bridge:",e);return null;}}
+  function week(){const n=num(document.getElementById("weekNumber")?.value);return Number.isFinite(n)&&n>0?Math.round(n):null;}
+  function flock(){return window.currentFlock||window.currentFlockForSpecialized||null;}
+  function broiler(f){const t=String(f?.production_type||f?.productionType||"").toLowerCase();return ["broiler","broilers","گوشتی"].includes(t);}
+  function officialTarget(f,w){if(!f||!broiler(f)||!w)return null;const age=w*7,genetics=String(f.genetics||"").trim(),strain=String(f.strain||f.genetics||"").trim();try{if(typeof window.resolvePoultryStandard==="function"){const r=window.resolvePoultryStandard({productionType:"broiler",genetics,strain,ageDays:age});if(r&&Number.isFinite(Number(r.weight))&&r.weight>0&&String(r.weightSource||"").toLowerCase().includes("official")&&Number(r.weightFallbackLevel??0)===0)return{weight:Number(r.weight),source:r.weightSourceLabel||"استاندارد رسمی سویه",ageDays:age,strain:r.strain||strain};}}catch(e){console.warn("Adine official target resolver:",e);}try{if(typeof window.getBroilerOfficialStandard==="function"){const s=window.getBroilerOfficialStandard(strain),row=s?.records?.find(x=>Number(x.ageDays)===age);if(row&&Number.isFinite(Number(row.bodyWeight))&&row.bodyWeight>0)return{weight:Number(row.bodyWeight),source:s.sourceLabel||"استاندارد رسمی سویه",ageDays:age,strain};}}catch(e){console.warn("Adine official target direct lookup:",e);}return null;}
+  function customBand(){const l=num(document.getElementById("awbProcessingLower")?.value),u=num(document.getElementById("awbProcessingUpper")?.value);return l!==null&&u!==null&&l>0&&u>0&&l<=u?{lower:l,upper:u}:null;}
+  function calculate(){const e=ENGINE(),s=stats(),w=weights(),f=flock(),wk=week();if(!e||!s||w.length<2||!broiler(f))return null;const t=officialTarget(f,wk),p=customBand();return e.calculate({weights:w,mean:s.mean,cv:s.cv,officialTargetWeight:t?.weight??null,managementTolerance:MANAGEMENT_TOLERANCE,processingLower:p?.lower??null,processingUpper:p?.upper??null,flockSize:num(document.getElementById("liveBirds")?.value)});}
+  function styles(){if(document.getElementById("adine-weight-band-style-v2"))return;const s=document.createElement("style");s.id="adine-weight-band-style-v2";s.textContent=`
+    .adine-weight-band{margin-top:16px;border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:16px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.05)}
+    .adine-weight-band .awb-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+    .adine-weight-band h3{margin:0;font-size:16px}.adine-weight-band .awb-sub{margin:5px 0 0;font-size:12px;opacity:.72;line-height:1.9}
+    .adine-weight-band .awb-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.adine-weight-band .awb-box{border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:11px;min-height:62px}
+    .adine-weight-band .awb-label{font-size:11px;opacity:.68}.adine-weight-band .awb-value{font-size:18px;font-weight:800;margin-top:5px}
+    .adine-weight-band .awb-section-title{font-size:13px;font-weight:800;margin:15px 0 8px}.adine-weight-band .awb-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}.adine-weight-band .awb-inputs label{font-size:11px;opacity:.72;display:block;margin-bottom:5px}.adine-weight-band .awb-inputs input{margin:0}
+    .adine-weight-band .awb-help,.adine-weight-band .awb-note{font-size:11px;line-height:2;opacity:.72;margin:8px 0 0}.adine-weight-band-report{margin-top:14px}.adine-weight-band-report .chart-area{height:260px;position:relative}
+    @media(max-width:680px){.adine-weight-band .awb-grid{grid-template-columns:1fr}.adine-weight-band .awb-head{display:block}.adine-weight-band .awb-inputs{grid-template-columns:1fr}}
+  `;document.head.appendChild(s);}
+  function ensure(){const c=document.getElementById("weightsContainer");if(!c)return false;if(document.getElementById("adineWeightBandSection"))return true;const sec=document.createElement("section");sec.id="adineWeightBandSection";sec.className="adine-weight-band";sec.innerHTML=`
+    <div class="awb-head"><div><h3>تحلیل محدوده وزنی آدینه</h3><p id="awbSub" class="awb-sub">برای گله گوشتی، وزن هدف رسمی سویه و محدوده مدیریتی مستقل از حداقل/حداکثر نمونه محاسبه می‌شوند.</p></div></div>
+    <div class="awb-grid"><div class="awb-box"><div class="awb-label">وزن هدف رسمی سویه</div><div id="awbTarget" class="awb-value">—</div></div><div class="awb-box"><div class="awb-label">محدوده مدیریتی آدینه ±۱۰٪</div><div id="awbMgmt10" class="awb-value">—</div></div><div class="awb-box"><div class="awb-label">درصد برآوردی گله در ±۱۰٪</div><div id="awbMgmt10Pct" class="awb-value">—</div></div></div>
+    <div class="awb-grid" style="margin-top:10px"><div class="awb-box"><div class="awb-label">درصد مشاهده‌شده نمونه در ±۱۰٪</div><div id="awbMgmt10Obs" class="awb-value">—</div></div><div class="awb-box"><div class="awb-label">محدوده توسعه‌یافته ±۱۵٪</div><div id="awbMgmt15" class="awb-value">—</div></div><div class="awb-box"><div class="awb-label">درصد برآوردی گله در ±۱۵٪</div><div id="awbMgmt15Pct" class="awb-value">—</div></div></div>
+    <div class="awb-section-title">🏭 محدوده هدف کشتارگاه / فرآوری</div><div class="awb-inputs"><div><label for="awbProcessingLower">حد پایین (گرم)</label><input id="awbProcessingLower" type="text" inputmode="decimal" placeholder="مثلاً ۱۹۰۰"></div><div><label for="awbProcessingUpper">حد بالا (گرم)</label><input id="awbProcessingUpper" type="text" inputmode="decimal" placeholder="مثلاً ۲۱۰۰"></div></div>
+    <p class="awb-help">این محدوده مستقل از استاندارد سویه است و برای نیاز واقعی کشتارگاه/بازار وارد می‌شود. از هفته پنجم به بعد برای برنامه‌ریزی کشتار کاربرد ویژه دارد.</p>
+    <div class="awb-grid" style="margin-top:10px"><div class="awb-box"><div class="awb-label">محدوده کشتارگاه</div><div id="awbProcessingBand" class="awb-value">—</div></div><div class="awb-box"><div class="awb-label">درصد برآوردی گله در محدوده کشتار</div><div id="awbProcessingPct" class="awb-value">—</div></div><div class="awb-box"><div class="awb-label">تعداد برآوردی گله در محدوده کشتار</div><div id="awbProcessingCount" class="awb-value">—</div></div></div>
+    <p class="awb-note">منطق آماری با روش تک‌جمعیتی UniPlus هم‌راستا است: درصد برآوردی با توزیع نرمال و با استفاده از میانگین و CV واقعی محاسبه می‌شود. ±۱۰٪ و ±۱۵٪ در این صفحه قواعد مدیریتی آدینه‌اند و استاندارد رسمی سویه محسوب نمی‌شوند. حداقل و حداکثر وزن نمونه هرگز به‌عنوان محدوده هدف استفاده نمی‌شوند. این شاخص برآوردی است و جایگزین CV، یکنواختی یا شمارش واقعی نمونه نیست.</p>`;c.insertAdjacentElement("afterend",sec);["awbProcessingLower","awbProcessingUpper"].forEach(id=>document.getElementById(id)?.addEventListener("input",sync));return true;}
+  function bandText(b){return b?`${fa(b.lower)} تا ${fa(b.upper)} گرم`:"—";}
+  function render(result){if(!ensure())return;const ids=["awbTarget","awbMgmt10","awbMgmt10Pct","awbMgmt10Obs","awbMgmt15","awbMgmt15Pct","awbProcessingBand","awbProcessingPct","awbProcessingCount"];if(!result||!result.ok){ids.forEach(id=>{const e=document.getElementById(id);if(e)e.textContent="—";});return;}document.getElementById("awbTarget").textContent=result.officialTargetWeight==null?"استاندارد رسمی برای این سن/سویه یافت نشد":fa(result.officialTargetWeight)+" گرم";document.getElementById("awbMgmt10").textContent=bandText(result.managementBand);document.getElementById("awbMgmt10Pct").textContent=pct(result.management?.predictedPercent);document.getElementById("awbMgmt10Obs").textContent=pct(result.management?.observedPercent);const b15=result.officialTargetWeight==null?null:ENGINE().makeBand(result.officialTargetWeight,15),a15=b15?ENGINE().analyseBand({weights:weights(),lower:b15.lower,upper:b15.upper,mean:result.mean,cv:result.cv,flockSize:result.flockSize}):null;document.getElementById("awbMgmt15").textContent=bandText(b15);document.getElementById("awbMgmt15Pct").textContent=pct(a15?.predictedPercent);if(result.processing){document.getElementById("awbProcessingBand").textContent=bandText(result.processing);document.getElementById("awbProcessingPct").textContent=pct(result.processing.predictedPercent);document.getElementById("awbProcessingCount").textContent=result.processing.estimatedFlockCount==null?"—":fa(result.processing.estimatedFlockCount)+" قطعه";}else{document.getElementById("awbProcessingBand").textContent="وارد نشده";document.getElementById("awbProcessingPct").textContent="—";document.getElementById("awbProcessingCount").textContent="—";}const sub=document.getElementById("awbSub"),wk=week();if(sub)sub.textContent=result.officialTargetWeight==null?"برای این سن/سویه استاندارد رسمی وزن در دسترس نیست؛ محدوده هدف خودکار ساخته نشد.":`هفته ${fa(wk)} — وزن هدف رسمی سویه ${fa(result.officialTargetWeight)} گرم؛ محدوده مدیریتی آدینه بر پایه ±۱۰٪ از همین هدف ساخته شده است.`;}
+  function sync(){const r=calculate();state.lastResult=r;render(r);return r;}
+  function repairCore(){const card=document.getElementById("resultsCard"),res=document.getElementById("results");if(!card||!res)return;const hidden=getComputedStyle(card).display==="none";if(hidden&&!res.children.length&&typeof window.calculateWeekly==="function")try{window.calculateWeekly();}catch(e){console.error("Weekly calculation fallback:",e);}if(getComputedStyle(card).display==="none"&&res.children.length)card.style.display="block";}
+  function isoDate(){const v=String(document.getElementById("evaluationDate")?.value||"").trim();if(!v)return null;if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;try{const x=window.AdineDateSystem?.jalaliToISO?.(v);return/^\d{4}-\d{2}-\d{2}$/.test(String(x||""))?x:null;}catch(_){return null;}}
+  async function persist(result){if(!result?.ok||!window.supabaseClient)return;const flockId=window.currentFlock?.id||window.currentFlockForSpecialized?.id,date=isoDate();if(!flockId||!date)return;try{let row=null;let q=await window.supabaseClient.from("weekly_records").select("id,production_metrics,updated_at").eq("flock_id",flockId).eq("evaluation_date",date).order("updated_at",{ascending:false}).limit(1);row=q.data?.[0]||null;if(!row){q=await window.supabaseClient.from("weekly_records").select("id,production_metrics,updated_at").eq("flock_id",flockId).eq("record_date",date).order("updated_at",{ascending:false}).limit(1);row=q.data?.[0]||null;}if(!row)return;const pm=row.production_metrics&&typeof row.production_metrics==="object"?row.production_metrics:{};const b15=result.officialTargetWeight==null?null:ENGINE().makeBand(result.officialTargetWeight,15),a15=b15?ENGINE().analyseBand({weights:weights(),lower:b15.lower,upper:b15.upper,mean:result.mean,cv:result.cv,flockSize:result.flockSize}):null,p=result.processing;const wb={version:result.version,method:result.method,official_target_g:result.officialTargetWeight==null?null:Number(result.officialTargetWeight),management_tolerance_percent:MANAGEMENT_TOLERANCE,management_lower_g:result.managementBand?Number(result.managementBand.lower):null,management_upper_g:result.managementBand?Number(result.managementBand.upper):null,management_predicted_percent:result.management?.predictedPercent==null?null:Number(result.management.predictedPercent),management_observed_percent:result.management?.observedPercent==null?null:Number(result.management.observedPercent),management15_lower_g:b15?Number(b15.lower):null,management15_upper_g:b15?Number(b15.upper):null,management15_predicted_percent:a15?.predictedPercent==null?null:Number(a15.predictedPercent),processing_lower_g:p?Number(p.lower):null,processing_upper_g:p?Number(p.upper):null,processing_predicted_percent:p?.predictedPercent==null?null:Number(p.predictedPercent),processing_observed_percent:p?.observedPercent==null?null:Number(p.observedPercent),processing_estimated_flock_count:p?.estimatedFlockCount==null?null:Number(p.estimatedFlockCount),mean_g:Number(result.mean),cv_percent:Number(result.cv),sd_g:Number(result.sd),sample_count:Number(result.sampleCount)};const {error}=await window.supabaseClient.from("weekly_records").update({production_metrics:{...pm,_weightBand:wb}}).eq("id",row.id).eq("flock_id",flockId);if(error)console.warn("Adine weight-band persistence error:",error);}catch(e){console.warn("Adine weight-band persistence skipped:",e);}}
+  function bindWeekly(){if(state.bound)return true;const c=document.getElementById("weightsContainer");if(!c)return false;state.bound=true;c.addEventListener("input",()=>{ensure();sync();});c.addEventListener("change",()=>{ensure();sync();});document.addEventListener("click",event=>{const el=event.target?.closest?.("button,input[type='button'],input[type='submit']");if(!el)return;const a=String(el.getAttribute("onclick")||"").replace(/\s/g,"");if(a.includes("calculateWeekly(")){setTimeout(repairCore,80);setTimeout(repairCore,220);setTimeout(sync,0);setTimeout(sync,150);}else if(a.includes("saveWeeklyRecord(")){const r=state.lastResult||sync();setTimeout(()=>persist(r||calculate()),900);}});const live=document.getElementById("liveBirds"),wk=document.getElementById("weekNumber");if(live)live.addEventListener("input",sync);if(wk){wk.addEventListener("input",sync);wk.addEventListener("change",sync);}sync();return true;}
+  async function reportRows(){if(!window.supabaseClient)return[];let id=new URLSearchParams(location.search).get("flockId")||new URLSearchParams(location.search).get("flock");if(!id){try{id=JSON.parse(localStorage.getItem("adine_poultry_current_selection")||"{}").flockId;}catch(_){} }if(!id)return[];const {data,error}=await window.supabaseClient.from("weekly_records").select("week_number,production_week,age_days,evaluation_date,record_date,production_metrics").eq("flock_id",id).order("age_days",{ascending:true});if(error||!Array.isArray(data))return[];return data.map(r=>{const b=r.production_metrics?._weightBand;return b&&(Number.isFinite(Number(b.management_predicted_percent))||Number.isFinite(Number(b.processing_predicted_percent)))?{week:Number(r.week_number??r.production_week),band:b}:null;}).filter(Boolean);}
+  async function renderReport(){const root=document.getElementById("root"),active=document.querySelector('.report-tab.active[data-tab="overall"]');if(!root||!active||document.getElementById("adineWeightBandReport"))return;const rows=await reportRows();if(!rows.length)return;const charts=root.querySelector(".charts");if(!charts)return;const box=document.createElement("div");box.id="adineWeightBandReport";box.className="chart-box wide adine-weight-band-report";box.innerHTML='<h3>روند محدوده وزنی آدینه</h3><div class="chart-area"><canvas id="adineWeightBandTrend"></canvas></div>';charts.appendChild(box);const canvas=document.getElementById("adineWeightBandTrend");if(!canvas||typeof Chart==="undefined")return;const mg=rows.some(r=>Number.isFinite(Number(r.band.management_predicted_percent))),pr=rows.some(r=>Number.isFinite(Number(r.band.processing_predicted_percent))),ds=[];if(mg)ds.push({label:"محدوده مدیریتی ±۱۰٪ — برآورد گله",data:rows.map(r=>Number.isFinite(Number(r.band.management_predicted_percent))?Number(r.band.management_predicted_percent):null),borderWidth:2,pointRadius:3,tension:.25,fill:false});if(pr)ds.push({label:"محدوده کشتارگاه — برآورد گله",data:rows.map(r=>Number.isFinite(Number(r.band.processing_predicted_percent))?Number(r.band.processing_predicted_percent):null),borderWidth:2,pointRadius:3,tension:.25,fill:false});new Chart(canvas,{type:"line",data:{labels:rows.map(r=>`هفته ${fa(r.week)}`),datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+"٪"}}}}});}
+  function boot(){styles();const run=()=>bindWeekly();if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run,{once:true});else if(!bindWeekly()){let n=0;const t=setInterval(()=>{if(bindWeekly()||++n>=120)clearInterval(t);},100);}const page=String(location.pathname||"").toLowerCase().split("/").pop();if(page==="reports.html"||page==="reports-v2.html"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>setTimeout(renderReport,900),{once:true});else setTimeout(renderReport,900);setTimeout(renderReport,1800);}}
+  window.AdineWeightBandRuntime={VERSION:"2.0.0",sync,calculate,resolveOfficialTarget:officialTarget};
+  boot();
 })();

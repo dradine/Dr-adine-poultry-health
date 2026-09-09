@@ -16,7 +16,7 @@
 "use strict";
 
 (function (global) {
-  const VERSION = "2.0.1";
+  const VERSION = "2.0.2";
   const DEFAULT_MANAGEMENT_TOLERANCE = 10;
 
   function erf(x) {
@@ -198,4 +198,69 @@
     analyseBand,
     calculate
   };
+
+  /* UI-only refinement: preserve all calculations and update the existing Weight Band card. */
+  function refineWeightBandUI() {
+    const sec = document.getElementById("adineWeightBandSection");
+    if (!sec) return false;
+
+    const title = sec.querySelector("h3");
+    if (title) title.textContent = "تحلیل محدوده وزنی سلامت طیور آدینه";
+
+    const note = sec.querySelector(".awb-note");
+    if (note) note.textContent = "محاسبات آماری این بخش بر پایه مدل تک‌جمعیتی و توزیع نرمال انجام می‌شود و با استفاده از میانگین و CV واقعی گله، درصد برآوردی داخل هر محدوده محاسبه می‌گردد. ±۱۰٪ و ±۱۵٪ در این صفحه قواعد مدیریتی آدینه‌اند و استاندارد رسمی سویه محسوب نمی‌شوند. حداقل و حداکثر وزن نمونه هرگز به‌عنوان محدوده هدف استفاده نمی‌شوند.";
+
+    const pctBox = document.getElementById("awbMgmt10Pct")?.closest(".awb-box");
+    if (!pctBox) return true;
+
+    let countEl = document.getElementById("awbMgmt10Count");
+    if (!countEl) {
+      countEl = document.createElement("div");
+      countEl.id = "awbMgmt10Count";
+      countEl.style.cssText = "font-size:12px;font-weight:700;margin-top:8px;opacity:.82";
+      pctBox.appendChild(countEl);
+    }
+
+    const refreshCount = () => {
+      try {
+        const r = window.AdineWeightBandRuntime?.calculate?.();
+        const n = r?.management?.estimatedFlockCount;
+        countEl.textContent = n == null ? "تعداد برآوردی در گله: —" : "تعداد برآوردی در گله: " + Number(n).toLocaleString("fa-IR") + " قطعه";
+      } catch (_) {
+        countEl.textContent = "تعداد برآوردی در گله: —";
+      }
+    };
+
+    refreshCount();
+    if (!countEl.dataset.bound) {
+      countEl.dataset.bound = "1";
+      ["liveBirds", "weekNumber"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.addEventListener("input", refreshCount); el.addEventListener("change", refreshCount); }
+      });
+      const oldSync = window.AdineWeightBandRuntime?.sync;
+      if (typeof oldSync === "function" && !oldSync.__adineCountRefined) {
+        const wrappedSync = function () {
+          const result = oldSync.apply(this, arguments);
+          setTimeout(refreshCount, 0);
+          return result;
+        };
+        wrappedSync.__adineCountRefined = true;
+        window.AdineWeightBandRuntime.sync = wrappedSync;
+      }
+    }
+    return true;
+  }
+
+  if (typeof document !== "undefined") {
+    const startUIRefinement = () => {
+      if (refineWeightBandUI()) return;
+      const observer = new MutationObserver(() => {
+        if (refineWeightBandUI()) observer.disconnect();
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startUIRefinement, { once: true });
+    else startUIRefinement();
+  }
 })(window);

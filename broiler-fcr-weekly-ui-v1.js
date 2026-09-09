@@ -1,10 +1,10 @@
-/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.1
+/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.2
    UI/integration bridge only.
    Canonical FCR math remains exclusively in broiler-fcr-engine-v11.js.
    No standards, formulas, database schema, or non-broiler calculations are changed.
 */
 (function(global){'use strict';
-  const VERSION='BROILER-FCR-WEEKLY-UI-V1.1';
+  const VERSION='BROILER-FCR-WEEKLY-UI-V1.2';
   const num=v=>{
     if(v===null||v===undefined||v==='')return null;
     let s=String(v).trim().replace(/,/g,'').replace(/٬/g,'').replace(/٫/g,'.')
@@ -54,14 +54,23 @@
 
   function weeklyFcr(result){
     if(!installBroilerCompatibility())return null;
-    const i=currentInputs(result),p=performance();
+    const i=currentInputs(result),p=performance(),f=flock();
     if(i.feed==null||i.feed<=0||i.live==null||i.live<=0||i.weight==null||i.weight<=0)return null;
+
+    /* Week 1 is a valid FCR calculation. There is no previous weekly record,
+       so use the flock's registered opening population/weight as the opening
+       state. This is the same opening-state convention already used by the
+       canonical engine and by performance-engine-v2; no new formula is added. */
     const prev=previous(result);
+    const openBirds=firstNumber(prev?.live_birds,prev?.liveBirds,f?.initial_bird_count,f?.initialBirdCount);
+    const openWeight=firstNumber(prev?.average_weight_g,prev?.averageWeightG,prev?.averageWeight,f?.initial_average_weight_g,f?.initialAverageWeightG);
+    const openAgeDays=firstNumber(prev?.age_days,prev?.ageDays,f?.start_age_days,f?.startAgeDays);
+
     return p.broilerWeeklyFCR({
       feedKg:i.feed,
-      openBirds:firstNumber(prev?.live_birds,prev?.liveBirds),
-      openWeight:firstNumber(prev?.average_weight_g,prev?.averageWeightG,prev?.averageWeight),
-      openAgeDays:firstNumber(prev?.age_days,prev?.ageDays),
+      openBirds,
+      openWeight,
+      openAgeDays,
       closeBirds:i.live,
       closeWeight:i.weight,
       closeAgeDays:i.age

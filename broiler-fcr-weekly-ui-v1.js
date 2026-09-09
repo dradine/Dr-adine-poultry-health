@@ -1,10 +1,10 @@
-/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.7
+/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.8
    UI/integration bridge only.
    Canonical FCR math remains exclusively in broiler-fcr-engine-v11.js.
    This file does not change any flock standard, formula, schema or page layout.
 */
 (function(global){'use strict';
-  const VERSION='BROILER-FCR-WEEKLY-UI-V1.7';
+  const VERSION='BROILER-FCR-WEEKLY-UI-V1.8';
   const num=v=>{if(v===null||v===undefined||v==='')return null;let s=String(v).trim().replace(/,/g,'').replace(/٬/g,'').replace(/٫/g,'.').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));const x=Number(s);return Number.isFinite(x)?x:null};
   const firstNumber=(...vs)=>{for(const v of vs){const x=num(v);if(x!==null)return x}return null};
   const flock=()=>global.currentFlock||global.currentFlockForSpecialized||null;
@@ -77,6 +77,20 @@
     const current={age_days:age,feed_total_kg:i.feed,average_weight_g:i.weight,live_birds:i.live};
     const out=e.canonical([...prior,current],f);return out.length?out[out.length-1].cumulativeFcr:null;
   }
+  function setCardValue(el,value){
+    if(!el)return;
+    const target=el.querySelector('.metric-value,.metric-title + .metric-value,[class*="metric-value"]');
+    if(target)target.textContent=value;
+  }
+  function syncLegacyFcrCards(value){
+    if(typeof document==='undefined'||value==null)return;
+    const root=document.getElementById('results');if(!root)return;
+    Array.from(root.querySelectorAll('.metric-card')).forEach(el=>{
+      if(el.id==='adineFcrWeekly'||el.id==='adineFcrCumulative')return;
+      const label=String(el.querySelector('.metric-label,.metric-title')?.textContent||'').trim();
+      if(label==='FCR'||label.toLowerCase()==='fcr')setCardValue(el,Number(value).toFixed(3));
+    });
+  }
   function upsertCard(id,title,value,sub){
     const root=document.getElementById('results');if(!root)return;
     let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;el.className='metric-card';root.appendChild(el)}
@@ -87,20 +101,21 @@
     const root=document.getElementById('results');if(!root||root.__adineFcrUpdating)return;
     root.__adineFcrUpdating=true;
     try{
-      const wf=weeklyFcr(result),cf=cumulativeFcr(result);
-      upsertCard('adineFcrWeekly','FCR هفتگی',wf==null?'قابل محاسبه نیست':Number(wf).toFixed(3),'موتور canonical گوشتی');
+      const wf=weeklyFcr(result),cf=cumulativeFcr(result),display=wf==null?'قابل محاسبه نیست':Number(wf).toFixed(3);
+      upsertCard('adineFcrWeekly','FCR هفتگی',display,'موتور canonical گوشتی');
       upsertCard('adineFcrCumulative','FCR تجمعی',cf==null?'پس از ذخیره تکمیل می‌شود':Number(cf).toFixed(3),'موتور canonical از ابتدای گله');
+      syncLegacyFcrCards(wf);
     }finally{root.__adineFcrUpdating=false}
   }
   async function showAuthorities(){
     if(!isBroiler()||!engine()?.analysis)return;const f=flock();if(!f?.id)return;
-    try{const a=await engine().analysis(f.id),r=a?.latest;if(!r)return;const fmt=v=>num(v)==null?'—':Number(v).toFixed(3);upsertCard('adineFcrWeekly','FCR هفتگی',fmt(r.weeklyFcr),'مقدار canonical ذخیره‌شده');upsertCard('adineFcrCumulative','FCR تجمعی',fmt(r.cumulativeFcr),'مقدار canonical ذخیره‌شده');upsertCard('adineFcrWeeklyAuthority','اختیار مدیریتی هفتگی',fmt(r.managementWeekly),r.management_cohort?('کوهورت: '+r.management_cohort):'');upsertCard('adineFcrCumulativeAuthority','اختیار مدیریتی تجمعی',fmt(r.managementCumulative),r.management_flocks!=null?('تعداد گله مرجع: '+r.management_flocks):'');upsertCard('adineFcrWeeklyOfficial','استاندارد رسمی هفتگی',fmt(r.officialWeekly),r.official_source||'');upsertCard('adineFcrCumulativeOfficial','استاندارد رسمی تجمعی',fmt(r.officialCumulative),r.official_source||'')}catch(e){console.warn('Broiler FCR authority display:',e)}
+    try{const a=await engine().analysis(f.id),r=a?.latest;if(!r)return;const fmt=v=>num(v)==null?'—':Number(v).toFixed(3);upsertCard('adineFcrWeekly','FCR هفتگی',fmt(r.weeklyFcr),'مقدار canonical ذخیره‌شده');upsertCard('adineFcrCumulative','FCR تجمعی',fmt(r.cumulativeFcr),'مقدار canonical ذخیره‌شده');syncLegacyFcrCards(r.weeklyFcr);upsertCard('adineFcrWeeklyAuthority','اختیار مدیریتی هفتگی',fmt(r.managementWeekly),r.management_cohort?('کوهورت: '+r.management_cohort):'');upsertCard('adineFcrCumulativeAuthority','اختیار مدیریتی تجمعی',fmt(r.managementCumulative),r.management_flocks!=null?('تعداد گله مرجع: '+r.management_flocks):'');upsertCard('adineFcrWeeklyOfficial','استاندارد رسمی هفتگی',fmt(r.officialWeekly),r.official_source||'');upsertCard('adineFcrCumulativeOfficial','استاندارد رسمی تجمعی',fmt(r.officialCumulative),r.official_source||'')}catch(e){console.warn('Broiler FCR authority display:',e)}
   }
   function patchCalculateWeekly(){
-    if(typeof global.calculateWeekly!=='function'||global.calculateWeekly.__adineBroilerFcrV17)return false;
+    if(typeof global.calculateWeekly!=='function'||global.calculateWeekly.__adineBroilerFcrV18)return false;
     const original=global.calculateWeekly;
     function wrapped(){const out=original.apply(this,arguments);[0,50,150,400,800].forEach(ms=>setTimeout(()=>{try{showFcr(out)}catch(e){}},ms));return out}
-    wrapped.__adineBroilerFcrV17=true;global.calculateWeekly=wrapped;return true;
+    wrapped.__adineBroilerFcrV18=true;global.calculateWeekly=wrapped;return true;
   }
   function observeResults(){
     if(global.__adineBroilerFcrResultsObserver||typeof MutationObserver==='undefined')return;
@@ -111,8 +126,8 @@
   }
   function patchCalculateButton(){
     if(!document.documentElement)return false;
-    if(document.documentElement.dataset.adineBroilerFcrCalculateHook==='7')return true;
-    document.documentElement.dataset.adineBroilerFcrCalculateHook='7';
+    if(document.documentElement.dataset.adineBroilerFcrCalculateHook==='8')return true;
+    document.documentElement.dataset.adineBroilerFcrCalculateHook='8';
     document.addEventListener('click',event=>{
       const el=event.target?.closest?.('button,a,input[type="button"],input[type="submit"]');if(!el)return;
       const inline=String(el.getAttribute?.('onclick')||''),text=String(el.textContent||'').trim();
@@ -121,10 +136,10 @@
     },true);return true;
   }
   function patchSave(){
-    if(typeof global.saveWeeklyRecord!=='function'||global.saveWeeklyRecord.__adineBroilerFcrV17)return false;
+    if(typeof global.saveWeeklyRecord!=='function'||global.saveWeeklyRecord.__adineBroilerFcrV18)return false;
     const original=global.saveWeeklyRecord;
     async function wrapped(){const out=await original.apply(this,arguments);await showAuthorities();return out}
-    wrapped.__adineBroilerFcrV17=true;global.saveWeeklyRecord=wrapped;return true;
+    wrapped.__adineBroilerFcrV18=true;global.saveWeeklyRecord=wrapped;return true;
   }
   function start(){
     let i=0;

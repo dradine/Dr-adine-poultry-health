@@ -1,30 +1,38 @@
-/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1
+/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.1
    UI/integration bridge only.
    Canonical FCR math remains exclusively in broiler-fcr-engine-v11.js.
    No standards, formulas, database schema, or non-broiler calculations are changed.
 */
 (function(global){'use strict';
-  const VERSION='BROILER-FCR-WEEKLY-UI-V1';
-  const num=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(v);return Number.isFinite(x)?x:null};
+  const VERSION='BROILER-FCR-WEEKLY-UI-V1.1';
+  const num=v=>{
+    if(v===null||v===undefined||v==='')return null;
+    let s=String(v).trim().replace(/,/g,'').replace(/٬/g,'').replace(/٫/g,'.')
+      .replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+      .replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+    const x=Number(s);return Number.isFinite(x)?x:null;
+  };
+  const firstNumber=(...vs)=>{for(const v of vs){const x=num(v);if(x!==null)return x}return null};
   const flock=()=>global.currentFlockForSpecialized||global.currentFlock||null;
-  const isBroiler=()=>global.AdineBroilerFCR?.isBroiler?.(flock())===true || String(flock()?.production_type||flock()?.productionType||'').trim().toLowerCase()==='گوشتی';
+  const isBroiler=()=>global.AdineBroilerFCR?.isBroiler?.(flock())===true || ['broiler','broilers','گوشتی','meat'].includes(String(flock()?.production_type||flock()?.productionType||'').trim().toLowerCase());
   const performance=()=>global.AdinePerformance||null;
 
   function installBroilerCompatibility(){
-    const f=flock(), p=performance();
-    if(!f||!p||!isBroiler()) return false;
-    if(typeof p.layerWeekly!=='function') p.layerWeekly=()=>null;
-    if(typeof p.layerCumulative!=='function') p.layerCumulative=()=>null;
-    if(typeof p.mortalityCorrectedFCR!=='function') p.mortalityCorrectedFCR=()=>null;
+    const f=flock(),p=performance();
+    if(!f||!p||!isBroiler())return false;
+    if(typeof p.layerWeekly!=='function')p.layerWeekly=()=>null;
+    if(typeof p.layerCumulative!=='function')p.layerCumulative=()=>null;
+    if(typeof p.mortalityCorrectedFCR!=='function')p.mortalityCorrectedFCR=()=>null;
     return true;
   }
 
-  function currentInputs(){
-    const feed=num(document.getElementById('feedTotal')?.value);
-    const live=num(document.getElementById('liveBirds')?.value);
-    const weight=num(document.getElementById('averageWeightDirect')?.value);
-    const week=num(document.getElementById('weekNumber')?.value);
-    return {feed,live,weight,week};
+  function currentInputs(result){
+    const feed=firstNumber(result?.feed_total_kg,result?.feedTotalKg,result?.feedKg,document.getElementById('feedTotal')?.value);
+    const live=firstNumber(result?.live_birds,result?.liveBirds,document.getElementById('liveBirds')?.value);
+    const weight=firstNumber(result?.mean,result?.average_weight_g,result?.averageWeightG,document.getElementById('averageWeightDirect')?.value);
+    const week=firstNumber(result?.week_number,result?.weekNumber,result?.week,document.getElementById('weekNumber')?.value);
+    const age=firstNumber(result?.age_days,result?.ageDays);
+    return {feed,live,weight,week,age};
   }
 
   function records(){
@@ -32,48 +40,48 @@
     return [];
   }
 
-  function previous(){
-    const rs=records();
-    const w=currentInputs().week;
+  function previous(result){
+    const rs=records(),i=currentInputs(result),w=i.week;
     const editing=typeof editingRecordId!=='undefined'?editingRecordId:null;
     const candidates=rs.filter(r=>String(r?.id)!==String(editing||''));
     if(!candidates.length)return null;
     if(w!=null){
-      const prior=candidates.filter(r=>{const rw=num(r?.week_number??r?.weekNumber??r?.week);return rw!=null&&rw<w;}).sort((a,b)=>num(a?.week_number??a?.weekNumber??a?.week)-num(b?.week_number??b?.weekNumber??b?.week));
+      const prior=candidates.filter(r=>{const rw=firstNumber(r?.week_number,r?.weekNumber,r?.week);return rw!=null&&rw<w}).sort((a,b)=>firstNumber(a?.week_number,a?.weekNumber,a?.week)-firstNumber(b?.week_number,b?.weekNumber,b?.week));
       if(prior.length)return prior[prior.length-1];
     }
-    return candidates.slice().sort((a,b)=>num(a?.age_days??a?.ageDays)-num(b?.age_days??b?.ageDays)).at(-1)||null;
+    return candidates.slice().sort((a,b)=>(firstNumber(a?.age_days,a?.ageDays)??-1)-(firstNumber(b?.age_days,b?.ageDays)??-1)).at(-1)||null;
   }
 
   function weeklyFcr(result){
-    if(!installBroilerCompatibility()) return null;
-    const i=currentInputs(), p=performance();
-    const w=num(result?.mean)??i.weight;
-    if(i.feed==null||i.feed<=0||i.live==null||i.live<=0||w==null||w<=0)return null;
-    const prev=previous();
+    if(!installBroilerCompatibility())return null;
+    const i=currentInputs(result),p=performance();
+    if(i.feed==null||i.feed<=0||i.live==null||i.live<=0||i.weight==null||i.weight<=0)return null;
+    const prev=previous(result);
     return p.broilerWeeklyFCR({
       feedKg:i.feed,
-      openBirds:prev?.live_birds??prev?.liveBirds,
-      openWeight:prev?.average_weight_g??prev?.averageWeightG??prev?.average_weight,
+      openBirds:firstNumber(prev?.live_birds,prev?.liveBirds),
+      openWeight:firstNumber(prev?.average_weight_g,prev?.averageWeightG,prev?.averageWeight),
+      openAgeDays:firstNumber(prev?.age_days,prev?.ageDays),
       closeBirds:i.live,
-      closeWeight:w
+      closeWeight:i.weight,
+      closeAgeDays:i.age
     });
   }
 
   function cumulativeFcr(result){
-    if(!installBroilerCompatibility()) return null;
-    const p=performance(), i=currentInputs(), f=flock();
-    const w=num(result?.mean)??i.weight;
-    if(!f||i.feed==null||i.feed<=0||i.live==null||i.live<=0||w==null||w<=0)return null;
-    const age=num(result?.age_days??result?.ageDays);
+    if(!installBroilerCompatibility())return null;
+    const p=performance(),i=currentInputs(result),f=flock();
+    if(!f||i.feed==null||i.feed<=0||i.live==null||i.live<=0||i.weight==null||i.weight<=0)return null;
+    const age=i.age;
     if(age==null)return null;
-    const prior=records().filter(r=>String(r?.id)!==String(typeof editingRecordId!=='undefined'?editingRecordId||'':''));
-    const current={age_days:age,feed_total_kg:i.feed,average_weight_g:w,live_birds:i.live};
+    const editing=typeof editingRecordId!=='undefined'?editingRecordId||'':'';
+    const prior=records().filter(r=>String(r?.id)!==String(editing));
+    const current={age_days:age,feed_total_kg:i.feed,average_weight_g:i.weight,live_birds:i.live};
     return p.broilerCumulativeFCR([...prior,current],f);
   }
 
   function upsertCard(id,title,value,sub){
-    const root=document.getElementById('results'); if(!root)return;
+    const root=document.getElementById('results');if(!root)return;
     let el=document.getElementById(id);
     if(!el){el=document.createElement('div');el.id=id;el.className='metric-card';root.appendChild(el)}
     el.innerHTML='<div class="metric-label">'+title+'</div><div class="metric-value">'+value+'</div>'+(sub?'<div class="metric-label" style="margin-top:6px">'+sub+'</div>':'');
@@ -81,17 +89,16 @@
 
   function showFcr(result){
     if(!isBroiler())return;
-    const wf=weeklyFcr(result), cf=cumulativeFcr(result);
+    const wf=weeklyFcr(result),cf=cumulativeFcr(result);
     upsertCard('adineFcrWeekly','FCR هفتگی',wf==null?'قابل محاسبه نیست':Number(wf).toFixed(3),'محاسبه مستقل همان هفته');
     upsertCard('adineFcrCumulative','FCR تجمعی',cf==null?'پس از ذخیره تکمیل می‌شود':Number(cf).toFixed(3),'محاسبه مستقل از ابتدای گله');
   }
 
   async function showAuthorities(){
     if(!isBroiler()||!global.AdineBroilerFCR?.analysis)return;
-    const f=flock(); if(!f?.id)return;
+    const f=flock();if(!f?.id)return;
     try{
-      const a=await global.AdineBroilerFCR.analysis(f.id);
-      const r=a?.latest;
+      const a=await global.AdineBroilerFCR.analysis(f.id),r=a?.latest;
       if(!r)return;
       const fmt=v=>num(v)==null?'—':Number(v).toFixed(3);
       upsertCard('adineFcrWeekly','FCR هفتگی',fmt(r.weeklyFcr),'مقدار canonical ذخیره‌شده');

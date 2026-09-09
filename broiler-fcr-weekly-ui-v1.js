@@ -1,10 +1,10 @@
-/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.6
+/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.7
    UI/integration bridge only.
    Canonical FCR math remains exclusively in broiler-fcr-engine-v11.js.
    This file does not change any flock standard, formula, schema or page layout.
 */
 (function(global){'use strict';
-  const VERSION='BROILER-FCR-WEEKLY-UI-V1.6';
+  const VERSION='BROILER-FCR-WEEKLY-UI-V1.7';
   const num=v=>{if(v===null||v===undefined||v==='')return null;let s=String(v).trim().replace(/,/g,'').replace(/٬/g,'').replace(/٫/g,'.').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));const x=Number(s);return Number.isFinite(x)?x:null};
   const firstNumber=(...vs)=>{for(const v of vs){const x=num(v);if(x!==null)return x}return null};
   const flock=()=>global.currentFlock||global.currentFlockForSpecialized||null;
@@ -97,10 +97,10 @@
     try{const a=await engine().analysis(f.id),r=a?.latest;if(!r)return;const fmt=v=>num(v)==null?'—':Number(v).toFixed(3);upsertCard('adineFcrWeekly','FCR هفتگی',fmt(r.weeklyFcr),'مقدار canonical ذخیره‌شده');upsertCard('adineFcrCumulative','FCR تجمعی',fmt(r.cumulativeFcr),'مقدار canonical ذخیره‌شده');upsertCard('adineFcrWeeklyAuthority','اختیار مدیریتی هفتگی',fmt(r.managementWeekly),r.management_cohort?('کوهورت: '+r.management_cohort):'');upsertCard('adineFcrCumulativeAuthority','اختیار مدیریتی تجمعی',fmt(r.managementCumulative),r.management_flocks!=null?('تعداد گله مرجع: '+r.management_flocks):'');upsertCard('adineFcrWeeklyOfficial','استاندارد رسمی هفتگی',fmt(r.officialWeekly),r.official_source||'');upsertCard('adineFcrCumulativeOfficial','استاندارد رسمی تجمعی',fmt(r.officialCumulative),r.official_source||'')}catch(e){console.warn('Broiler FCR authority display:',e)}
   }
   function patchCalculateWeekly(){
-    if(typeof global.calculateWeekly!=='function'||global.calculateWeekly.__adineBroilerFcrV16)return false;
+    if(typeof global.calculateWeekly!=='function'||global.calculateWeekly.__adineBroilerFcrV17)return false;
     const original=global.calculateWeekly;
     function wrapped(){const out=original.apply(this,arguments);[0,50,150,400,800].forEach(ms=>setTimeout(()=>{try{showFcr(out)}catch(e){}},ms));return out}
-    wrapped.__adineBroilerFcrV16=true;global.calculateWeekly=wrapped;return true;
+    wrapped.__adineBroilerFcrV17=true;global.calculateWeekly=wrapped;return true;
   }
   function observeResults(){
     if(global.__adineBroilerFcrResultsObserver||typeof MutationObserver==='undefined')return;
@@ -111,8 +111,8 @@
   }
   function patchCalculateButton(){
     if(!document.documentElement)return false;
-    if(document.documentElement.dataset.adineBroilerFcrCalculateHook==='6')return true;
-    document.documentElement.dataset.adineBroilerFcrCalculateHook='6';
+    if(document.documentElement.dataset.adineBroilerFcrCalculateHook==='7')return true;
+    document.documentElement.dataset.adineBroilerFcrCalculateHook='7';
     document.addEventListener('click',event=>{
       const el=event.target?.closest?.('button,a,input[type="button"],input[type="submit"]');if(!el)return;
       const inline=String(el.getAttribute?.('onclick')||''),text=String(el.textContent||'').trim();
@@ -121,10 +121,10 @@
     },true);return true;
   }
   function patchSave(){
-    if(typeof global.saveWeeklyRecord!=='function'||global.saveWeeklyRecord.__adineBroilerFcrV16)return false;
+    if(typeof global.saveWeeklyRecord!=='function'||global.saveWeeklyRecord.__adineBroilerFcrV17)return false;
     const original=global.saveWeeklyRecord;
     async function wrapped(){const out=await original.apply(this,arguments);await showAuthorities();return out}
-    wrapped.__adineBroilerFcrV16=true;global.saveWeeklyRecord=wrapped;return true;
+    wrapped.__adineBroilerFcrV17=true;global.saveWeeklyRecord=wrapped;return true;
   }
   function start(){
     let i=0;

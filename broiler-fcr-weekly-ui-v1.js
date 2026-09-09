@@ -65,11 +65,9 @@
     const p=performance(), i=currentInputs(), f=flock();
     const w=num(result?.mean)??i.weight;
     if(!f||i.feed==null||i.feed<=0||i.live==null||i.live<=0||w==null||w<=0)return null;
+    const age=num(result?.age_days??result?.ageDays);
+    if(age==null)return null;
     const prior=records().filter(r=>String(r?.id)!==String(typeof editingRecordId!=='undefined'?editingRecordId||'':''));
-    let age=num(result?.age_days??result?.ageDays);
-    const prev=previous();
-    if(age==null && prev) age=num(prev.age_days??prev.ageDays)+7;
-    if(age==null){const start=num(f.start_age_days??f.startAgeDays);if(start!=null&&i.week!=null)age=start+(i.week-1)*7;}
     const current={age_days:age,feed_total_kg:i.feed,average_weight_g:w,live_birds:i.live};
     return p.broilerCumulativeFCR([...prior,current],f);
   }
@@ -96,6 +94,8 @@
       const r=a?.latest;
       if(!r)return;
       const fmt=v=>num(v)==null?'—':Number(v).toFixed(3);
+      upsertCard('adineFcrWeekly','FCR هفتگی',fmt(r.weeklyFcr),'مقدار canonical ذخیره‌شده');
+      upsertCard('adineFcrCumulative','FCR تجمعی',fmt(r.cumulativeFcr),'مقدار canonical ذخیره‌شده');
       upsertCard('adineFcrWeeklyAuthority','اختیار مدیریتی هفتگی',fmt(r.managementWeekly),r.management_cohort?('کوهورت: '+r.management_cohort):'');
       upsertCard('adineFcrCumulativeAuthority','اختیار مدیریتی تجمعی',fmt(r.managementCumulative),r.management_flocks!=null?('تعداد گله مرجع: '+r.management_flocks):'');
       upsertCard('adineFcrWeeklyOfficial','استاندارد رسمی هفتگی',fmt(r.officialWeekly),r.official_source||'');

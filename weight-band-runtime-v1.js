@@ -1,4 +1,4 @@
-/* ADINE POULTRY HEALTH — WEIGHT BAND RUNTIME V2.1
+/* ADINE POULTRY HEALTH — WEIGHT BAND RUNTIME V2.2
    Additive integration only.
    Does not replace or modify weekly calculations, FCR, standards,
    navigation, layout, or existing save logic.
@@ -7,6 +7,8 @@
    - robust flock/production-type resolution
    - robust Mean/CV bridge to existing weekly statistics
    - waits for official broiler registry before first calculation
+   - resolves genetics/company IDs to selectable official strain names
+   - supports both legacy array and current normalized-object registry records
    - recalculates after flock/week/weight changes
    - preserves official target values and Adine management rules
 */
@@ -91,29 +93,54 @@
       .trim().toLowerCase();
   }
 
+  const GENETICS_TO_STRAINS = Object.freeze({
+    aviagen_ross: ["Ross 308", "Ross 308 FF", "Ross 708", "Ross 308 AP"],
+    cobb: ["Cobb500", "Cobb800"],
+    aviagen_arbor: ["Arbor Acres Plus", "Arbor Acres Plus S"],
+    aviagen_indian: ["Indian River", "Indian River FF"],
+    hubbard: ["Efficiency Plus", "Hubbard EDGE"],
+    arian: ["Arian"]
+  });
+
+  const KNOWN_BROILER_STRAINS = Object.freeze([
+    "Ross 308", "Ross 308 FF", "Ross 708", "Ross 308 AP",
+    "Cobb500", "Cobb800", "Arbor Acres Plus", "Arbor Acres Plus S",
+    "Indian River", "Indian River FF", "Efficiency Plus", "Hubbard EDGE", "Arian"
+  ]);
+
   function isBroiler(f) {
     const t = flockProductionType(f);
     if (["broiler", "broilers", "گوشتی", "جوجه گوشتی", "meat", "meat chicken"].includes(t)) return true;
-    /* If the production type is absent/legacy, a selectable official broiler strain is
-       sufficient evidence for this additive module; non-broiler calculations are untouched. */
-    const strain = String(f?.strain ?? f?.flockStrain ?? f?.strain_name ?? "").trim();
-    const genetics = String(f?.genetics ?? "").trim();
-    const known = [
-      "Ross 308", "Ross 308 FF", "Ross 708", "Ross 308 AP",
-      "Cobb500", "Cobb800", "Arbor Acres Plus", "Arbor Acres Plus S",
-      "Indian River", "Indian River FF", "Efficiency Plus", "Hubbard EDGE", "Arian"
-    ];
-    return known.includes(strain) || known.includes(genetics);
+    const candidates = getStrainCandidates(f);
+    return candidates.some(key => KNOWN_BROILER_STRAINS.includes(key) || GENETICS_TO_STRAINS[key]);
   }
 
   function getStrainCandidates(f) {
-    return [
+    const raw = [
       f?.strain,
       f?.flockStrain,
       f?.strain_name,
       f?.genetics,
-      f?.genetics_name
+      f?.genetics_name,
+      f?.geneticsId,
+      f?.genetics_id,
+      f?.company,
+      f?.geneticsCompany
     ].map(v => String(v ?? "").trim()).filter(Boolean);
+
+    const out = [];
+    const seen = new Set();
+    const add = v => {
+      const key = String(v ?? "").trim();
+      if (key && !seen.has(key)) { seen.add(key); out.push(key); }
+    };
+
+    for (const key of raw) {
+      add(key);
+      const mapped = GENETICS_TO_STRAINS[key];
+      if (mapped) mapped.forEach(add);
+    }
+    return out;
   }
 
   function loadOfficialRegistry() {
@@ -142,16 +169,24 @@
   function officialTarget(f, week) {
     if (!f || !isBroiler(f) || !week || typeof window.getBroilerOfficialStandard !== "function") return null;
     const ageDays = week * 7;
+
     for (const key of getStrainCandidates(f)) {
       try {
         const registry = window.getBroilerOfficialStandard(key);
-        const hit = (registry?.records || []).find(x => Array.isArray(x) && Number(x[0]) === ageDays);
-        if (hit && num(hit[1]) !== null && num(hit[1]) > 0) {
+        if (!registry) continue;
+        const records = Array.isArray(registry.records) ? registry.records : [];
+        const hit = records.find(x => {
+          const age = Array.isArray(x) ? x[0] : x?.ageDays;
+          return Number(age) === ageDays;
+        });
+        const bodyWeight = Array.isArray(hit) ? hit[1] : hit?.bodyWeight;
+        const weight = num(bodyWeight);
+        if (weight !== null && weight > 0) {
           return {
-            weight: num(hit[1]),
+            weight,
             source: registry.sourceLabel || "استاندارد رسمی سویه",
             ageDays,
-            strain: key,
+            strain: KNOWN_BROILER_STRAINS.includes(key) ? key : (registry.family || key),
             sourceType: registry.sourceType || "official-performance-objective"
           };
         }
@@ -404,7 +439,6 @@
     const run = () => {
       ensure();
       bindWeekly();
-      /* Important: first calculate only after the official registry is ready. */
       loadOfficialRegistry().then(() => { sync(); }).catch(() => { sync(); });
     };
     if (document.readyState === "loading") {
@@ -429,6 +463,6 @@
     }
   }
 
-  window.AdineWeightBandRuntime = { VERSION: "2.1.0", sync, calculate, resolveOfficialTarget: officialTarget };
+  window.AdineWeightBandRuntime = { VERSION: "2.2.0", sync, calculate, resolveOfficialTarget: officialTarget };
   boot();
 })();

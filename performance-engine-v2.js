@@ -13,10 +13,20 @@
   const canonicalRows=(records,flock)=>engine.canonical(rows(records),flock||flockFor());
   function weeklyFCR(input){
     const p=input||{};
-    const prev={live_birds:num(p.openBirds??p.open_birds),average_weight_g:num(p.openWeight??p.open_weight_g),age_days:num(p.openAgeDays??p.open_age_days)??0};
-    const curr={live_birds:num(p.closeBirds??p.close_birds),average_weight_g:num(p.closeWeight??p.close_weight_g),feed_total_kg:num(p.feedKg??p.feed_total_kg??p.feedTotalKg),age_days:num(p.closeAgeDays??p.close_age_days)??1};
+    const flock=flockFor();
+    const prev={
+      live_birds:num(p.openBirds??p.open_birds??flock.initial_bird_count??flock.initialBirdCount),
+      average_weight_g:num(p.openWeight??p.open_weight_g??flock.initial_average_weight_g??flock.initialAverageWeightG),
+      age_days:num(p.openAgeDays??p.open_age_days)??0
+    };
+    const curr={
+      live_birds:num(p.closeBirds??p.close_birds),
+      average_weight_g:num(p.closeWeight??p.close_weight_g),
+      feed_total_kg:num(p.feedKg??p.feed_total_kg??p.feedTotalKg),
+      age_days:num(p.closeAgeDays??p.close_age_days)??1
+    };
     if(prev.live_birds===null||prev.live_birds<=0||prev.average_weight_g===null||prev.average_weight_g<=0||curr.live_birds===null||curr.live_birds<=0||curr.average_weight_g===null||curr.average_weight_g<=0||curr.feed_total_kg===null||curr.feed_total_kg<=0)return null;
-    const out=canonicalRows([prev,curr],flockFor());
+    const out=canonicalRows([prev,curr],flock);
     return out.length?out[out.length-1].weeklyFcr:null;
   }
   function cumulativeFCR(records,current,flock){
@@ -25,7 +35,7 @@
     const out=canonicalRows(all,flock||flockFor());
     return out.length?out[out.length-1].cumulativeFcr:null;
   }
-  global.AdinePerformance={version:'CANONICAL-ADAPTER-4',typeOf,rows,canonicalRows,broilerWeeklyFCR:weeklyFCR,broilerCumulativeFCR:(records,flock)=>cumulativeFCR(records,null,flock),latestWeekly:(records,flock)=>{const out=canonicalRows(records,flock);return out.length?out[out.length-1].weeklyFcr:null},latestCumulative:(records,flock)=>{const out=canonicalRows(records,flock);return out.length?out[out.length-1].cumulativeFcr:null},quality:x=>({ok:true,issues:[]})};
+  global.AdinePerformance={version:'CANONICAL-ADAPTER-5',typeOf,rows,canonicalRows,broilerWeeklyFCR:weeklyFCR,broilerCumulativeFCR:(records,flock)=>cumulativeFCR(records,null,flock),latestWeekly:(records,flock)=>{const out=canonicalRows(records,flock);return out.length?out[out.length-1].weeklyFcr:null},latestCumulative:(records,flock)=>{const out=canonicalRows(records,flock);return out.length?out[out.length-1].cumulativeFcr:null},quality:x=>({ok:true,issues:[]})};
   global.calculateWeeklyFCR=function(flockId,currentWeight,currentFeed,currentLiveBirds,previousRecord,productionType){if(typeOf({production_type:productionType})!=='broiler')return null;return weeklyFCR({feedKg:currentFeed,openBirds:previousRecord?.live_birds??previousRecord?.liveBirds,openWeight:previousRecord?.average_weight_g??previousRecord?.averageWeightG??previousRecord?.averageWeight,closeBirds:currentLiveBirds,closeWeight:currentWeight,openAgeDays:previousRecord?.age_days??previousRecord?.ageDays,closeAgeDays:currentWeight?.age_days??currentWeight?.ageDays});};
   global.calculateWeeklyCumulativeConversion=function(records,current,type){if(typeOf({production_type:type})!=='broiler')return null;return cumulativeFCR(records,current,flockFor());};
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,10 +1,10 @@
-/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.2
+/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.3
    UI/integration bridge only.
    Canonical FCR math remains exclusively in broiler-fcr-engine-v11.js.
    No standards, formulas, database schema, or non-broiler calculations are changed.
 */
 (function(global){'use strict';
-  const VERSION='BROILER-FCR-WEEKLY-UI-V1.2';
+  const VERSION='BROILER-FCR-WEEKLY-UI-V1.3';
   const num=v=>{
     if(v===null||v===undefined||v==='')return null;
     let s=String(v).trim().replace(/,/g,'').replace(/٬/g,'').replace(/٫/g,'.')
@@ -26,10 +26,17 @@
     return true;
   }
 
+  function meanFromWeightInputs(){
+    const nodes=Array.from(document.querySelectorAll('.bird-weight'));
+    const values=nodes.map(x=>num(x?.value)).filter(x=>x!==null&&x>0);
+    if(!values.length)return null;
+    return values.reduce((a,b)=>a+b,0)/values.length;
+  }
+
   function currentInputs(result){
     const feed=firstNumber(result?.feed_total_kg,result?.feedTotalKg,result?.feedKg,document.getElementById('feedTotal')?.value);
     const live=firstNumber(result?.live_birds,result?.liveBirds,document.getElementById('liveBirds')?.value);
-    const weight=firstNumber(result?.mean,result?.average_weight_g,result?.averageWeightG,document.getElementById('averageWeightDirect')?.value);
+    const weight=firstNumber(result?.mean,result?.average_weight_g,result?.averageWeightG,meanFromWeightInputs(),document.getElementById('averageWeightDirect')?.value);
     const week=firstNumber(result?.week_number,result?.weekNumber,result?.week,document.getElementById('weekNumber')?.value);
     const age=firstNumber(result?.age_days,result?.ageDays);
     return {feed,live,weight,week,age};
@@ -57,10 +64,8 @@
     const i=currentInputs(result),p=performance(),f=flock();
     if(i.feed==null||i.feed<=0||i.live==null||i.live<=0||i.weight==null||i.weight<=0)return null;
 
-    /* Week 1 is a valid FCR calculation. There is no previous weekly record,
-       so use the flock's registered opening population/weight as the opening
-       state. This is the same opening-state convention already used by the
-       canonical engine and by performance-engine-v2; no new formula is added. */
+    /* Week 1 uses the flock's registered opening population/weight.
+       Later weeks use the immediately preceding weekly record. */
     const prev=previous(result);
     const openBirds=firstNumber(prev?.live_birds,prev?.liveBirds,f?.initial_bird_count,f?.initialBirdCount);
     const openWeight=firstNumber(prev?.average_weight_g,prev?.averageWeightG,prev?.averageWeight,f?.initial_average_weight_g,f?.initialAverageWeightG);
@@ -120,27 +125,72 @@
   }
 
   function patchRender(){
-    if(typeof global.renderResults!=='function'||global.renderResults.__adineBroilerFcrV1)return false;
+    if(typeof global.renderResults!=='function'||global.renderResults.__adineBroilerFcrV13)return false;
     const original=global.renderResults;
     function wrapped(result){original(result);try{showFcr(result)}catch(e){console.warn('Broiler FCR weekly UI:',e)}}
-    wrapped.__adineBroilerFcrV1=true;
+    wrapped.__adineBroilerFcrV13=true;
     global.renderResults=wrapped;
     return true;
   }
 
+  /* weekly.js calls its lexical renderResults() directly from calculateWeekly().
+     Therefore wrapping window.renderResults alone cannot reliably intercept that
+     call. This wrapper hooks the actual calculateWeekly entry point and then
+     refreshes the FCR card after the original calculation/render cycle. */
+  function patchCalculateWeekly(){
+    if(typeof global.calculateWeekly!=='function'||global.calculateWeekly.__adineBroilerFcrV13)return false;
+    const original=global.calculateWeekly;
+    function wrappedCalculateWeekly(){
+      const out=original.apply(this,arguments);
+      setTimeout(()=>{try{showFcr(out)}catch(e){console.warn('Broiler FCR calculate hook:',e)}},0);
+      setTimeout(()=>{try{showFcr(out)}catch(e){console.warn('Broiler FCR calculate hook:',e)}},80);
+      return out;
+    }
+    wrappedCalculateWeekly.__adineBroilerFcrV13=true;
+    global.calculateWeekly=wrappedCalculateWeekly;
+    return true;
+  }
+
+  function patchCalculateButton(){
+    if(document.documentElement?.dataset?.adineBroilerFcrCalculateHook==='1')return true;
+    if(!document.documentElement)return false;
+    document.documentElement.dataset.adineBroilerFcrCalculateHook='1';
+    document.addEventListener('click',function(event){
+      const el=event.target?.closest?.('button,a,input[type="button"],input[type="submit"]');
+      if(!el)return;
+      const inline=String(el.getAttribute?.('onclick')||'');
+      const text=String(el.textContent||'').trim();
+      if(!/calculateWeekly\s*\(|محاسبه/.test(inline+' '+text))return;
+      setTimeout(()=>{try{if(isBroiler())showFcr(null)}catch(e){console.warn('Broiler FCR button hook:',e)}},0);
+      setTimeout(()=>{try{if(isBroiler())showFcr(null)}catch(e){console.warn('Broiler FCR button hook:',e)}},100);
+    },true);
+    return true;
+  }
+
   function patchSave(){
-    if(typeof global.saveWeeklyRecord!=='function'||global.saveWeeklyRecord.__adineBroilerFcrV1)return false;
+    if(typeof global.saveWeeklyRecord!=='function'||global.saveWeeklyRecord.__adineBroilerFcrV13)return false;
     const original=global.saveWeeklyRecord;
     async function wrappedSave(){const out=await original.apply(this,arguments);await showAuthorities();return out}
-    wrappedSave.__adineBroilerFcrV1=true;
+    wrappedSave.__adineBroilerFcrV13=true;
     global.saveWeeklyRecord=wrappedSave;
     return true;
   }
 
   function start(){
     let i=0;
-    const timer=setInterval(()=>{installBroilerCompatibility();patchRender();patchSave();if(++i>240)clearInterval(timer)},250);
-    installBroilerCompatibility();patchRender();patchSave();
+    const timer=setInterval(()=>{
+      installBroilerCompatibility();
+      patchRender();
+      patchCalculateWeekly();
+      patchCalculateButton();
+      patchSave();
+      if(++i>240)clearInterval(timer)
+    },250);
+    installBroilerCompatibility();
+    patchRender();
+    patchCalculateWeekly();
+    patchCalculateButton();
+    patchSave();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
   global.AdineBroilerFcrWeeklyUI={VERSION};

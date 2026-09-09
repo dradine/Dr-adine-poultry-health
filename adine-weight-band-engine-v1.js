@@ -16,7 +16,7 @@
 "use strict";
 
 (function (global) {
-  const VERSION = "2.0.0";
+  const VERSION = "2.0.1";
   const DEFAULT_MANAGEMENT_TOLERANCE = 10;
 
   function erf(x) {
@@ -122,11 +122,17 @@
       return { ok: false, reason: "invalid-statistics" };
     }
 
-    const target = Number(o.officialTargetWeight);
+    /* Preserve an absent official target as null. Number(null) would incorrectly become 0. */
+    const rawTarget = o.officialTargetWeight;
+    const target = rawTarget === null || rawTarget === undefined || rawTarget === ""
+      ? null
+      : Number(rawTarget);
+    const safeTarget = Number.isFinite(target) && target > 0 ? target : null;
+
     const tolerance = Number.isFinite(Number(o.managementTolerance))
       ? Number(o.managementTolerance)
       : DEFAULT_MANAGEMENT_TOLERANCE;
-    const managementBand = makeBand(target, tolerance);
+    const managementBand = makeBand(safeTarget, tolerance);
 
     const customLower = Number(o.processingLower);
     const customUpper = Number(o.processingUpper);
@@ -165,7 +171,7 @@
       sd: sdFromMeanCv(mean, cv),
       sampleCount: weights.length,
       flockSize: Number.isFinite(flockSize) ? flockSize : null,
-      officialTargetWeight: Number.isFinite(target) ? target : null,
+      officialTargetWeight: safeTarget,
       managementTolerance: tolerance,
       managementBand,
       management,

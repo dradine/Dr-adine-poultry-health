@@ -17,7 +17,9 @@ function canonical(records,flock){
     if(feed!==null&&feed>=0)cumFeed+=feed;
     const cumulativeGain=(live>0&&weight>0&&ib>0&&iw!==null)?(live*weight-ib*iw)/1000:null;
     let cumulative=null;if(index===0)cumulative=weekly;else if(cumFeed>0&&cumulativeGain>0)cumulative=cumFeed/cumulativeGain;
-    return {...r,ageDays:n(r.ageDays??r.age_days),weeklyFcr:weekly==null?null:Number(weekly.toFixed(4)),cumulativeFcr:cumulative==null?null:Number(cumulative.toFixed(4)),fcr:weekly==null?null:Number(weekly.toFixed(4)),calculationVersion:VERSION};
+    const result={...r,ageDays:n(r.ageDays??r.age_days),weeklyFcr:weekly==null?null:Number(weekly.toFixed(4)),cumulativeFcr:cumulative==null?null:Number(cumulative.toFixed(4)),fcr:weekly==null?null:Number(weekly.toFixed(4)),calculationVersion:VERSION};
+    prev=r;
+    return result;
   });
 }
 function status(actual,target){if(actual==null||target==null)return{key:'none',label:'قابل مقایسه نیست'};const d=(actual-target)/target*100;if(d<=0)return{key:'good',label:'بهتر از معیار'};if(d<=5)return{key:'near',label:'نزدیک به معیار'};if(d<=10)return{key:'warning',label:'نیازمند توجه'};return{key:'bad',label:'نامطلوب'};}

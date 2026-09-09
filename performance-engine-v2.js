@@ -42,7 +42,7 @@
      It does not replace or duplicate the canonical calculation engine. */
   if(typeof document!=='undefined'&&!document.querySelector('script[data-adine-broiler-fcr-weekly-ui="1"]')){
     const s=document.createElement('script');
-    s.src='broiler-fcr-weekly-ui-v1.js?v=1.2.0';
+    s.src='broiler-fcr-weekly-ui-v1.js?v=1.3.0';
     s.async=false;
     s.dataset.adineBroilerFcrWeeklyUi='1';
     (document.head||document.documentElement).appendChild(s);

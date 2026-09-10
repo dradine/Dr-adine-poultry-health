@@ -7,9 +7,12 @@ assert.ok(html.includes("performance-intelligence-v1.js"),"reports.html must loa
 assert.ok(html.includes("reports-performance-intelligence-v1.js"),"reports.html must load report integration");
 assert.ok(intelligence.includes("normalizedTrend"),"engine must expose age-normalized trend");
 assert.ok(intelligence.includes("adaptiveAlert"),"engine must expose adaptive alerts");
-assert.ok(intelligence.includes("targetOverride"),"engine must support report-engine targets without recalculation");
+assert.ok(intelligence.includes("targetOverride"),"engine must support authoritative targets");
 assert.ok(!intelligence.includes("*1.05"),"fixed 5% forecast alert threshold must not be used");
 assert.ok(integration.includes("AdineBroilerReportEngine.build"),"integration must consume broiler report engine output");
-assert.ok(integration.includes("targetOverride:target"),"integration must pass authoritative report targets into intelligence");
+assert.ok(integration.includes("managementTargets"),"integration must resolve management benchmarks separately");
+assert.ok(integration.includes("poultry_management_benchmarks"),"integration must read management benchmark registry");
+assert.ok(integration.includes("genetics:null"),"intelligence must use strain as the primary broiler benchmark identity");
 assert.ok(integration.includes("\"fcr\""),"integration must include FCR analysis");
+assert.ok(integration.includes("\"cumulative_fcr\""),"integration must include cumulative FCR analysis");
 console.log("reports intelligence integration tests: PASS");

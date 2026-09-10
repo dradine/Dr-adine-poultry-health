@@ -1,0 +1,13 @@
+"use strict";
+const fs=require("fs"),assert=require("assert");
+const html=fs.readFileSync("reports.html","utf8");
+const engine=fs.readFileSync("broiler-comprehensive-report-engine-v1.js","utf8");
+const ui=fs.readFileSync("broiler-comprehensive-report-ui-v1.js","utf8");
+const css=fs.readFileSync("broiler-comprehensive-report-v1.css","utf8");
+for(const token of ["data-tab=\"weekly\"","data-tab=\"overall\"","data-tab=\"compare\"","broiler-report-engine.js","reports.js","reports-router.js","broiler-comprehensive-report-engine-v1.js","broiler-comprehensive-report-ui-v1.js","broiler-comprehensive-report-v1.css"])assert.ok(html.includes(token),`missing shell token: ${token}`);
+for(const forbidden of ["weekly.js","weekly-storage.js","weekly-engine.js","broiler-fcr-engine-v11.js","standards.js"])assert.ok(!html.includes(forbidden),`reports shell must not load ${forbidden}`);
+assert.ok(engine.includes("read-only")&&engine.includes("weekly_records"),"engine must declare read-only weekly data architecture");
+assert.ok(ui.includes("data-tab=\"overall\"")&&ui.includes("never writes weekly_records"),"UI must be isolated to overall tab");
+assert.ok(css.includes("@media(max-width:600px)"),"mobile report styling must exist");
+assert.ok(html.includes("bottom-navigation")&&html.includes("Dashboard.html")&&html.includes("weekly.html"),"bottom navigation must remain present");
+console.log("BROILER_COMPREHENSIVE_REPORT_SHELL_V1: PASS");

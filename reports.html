@@ -19,14 +19,14 @@
 /* ADINE: the week selector belongs only to the standalone weekly report. */
 .report-toolbar.is-comprehensive .toolbar-left{display:none!important}
 /* ADINE: comparison tab is intentionally blank until its new design is built. */
-.report-toolbar.is-compare,#root.is-compare{display:none!important}
+.report-toolbar.is-compare-empty,#root.is-compare-empty{display:none!important}
 </style>
 </head>
 <body>
 <main class="reports-shell">
 <header class="report-card report-header"><div><h1>گزارش عملکرد گله</h1><p>گزارش فقط از همان گله‌ای ساخته می‌شود که از ثبت هفتگی وارد شده است.</p></div><div class="report-actions"><button class="report-btn secondary" id="back">بازگشت به ثبت گزارش</button><button class="report-btn primary" id="print">چاپ گزارش</button></div></header>
 <section class="report-card flock-identity"><div id="identity" class="identity-grid"><div class="empty">در حال دریافت اطلاعات گله…</div></div></section>
-<nav class="report-card report-tabs" aria-label="انواع گزارش"><button class="report-tab active" data-tab="weekly">گزارش هفتگی</button><button class="report-tab" data-tab="overall">گزارش جامع عملکرد گله</button><button class="report-tab" data-tab="compare">گزارش مقایسه‌ای</button></nav>
+<nav class="report-card report-tabs" aria-label="انواع گزارش"><button class="report-tab active" data-tab="weekly">گزارش هفتگی</button><button class="report-tab" data-tab="overall">گزارش جامع عملکرد گله</button><button class="report-tab" data-tab="compare-empty">گزارش مقایسه‌ای</button></nav>
 <section class="report-card report-toolbar"><div class="toolbar-left"><b>هفته گزارش:</b><select id="week" aria-label="هفته گزارش"></select></div><span id="scope" class="scope-badge">در حال بارگذاری…</span></section>
 <section id="root" class="report-card"><div class="empty">در حال بارگذاری اطلاعات گله…</div></section>
 </main>
@@ -55,9 +55,9 @@
     if(!toolbar||!root||!active)return;
     var tab=active.getAttribute('data-tab');
     toolbar.classList.toggle('is-comprehensive',tab==='overall');
-    toolbar.classList.toggle('is-compare',tab==='compare');
-    root.classList.toggle('is-compare',tab==='compare');
-    if(tab==='compare'){
+    toolbar.classList.toggle('is-compare',tab==='compare-empty');
+    root.classList.toggle('is-compare',tab==='compare-empty');
+    if(tab==='compare-empty'){
       root.innerHTML='';
     }
   }

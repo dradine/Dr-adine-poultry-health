@@ -1,22 +1,25 @@
-/* ADINE POULTRY HEALTH — BROILER FCR CANONICAL ENGINE V13.2 */
+/* ADINE POULTRY HEALTH — BROILER FCR CANONICAL ENGINE V13.3 */
 (function(global){'use strict';
-const VERSION='BROILER-FCR-V13.2';
-const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
+const VERSION='BROILER-FCR-V13.3';
+const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(v);return Number.isFinite(x)?x:null};
 const norm=v=>String(v??'').trim().toLowerCase();
 const isBroiler=f=>['broiler','broilers','گوشتی','meat'].includes(norm(f?.production_type||f?.productionType));
 function canonical(records,flock){
   if(!Array.isArray(records))return[];
-  const sorted=[...records].sort((a,b)=>Number(a.ageDays??a.age_days)-Number(b.ageDays??b.age_days));
+  const sorted=[...records].sort((a,b)=>(n(a.ageDays??a.age_days)??0)-(n(b.ageDays??b.age_days)??0));
   const iw=n(flock?.initial_average_weight_g??flock?.initialAverageWeightG),ib=n(flock?.initial_bird_count??flock?.initialBirdCount);
-  let prev=null,cumFeed=0;
+  let prev=null,cumFeed=0,cumGain=0;
   return sorted.map((r,index)=>{
     const weight=n(r.average_weight_g??r.averageWeight),live=n(r.live_birds??r.liveBirds),feed=n(r.feed_total_kg??r.feedTotalKg??r.feed);
     const openingLive=index===0?ib:n(prev?.live_birds??prev?.liveBirds),openingWeight=index===0?iw:n(prev?.average_weight_g??prev?.averageWeight);
-    let weekly=null;
-    if(live>0&&weight>0&&openingLive>0&&openingWeight!==null){const gain=(live*weight-openingLive*openingWeight)/1000;if(feed>0&&gain>0)weekly=feed/gain;}
+    let gain=null,weekly=null;
+    if(live>0&&weight>0&&openingLive>0&&openingWeight!==null&&weight>openingWeight){
+      gain=live*(weight-openingWeight)/1000;
+      if(feed>0&&gain>0)weekly=feed/gain;
+    }
     if(feed!==null&&feed>=0)cumFeed+=feed;
-    const cumulativeGain=(live>0&&weight>0&&ib>0&&iw!==null)?(live*weight-ib*iw)/1000:null;
-    let cumulative=null;if(index===0)cumulative=weekly;else if(cumFeed>0&&cumulativeGain>0)cumulative=cumFeed/cumulativeGain;
+    if(gain!==null&&gain>0)cumGain+=gain;
+    let cumulative=null;if(cumFeed>0&&cumGain>0)cumulative=cumFeed/cumGain;
     const result={...r,ageDays:n(r.ageDays??r.age_days),weeklyFcr:weekly==null?null:Number(weekly.toFixed(4)),cumulativeFcr:cumulative==null?null:Number(cumulative.toFixed(4)),fcr:weekly==null?null:Number(weekly.toFixed(4)),calculationVersion:VERSION};
     prev=r;
     return result;

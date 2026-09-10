@@ -1,0 +1,2 @@
+/* Keeps the application on the verified Shenava 8.0 runtime even if a legacy loader injects 7.x later. */
+(function(){'use strict';const V='8.0.0',SRC='voice-sherpa-runtime-v8.js?v=8.0.0';function ensure(){if(window.AdineShenavaRuntime?.version===V)return;const old=document.querySelector('script[data-adine-shenava-v8-guard-runtime="1"]');if(old)return;const s=document.createElement('script');s.src=SRC;s.async=false;s.dataset.adineShenavaV8GuardRuntime='1';(document.head||document.documentElement).appendChild(s)}ensure();setInterval(ensure,500)})();

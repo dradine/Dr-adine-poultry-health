@@ -6,12 +6,24 @@ const A=context.AdinePerformanceIntelligence;
 assert.ok(A,"intelligence engine must register");
 assert.equal(A.metricDirection("fcr"),"lower");
 assert.equal(A.metricDirection("body_weight"),"higher");
-assert.equal(A.score(1.489,1.498,"fcr")>99,true);
-assert.equal(A.score(1611,1611,"body_weight"),100);
-assert.equal(A.status(95),"excellent");
-assert.equal(A.status(80),"good");
-assert.equal(A.status(65),"watch");
-assert.equal(A.status(50),"critical");
+
+/* Strict-score regression checks: the old linear model incorrectly made
+   3.4% adverse FCR excellent and ~5.6% low weight good. */
+assert.equal(A.score(1.034,1,"fcr")<85,true);
+assert.equal(A.status(A.score(1.034,1,"fcr")),"watch");
+assert.equal(A.score(0.944,1,"body_weight")<85,true);
+assert.equal(A.status(A.score(0.944,1,"body_weight")),"watch");
+assert.equal(A.score(1,1,"fcr"),100);
+assert.equal(A.score(1,1,"body_weight"),100);
+assert.equal(A.status(96),"excellent");
+assert.equal(A.status(90),"good");
+assert.equal(A.status(80),"watch");
+assert.equal(A.status(60),"critical");
+assert.equal(A.scoringMeta(1.034,1,"fcr").labelFa,"قابل قبول");
+assert.equal(A.scoringMeta(0.944,1,"body_weight").labelFa,"قابل قبول");
+assert.equal(A.scoringMeta(1.034,1,"fcr").reasonFa.includes("بدتر از مرجع"),true);
+assert.equal(A.scoringMeta(0.944,1,"body_weight").reasonFa.includes("پایین‌تر از هدف"),true);
+
 assert.equal(A.robustTrend([1,1.1,1.2]),null);
 assert.equal(A.forecast([1,1.1,1.2]).available,false);
 const weightHistory=[{x:7,y:214,standard:214},{x:14,y:540,standard:540},{x:21,y:1012,standard:1012},{x:28,y:1611,standard:1611}];
@@ -27,4 +39,4 @@ const fcrForecast=A.forecast(fcrHistory,{targetAgeDays:35,futureStandard:1.63});
 assert.equal(fcrForecast.available,true);
 assert.ok(Number.isFinite(fcrForecast.projected_value));
 assert.equal(A.adaptiveAlert(fcrHistory,1.489,1.498,"fcr").available,true);
-console.log("performance intelligence v1.2 tests: PASS");
+console.log("performance intelligence strict v2 tests: PASS");

@@ -12,7 +12,7 @@ const raw=[
 ];
 const before=JSON.stringify(raw);const E=c.AdineBroilerComprehensiveReportEngine;const m=E.build(flock,raw,domain);
 assert.strictEqual(m.rows.length,3,"rows must be sorted and retained");
-assert.deepStrictEqual(m.rows.map(x=>x.week),[1,2,3],"weeks must sort ascending");
+assert.deepStrictEqual(Array.from(m.rows.map(x=>x.week)),[1,2,3],"weeks must sort ascending");
 assert.strictEqual(m.cumulativeMortalityCount,150,"cumulative mortality must sum weekly mortality counts");
 assert.strictEqual(Number(m.cumulativeMortalityPercent.toFixed(2)),1.5,"cumulative mortality percent must use placement denominator");
 assert.strictEqual(m.latestLiveBirds,9850,"latest live birds must come from canonical row");

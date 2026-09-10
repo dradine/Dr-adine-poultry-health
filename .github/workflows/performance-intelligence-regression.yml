@@ -1,0 +1,27 @@
+name: Performance intelligence regression
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'performance-intelligence-v1.js'
+      - 'tests/performance-intelligence-v12.test.js'
+      - '.github/workflows/performance-intelligence-regression.yml'
+  pull_request:
+    paths:
+      - 'performance-intelligence-v1.js'
+      - 'tests/performance-intelligence-v12.test.js'
+      - '.github/workflows/performance-intelligence-regression.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check
+        run: node --check performance-intelligence-v1.js
+      - name: Strict scoring regression test
+        run: node tests/performance-intelligence-v12.test.js

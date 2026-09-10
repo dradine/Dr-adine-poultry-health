@@ -11,6 +11,9 @@ on:
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
+      - 'broiler-comprehensive-report-engine-v2.js'
+      - 'broiler-comprehensive-report-ui-v2-2.js'
+      - 'broiler-comprehensive-report-v2.css'
       - 'performance-intelligence-v1.js'
       - 'reports-performance-intelligence-v1.js'
       - 'tests/**'
@@ -24,6 +27,9 @@ on:
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
       - 'reports.css'
+      - 'broiler-comprehensive-report-engine-v2.js'
+      - 'broiler-comprehensive-report-ui-v2-2.js'
+      - 'broiler-comprehensive-report-v2.css'
       - 'performance-intelligence-v1.js'
       - 'reports-performance-intelligence-v1.js'
       - 'tests/**'
@@ -45,6 +51,8 @@ jobs:
           node --check standard-data.js
           node --check performance-intelligence-v1.js
           node --check reports-performance-intelligence-v1.js
+          node --check broiler-comprehensive-report-engine-v2.js
+          node --check broiler-comprehensive-report-ui-v2-2.js
           node --check adine-weight-band-engine-v1.js
           node --check weight-band-runtime-v1.js
       - name: Weight Band V2 regression test
@@ -53,6 +61,8 @@ jobs:
         run: node tests/broiler-official-standards.test.js
       - name: Domain regression test
         run: node tests/reports-architecture.test.js
+      - name: Comprehensive broiler V2 regression test
+        run: node tests/broiler-comprehensive-report-v2.test.js
       - name: Intelligence engine test
         run: node tests/performance-intelligence-v12.test.js
       - name: Arbor Acres intelligence test

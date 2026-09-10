@@ -1,151 +1,26 @@
-/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.8
-   UI/integration bridge only.
-   Canonical FCR math remains exclusively in broiler-fcr-engine-v11.js.
-   This file does not change any flock standard, formula, schema or page layout.
-*/
+/* ADINE POULTRY HEALTH — BROILER FCR WEEKLY UI BRIDGE V1.9 */
 (function(global){'use strict';
-  const VERSION='BROILER-FCR-WEEKLY-UI-V1.8';
-  const num=v=>{if(v===null||v===undefined||v==='')return null;let s=String(v).trim().replace(/,/g,'').replace(/٬/g,'').replace(/٫/g,'.').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));const x=Number(s);return Number.isFinite(x)?x:null};
-  const firstNumber=(...vs)=>{for(const v of vs){const x=num(v);if(x!==null)return x}return null};
-  const flock=()=>global.currentFlock||global.currentFlockForSpecialized||null;
-  const engine=()=>global.AdineBroilerFCR||null;
-  const isBroiler=()=>{const f=flock();return !!f&&(['broiler','broilers','گوشتی','meat'].includes(String(f.production_type??f.productionType??'').trim().toLowerCase())||engine()?.isBroiler?.(f)===true)};
-  const performance=()=>global.AdinePerformance||null;
-
-  function installBroilerCompatibility(){
-    const p=performance();
-    if(!p||!isBroiler())return false;
-    if(typeof p.layerWeekly!=='function')p.layerWeekly=()=>null;
-    if(typeof p.layerCumulative!=='function')p.layerCumulative=()=>null;
-    if(typeof p.mortalityCorrectedFCR!=='function')p.mortalityCorrectedFCR=()=>null;
-    return true;
-  }
-  function meanFromWeightInputs(){
-    if(typeof document==='undefined')return null;
-    const values=Array.from(document.querySelectorAll('#weightsContainer .bird-weight,.bird-weight')).map(x=>num(x?.value)).filter(x=>x!==null&&x>0);
-    return values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
-  }
-  function currentInputs(result){
-    const live=firstNumber(result?.live_birds,result?.liveBirds,document.getElementById('liveBirds')?.value);
-    let feed=firstNumber(result?.feed_total_kg,result?.feedTotalKg,result?.feedKg,document.getElementById('feedTotal')?.value);
-    if(feed==null){const perBird=firstNumber(result?.feedPerBirdG,result?.feedPerBird,document.getElementById('feedPerBird')?.value);if(perBird!=null&&live!=null&&live>0)feed=perBird*live/1000}
-    const weight=firstNumber(result?.mean,result?.average_weight_g,result?.averageWeightG,document.getElementById('averageWeightDirect')?.value,meanFromWeightInputs());
-    const week=firstNumber(result?.week_number,result?.weekNumber,result?.week,document.getElementById('weekNumber')?.value);
-    const age=firstNumber(result?.age_days,result?.ageDays,week!=null?week*7:null);
-    return{feed,live,weight,week,age};
-  }
-  function records(){try{if(Array.isArray(global.weeklyRecords))return global.weeklyRecords}catch(e){}try{if(typeof weeklyRecords!=='undefined'&&Array.isArray(weeklyRecords))return weeklyRecords}catch(e){}return[]}
-  function previous(result){
-    const rs=records(),i=currentInputs(result),w=i.week;
-    const editing=global.editingRecordId??(typeof editingRecordId!=='undefined'?editingRecordId:null);
-    const candidates=rs.filter(r=>String(r?.id)!==String(editing||''));
-    if(!candidates.length)return null;
-    if(w!=null){const prior=candidates.filter(r=>{const rw=firstNumber(r?.week_number,r?.weekNumber,r?.week);return rw!=null&&rw<w}).sort((a,b)=>firstNumber(a?.week_number,a?.weekNumber,a?.week)-firstNumber(b?.week_number,b?.weekNumber,b?.week));if(prior.length)return prior[prior.length-1]}
-    return candidates.slice().sort((a,b)=>(firstNumber(a?.age_days,a?.ageDays)??-1)-(firstNumber(b?.age_days,b?.ageDays)??-1)).at(-1)||null;
-  }
-  function canonicalWeekly(i,prev,f){
-    const e=engine();if(!e?.canonical)return null;
-    const openBirds=firstNumber(prev?.live_birds,prev?.liveBirds,f?.initial_bird_count,f?.initialBirdCount);
-    const openWeight=firstNumber(prev?.average_weight_g,prev?.averageWeightG,prev?.averageWeight,f?.initial_average_weight_g,f?.initialAverageWeightG);
-    if(i.feed==null||i.feed<=0||i.live==null||i.live<=0||i.weight==null||i.weight<=0||openBirds==null||openBirds<=0||openWeight==null||openWeight<=0)return null;
-    const openAge=firstNumber(prev?.age_days,prev?.ageDays,f?.start_age_days,f?.startAgeDays)??0;
-    const closeAge=firstNumber(i.age,i.week!=null?i.week*7:null)??(openAge+1);
-    const rows=[
-      {age_days:openAge,live_birds:openBirds,average_weight_g:openWeight,feed_total_kg:0},
-      {age_days:Math.max(closeAge,openAge+1),live_birds:i.live,average_weight_g:i.weight,feed_total_kg:i.feed}
-    ];
-    const out=e.canonical(rows,f);
-    return out.length?out[out.length-1].weeklyFcr:null;
-  }
-  function weeklyFcr(result){
-    if(!isBroiler())return null;
-    const i=currentInputs(result),f=flock(),prev=previous(result);
-    if(i.feed==null||i.feed<=0||i.live==null||i.live<=0||i.weight==null||i.weight<=0)return null;
-    let value=canonicalWeekly(i,prev,f);
-    if(value==null){
-      const p=performance();
-      if(p?.broilerWeeklyFCR){try{value=p.broilerWeeklyFCR({feedKg:i.feed,openBirds:firstNumber(prev?.live_birds,prev?.liveBirds,f?.initial_bird_count,f?.initialBirdCount),openWeight:firstNumber(prev?.average_weight_g,prev?.averageWeightG,prev?.averageWeight,f?.initial_average_weight_g,f?.initialAverageWeightG),closeBirds:i.live,closeWeight:i.weight,closeAgeDays:i.age})}catch(e){}}
-    }
-    return value;
-  }
-  function cumulativeFcr(result){
-    if(!isBroiler())return null;
-    const e=engine(),f=flock(),i=currentInputs(result);if(!e?.canonical||!f||i.feed==null||i.feed<=0||i.live==null||i.live<=0||i.weight==null||i.weight<=0)return null;
-    const age=firstNumber(i.age,i.week!=null?i.week*7:null);if(age==null)return null;
-    const editing=global.editingRecordId??(typeof editingRecordId!=='undefined'?editingRecordId||'':'');
-    const prior=records().filter(r=>String(r?.id)!==String(editing));
-    const current={age_days:age,feed_total_kg:i.feed,average_weight_g:i.weight,live_birds:i.live};
-    const out=e.canonical([...prior,current],f);return out.length?out[out.length-1].cumulativeFcr:null;
-  }
-  function setCardValue(el,value){
-    if(!el)return;
-    const target=el.querySelector('.metric-value,.metric-title + .metric-value,[class*="metric-value"]');
-    if(target)target.textContent=value;
-  }
-  function syncLegacyFcrCards(value){
-    if(typeof document==='undefined'||value==null)return;
-    const root=document.getElementById('results');if(!root)return;
-    Array.from(root.querySelectorAll('.metric-card')).forEach(el=>{
-      if(el.id==='adineFcrWeekly'||el.id==='adineFcrCumulative')return;
-      const label=String(el.querySelector('.metric-label,.metric-title')?.textContent||'').trim();
-      if(label==='FCR'||label.toLowerCase()==='fcr')setCardValue(el,Number(value).toFixed(3));
-    });
-  }
-  function upsertCard(id,title,value,sub){
-    const root=document.getElementById('results');if(!root)return;
-    let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;el.className='metric-card';root.appendChild(el)}
-    el.innerHTML='<div class="metric-label">'+title+'</div><div class="metric-value">'+value+'</div>'+(sub?'<div class="metric-label" style="margin-top:6px">'+sub+'</div>':'');
-  }
-  function showFcr(result){
-    if(!isBroiler())return;
-    const root=document.getElementById('results');if(!root||root.__adineFcrUpdating)return;
-    root.__adineFcrUpdating=true;
-    try{
-      const wf=weeklyFcr(result),cf=cumulativeFcr(result),display=wf==null?'قابل محاسبه نیست':Number(wf).toFixed(3);
-      upsertCard('adineFcrWeekly','FCR هفتگی',display,'موتور canonical گوشتی');
-      upsertCard('adineFcrCumulative','FCR تجمعی',cf==null?'پس از ذخیره تکمیل می‌شود':Number(cf).toFixed(3),'موتور canonical از ابتدای گله');
-      syncLegacyFcrCards(wf);
-    }finally{root.__adineFcrUpdating=false}
-  }
-  async function showAuthorities(){
-    if(!isBroiler()||!engine()?.analysis)return;const f=flock();if(!f?.id)return;
-    try{const a=await engine().analysis(f.id),r=a?.latest;if(!r)return;const fmt=v=>num(v)==null?'—':Number(v).toFixed(3);upsertCard('adineFcrWeekly','FCR هفتگی',fmt(r.weeklyFcr),'مقدار canonical ذخیره‌شده');upsertCard('adineFcrCumulative','FCR تجمعی',fmt(r.cumulativeFcr),'مقدار canonical ذخیره‌شده');syncLegacyFcrCards(r.weeklyFcr);upsertCard('adineFcrWeeklyAuthority','اختیار مدیریتی هفتگی',fmt(r.managementWeekly),r.management_cohort?('کوهورت: '+r.management_cohort):'');upsertCard('adineFcrCumulativeAuthority','اختیار مدیریتی تجمعی',fmt(r.managementCumulative),r.management_flocks!=null?('تعداد گله مرجع: '+r.management_flocks):'');upsertCard('adineFcrWeeklyOfficial','استاندارد رسمی هفتگی',fmt(r.officialWeekly),r.official_source||'');upsertCard('adineFcrCumulativeOfficial','استاندارد رسمی تجمعی',fmt(r.officialCumulative),r.official_source||'')}catch(e){console.warn('Broiler FCR authority display:',e)}
-  }
-  function patchCalculateWeekly(){
-    if(typeof global.calculateWeekly!=='function'||global.calculateWeekly.__adineBroilerFcrV18)return false;
-    const original=global.calculateWeekly;
-    function wrapped(){const out=original.apply(this,arguments);[0,50,150,400,800].forEach(ms=>setTimeout(()=>{try{showFcr(out)}catch(e){}},ms));return out}
-    wrapped.__adineBroilerFcrV18=true;global.calculateWeekly=wrapped;return true;
-  }
-  function observeResults(){
-    if(global.__adineBroilerFcrResultsObserver||typeof MutationObserver==='undefined')return;
-    const root=document.getElementById('results');if(!root)return;
-    let scheduled=false;
-    new MutationObserver(()=>{if(scheduled||root.__adineFcrUpdating)return;scheduled=true;setTimeout(()=>{scheduled=false;try{if(isBroiler()&&root.children.length)showFcr(null)}catch(e){}},80)}).observe(root,{childList:true});
-    global.__adineBroilerFcrResultsObserver=true;
-  }
-  function patchCalculateButton(){
-    if(!document.documentElement)return false;
-    if(document.documentElement.dataset.adineBroilerFcrCalculateHook==='8')return true;
-    document.documentElement.dataset.adineBroilerFcrCalculateHook='8';
-    document.addEventListener('click',event=>{
-      const el=event.target?.closest?.('button,a,input[type="button"],input[type="submit"]');if(!el)return;
-      const inline=String(el.getAttribute?.('onclick')||''),text=String(el.textContent||'').trim();
-      if(!/calculateWeekly\s*\(|محاسبه پایش/.test(inline+' '+text))return;
-      [0,50,150,400,800].forEach(ms=>setTimeout(()=>{try{if(isBroiler())showFcr(null)}catch(e){}},ms));
-    },true);return true;
-  }
-  function patchSave(){
-    if(typeof global.saveWeeklyRecord!=='function'||global.saveWeeklyRecord.__adineBroilerFcrV18)return false;
-    const original=global.saveWeeklyRecord;
-    async function wrapped(){const out=await original.apply(this,arguments);await showAuthorities();return out}
-    wrapped.__adineBroilerFcrV18=true;global.saveWeeklyRecord=wrapped;return true;
-  }
-  function start(){
-    let i=0;
-    const timer=setInterval(()=>{installBroilerCompatibility();patchCalculateWeekly();patchCalculateButton();patchSave();observeResults();if(++i>240)clearInterval(timer)},250);
-    installBroilerCompatibility();patchCalculateWeekly();patchCalculateButton();patchSave();observeResults();
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
-  global.AdineBroilerFcrWeeklyUI={VERSION,showFcr,weeklyFcr,cumulativeFcr};
+const VERSION='BROILER-FCR-WEEKLY-UI-V1.9';
+const num=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).trim().replace(/[٬,]/g,'').replace(/٫/g,'.').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)));return Number.isFinite(x)?x:null};
+const first=(...v)=>{for(const x of v){const n=num(x);if(n!==null)return n}return null};
+const flock=()=>global.currentFlock||global.currentFlockForSpecialized||null;
+const engine=()=>global.AdineBroilerFCR||null;
+const isBroiler=()=>{const f=flock();const t=String(f?.production_type??f?.productionType??'').trim().toLowerCase();return !!f&&(['broiler','broilers','گوشتی','meat'].includes(t)||engine()?.isBroiler?.(f)===true)};
+const records=()=>Array.isArray(global.weeklyRecords)?global.weeklyRecords.filter(Boolean):[];
+function week(){return first(document.getElementById('weekNumber')?.value)}
+function age(){try{const f=flock(),d=document.getElementById('evaluationDate')?.value;if(f?.placement_date&&d&&typeof global.getGregorianDateForSupabase==='function'&&typeof global.calculateAgeDays==='function'){const a=num(global.calculateAgeDays(f.placement_date,global.getGregorianDateForSupabase(d)));if(a!==null)return a}}catch(e){}const w=week();return w!==null?w*7:null}
+function inputs(){const live=first(document.getElementById('liveBirds')?.value),feed=first(document.getElementById('feedTotal')?.value),weight=first(document.getElementById('averageWeightDirect')?.value);let w=weight;if(w===null){const xs=[...document.querySelectorAll('#weightsContainer .bird-weight')].map(x=>num(x.value)).filter(x=>x!==null&&x>0);if(xs.length)w=xs.reduce((a,b)=>a+b,0)/xs.length}return{week:week(),age:age(),live,feed,weight:w}}
+function previousSync(i){const rs=records(),edit=String(global.editingRecordId||'');const usable=rs.filter(r=>String(r.id)!==edit);const prior=usable.filter(r=>{const rw=first(r.week_number,r.weekNumber,r.week);if(i.week!==null&&rw!==null)return rw<i.week;const ra=first(r.age_days,r.ageDays);return i.age!==null&&ra!==null&&ra<i.age}).sort((a,b)=>(first(a.age_days,a.ageDays)??first(a.week_number,a.weekNumber,b.week*7)??0)-(first(b.age_days,b.ageDays)??first(b.week_number,b.weekNumber,b.week*7)??0));return prior.at(-1)||null}
+async function previous(i){const p=previousSync(i);if(p)return p;const f=flock();const client=global.supabaseClient;if(!client||!f?.id)return null;try{let q=client.from('weekly_records').select('id,week_number,age_days,live_birds,average_weight_g,feed_total_kg,evaluation_date').eq('flock_id',f.id);if(i.week!==null)q=q.lt('week_number',i.week).order('week_number',{ascending:false}).limit(1);else if(i.age!==null)q=q.lt('age_days',i.age).order('age_days',{ascending:false}).limit(1);else return null;const {data,error}=await q.maybeSingle();return error?null:data||null}catch(e){return null}}
+function opening(p){const f=flock();return{birds:first(p?.live_birds,p?.liveBirds,f?.initial_bird_count,f?.initialBirdCount),weight:first(p?.average_weight_g,p?.averageWeightG,p?.averageWeight,f?.initial_average_weight_g,f?.initialAverageWeightG),age:first(p?.age_days,p?.ageDays,f?.start_age_days,f?.startAgeDays)??0}}
+function canonicalWeekly(i,p){const e=engine();if(!e?.canonical)return null;const o=opening(p);if(i.feed===null||i.feed<=0||i.live===null||i.live<=0||i.weight===null||i.weight<=0||o.birds===null||o.birds<=0||o.weight===null||o.weight<=0||i.age===null||i.age<=o.age)return null;const out=e.canonical([{age_days:o.age,live_birds:o.birds,average_weight_g:o.weight,feed_total_kg:0},{age_days:i.age,live_birds:i.live,average_weight_g:i.weight,feed_total_kg:i.feed}],flock());return out.length?out.at(-1).weeklyFcr:null}
+function canonicalCumulative(i){const e=engine(),f=flock();if(!e?.canonical||!f||i.feed===null||i.feed<=0||i.live===null||i.live<=0||i.weight===null||i.weight<=0||i.age===null)return null;const current={age_days:i.age,live_birds:i.live,average_weight_g:i.weight,feed_total_kg:i.feed};const prior=records().filter(r=>String(r.id)!==String(global.editingRecordId||'')).filter(r=>(first(r.age_days,r.ageDays)??-1)<i.age);const out=e.canonical([...prior,current],f);return out.length?out.at(-1).cumulativeFcr:null}
+function setCard(id,title,value,sub){const root=document.getElementById('results');if(!root)return;let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;el.className='metric-card';root.appendChild(el)}el.innerHTML='<div class="metric-label">'+title+'</div><div class="metric-value">'+value+'</div>'+(sub?'<div class="metric-label" style="margin-top:6px">'+sub+'</div>':'')}
+function legacy(value){const root=document.getElementById('results');if(!root||value===null)return;root.querySelectorAll('.metric-card').forEach(el=>{if(el.id==='adineFcrWeekly'||el.id==='adineFcrCumulative')return;const label=String(el.querySelector('.metric-label,.metric-title')?.textContent||'').trim();if(label==='FCR'||label.toLowerCase()==='fcr'){const v=el.querySelector('.metric-value');if(v)v.textContent=Number(value).toFixed(3)}})}
+async function showFcr(){if(!isBroiler())return;const root=document.getElementById('results');if(!root)return;const i=inputs();if(i.feed===null||i.live===null||i.weight===null||i.age===null){setCard('adineFcrWeekly','FCR هفتگی','قابل محاسبه نیست','داده لازم: دان، پرنده زنده، وزن و سن');return}const p=await previous(i);const wf=canonicalWeekly(i,p),cf=canonicalCumulative(i);setCard('adineFcrWeekly','FCR هفتگی',wf===null?'قابل محاسبه نیست':Number(wf).toFixed(3),wf===null?'رکورد قبلی برای همین دوره یافت نشد یا افزایش وزن مثبت نیست':'موتور canonical گوشتی');setCard('adineFcrCumulative','FCR تجمعی',cf===null?'پس از ذخیره تکمیل می‌شود':Number(cf).toFixed(3),'از ابتدای گله بر اساس افزایش زیست‌توده');legacy(wf)}
+async function showSaved(){if(!isBroiler()||!engine()?.analysis||!flock()?.id)return;try{const a=await engine().analysis(flock().id),r=a?.latest;if(!r)return;const f=v=>num(v)===null?'—':Number(v).toFixed(3);setCard('adineFcrWeekly','FCR هفتگی',f(r.weeklyFcr),'مقدار canonical ذخیره‌شده');setCard('adineFcrCumulative','FCR تجمعی',f(r.cumulativeFcr),'مقدار canonical ذخیره‌شده');setCard('adineFcrWeeklyAuthority','هدف مدیریتی هفتگی',f(r.managementWeekly),r.management_cohort||'');setCard('adineFcrCumulativeOfficial','استاندارد رسمی تجمعی',f(r.officialCumulative),r.official_source||'')}catch(e){console.warn('Broiler FCR authority display:',e)}}
+function hook(){if(typeof global.calculateWeekly==='function'&&!global.calculateWeekly.__adineFcr19){const o=global.calculateWeekly;const w=function(){const r=o.apply(this,arguments);[0,80,250,600,1200].forEach(ms=>setTimeout(()=>showFcr(),ms));return r};w.__adineFcr19=true;global.calculateWeekly=w}if(typeof global.saveWeeklyRecord==='function'&&!global.saveWeeklyRecord.__adineFcrSave19){const o=global.saveWeeklyRecord;const w=async function(){const r=await o.apply(this,arguments);await showSaved();return r};w.__adineFcrSave19=true;global.saveWeeklyRecord=w}}
+function start(){hook();document.addEventListener('click',e=>{const el=e.target?.closest?.('button');if(el&&/محاسبه پایش|calculateWeekly/.test(String(el.textContent||'')+' '+String(el.getAttribute('onclick')||''))){[80,250,600,1200].forEach(ms=>setTimeout(()=>showFcr(),ms))}},true);const r=document.getElementById('results');if(r&&typeof MutationObserver!=='undefined'&&!r.__adineFcrObs){new MutationObserver(()=>setTimeout(()=>showFcr(),100)).observe(r,{childList:true});r.__adineFcrObs=true}setInterval(()=>{if(isBroiler())hook()},1000)}
+if(typeof document!=='undefined'){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()}
+global.AdineBroilerFcrWeeklyUI={VERSION,showFcr,showSaved,weeklyFcr:async()=>canonicalWeekly(inputs(),await previous(inputs())),cumulativeFcr:()=>canonicalCumulative(inputs())};
 })(typeof window!=='undefined'?window:globalThis);

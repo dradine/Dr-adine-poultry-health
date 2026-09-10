@@ -1,4 +1,4 @@
-/* ADINE — BROILER COMPREHENSIVE REPORT FIXES V3
+/* ADINE — BROILER COMPREHENSIVE REPORT FIXES V4
    Presentation-only compatibility/fix layer for the isolated broiler comprehensive report.
    RED LINES: no weekly-record writes; no weekly-report calculations; no official-standard changes;
    no navigation changes; no layer/pullet/breeder behavior changes.
@@ -9,12 +9,23 @@
   const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
   const fmt=(v,d=1)=>{const x=n(v);return x===null?'—':x.toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d})};
   let cumulativeFcrChart=null;
+  let mortalityChart=null;
+
   function patchMortalityModel(model){
     if(!model?.rows?.length)return model;
-    const initial=n(model.initialBirds);
+    const explicitInitial=n(model.initialBirds);
+    const sourceRows=model.rows;
+    /* If initial flock size is not present on the flock object, infer it only for
+       mortality presentation from the first week's end-live + first-week deaths.
+       This is intentionally presentation-only and does not alter source records. */
+    const firstDeaths=n(sourceRows[0]?.mortalityCount);
+    const firstLive=n(sourceRows[0]?.liveBirds);
+    const inferredInitial=explicitInitial!==null&&explicitInitial>0
+      ? explicitInitial
+      : (firstDeaths!==null&&firstLive!==null&&firstDeaths+firstLive>0 ? firstDeaths+firstLive : null);
     let cumulativeCount=0;
     let previousLive=null;
-    const rows=model.rows.map((r,i)=>{
+    const rows=sourceRows.map((r,i)=>{
       const deaths=n(r.mortalityCount);
       const live=n(r.liveBirds);
       cumulativeCount += deaths??0;
@@ -22,23 +33,26 @@
       if(deaths!==null){
         let atRisk=null;
         if(i===0){
-          atRisk=initial;
-        }else if(previousLive!==null){
+          atRisk=inferredInitial;
+        }else if(previousLive!==null&&previousLive>0){
           atRisk=previousLive;
-        }else if(initial!==null&&initial>0){
-          atRisk=initial-(cumulativeCount-deaths);
+        }else if(inferredInitial!==null&&inferredInitial>0){
+          atRisk=inferredInitial-(cumulativeCount-deaths);
         }
         if(atRisk!==null&&atRisk>0)weeklyPercent=deaths/atRisk*100;
       }
-      const cumulativePercent=initial!==null&&initial>0?cumulativeCount/initial*100:null;
+      const cumulativePercent=inferredInitial!==null&&inferredInitial>0?cumulativeCount/inferredInitial*100:null;
       if(live!==null)previousLive=live;
       return Object.freeze({...r,mortalityPercent:weeklyPercent,cumulativeMortalityCount:cumulativeCount,cumulativeMortalityPercent:cumulativePercent});
     });
     const latest=rows.at(-1)||null;
-    const count=rows.reduce((s,r)=>s+(n(r.mortalityCount)??0),0);
-    const percent=initial!==null&&initial>0?count/initial*100:null;
-    return Object.freeze({...model,rows:Object.freeze(rows),last:latest,cumulativeMortalityCount:count,cumulativeMortalityPercent:percent,mortalityMethod:'sum-weekly-mortality-counts'});
+    const percent=inferredInitial!==null&&inferredInitial>0?cumulativeCount/inferredInitial*100:null;
+    return Object.freeze({...model,rows:Object.freeze(rows),last:latest,
+      cumulativeMortalityCount:cumulativeCount,cumulativeMortalityPercent:percent,
+      mortalityInitialBirds:inferredInitial,
+      mortalityMethod:explicitInitial!==null?'sum-weekly-mortality-counts':'first-week-live-plus-mortality'});
   }
+
   function captureModel(){
     const api=global.AdineBroilerComprehensiveReportEngineV2;
     if(!api?.build||api.__fixWrapped)return;
@@ -54,9 +68,16 @@
     api.__fixWrapped=true;
   }
   captureModel();
-  function patchTrendUnit(){document.querySelectorAll('.cr2-card-sub').forEach(el=>{if(el.textContent.includes('٪/گام'))el.textContent=el.textContent.replace('٪/گام','٪ در هر هفته')})}
+
+  function patchTrendUnit(){
+    document.querySelectorAll('.cr2-card-sub').forEach(el=>{
+      if(el.textContent.includes('٪/گام'))el.textContent=el.textContent.replace('٪/گام','٪ در هر هفته');
+    });
+  }
+
   function ensureCumulativeFcrChart(){
-    const canvas=$('cr2CumulativeFcr'),model=global.__adineBroilerComprehensiveModel;if(!canvas||!model||!global.Chart||!model.rows?.length)return;
+    const canvas=$('cr2CumulativeFcr'),model=global.__adineBroilerComprehensiveModel;
+    if(!canvas||!model||!global.Chart||!model.rows?.length)return;
     if(cumulativeFcrChart){try{cumulativeFcrChart.destroy()}catch(e){}cumulativeFcrChart=null}
     const labels=model.rows.map(r=>'هفته '+fmt(r.week,0));
     cumulativeFcrChart=new Chart(canvas,{type:'line',data:{labels,datasets:[
@@ -64,17 +85,18 @@
       {label:'مرجع رسمی FCR تجمعی',data:model.rows.map(r=>n(r.standardCumulativeFcr)),borderWidth:2,tension:.25,pointRadius:2,fill:false,spanGaps:true,borderDash:[6,4]}
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',rtl:true,labels:{font:{family:'Tahoma',size:10},usePointStyle:true}},tooltip:{rtl:true,bodyFont:{family:'Tahoma'},titleFont:{family:'Tahoma'}}},scales:{x:{grid:{display:false},ticks:{font:{family:'Tahoma',size:9}}},y:{beginAtZero:false,title:{display:true,text:'FCR',font:{family:'Tahoma',size:9}},ticks:{font:{family:'Tahoma',size:9}}}}}});
   }
+
   function ensureMortalityChart(){
     const canvas=$('cr2Mort'),model=global.__adineBroilerComprehensiveModel;
     if(!canvas||!model||!global.Chart||!model.rows?.length)return;
-    const existing=global.__adineBroilerMortalityChart;
-    if(existing){try{existing.destroy()}catch(e){}}
+    if(mortalityChart){try{mortalityChart.destroy()}catch(e){}mortalityChart=null}
     const labels=model.rows.map(r=>'هفته '+fmt(r.week,0));
-    global.__adineBroilerMortalityChart=new Chart(canvas,{type:'bar',data:{labels,datasets:[
+    mortalityChart=new Chart(canvas,{type:'bar',data:{labels,datasets:[
       {label:'تلفات هفتگی (%)',data:model.rows.map(r=>n(r.mortalityPercent)),backgroundColor:'rgba(183,78,78,.55)',borderColor:'rgba(183,78,78,1)',borderWidth:1},
       {type:'line',label:'تلفات تجمعی (%)',data:model.rows.map(r=>n(r.cumulativeMortalityPercent)),borderColor:'rgba(120,70,70,1)',backgroundColor:'rgba(120,70,70,1)',borderWidth:2,tension:.25,pointRadius:3,fill:false,spanGaps:true}
     ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',rtl:true,labels:{font:{family:'Tahoma',size:10},usePointStyle:true}},tooltip:{rtl:true,bodyFont:{family:'Tahoma'},titleFont:{family:'Tahoma'}}},scales:{x:{grid:{display:false},ticks:{font:{family:'Tahoma',size:9}}},y:{beginAtZero:true,title:{display:true,text:'درصد',font:{family:'Tahoma',size:9}},ticks:{font:{family:'Tahoma',size:9}}}}}});
   }
+
   function injectChart(){
     patchTrendUnit();
     if($('cr2CumulativeFcr'))ensureCumulativeFcrChart();
@@ -92,8 +114,9 @@
     }
     ensureMortalityChart();
   }
-  function schedule(){setTimeout(()=>{captureModel();patchTrendUnit();injectChart()},80)}
+
+  function schedule(){setTimeout(()=>{captureModel();patchTrendUnit();injectChart()},120)}
   function init(){schedule();if(global.MutationObserver)new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-  global.AdineBroilerComprehensiveReportFixesV1={version:'BROILER-COMPREHENSIVE-REPORT-FIXES-V3'};
+  global.AdineBroilerComprehensiveReportFixesV1={version:'BROILER-COMPREHENSIVE-REPORT-FIXES-V4'};
 })(typeof window!=='undefined'?window:globalThis);

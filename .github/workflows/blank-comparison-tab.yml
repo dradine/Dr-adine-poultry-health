@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Disable legacy comparison renderer
+      - name: Isolate comparison tab and install comparison UI
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -20,17 +20,23 @@ jobs:
           s=s.replace('data-tab="compare"','data-tab="compare-empty"')
           s=s.replace('.report-toolbar.is-compare,#root.is-compare{display:none!important}', '.report-toolbar.is-compare-empty,#root.is-compare-empty{display:none!important}')
           s=s.replace("tab==='compare'", "tab==='compare-empty'")
+          marker='<script src="broiler-flock-comparison-v1.js?v=20260911.1"></script>'
+          if marker not in s:
+              s=s.replace('</body>',marker+'\n</body>')
           p.write_text(s,encoding='utf-8')
           PY
           grep -n 'compare-empty' reports.html
+          grep -n 'broiler-flock-comparison-v1.js' reports.html
       - name: Validate
         run: |
           test "$(grep -o 'data-tab=\"compare-empty\"' reports.html | wc -l)" -eq 1
           test "$(grep -o 'is-compare-empty' reports.html | wc -l)" -ge 1
+          test "$(grep -o 'broiler-flock-comparison-v1.js' reports.html | wc -l)" -eq 1
+          test -s broiler-flock-comparison-engine-v1.js
       - name: Commit
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add reports.html
-          git diff --cached --quiet || git commit -m 'fix: comparison tab blank [applied]'
+          git diff --cached --quiet || git commit -m 'feat: install independent broiler flock comparison UI [applied]'
           git push

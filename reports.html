@@ -18,6 +18,8 @@
 <style>
 /* ADINE: the week selector belongs only to the standalone weekly report. */
 .report-toolbar.is-comprehensive .toolbar-left{display:none!important}
+/* ADINE: comparison tab is intentionally blank until its new design is built. */
+.report-toolbar.is-compare,#root.is-compare{display:none!important}
 </style>
 </head>
 <body>
@@ -35,7 +37,7 @@
 <button class="bottom-nav-item active" type="button" onclick="location.href='reports.html'" aria-label="گزارش‌ها"><span class="bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h6"></path><path d="M9 16h6"></path><path d="M9 8h2"></path></svg></span><span>گزارش‌ها</span></button>
 </nav>
 <script src="broiler-comprehensive-report-early-guard-v1.js?v=20260911.2"></script>
-<script src="reports.js?v=20260910.3"></script>
+<script src="reports.js?v=20260911.6"></script>
 <script src="reports-performance-intelligence-v1.js?v=20260910.9"></script>
 <script src="broiler-comprehensive-report-engine-v2.js?v=20260911.4"></script>
 <script src="broiler-comprehensive-report-fixes-v1.js?v=20260911.4"></script>
@@ -46,17 +48,28 @@
 <script src="weight-band-runtime-v1.js?v=2.2.0"></script>
 <script>
 (function(){
-  function syncWeekSelector(){
+  function syncReportChrome(){
     var toolbar=document.querySelector('.report-toolbar');
+    var root=document.getElementById('root');
     var active=document.querySelector('.report-tab.active');
-    if(!toolbar||!active)return;
-    toolbar.classList.toggle('is-comprehensive',active.getAttribute('data-tab')==='overall');
+    if(!toolbar||!root||!active)return;
+    var tab=active.getAttribute('data-tab');
+    toolbar.classList.toggle('is-comprehensive',tab==='overall');
+    toolbar.classList.toggle('is-compare',tab==='compare');
+    root.classList.toggle('is-compare',tab==='compare');
+    if(tab==='compare'){
+      root.innerHTML='';
+    }
   }
   document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('.report-tab'))setTimeout(syncWeekSelector,0);
-  });
-  new MutationObserver(syncWeekSelector).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
-  syncWeekSelector();
+    if(e.target.closest&&e.target.closest('.report-tab')){
+      setTimeout(syncReportChrome,0);
+      setTimeout(syncReportChrome,50);
+      setTimeout(syncReportChrome,250);
+    }
+  },true);
+  new MutationObserver(syncReportChrome).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+  syncReportChrome();
 })();
 </script>
 </body>

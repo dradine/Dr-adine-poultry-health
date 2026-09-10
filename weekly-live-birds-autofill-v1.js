@@ -1,6 +1,6 @@
 /* =========================================================
    ADINE POULTRY HEALTH CENTER
-   WEEKLY LIVE BIRDS AUTO-FILL v3
+   WEEKLY LIVE BIRDS AUTO-FILL v4
    Scope: ONLY automatic live-bird population in weekly entry.
 ========================================================= */
 (function () {
@@ -15,6 +15,8 @@
     let recordsFlockId = null;
     let bound = false;
     let recalculationTimer = null;
+    let bootTimer = null;
+    let bootStarted = false;
 
     function num(value) {
         if (value === null || value === undefined || value === "") return null;
@@ -54,10 +56,11 @@
             flockCache = window.currentFlockForSpecialized;
             return flockCache;
         }
-        if (flockCache?.id && String(flockCache.id) === String(getFlockId())) return flockCache;
 
         const id = getFlockId();
+        if (flockCache?.id && id && String(flockCache.id) === String(id)) return flockCache;
         if (!id || !window.supabaseClient) return null;
+
         try {
             const { data, error } = await window.supabaseClient
                 .from("flocks")
@@ -114,7 +117,7 @@
 
     function write(value) {
         const el = document.getElementById(LIVE_ID);
-        if (!el || !Number.isFinite(value)) return;
+        if (!el || !Number.isFinite(value)) return false;
         const safe = Math.max(0, Math.floor(value));
         el.value = String(safe);
         el.readOnly = true;
@@ -122,6 +125,7 @@
         el.setAttribute("aria-readonly", "true");
         el.setAttribute("tabindex", "-1");
         el.dataset.autoLiveBirds = "true";
+        return true;
     }
 
     function bestPreviousLive(records, week, currentId) {
@@ -155,17 +159,14 @@
     async function recalculate() {
         const el = document.getElementById(LIVE_ID);
         const week = weekValue();
-        if (!el || !(week >= 1)) return;
+        if (!el || !(week >= 1)) return false;
 
         const f = await resolveFlock();
-        if (!f?.id) return;
+        if (!f?.id) return false;
         const initial = initialBirds(f);
-        if (!(initial >= 0)) return;
+        if (!(initial >= 0)) return false;
 
-        if (week === 1) {
-            write(initial);
-            return;
-        }
+        if (week === 1) return write(initial);
 
         const records = await loadRecords(f);
         const currentId = editingId();
@@ -174,12 +175,12 @@
         const result = prev
             ? Math.max(0, Math.floor(prev.live) - mortality)
             : reconstruct(records, initial, week, currentId, mortality);
-        write(result);
+        return write(result);
     }
 
     function schedule() {
         clearTimeout(recalculationTimer);
-        recalculationTimer = setTimeout(() => recalculate(), 0);
+        recalculationTimer = setTimeout(() => { recalculate(); }, 0);
     }
 
     function bind() {
@@ -190,6 +191,8 @@
 
         live.readOnly = true;
         live.setAttribute("readonly", "readonly");
+        live.setAttribute("aria-readonly", "true");
+        live.setAttribute("tabindex", "-1");
         live.dataset.autoLiveBirds = "true";
 
         if (!bound) {
@@ -210,12 +213,24 @@
         return true;
     }
 
+    async function bootAttempt() {
+        const boundNow = bind();
+        if (!boundNow) return false;
+        return await recalculate();
+    }
+
     function start() {
+        if (bootStarted) return;
+        bootStarted = true;
         let tries = 0;
-        const timer = setInterval(() => {
+        bootTimer = setInterval(async () => {
             tries++;
-            if (bind() || tries >= 300) clearInterval(timer);
-        }, 100);
+            const success = await bootAttempt();
+            if (success || tries >= 240) {
+                clearInterval(bootTimer);
+                bootTimer = null;
+            }
+        }, 250);
     }
 
     window.AdineWeeklyLiveBirdsAuto = {

@@ -1,0 +1,28 @@
+name: Broiler Comprehensive Report Regression
+on:
+  push:
+    branches: [ main, feat/broiler-comprehensive-report-v1 ]
+  pull_request:
+    paths:
+      - 'broiler-comprehensive-report-engine-v1.js'
+      - 'broiler-comprehensive-report-ui-v1.js'
+      - 'broiler-comprehensive-report-v1.css'
+      - 'reports.html'
+      - 'tests/broiler-comprehensive-report-v1.test.js'
+      - 'tests/broiler-comprehensive-report-shell-v1.test.js'
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check
+        run: |
+          node --check broiler-comprehensive-report-engine-v1.js
+          node --check broiler-comprehensive-report-ui-v1.js
+      - name: Engine regression
+        run: node tests/broiler-comprehensive-report-v1.test.js
+      - name: Shell and red-line regression
+        run: node tests/broiler-comprehensive-report-shell-v1.test.js

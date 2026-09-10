@@ -1,14 +1,14 @@
 /* =========================================================
    ADINE POULTRY HEALTH CENTER
-   WEEKLY LIVE BIRDS AUTO-FILL v1
+   WEEKLY LIVE BIRDS AUTO-FILL v2
    Scope: ONLY automatic live-bird population in weekly entry.
    Does not alter standards, engines, calculations, navigation or layout.
 
    Rule:
    Week 1 = initial flock placement count.
    Week N (>1) = previous week's live birds - mortality entered for week N.
-   If the immediate previous weekly record is unavailable, the value is
-   reconstructed from initial flock count and saved mortalities from weeks 2..N.
+   If a previous live value is unavailable, reconstruct from initial count
+   and saved mortalities from weeks 2..N-1, then subtract current mortality.
 ========================================================= */
 (function () {
     "use strict";
@@ -16,9 +16,11 @@
     const LIVE_ID = "liveBirds";
     const MORTALITY_ID = "mortalityWeek";
     const WEEK_ID = "weekNumber";
+    const SELECTION_KEY = "adine_poultry_current_selection";
     let cache = { flockId: null, records: null };
     let lastSignature = "";
     let busy = false;
+    let bound = false;
 
     function num(value) {
         if (value === null || value === undefined || value === "") return null;
@@ -27,6 +29,17 @@
             : v => String(v ?? "").replace(/,/g, "");
         const n = Number(normalizer(value));
         return Number.isFinite(n) ? n : null;
+    }
+
+    function selectedFlockId() {
+        try {
+            const raw = localStorage.getItem(SELECTION_KEY);
+            if (!raw) return null;
+            const selection = JSON.parse(raw);
+            return selection?.flockId || selection?.flock_id || null;
+        } catch (_) {
+            return null;
+        }
     }
 
     function flock() {
@@ -49,16 +62,42 @@
 
     function currentMortality() {
         const m = num(document.getElementById(MORTALITY_ID)?.value);
-        return m === null ? 0 : Math.max(0, m);
+        return m === null ? 0 : Math.max(0, Math.floor(m));
     }
 
     function currentRecordId() {
-        return window.editingRecordId || null;
+        return window.editingRecordId || window.__editingRecordId || null;
+    }
+
+    async function resolveFlock() {
+        const existing = flock();
+        if (existing?.id) return existing;
+
+        const id = selectedFlockId();
+        if (!id || !window.supabaseClient) return null;
+
+        try {
+            const { data, error } = await window.supabaseClient
+                .from("flocks")
+                .select("*")
+                .eq("id", id)
+                .maybeSingle();
+            if (!error && data) {
+                window.currentFlockForSpecialized = data;
+                return data;
+            }
+        } catch (error) {
+            console.warn("Weekly live-birds auto-fill: flock resolve failed", error);
+        }
+        return null;
     }
 
     async function loadRecords(f) {
         if (!f?.id || !window.supabaseClient) return [];
-        if (cache.flockId === String(f.id) && Array.isArray(cache.records)) return cache.records;
+        const flockId = String(f.id);
+        // Always refresh when the weekly form is recalculated. This is intentional:
+        // a newly saved week must immediately become the source for the next week.
+        if (cache.flockId !== flockId) cache = { flockId, records: null };
 
         try {
             const { data, error } = await window.supabaseClient
@@ -70,14 +109,14 @@
 
             if (error) {
                 console.warn("Weekly live-birds auto-fill: records load failed", error);
-                return [];
+                return Array.isArray(cache.records) ? cache.records : [];
             }
 
-            cache = { flockId: String(f.id), records: Array.isArray(data) ? data : [] };
+            cache = { flockId, records: Array.isArray(data) ? data : [] };
             return cache.records;
         } catch (error) {
             console.warn("Weekly live-birds auto-fill: records load error", error);
-            return [];
+            return Array.isArray(cache.records) ? cache.records : [];
         }
     }
 
@@ -85,7 +124,14 @@
         const el = document.getElementById(LIVE_ID);
         if (!el || !Number.isFinite(value)) return;
         const safe = Math.max(0, Math.floor(value));
-        el.value = String(safe);
+        const text = String(safe);
+        if (el.value !== text) {
+            el.value = text;
+            // Trigger the same native events the existing weekly page expects,
+            // without changing any calculation formula.
+            try { el.dispatchEvent(new Event("input", { bubbles: true })); } catch (_) {}
+            try { el.dispatchEvent(new Event("change", { bubbles: true })); } catch (_) {}
+        }
         el.readOnly = true;
         el.setAttribute("readonly", "readonly");
         el.setAttribute("aria-readonly", "true");
@@ -98,7 +144,7 @@
         const candidates = (records || []).filter(r => {
             if (currentId && String(r.id) === String(currentId)) return false;
             const w = num(r.week_number ?? r.weekNumber);
-            return w !== null && w < week;
+            return w !== null && w < week && num(r.live_birds ?? r.liveBirds) !== null;
         });
         candidates.sort((a, b) => {
             const wa = num(a.week_number ?? a.weekNumber) ?? 0;
@@ -123,8 +169,8 @@
             .sort((a, b) => (num(a.week_number ?? a.weekNumber) ?? 0) - (num(b.week_number ?? b.weekNumber) ?? 0));
 
         for (const r of saved) {
-            live -= Math.max(0, num(r.mortality_count ?? r.mortality ?? r.weekly_mortality) ?? 0);
-            if (live < 0) live = 0;
+            live -= Math.max(0, Math.floor(num(r.mortality_count ?? r.mortality ?? r.weekly_mortality) ?? 0));
+            live = Math.max(0, live);
         }
 
         live -= mortalityNow;
@@ -132,7 +178,7 @@
     }
 
     async function recalculate(force) {
-        const f = flock();
+        const f = await resolveFlock();
         const week = currentWeek();
         const liveEl = document.getElementById(LIVE_ID);
         if (!f?.id || !liveEl || !(week >= 1)) return null;
@@ -143,13 +189,8 @@
         lastSignature = sig;
 
         const initial = initialBirds(f);
-        if (!(initial >= 0)) {
-            liveEl.readOnly = false;
-            liveEl.removeAttribute("aria-readonly");
-            return null;
-        }
+        if (!(initial >= 0)) return null;
 
-        // Explicit business rule: week 1 is the placement population.
         if (week === 1) {
             write(initial);
             return initial;
@@ -161,11 +202,8 @@
             const records = await loadRecords(f);
             const prev = previousRecord(records, week, currentRecordId());
             const prevLive = num(prev?.live_birds ?? prev?.liveBirds);
-
-            // Prefer the stored previous week's live population so edits/deletions
-            // do not change the established chain of weekly populations.
             const calculated = prevLive !== null
-                ? Math.max(0, prevLive - mortality)
+                ? Math.max(0, Math.floor(prevLive) - mortality)
                 : fallbackPopulation(records, initial, week, currentRecordId(), mortality);
 
             if (calculated !== null) write(calculated);
@@ -188,13 +226,30 @@
             live.setAttribute("tabindex", "-1");
         }
 
-        [mortality, week].forEach(el => {
-            if (el.dataset.liveBirdsAutoListener) return;
-            el.dataset.liveBirdsAutoListener = "1";
-            ["input", "change", "blur", "keyup"].forEach(eventName => {
-                el.addEventListener(eventName, () => recalculate(true));
+        if (!bound) {
+            bound = true;
+            [mortality, week].forEach(el => {
+                if (el.dataset.liveBirdsAutoListener) return;
+                el.dataset.liveBirdsAutoListener = "1";
+                ["input", "change", "blur", "keyup"].forEach(eventName => {
+                    el.addEventListener(eventName, () => recalculate(true));
+                });
             });
-        });
+
+            // Weekly.js loads the selected flock asynchronously. Re-check after it
+            // finishes instead of requiring the user to refresh or re-enter data.
+            const refreshEvents = [
+                "weekly:flock-loaded",
+                "weekly:history-loaded",
+                "weekly:record-saved",
+                "weekly:record-edited"
+            ];
+            refreshEvents.forEach(name => document.addEventListener(name, () => {
+                cache = { flockId: null, records: null };
+                lastSignature = "";
+                recalculate(true);
+            }));
+        }
 
         recalculate(true);
         return true;
@@ -203,7 +258,8 @@
     function invalidateAndRefresh() {
         cache = { flockId: null, records: null };
         lastSignature = "";
-        setTimeout(() => recalculate(true), 250);
+        setTimeout(() => recalculate(true), 100);
+        setTimeout(() => recalculate(true), 500);
     }
 
     function patchSave() {
@@ -258,19 +314,17 @@
         invalidateAndRefresh
     };
 
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", () => {
-            let attempts = 0;
-            const timer = setInterval(() => {
-                attempts++;
-                if (boot() || attempts >= 120) clearInterval(timer);
-            }, 100);
-        }, { once: true });
-    } else {
+    function start() {
         let attempts = 0;
         const timer = setInterval(() => {
             attempts++;
-            if (boot() || attempts >= 120) clearInterval(timer);
+            if (boot() || attempts >= 180) clearInterval(timer);
         }, 100);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", start, { once: true });
+    } else {
+        start();
     }
 })();

@@ -13,6 +13,7 @@ on:
       - 'reports.css'
       - 'broiler-comprehensive-report-engine-v2.js'
       - 'broiler-comprehensive-report-ui-v2-2.js'
+      - 'broiler-comprehensive-report-fixes-v1.js'
       - 'broiler-comprehensive-report-v2.css'
       - 'performance-intelligence-v1.js'
       - 'reports-performance-intelligence-v1.js'
@@ -29,6 +30,7 @@ on:
       - 'reports.css'
       - 'broiler-comprehensive-report-engine-v2.js'
       - 'broiler-comprehensive-report-ui-v2-2.js'
+      - 'broiler-comprehensive-report-fixes-v1.js'
       - 'broiler-comprehensive-report-v2.css'
       - 'performance-intelligence-v1.js'
       - 'reports-performance-intelligence-v1.js'
@@ -53,6 +55,7 @@ jobs:
           node --check reports-performance-intelligence-v1.js
           node --check broiler-comprehensive-report-engine-v2.js
           node --check broiler-comprehensive-report-ui-v2-2.js
+          node --check broiler-comprehensive-report-fixes-v1.js
           node --check adine-weight-band-engine-v1.js
           node --check weight-band-runtime-v1.js
       - name: Weight Band V2 regression test

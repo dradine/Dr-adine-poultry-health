@@ -1,7 +1,7 @@
-/* ADINE REPORTS — BROILER PERFORMANCE INTELLIGENCE V6
-   Read-only presentation adapter. Canonical metrics and weekly report calculations are untouched.
-   The analysis engine first uses the authoritative performance-intelligence resolver.
-   If no authoritative target exists, an exact-age management benchmark is used as an explicit fallback.
+/* ADINE REPORTS — BROILER PERFORMANCE INTELLIGENCE V7
+   Read-only presentation adapter. Canonical weekly calculations are untouched.
+   Official broiler references come from the canonical broiler official registry.
+   Management benchmarks remain a separate, explicitly labelled fallback.
 */
 "use strict";
 (function(global){
@@ -17,7 +17,8 @@
   const label={body_weight:"وزن",weekly_weight_gain:"افزایش وزن هفتگی",fcr:"FCR هفتگی",cumulative_fcr:"FCR تجمعی",cv:"CV",uniformity_10:"یکنواختی ±10",uniformity_15:"یکنواختی ±15"};
   const unit=m=>m==="body_weight"||m==="weekly_weight_gain"?" گرم":m==="cv"||m.startsWith("uniformity")?"٪":"";
   const norm=v=>String(v??'').normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/[‐‑‒–—−]/g,'-').replace(/[._/\\]+/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
-  function history(rows,i,m){return rows.slice(0,i).map(r=>({x:n(r.age),y:value(r,m),standard:modelTarget(r,m)})).filter(p=>p.x!==null&&p.y!==null&&p.standard!==null&&p.standard>0)}
+  function history(rows,i,m){return rows.slice(0,i).map(r=>({x:n(r.age),y:value(r,m),standard:modelTarget(r,m)})).filter(p=>p.x!==null&&p.y!==null)}
+  function officialMeta(r,m){return{source_type:r?.weightSource||null,source_name:r?.weightSourceLabel||r?.fcrSourceLabel||null,standard_age_days:r?.benchmarkAgeDays??null};}
   async function managementTargets(flock,ageDays){
     const client=global.supabaseClient||global.supabase;
     if(!client||n(ageDays)===null)return{};
@@ -45,7 +46,7 @@
     const at=a.alert?.alert?`<div class="pi-alert">هشدار روند: ${a.alert.severity==="high"?"شدید":"نیازمند پایش"}</div>`:"";
     const source=a.source_name?`<div class="pi-source">منبع مرجع تحلیل: ${esc(a.source_name)}</div>`:'';
     const mg=management?`<div class="pi-target management">هدف مدیریتی: ${fmt(management.value,m.includes("fcr")?3:1)}${unit(m)}${management.sourceName?` — ${esc(management.sourceName)}`:''}</div>`:`<div class="pi-target management">هدف مدیریتی: ثبت نشده</div>`;
-    return `<article class="pi-card ${s}"><div class="pi-card-head"><span>${esc(label[m])}</span><span class="pi-badge ${s}">${esc(statusFa(a.status))}</span></div><div class="pi-main">${fmt(a.current,m.includes("fcr")?3:1)}${unit(m)}</div><div class="pi-target">مرجع تحلیل: ${fmt(a.target,m.includes("fcr")?3:1)}${unit(m)}${a.source_type?` — ${esc(a.source_type)}`:''}</div>${mg}<div class="pi-detail">${esc(cmp||"بدون انحراف قابل گزارش")}</div><div class="pi-forecast">${esc(ft)}</div>${source}${at}</article>`;
+    return `<article class="pi-card ${s}"><div class="pi-card-head"><span>${esc(label[m])}</span><span class="pi-badge ${s}">${esc(statusFa(a.status))}</span></div><div class="pi-main">${fmt(a.current,m.includes("fcr")?3:1)}${unit(m)}</div><div class="pi-target">مرجع تحلیل: ${fmt(a.target,m.includes("fcr")?3:1)}${unit(m)}${a.source_type?` — ${esc(a.source_type)}`:''}${a.standard_age_days?` — سن مرجع ${fmt(a.standard_age_days,0)} روز`:''}</div>${mg}<div class="pi-detail">${esc(cmp||"بدون انحراف قابل گزارش")}</div><div class="pi-forecast">${esc(ft)}</div>${source}${at}</article>`;
   }
   function overall(results){const w={body_weight:25,weekly_weight_gain:20,fcr:20,cumulative_fcr:20,cv:7.5,uniformity_10:3.75,uniformity_15:3.75};let total=0,ws=0;results.forEach(a=>{if(a?.ok&&n(a.score)!==null){const z=w[a.metric]||1;total+=a.score*z;ws+=z}});const score=ws?total/ws:null;return{score,status:score===null?"unknown":score>=90?"excellent":score>=75?"good":score>=60?"watch":"critical"}}
   async function mountPanel(model,flock,rawRows,flockId,sel){
@@ -53,16 +54,23 @@
     const i=Math.max(0,Number(sel?.value||0)),r=model.rows[i];if(!r)return false;
     const metrics=['body_weight','weekly_weight_gain','fcr','cumulative_fcr','cv','uniformity_10','uniformity_15'];
     const A=global.AdinePerformanceIntelligence;
-    const mgMap=await managementTargets(flock,r.age);
+    const benchmarkAge=r.benchmarkAgeDays??r.age;
+    const mgMap=await managementTargets(flock,benchmarkAge);
     const analyses=metrics.map(async m=>{
       const cur=value(r,m);if(cur===null)return{ok:false,metric:m,currentValue:null,management:mgMap[m]||null,code:'insufficient_data'};
       if(!A?.analyze)return{ok:false,metric:m,currentValue:cur,management:mgMap[m]||null,code:'intelligence_engine_unavailable'};
       try{
         const future=model.rows.slice(i+1).find(x=>modelTarget(x,m)!==null);
-        let result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.age??null,futureStandard:future?modelTarget(future,m):null});
+        let result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.benchmarkAgeDays??future?.age??null,futureStandard:future?modelTarget(future,m):null});
+        const officialTarget=modelTarget(r,m);
+        if((!result?.ok||n(result?.target)===null)&&officialTarget!==null){
+          const meta=officialMeta(r,m);
+          result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.benchmarkAgeDays??future?.age??null,futureStandard:future?modelTarget(future,m):null,targetOverride:officialTarget,targetSourceType:meta.source_type||'official-performance-objective',targetSourceName:meta.source_name||'استاندارد رسمی سویه',standardAgeDays:meta.standard_age_days||benchmarkAge});
+          result.officialRegistryFallbackUsed=true;
+        }
         if((!result?.ok||n(result?.target)===null)&&mgMap[m]?.value!==null&&mgMap[m]?.value!==undefined){
           const mg=mgMap[m];
-          result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.age??null,futureStandard:future?modelTarget(future,m):null,targetOverride:mg.value,targetSourceType:mg.sourceType||'management',targetSourceName:mg.sourceName||'هدف مدیریتی',targetSourceYear:mg.sourceYear||null,standardAgeDays:r.age});
+          result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.benchmarkAgeDays??future?.age??null,futureStandard:future?modelTarget(future,m):null,targetOverride:mg.value,targetSourceType:mg.sourceType||'management',targetSourceName:mg.sourceName||'هدف مدیریتی',targetSourceYear:mg.sourceYear||null,standardAgeDays:benchmarkAge});
           result.managementFallbackUsed=true;
         }
         return{...result,metric:m,currentValue:cur,management:mgMap[m]||null};
@@ -71,9 +79,9 @@
     Promise.all(analyses).then(results=>{
       const panel=$('broiler-intelligence-panel')||document.createElement('section');panel.id='broiler-intelligence-panel';panel.className='section broiler-intelligence';
       const o=overall(results),failed=results.filter(a=>!a?.ok).length;
-      panel.innerHTML=`<div class="pi-header"><div><div class="eyebrow">موتور تحلیل گوشتی</div><h2>تحلیل هوشمند عملکرد گله</h2><p>مقادیر واقعی از رکوردهای اصلی گله خوانده می‌شوند؛ مرجع رسمی و هدف مدیریتی فقط برای مقایسه استفاده می‌شوند.</p></div><div class="pi-overall ${cls(o.status)}"><span>امتیاز عملکرد</span><strong>${o.score===null?'—':fmt(o.score,0)}</strong><small>${esc(statusFa(o.status))}</small></div></div><div class="pi-grid">${results.map(a=>card(a,a.metric)).join('')}</div><div class="pi-foot"><span>هفته ${fmt(r.week,0)} — سن ${fmt(r.age,0)} روز</span><span>${failed?`${failed} شاخص مرجع/داده کافی برای امتیازدهی نداشت.`:'تمام شاخص‌های قابل تحلیل پردازش شدند.'}</span></div>`;
+      panel.innerHTML=`<div class="pi-header"><div><div class="eyebrow">موتور تحلیل گوشتی</div><h2>تحلیل هوشمند عملکرد گله</h2><p>مقادیر واقعی از رکوردهای اصلی گله خوانده می‌شوند؛ مرجع رسمی و هدف مدیریتی فقط برای مقایسه استفاده می‌شوند.</p></div><div class="pi-overall ${cls(o.status)}"><span>امتیاز عملکرد</span><strong>${o.score===null?'—':fmt(o.score,0)}</strong><small>${esc(statusFa(o.status))}</small></div></div><div class="pi-grid">${results.map(a=>card(a,a.metric)).join('')}</div><div class="pi-foot"><span>هفته ${fmt(r.week,0)} — سن ${fmt(r.age,0)} روز — سن مرجع ${fmt(benchmarkAge,0)} روز</span><span>${failed?`${failed} شاخص مرجع/داده کافی برای امتیازدهی نداشت.`:'تمام شاخص‌های قابل تحلیل پردازش شدند.'}</span></div>`;
       if(!panel.parentNode)root.appendChild(panel);
-      global.__ADINE_PI_LAST_OK=true;global.__ADINE_PI_LAST_STATE={flockId,week:r.week,age:r.age,failed};
+      global.__ADINE_PI_LAST_OK=true;global.__ADINE_PI_LAST_STATE={flockId,week:r.week,age:r.age,benchmarkAge,failed};
     }).catch(e=>{console.error('[Adine PI] panel build failed',e);global.__ADINE_PI_LAST_OK=false;global.__ADINE_PI_LAST_ERROR=String(e?.message||e)});
     return true;
   }

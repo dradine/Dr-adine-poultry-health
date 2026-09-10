@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>گزارشات | مرکز تخصصی سلامت طیور آدینه</title>
-<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="reports.css"><link rel="stylesheet" href="broiler-comprehensive-report-v1.css"><link rel="stylesheet" href="broiler-comprehensive-report-v2.css"><link rel="stylesheet" href="broiler-flock-comparison-v1.css?v=20260911.1">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="reports.css"><link rel="stylesheet" href="broiler-comprehensive-report-v1.css"><link rel="stylesheet" href="broiler-comprehensive-report-v2.css"><link rel="stylesheet" href="broiler-flock-comparison-v1.css?v=20260911.2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js?v=20260901.8"></script>
 <script src="standard-data.js?v=20260901.8"></script>
@@ -18,8 +18,6 @@
 <style>
 /* ADINE: the week selector belongs only to the standalone weekly report. */
 .report-toolbar.is-comprehensive .toolbar-left{display:none!important}
-/* ADINE: comparison tab is intentionally blank until its new design is built. */
-.report-toolbar.is-compare-empty,#root.is-compare-empty{display:none!important}
 </style>
 </head>
 <body>
@@ -55,24 +53,15 @@
     if(!toolbar||!root||!active)return;
     var tab=active.getAttribute('data-tab');
     toolbar.classList.toggle('is-comprehensive',tab==='overall');
-    toolbar.classList.toggle('is-compare',tab==='compare-empty');
-    root.classList.toggle('is-compare',tab==='compare-empty');
-    if(tab==='compare-empty'){
-      root.innerHTML='';
-    }
   }
   document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('.report-tab')){
-      setTimeout(syncReportChrome,0);
-      setTimeout(syncReportChrome,50);
-      setTimeout(syncReportChrome,250);
-    }
+    if(e.target.closest&&e.target.closest('.report-tab'))setTimeout(syncReportChrome,0);
   },true);
-  new MutationObserver(syncReportChrome).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
+  new MutationObserver(syncReportChrome).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
   syncReportChrome();
 })();
 </script>
-<script src="flock-comparison-engine-v1.js?v=20260911.1"></script>
-<script src="broiler-flock-comparison-v1.js?v=20260911.1"></script>
+<script src="flock-comparison-engine-v1.js?v=20260911.2"></script>
+<script src="broiler-flock-comparison-ui-v2.js?v=20260911.1"></script>
 </body>
 </html>

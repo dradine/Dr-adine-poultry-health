@@ -1,15 +1,59 @@
-/* ADINE — comprehensive report: expert weight distribution presentation only. */
+/* ADINE — comprehensive report: expert weight distribution presentation only.
+   Robust render bridge: waits for the comprehensive model/UI and accepts the
+   latest weekly raw weights as a safe fallback. Presentation/read-only only.
+*/
 "use strict";
 (function(g){
   const $=id=>document.getElementById(id);
   const N=v=>{if(v==null||v==='')return null;const x=Number(String(v).replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
   const F=(v,d=0)=>{const x=N(v);return x==null?'—':x.toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d})};
   const P=(v,d=1)=>N(v)==null?'—':F(v,d)+'٪';
+  function sourceWeights(m){
+    const a=Array.isArray(m?.sampleWeights)?m.sampleWeights:null;
+    if(a?.length)return a;
+    const b=Array.isArray(m?.last?.raw?.weights)?m.last.raw.weights:null;
+    return b||[];
+  }
   function calc(a){const w=(a||[]).map(N).filter(x=>x>0).sort((x,y)=>x-y);if(!w.length)return null;const n=w.length,m=w.reduce((s,x)=>s+x,0)/n,sd=Math.sqrt(w.reduce((s,x)=>s+(x-m)**2,0)/n),med=n%2?w[(n-1)/2]:(w[n/2-1]+w[n/2])/2;return{w,n,m,sd,cv:sd*100/m,med,min:w[0],max:w[n-1],range:w[n-1]-w[0]};}
   function counts(w,t){const z=[t*.85,t*.9,t*1.1,t*1.15],c=[0,0,0,0,0];w.forEach(x=>x<z[0]?c[0]++:x<z[1]?c[1]++:x<=z[2]?c[2]++:x<=z[3]?c[3]++:c[4]++);return c;}
-  function draw(cv,s,t){const r=cv.getBoundingClientRect(),d=g.devicePixelRatio||1,W=Math.max(320,Math.floor(r.width||600)),H=285;cv.width=W*d;cv.height=H*d;cv.style.height=H+'px';const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);const L=42,R=18,T=43,B=48,x0=L,x1=W-R,y0=T,y1=H-B,lo=Math.min(s.min,t*.78),hi=Math.max(s.max,t*1.22),X=v=>x0+(v-lo)/(hi-lo||1)*(x1-x0);const bands=[[lo,t*.85,'#fde8e8'],[t*.85,t*.9,'#fff1df'],[t*.9,t*1.1,'#e5f5ee'],[t*1.1,t*1.15,'#fff1df'],[t*1.15,hi,'#fde8e8']];bands.forEach(q=>{const a=Math.max(lo,q[0]),b=Math.min(hi,q[1]);if(b>a){c.fillStyle=q[2];c.fillRect(X(a),y0,X(b)-X(a),y1-y0);}});c.strokeStyle='#d9dfe4';c.beginPath();c.moveTo(x0,y1);c.lineTo(x1,y1);c.stroke();for(let i=0;i<=5;i++){const v=lo+(hi-lo)*i/5,x=X(v);c.strokeStyle='#edf0f2';c.beginPath();c.moveTo(x,y0);c.lineTo(x,y1);c.stroke();c.fillStyle='#68737d';c.font='10px Tahoma';c.textAlign='center';c.fillText(F(v),x,y1+18);}[[t,'وزن هدف رسمی','#1f7052',3,[]],[t*.9,'−۱۰٪','#2d8b68',1.5,[4,3]],[t*1.1,'+۱۰٪','#2d8b68',1.5,[4,3]],[t*.85,'−۱۵٪','#c98b42',1,[3,4]],[t*1.15,'+۱۵٪','#c98b42',1,[3,4]]].forEach(q=>{if(q[0]<lo||q[0]>hi)return;const x=X(q[0]);c.save();c.strokeStyle=q[2];c.lineWidth=q[3];c.setLineDash(q[4]);c.beginPath();c.moveTo(x,y0-4);c.lineTo(x,y1);c.stroke();c.restore();c.fillStyle=q[2];c.font=q[3]===3?'bold 10px Tahoma':'9px Tahoma';c.fillText(q[1],x,17);});s.w.forEach((v,i)=>{const x=X(v),y=y0+30+(i%7)*25;c.beginPath();c.arc(x,y,4.5,0,Math.PI*2);c.fillStyle='#276c9b';c.fill();});c.fillStyle='#56616b';c.font='10px Tahoma';c.fillText('نمونه‌های آخرین ارزیابی نسبت به وزن هدف',W/2,H-12);}
+  function draw(cv,s,t){
+    if(!cv||!s)return;
+    const r=cv.getBoundingClientRect(),d=g.devicePixelRatio||1,W=Math.max(320,Math.floor(r.width||cv.parentElement?.clientWidth||600)),H=285;
+    cv.width=W*d;cv.height=H*d;cv.style.height=H+'px';
+    const c=cv.getContext('2d');if(!c)return;c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,W,H);
+    const L=42,R=18,T=43,B=48,x0=L,x1=W-R,y0=T,y1=H-B,span=Math.max(1,Math.max(s.max,t*1.22)-Math.min(s.min,t*.78)),lo=Math.min(s.min,t*.78),X=v=>x0+(v-lo)/span*(x1-x0),hi=lo+span;
+    [[lo,t*.85,'#fde8e8'],[t*.85,t*.9,'#fff1df'],[t*.9,t*1.1,'#e5f5ee'],[t*1.1,t*1.15,'#fff1df'],[t*1.15,hi,'#fde8e8']].forEach(q=>{const a=Math.max(lo,q[0]),b=Math.min(hi,q[1]);if(b>a){c.fillStyle=q[2];c.fillRect(X(a),y0,X(b)-X(a),y1-y0);}});
+    c.strokeStyle='#d9dfe4';c.lineWidth=1;c.beginPath();c.moveTo(x0,y1);c.lineTo(x1,y1);c.stroke();
+    c.textAlign='center';for(let i=0;i<=5;i++){const v=lo+span*i/5,x=X(v);c.strokeStyle='#edf0f2';c.beginPath();c.moveTo(x,y0);c.lineTo(x,y1);c.stroke();c.fillStyle='#68737d';c.font='10px Tahoma';c.fillText(F(v),x,y1+18);}
+    [[t,'وزن هدف رسمی','#1f7052',3,[]],[t*.9,'−۱۰٪','#2d8b68',1.5,[4,3]],[t*1.1,'+۱۰٪','#2d8b68',1.5,[4,3]],[t*.85,'−۱۵٪','#c98b42',1,[3,4]],[t*1.15,'+۱۵٪','#c98b42',1,[3,4]]].forEach(q=>{if(q[0]<lo||q[0]>hi)return;const x=X(q[0]);c.save();c.strokeStyle=q[2];c.lineWidth=q[3];c.setLineDash(q[4]);c.beginPath();c.moveTo(x,y0-4);c.lineTo(x,y1);c.stroke();c.restore();c.fillStyle=q[2];c.font=q[3]===3?'bold 10px Tahoma':'9px Tahoma';c.fillText(q[1],x,17);});
+    s.w.forEach((v,i)=>{const x=X(v),y=y0+30+(i%7)*25;c.beginPath();c.arc(x,y,4.5,0,Math.PI*2);c.fillStyle='#276c9b';c.fill();});
+    c.fillStyle='#56616b';c.font='10px Tahoma';c.fillText('نمونه‌های آخرین ارزیابی نسبت به وزن هدف',W/2,H-12);
+  }
   function style(){if($('awd-style'))return;const s=document.createElement('style');s.id='awd-style';s.textContent=`#adineWeightDistribution{margin-top:14px;border:1px solid #e5e9ed;border-radius:16px;background:#fff;box-shadow:0 5px 18px rgba(15,23,42,.05);overflow:hidden}#adineWeightDistribution .awd-head{padding:16px 16px 8px;display:flex;justify-content:space-between;gap:12px}#adineWeightDistribution h3{margin:0;font-size:16px;color:#17212b}.awd-sub{margin:6px 0;color:#69747e;font-size:11px;line-height:1.8}.awd-status{padding:7px 10px;border-radius:999px;background:#e5f5ee;color:#1f7052;font-size:10px;font-weight:800;white-space:nowrap}.awd-chart{padding:0 10px}.awd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px 12px}.awd-kpi{border:1px solid #edf0f2;border-radius:12px;padding:9px;background:#fbfcfd}.awd-kpi b{display:block;font-size:13px;color:#17212b}.awd-kpi span{display:block;margin-top:4px;font-size:9px;color:#77818a}.awd-bands{margin:0 12px 12px;border:1px solid #e9edf0;border-radius:13px;overflow:hidden}.awd-row{display:grid;grid-template-columns:1fr 62px 62px;padding:8px 10px;border-bottom:1px solid #edf0f2;font-size:10px}.awd-row:last-child{border:0}.awd-row b,.awd-row span{text-align:center}.awd-mid{background:#e9f7f0}.awd-warn{background:#fff6e9}.awd-alert{background:#fff0f0}.awd-note{margin:0 12px 14px;padding:9px 10px;background:#f7f8fa;border-radius:10px;color:#626d76;font-size:10px;line-height:1.9}@media(max-width:600px){.awd-grid{grid-template-columns:repeat(2,1fr)}.awd-head{display:block!important}.awd-status{display:inline-block;margin-top:4px}.awd-row{grid-template-columns:1fr 55px 55px;font-size:9px}}`;document.head.appendChild(s);}
-  function render(){const root=$('root'),m=g.__adineBroilerComprehensiveModel;if(!root||!m||!Array.isArray(m.sampleWeights))return false;const s=calc(m.sampleWeights);if(!s)return false;const t=N(m.last?.standardWeight)||s.m;const sig=String(m.last?.week||'')+'|'+s.n+'|'+s.m.toFixed(2)+'|'+t.toFixed(2);let sec=$('adineWeightDistribution');if(sec&&sec.dataset.sig===sig)return true;if(!sec){sec=document.createElement('section');sec.id='adineWeightDistribution';sec.className='section';const old=$('cr2Dist')?.closest('.cr2-panel,.cr2-chart,.cr2-card');if(old)old.style.display='none';const anchor=$('cr2Dist')?.closest('.section')||root.lastElementChild;if(anchor?.parentNode)anchor.parentNode.insertBefore(sec,anchor.nextSibling);else root.appendChild(sec);}const c=counts(s.w,t),n=s.n,in10=c[2],in15=c[1]+c[2]+c[3],ratio=in10/n;const status=ratio>=.8?'مطلوب':ratio>=.65?'نیازمند پایش':'نیازمند بررسی';const rows=[['کمتر از ۱۵٪ هدف',c[0],'alert'],['۱۵٪- تا ۱۰٪- هدف',c[1],'warn'],['محدوده سلامت آدینه ±۱۰٪',c[2],'mid'],['۱۰٪+ تا ۱۵٪+ هدف',c[3],'warn'],['بیشتر از ۱۵٪ هدف',c[4],'alert']];sec.innerHTML=`<div class="awd-head"><div><h3>توزیع وزن و محدوده سلامت طیور آدینه</h3><div class="awd-sub">آخرین ارزیابی · ${F(n)} نمونه · هدف رسمی ${F(t)} گرم</div></div><span class="awd-status">${status}</span></div><div class="awd-chart"><canvas id="awdCanvas" aria-label="توزیع وزن نمونه‌ها و محدوده سلامت آدینه"></canvas></div><div class="awd-grid"><div class="awd-kpi"><b>${F(s.m)} گرم</b><span>میانگین نمونه</span></div><div class="awd-kpi"><b>${F(s.med)} گرم</b><span>میانه</span></div><div class="awd-kpi"><b>${F(s.sd,1)} گرم</b><span>SD</span></div><div class="awd-kpi"><b>${P(s.cv,1)}</b><span>CV نمونه</span></div><div class="awd-kpi"><b>${F(s.min)}–${F(s.max)}</b><span>حداقل–حداکثر</span></div><div class="awd-kpi"><b>${F(s.range)} گرم</b><span>دامنه</span></div><div class="awd-kpi"><b>${F(in10)} / ${F(n)}</b><span>داخل ±۱۰٪ هدف</span></div><div class="awd-kpi"><b>${F(in15)} / ${F(n)}</b><span>داخل ±۱۵٪ هدف</span></div></div><div class="awd-bands"><div class="awd-row" style="background:#f7f8fa;font-weight:800"><span>وضعیت نسبت به هدف</span><b>قطعه</b><b>درصد</b></div>${rows.map(r=>`<div class="awd-row awd-${r[2]}"><span>${r[0]}</span><b>${F(r[1])}</b><b>${P(100*r[1]/n,1)}</b></div>`).join('')}</div><div class="awd-note">محدوده سلامت آدینه در این گزارش از <b>وزن هدف رسمی همان سویه و همان سن</b> و تلرانس مدیریتی ±۱۰٪ ساخته شده است. ±۱۵٪ برای نمایش پراکندگی گسترده‌تر است؛ حداقل و حداکثر نمونه هرگز به‌عنوان هدف استفاده نمی‌شوند. این بخش فقط تحلیل توزیع است و محاسبات ثبت هفتگی را تغییر نمی‌دهد.</div>`;draw($('awdCanvas'),s,t);sec.dataset.sig=sig;return true;}
-  function start(){style();setTimeout(render,700);setTimeout(render,1800);g.addEventListener('adine:report-ready',()=>setTimeout(render,250));}
+  function render(){
+    const root=$('root'),m=g.__adineBroilerComprehensiveModel,w=sourceWeights(m);if(!root||!m||!w.length)return false;
+    const s=calc(w);if(!s)return false;
+    const t=N(m.last?.standardWeight)||s.m;
+    const sig=String(m.last?.week||'')+'|'+s.n+'|'+s.m.toFixed(2)+'|'+t.toFixed(2);
+    let sec=$('adineWeightDistribution');
+    if(sec&&sec.dataset.sig===sig)return true;
+    const old=$('cr2Dist')?.closest('.cr2-panel,.cr2-chart,.cr2-card');
+    if(old)old.style.display='none';
+    if(!sec){sec=document.createElement('section');sec.id='adineWeightDistribution';sec.className='section';const anchor=$('cr2Dist')?.closest('.section')||root.lastElementChild;if(anchor?.parentNode)anchor.parentNode.insertBefore(sec,anchor.nextSibling);else root.appendChild(sec);}
+    const c=counts(s.w,t),n=s.n,in10=c[2],in15=c[1]+c[2]+c[3],ratio=in10/n;
+    const status=ratio>=.8?'مطلوب':ratio>=.65?'نیازمند پایش':'نیازمند بررسی';
+    const rows=[['کمتر از ۱۵٪ هدف',c[0],'alert'],['۱۵٪- تا ۱۰٪- هدف',c[1],'warn'],['محدوده سلامت آدینه ±۱۰٪',c[2],'mid'],['۱۰٪+ تا ۱۵٪+ هدف',c[3],'warn'],['بیشتر از ۱۵٪ هدف',c[4],'alert']];
+    sec.innerHTML=`<div class="awd-head"><div><h3>توزیع وزن و محدوده سلامت طیور آدینه</h3><div class="awd-sub">آخرین ارزیابی · ${F(n)} نمونه · وزن هدف رسمی ${F(t)} گرم</div></div><span class="awd-status">${status}</span></div><div class="awd-chart"><canvas id="awdCanvas" aria-label="توزیع وزن نمونه‌ها و محدوده سلامت آدینه"></canvas></div><div class="awd-grid"><div class="awd-kpi"><b>${F(s.m)} گرم</b><span>میانگین نمونه</span></div><div class="awd-kpi"><b>${F(s.med)} گرم</b><span>میانه</span></div><div class="awd-kpi"><b>${F(s.sd,1)} گرم</b><span>SD</span></div><div class="awd-kpi"><b>${P(s.cv,1)}</b><span>CV نمونه</span></div><div class="awd-kpi"><b>${F(s.min)}–${F(s.max)}</b><span>حداقل–حداکثر</span></div><div class="awd-kpi"><b>${F(s.range)} گرم</b><span>دامنه</span></div><div class="awd-kpi"><b>${F(in10)} / ${F(n)}</b><span>داخل ±۱۰٪ هدف</span></div><div class="awd-kpi"><b>${F(in15)} / ${F(n)}</b><span>داخل ±۱۵٪ هدف</span></div></div><div class="awd-bands"><div class="awd-row" style="background:#f7f8fa;font-weight:800"><span>وضعیت نسبت به وزن هدف</span><b>قطعه</b><b>درصد</b></div>${rows.map(r=>`<div class="awd-row awd-${r[2]}"><span>${r[0]}</span><b>${F(r[1])}</b><b>${P(100*r[1]/n,1)}</b></div>`).join('')}</div><div class="awd-note">محدوده سلامت آدینه از <b>وزن هدف رسمی همان سویه و همان سن</b> و تلرانس مدیریتی ±۱۰٪ ساخته شده است. ±۱۵٪ برای نمایش پراکندگی گسترده‌تر است؛ حداقل و حداکثر نمونه هرگز به‌عنوان هدف استفاده نمی‌شوند. این بخش فقط نمایش و تحلیل است و محاسبات ثبت هفتگی را تغییر نمی‌دهد.</div>`;
+    draw($('awdCanvas'),s,t);sec.dataset.sig=sig;return true;
+  }
+  function start(){
+    style();
+    let tries=0;
+    const tick=()=>{tries++;if(!render()&&tries<80)setTimeout(tick,250)};
+    tick();
+    g.addEventListener('adine:report-ready',()=>{tries=0;tick()});
+    const root=$('root');
+    if(root&&g.MutationObserver){const ob=new MutationObserver(()=>{if(!render())return;});ob.observe(root,{childList:true,subtree:true});setTimeout(()=>ob.disconnect(),30000);}
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })(window);

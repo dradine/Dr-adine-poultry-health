@@ -1,8 +1,8 @@
-/* ADINE REPORTS — BROILER DOMAIN ENGINE V5
+/* ADINE REPORTS — BROILER DOMAIN ENGINE V6
    Read-only reporting adapter.
    Actual values come from canonical weekly_records.
-   Official references come ONLY from the exact selected strain's official registry.
-   Weekly and cumulative gain are separate metrics.
+   Official references are resolved from the canonical broiler official registry.
+   Weekly report calculations are not modified.
 */
 "use strict";
 (function(global){
@@ -12,7 +12,7 @@
   const fcr=r=>val(r,['fcr']);
   const cumulativeFcr=r=>val(r,['cumulative_fcr']);
   const age=r=>val(r,['age_days']);
-  const week=r=>val(r,['week_number']);
+  const week=r=>val(r,['week_number','production_week']);
   const feed=r=>val(r,['feed_total_kg','feed']);
   const water=r=>val(r,['water_total_liter','water']);
   const cv=r=>val(r,['cv_percent','cv']);
@@ -30,12 +30,24 @@
     return found?registry[found]:null;
   }
 
+  /*
+     Weekly monitoring is compared against the breeder's weekly reference age,
+     not the literal calendar age stored on the record. This is intentional:
+     a record labelled week 2 may be entered at day 13/15 because of farm
+     scheduling, while the official weekly reference is day 14.
+  */
+  function benchmarkAge(r){
+    const w=week(r);
+    if(Number.isFinite(w)&&w>0)return w*7;
+    return age(r);
+  }
+
   function standardFor(flock,r){
     const strain=String(flock?.strain??'').trim();
-    const registry=registryFor(strain),a=age(r);
+    const registry=registryFor(strain),a=benchmarkAge(r);
     if(registry && Number.isFinite(a)){
       const hit=(registry.records||[]).find(x=>Number(x[0])===a);
-      if(hit)return{weight:n(hit[1]),fcr:n(hit[2]),weightSourceLabel:registry.sourceLabel,fcrSourceLabel:registry.sourceLabel,sourceType:registry.sourceType,sourceUrl:registry.sourceUrl,official:true,strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain};
+      if(hit)return{weight:n(hit[1]),fcr:n(hit[2]),weightSourceLabel:registry.sourceLabel,fcrSourceLabel:registry.sourceLabel,sourceType:registry.sourceType,sourceUrl:registry.sourceUrl,official:true,standardAgeDays:a,strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain};
     }
     return null;
   }
@@ -67,7 +79,11 @@
     return previous===null?null:cw-previous;
   }
 
-  function officialCumulativeGain(){return null}
+  function officialCumulativeGain(flock,rows,index){
+    const current=standardFor(flock,rows[index]),cw=n(current?.weight),initial=n(flock?.initial_average_weight_g);
+    return cw===null||initial===null?null:cw-initial;
+  }
+
   function managementWeeklyFcr(flock,rows,index){return officialWeeklyFcr(flock,rows,index)}
   function managementWeightGain(flock,rows,index){return managementWeeklyWeightGain(flock,rows,index)}
   function qualityTargets(){return{cv:10,uniformity10:80,uniformity15:90}}
@@ -78,8 +94,8 @@
     const actualWeight=weight(r),actualFcr=fcr(r),actualCum=cumulativeFcr(r),actualWeekly=actualWeeklyGain(rows,index,flock),actualCumulative=actualCumulativeGain(rows,index,flock);
     const managementGain=managementWeeklyWeightGain(flock,rows,index);
     return{
-      raw:r,index,week:week(r),age:age(r),weight:actualWeight,standardWeight:n(s?.weight),weightSource:s?.sourceType||null,weightSourceLabel:s?.weightSourceLabel||null,
-      weightGain:actualWeekly,weeklyWeightGain:actualWeekly,cumulativeWeightGain:actualCumulative,managementWeightGain:managementGain,standardWeeklyWeightGain:managementGain,standardCumulativeWeightGain:null,
+      raw:r,index,week:week(r),age:age(r),benchmarkAgeDays:benchmarkAge(r),weight:actualWeight,standardWeight:n(s?.weight),weightSource:s?.sourceType||null,weightSourceLabel:s?.weightSourceLabel||null,
+      weightGain:actualWeekly,weeklyWeightGain:actualWeekly,cumulativeWeightGain:actualCumulative,managementWeightGain:managementGain,standardWeeklyWeightGain:managementGain,standardCumulativeWeightGain:officialCumulativeGain(flock,rows,index),
       fcr:actualFcr,cumulativeFcr:actualCum,standardWeeklyFcr:n(weeklyStandardFcr),officialWeeklyFcr:n(weeklyStandardFcr),standardCumulativeFcr:n(s?.fcr),managementWeeklyFcr:n(weeklyStandardFcr),
       fcrSource:r?.production_metrics?.calculation_version||'canonical-record',fcrSourceLabel:s?.fcrSourceLabel||null,cv:cv(r),cvStandard:q.cv,uniformity10:u10(r),uniformity10Standard:q.uniformity10,uniformity15:u15(r),uniformity15Standard:q.uniformity15,
       feed:feed(r),water:water(r),mortalityPercent:val(r,['mortality']),mortalityCount:val(r,['mortality_count']),liveBirds:live(r),waterFeedRatio:ratio(r),
@@ -87,6 +103,6 @@
     };
   }
 
-  function build(flock,rows){const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));return{domain:'broiler',engineVersion:'BROILER-REPORT-V5',calculationAuthority:'canonical-weekly-record',standardAuthority:'exact-strain-official-registry',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}}
-  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V5',build,standardFor,officialWeeklyFcr,actualWeeklyGain,actualCumulativeGain,managementWeeklyWeightGain,officialCumulativeGain,managementWeeklyFcr,managementWeightGain};
+  function build(flock,rows){const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));return{domain:'broiler',engineVersion:'BROILER-REPORT-V6',calculationAuthority:'canonical-weekly-record',standardAuthority:'canonical-broiler-official-registry',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}}
+  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V6',build,standardFor,officialWeeklyFcr,actualWeeklyGain,actualCumulativeGain,managementWeeklyWeightGain,officialCumulativeGain,managementWeeklyFcr,managementWeightGain,benchmarkAge};
 })(typeof window!=='undefined'?window:globalThis);

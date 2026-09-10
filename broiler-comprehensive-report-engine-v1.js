@@ -6,83 +6,20 @@
 (function(global){
   const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
   const pick=(r,keys)=>{for(const k of keys){const x=n(r?.[k]);if(x!==null)return x}return null};
-  const week=r=>pick(r,['week_number','production_week']);
-  const age=r=>pick(r,['age_days','production_day']);
-  const weight=r=>pick(r,['average_weight_g','average_weight','weight_g']);
-  const fcr=r=>pick(r,['fcr']);
-  const cumFcr=r=>pick(r,['cumulative_fcr']);
-  const mortalityCount=r=>pick(r,['mortality_count']);
-  const mortalityPct=r=>pick(r,['mortality']);
-  const live=r=>pick(r,['live_birds']);
-  const cv=r=>pick(r,['cv_percent','cv']);
-  const u10=r=>pick(r,['uniformity_10_percent','uniformity_10']);
-  const u15=r=>pick(r,['uniformity_15_percent','uniformity_15']);
-  const feed=r=>pick(r,['feed_total_kg','feed']);
+  const week=r=>pick(r,['week_number','production_week']); const age=r=>pick(r,['age_days','production_day']);
+  const weight=r=>pick(r,['average_weight_g','average_weight','weight_g']); const fcr=r=>pick(r,['fcr']); const cumFcr=r=>pick(r,['cumulative_fcr']);
+  const mortalityCount=r=>pick(r,['mortality_count']); const mortalityPct=r=>pick(r,['mortality']); const live=r=>pick(r,['live_birds']);
+  const cv=r=>pick(r,['cv_percent','cv']); const u10=r=>pick(r,['uniformity_10_percent','uniformity_10']); const u15=r=>pick(r,['uniformity_15_percent','uniformity_15']); const feed=r=>pick(r,['feed_total_kg','feed']);
   const normalizeRows=rows=>[...(rows||[])].filter(Boolean).sort((a,b)=>{const wa=week(a),wb=week(b);if(wa!==null&&wb!==null&&wa!==wb)return wa-wb;const aa=age(a),ab=age(b);return(aa??99999)-(ab??99999)});
-
-  function build(flock, weeklyRows, domainEngine){
-    const rows=normalizeRows(weeklyRows);
-    const base=domainEngine?.build?domainEngine.build(flock,rows):{rows};
-    const sourceRows=base.rows||[];
-    const initial=pick(flock,['initial_birds','placement_birds','initial_flock_size','bird_count']);
-    let cumulativeMortality=0;
-    const data=sourceRows.map((r,i)=>{
-      const raw=r.raw||r;
-      const mc=mortalityCount(raw);
-      if(mc!==null)cumulativeMortality+=mc;
-      const cw=r.weight??weight(raw), sf=r.standardWeight??null;
-      const deviation=cw!==null&&sf!==null&&sf!==0?(cw-sf)/sf*100:null;
-      const liveBirds=r.liveBirds??live(raw);
-      const cumulativeMortalityPct=initial!==null&&initial>0?cumulativeMortality/initial*100:null;
-      const weeklyMortalityPct=mortalityPct(raw);
-      const gain=r.weeklyWeightGain??null;
-      return Object.freeze({
-        index:i,week:r.week??week(raw),age:r.age??age(raw),evaluationDate:raw.evaluation_date||raw.record_date||null,
-        weight:cw,standardWeight:sf,weightDeviationPercent:deviation,weeklyWeightGain:gain,
-        fcr:r.fcr??fcr(raw),cumulativeFcr:r.cumulativeFcr??cumFcr(raw),standardWeeklyFcr:r.standardWeeklyFcr??null,standardCumulativeFcr:r.standardCumulativeFcr??null,
-        mortalityCount:mc,mortalityPercent:weeklyMortalityPct,cumulativeMortalityCount:cumulativeMortality,cumulativeMortalityPercent:cumulativeMortalityPct,
-        liveBirds,cv:r.cv??cv(raw),uniformity10:r.uniformity10??u10(raw),uniformity15:r.uniformity15??u15(raw),feed:r.feed??feed(raw),raw
-      });
-    });
-    const last=data[data.length-1]||null;
-    const first=data[0]||null;
-    const validWeights=data.filter(r=>r.weight!==null&&r.standardWeight!==null);
-    const validFcr=data.filter(r=>r.fcr!==null);
-    const validMort=data.filter(r=>r.mortalityCount!==null);
-    const validQuality=data.filter(r=>r.cv!==null||r.uniformity10!==null||r.uniformity15!==null);
-    const latestLive=last?.liveBirds??null;
-    const survival=initial!==null&&initial>0&&latestLive!==null?latestLive/initial*100:null;
-    const missing=[];
-    if(!data.length)missing.push('هیچ ثبت هفتگی معتبری وجود ندارد');
-    if(data.length&&!data.some(r=>r.mortalityCount!==null))missing.push('تلفات قطعه‌ای در هیچ رکوردی ثبت نشده است');
-    if(data.length&&!data.some(r=>r.liveBirds!==null))missing.push('تعداد پرنده زنده در رکوردها موجود نیست');
-    if(data.length&&!data.some(r=>r.standardWeight!==null))missing.push('مرجع رسمی وزن برای این رکوردها بازیابی نشده است');
-    return Object.freeze({
-      version:'BROILER-COMPREHENSIVE-V1',domain:'broiler',flockId:flock?.id||null,initialBirds:initial,rows:data,last,first,
-      weeksCount:data.length,latestLiveBirds:latestLive,survivalPercent:survival,
-      cumulativeMortalityCount:last?.cumulativeMortalityCount??null,cumulativeMortalityPercent:last?.cumulativeMortalityPercent??null,
-      coverage:{weights:validWeights.length,fcr:validFcr.length,mortality:validMort.length,quality:validQuality.length},missing,
-      source:'weekly_records + canonical broiler report engine',readOnly:true
-    });
+  function build(flock,weeklyRows,domainEngine){
+    const rows=normalizeRows(weeklyRows);const base=domainEngine?.build?domainEngine.build(flock,rows):{rows};const sourceRows=base.rows||[];
+    const initial=pick(flock,['initial_bird_count','initial_birds','placement_birds','initial_flock_size','bird_count']);let cumulativeMortality=0;
+    const data=sourceRows.map((r,i)=>{const raw=r.raw||r,mc=mortalityCount(raw);if(mc!==null)cumulativeMortality+=mc;const cw=r.weight??weight(raw),sf=r.standardWeight??null,deviation=cw!==null&&sf!==null&&sf!==0?(cw-sf)/sf*100:null,liveBirds=r.liveBirds??live(raw),cumulativeMortalityPct=initial!==null&&initial>0?cumulativeMortality/initial*100:null,weeklyMortalityPct=mortalityPct(raw),gain=r.weeklyWeightGain??null;return Object.freeze({index:i,week:r.week??week(raw),age:r.age??age(raw),evaluationDate:raw.evaluation_date||raw.record_date||null,weight:cw,standardWeight:sf,weightDeviationPercent:deviation,weeklyWeightGain:gain,fcr:r.fcr??fcr(raw),cumulativeFcr:r.cumulativeFcr??cumFcr(raw),standardWeeklyFcr:r.standardWeeklyFcr??null,standardCumulativeFcr:r.standardCumulativeFcr??null,mortalityCount:mc,mortalityPercent:weeklyMortalityPct,cumulativeMortalityCount:cumulativeMortality,cumulativeMortalityPercent:cumulativeMortalityPct,liveBirds,cv:r.cv??cv(raw),uniformity10:r.uniformity10??u10(raw),uniformity15:r.uniformity15??u15(raw),feed:r.feed??feed(raw),raw});});
+    const last=data[data.length-1]||null,first=data[0]||null,validWeights=data.filter(r=>r.weight!==null&&r.standardWeight!==null),validFcr=data.filter(r=>r.fcr!==null),validMort=data.filter(r=>r.mortalityCount!==null),validQuality=data.filter(r=>r.cv!==null||r.uniformity10!==null||r.uniformity15!==null),latestLive=last?.liveBirds??null,survival=initial!==null&&initial>0&&latestLive!==null?latestLive/initial*100:null,missing=[];
+    if(!data.length)missing.push('هیچ ثبت هفتگی معتبری وجود ندارد');if(data.length&&!data.some(r=>r.mortalityCount!==null))missing.push('تلفات قطعه‌ای در هیچ رکوردی ثبت نشده است');if(data.length&&!data.some(r=>r.liveBirds!==null))missing.push('تعداد پرنده زنده در رکوردها موجود نیست');if(data.length&&!data.some(r=>r.standardWeight!==null))missing.push('مرجع رسمی وزن برای این رکوردها بازیابی نشده است');if(data.length&&!initial)missing.push('تعداد اولیه گله برای محاسبه تلفات تجمعی ثبت نشده است');
+    return Object.freeze({version:'BROILER-COMPREHENSIVE-V1',domain:'broiler',flockId:flock?.id||null,initialBirds:initial,rows:data,last,first,weeksCount:data.length,latestLiveBirds:latestLive,survivalPercent:survival,cumulativeMortalityCount:last?.cumulativeMortalityCount??null,cumulativeMortalityPercent:last?.cumulativeMortalityPercent??null,coverage:{weights:validWeights.length,fcr:validFcr.length,mortality:validMort.length,quality:validQuality.length},missing,source:'weekly_records + canonical broiler report engine',readOnly:true});
   }
-
-  function trend(values, direction){
-    const xs=values.filter(v=>n(v)!==null).map(n);if(xs.length<3)return{available:false};
-    const k=Math.min(4,xs.length),a=xs.slice(-k);let sumX=0,sumY=0,sumXY=0,sumXX=0;for(let i=0;i<a.length;i++){sumX+=i;sumY+=a[i];sumXY+=i*a[i];sumXX+=i*i}const den=k*sumXX-sumX*sumX;const slope=den?(k*sumXY-sumX*sumY)/den:0;
-    const mean=a.reduce((s,x)=>s+x,0)/k;const relative=mean? slope/mean*100:0;return{available:true,slope,relativePercent:relative,direction:relative>0.35?'up':relative<-0.35?'down':'flat',desired:direction};
-  }
-  function analysis(model){
-    const rows=model.rows,last=model.last||{};
-    const weightT=trend(rows.map(r=>r.weight),'higher'),fcrT=trend(rows.map(r=>r.fcr),'lower'),cvT=trend(rows.map(r=>r.cv),'lower'),mortT=trend(rows.map(r=>r.mortalityPercent),'lower');
-    const concerns=[],strengths=[];
-    if(last.weight!==null&&last.standardWeight!==null){if(last.weightDeviationPercent<=-5)concerns.push('وزن گله بیش از ۵٪ پایین‌تر از مرجع رسمی است');else if(last.weightDeviationPercent>=3)strengths.push('وزن فعلی حداقل هم‌سطح مرجع رسمی است')}
-    if(fcrT.direction==='up')concerns.push('روند FCR هفتگی در آخرین سوابق رو به افزایش است');
-    if(cvT.direction==='up')concerns.push('روند CV در آخرین سوابق رو به افزایش است');
-    if(mortT.direction==='up')concerns.push('روند نرخ تلفات هفتگی افزایشی است');
-    if(last.cumulativeMortalityPercent!==null&&last.cumulativeMortalityPercent>0)strengths.push(`تلفات تجمعی تا آخرین هفته ${last.cumulativeMortalityPercent.toFixed(2)}٪ ثبت شده است`);
-    if(weightT.direction==='down')concerns.push('روند وزن در آخرین سوابق نزولی است');
-    if(weightT.direction==='down'&&fcrT.direction==='up')concerns.push('الگوی همزمان کاهش رشد و افزایش FCR نیازمند بررسی مدیریتی است');
-    return{weightTrend:weightT,fcrTrend:fcrT,cvTrend:cvT,mortalityTrend:mortT,strengths,concerns};
-  }
+  function trend(values,direction){const xs=values.filter(v=>n(v)!==null).map(n);if(xs.length<3)return{available:false};const k=Math.min(4,xs.length),a=xs.slice(-k);let sumX=0,sumY=0,sumXY=0,sumXX=0;for(let i=0;i<a.length;i++){sumX+=i;sumY+=a[i];sumXY+=i*a[i];sumXX+=i*i}const den=k*sumXX-sumX*sumX,slope=den?(k*sumXY-sumX*sumY)/den:0,mean=a.reduce((s,x)=>s+x,0)/k,relative=mean?slope/mean*100:0;return{available:true,slope,relativePercent:relative,direction:relative>0.35?'up':relative<-0.35?'down':'flat',desired:direction};}
+  function analysis(model){const rows=model.rows,last=model.last||{},weightT=trend(rows.map(r=>r.weight),'higher'),fcrT=trend(rows.map(r=>r.fcr),'lower'),cvT=trend(rows.map(r=>r.cv),'lower'),mortT=trend(rows.map(r=>r.mortalityPercent),'lower'),concerns=[],strengths=[];if(last.weight!==null&&last.standardWeight!==null){if(last.weightDeviationPercent<=-5)concerns.push('وزن گله بیش از ۵٪ پایین‌تر از مرجع رسمی است');else if(last.weightDeviationPercent>=3)strengths.push('وزن فعلی حداقل هم‌سطح مرجع رسمی است')}if(fcrT.direction==='up')concerns.push('روند FCR هفتگی در آخرین سوابق رو به افزایش است');if(cvT.direction==='up')concerns.push('روند CV در آخرین سوابق رو به افزایش است');if(mortT.direction==='up')concerns.push('روند نرخ تلفات هفتگی افزایشی است');if(last.cumulativeMortalityPercent!==null&&last.cumulativeMortalityPercent>0)strengths.push(`تلفات تجمعی تا آخرین هفته ${last.cumulativeMortalityPercent.toFixed(2)}٪ ثبت شده است`);if(weightT.direction==='down')concerns.push('روند وزن در آخرین سوابق نزولی است');if(weightT.direction==='down'&&fcrT.direction==='up')concerns.push('الگوی همزمان کاهش رشد و افزایش FCR نیازمند بررسی مدیریتی است');return{weightTrend:weightT,fcrTrend:fcrT,cvTrend:cvT,mortalityTrend:mortT,strengths,concerns};}
   global.AdineBroilerComprehensiveReportEngine={version:'BROILER-COMPREHENSIVE-V1',build,trend,analysis};
 })(typeof window!=='undefined'?window:globalThis);

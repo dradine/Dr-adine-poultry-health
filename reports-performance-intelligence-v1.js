@@ -1,7 +1,8 @@
-/* ADINE REPORTS — BROILER PERFORMANCE INTELLIGENCE V7
+/* ADINE REPORTS — BROILER PERFORMANCE INTELLIGENCE V8
    Read-only presentation adapter. Canonical weekly calculations are untouched.
-   Official broiler references come from the canonical broiler official registry.
-   Management benchmarks remain a separate, explicitly labelled fallback.
+   Official broiler references are resolved from the canonical broiler report model.
+   Management benchmarks remain separate and are used only when an official target
+   is unavailable. Quality management targets are explicit defaults.
 */
 "use strict";
 (function(global){
@@ -12,26 +13,56 @@
   const esc=s=>String(s??"—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const statusFa=s=>({excellent:"عالی",good:"خوب",watch:"نیازمند پایش",critical:"نیازمند اقدام",unknown:"اطلاعات ناکافی"}[s]||"اطلاعات ناکافی");
   const cls=s=>s==="excellent"||s==="good"||s==="watch"||s==="critical"?s:"unknown";
-  const modelTarget=(r,m)=>m==="body_weight"?r.standardWeight:m==="weekly_weight_gain"?r.standardWeeklyWeightGain:m==="fcr"?r.standardWeeklyFcr:m==="cumulative_fcr"?r.standardCumulativeFcr:m==="cv"?r.cvStandard:m==="uniformity_10"?r.uniformity10Standard:m==="uniformity_15"?r.uniformity15Standard:null;
   const value=(r,m)=>m==="body_weight"?r.weight:m==="weekly_weight_gain"?r.weeklyWeightGain:m==="fcr"?r.fcr:m==="cumulative_fcr"?r.cumulativeFcr:m==="cv"?r.cv:m==="uniformity_10"?r.uniformity10:m==="uniformity_15"?r.uniformity15:null;
   const label={body_weight:"وزن",weekly_weight_gain:"افزایش وزن هفتگی",fcr:"FCR هفتگی",cumulative_fcr:"FCR تجمعی",cv:"CV",uniformity_10:"یکنواختی ±10",uniformity_15:"یکنواختی ±15"};
   const unit=m=>m==="body_weight"||m==="weekly_weight_gain"?" گرم":m==="cv"||m.startsWith("uniformity")?"٪":"";
   const norm=v=>String(v??'').normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/[‐‑‒–—−]/g,'-').replace(/[._/\\]+/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
-  function history(rows,i,m){return rows.slice(0,i).map(r=>({x:n(r.age),y:value(r,m),standard:modelTarget(r,m)})).filter(p=>p.x!==null&&p.y!==null)}
-  function officialMeta(r,m){return{source_type:r?.weightSource||null,source_name:r?.weightSourceLabel||r?.fcrSourceLabel||null,standard_age_days:r?.benchmarkAgeDays??null};}
+
+  /* Official target resolver. Weekly gain is deliberately NOT taken from the
+     old management-derived field as an official value. Official body weight,
+     weekly FCR and cumulative FCR are authoritative when present. */
+  function officialTarget(r,m,rows,index){
+    if(m==="body_weight")return n(r?.standardWeight);
+    if(m==="fcr")return n(r?.officialWeeklyFcr??r?.standardWeeklyFcr);
+    if(m==="cumulative_fcr")return n(r?.standardCumulativeFcr);
+    if(m==="weekly_weight_gain"){
+      const current=n(r?.standardWeight);
+      const prev=index>0?n(rows[index-1]?.standardWeight):null;
+      return current!==null&&prev!==null?current-prev:null;
+    }
+    return null;
+  }
+  function modelTarget(r,m,rows,index){
+    const official=officialTarget(r,m,rows,index);if(official!==null)return official;
+    if(m==="cv")return 10;
+    if(m==="uniformity_10")return 80;
+    if(m==="uniformity_15")return 90;
+    return null;
+  }
+  function history(rows,i,m){return rows.slice(0,i).map((r,idx)=>({x:n(r.age),y:value(r,m),standard:modelTarget(r,m,rows,idx)})).filter(p=>p.x!==null&&p.y!==null&&p.standard!==null)}
+  function officialMeta(r,m,rows,index){
+    const sourceType=r?.weightSource||'official-performance-objective';
+    const sourceName=m.includes('fcr')?(r?.fcrSourceLabel||r?.weightSourceLabel):r?.weightSourceLabel;
+    return{source_type:sourceType,source_name:sourceName||'استاندارد رسمی سویه',standard_age_days:r?.benchmarkAgeDays??null};
+  }
+
   async function managementTargets(flock,ageDays){
     const client=global.supabaseClient||global.supabase;
-    if(!client||n(ageDays)===null)return{};
+    const out={
+      cv:{value:10,sourceType:'management',sourceName:'هدف مدیریتی CV ≤ ۱۰٪',sourceYear:null,sourceUrl:null,low:null,high:10},
+      uniformity_10:{value:80,sourceType:'management',sourceName:'هدف مدیریتی یکنواختی ±10 ≥ ۸۰٪',sourceYear:null,sourceUrl:null,low:80,high:null},
+      uniformity_15:{value:90,sourceType:'management',sourceName:'هدف مدیریتی یکنواختی ±15 ≥ ۹۰٪',sourceYear:null,sourceUrl:null,low:90,high:null}
+    };
+    if(!client||n(ageDays)===null)return out;
     try{
       const {data,error}=await client.from('poultry_management_benchmarks').select('metric_code,age_days,target_value,source_type,source_name,source_year,source_url,genetics,strain,lower_value,upper_value').eq('active',true).eq('production_type','broiler').eq('age_days',Number(ageDays));
       if(error)throw error;
       const strain=norm(flock?.strain),genetics=norm(flock?.genetics);
       const rows=(data||[]).filter(x=>x.source_type!=='internal_real_flocks').filter(x=>{const xs=norm(x.strain),xg=norm(x.genetics);return xs?xs===strain:(!xg||xg===genetics)});
       const rank=x=>{const xs=norm(x.strain),xg=norm(x.genetics);return(xs===strain?8:0)+(xg===genetics?4:0)+(x.source_type==='management'?3:0)+(x.source_type==='management-fallback'?2:0)+(x.source_type==='official-proxy-management'?1:0)};
-      const out={};
       for(const x of rows){const code=x.metric_code==='fcr_weekly'?'fcr':x.metric_code;if(!['body_weight','weekly_weight_gain','fcr','cumulative_fcr'].includes(code))continue;const v=n(x.target_value);if(v===null)continue;if(!out[code]||rank(x)>rank(out[code]))out[code]={value:v,sourceType:x.source_type||'management',sourceName:x.source_name||'هدف مدیریتی',sourceYear:x.source_year||null,sourceUrl:x.source_url||null,low:n(x.lower_value),high:n(x.upper_value)}}
       return out;
-    }catch(e){console.warn('[Adine PI] management benchmark lookup failed',e);return{}};
+    }catch(e){console.warn('[Adine PI] management benchmark lookup failed',e);return out};
   }
   function card(a,m){
     const cur=n(a?.currentValue??a?.current),management=a?.management||null;
@@ -49,6 +80,7 @@
     return `<article class="pi-card ${s}"><div class="pi-card-head"><span>${esc(label[m])}</span><span class="pi-badge ${s}">${esc(statusFa(a.status))}</span></div><div class="pi-main">${fmt(a.current,m.includes("fcr")?3:1)}${unit(m)}</div><div class="pi-target">مرجع تحلیل: ${fmt(a.target,m.includes("fcr")?3:1)}${unit(m)}${a.source_type?` — ${esc(a.source_type)}`:''}${a.standard_age_days?` — سن مرجع ${fmt(a.standard_age_days,0)} روز`:''}</div>${mg}<div class="pi-detail">${esc(cmp||"بدون انحراف قابل گزارش")}</div><div class="pi-forecast">${esc(ft)}</div>${source}${at}</article>`;
   }
   function overall(results){const w={body_weight:25,weekly_weight_gain:20,fcr:20,cumulative_fcr:20,cv:7.5,uniformity_10:3.75,uniformity_15:3.75};let total=0,ws=0;results.forEach(a=>{if(a?.ok&&n(a.score)!==null){const z=w[a.metric]||1;total+=a.score*z;ws+=z}});const score=ws?total/ws:null;return{score,status:score===null?"unknown":score>=90?"excellent":score>=75?"good":score>=60?"watch":"critical"}}
+
   async function mountPanel(model,flock,rawRows,flockId,sel){
     const root=$('root');if(!root||!model?.rows?.length)return false;
     const i=Math.max(0,Number(sel?.value||0)),r=model.rows[i];if(!r)return false;
@@ -60,20 +92,28 @@
       const cur=value(r,m);if(cur===null)return{ok:false,metric:m,currentValue:null,management:mgMap[m]||null,code:'insufficient_data'};
       if(!A?.analyze)return{ok:false,metric:m,currentValue:cur,management:mgMap[m]||null,code:'intelligence_engine_unavailable'};
       try{
-        const future=model.rows.slice(i+1).find(x=>modelTarget(x,m)!==null);
-        let result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.benchmarkAgeDays??future?.age??null,futureStandard:future?modelTarget(future,m):null});
-        const officialTarget=modelTarget(r,m);
-        if((!result?.ok||n(result?.target)===null)&&officialTarget!==null){
-          const meta=officialMeta(r,m);
-          result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.benchmarkAgeDays??future?.age??null,futureStandard:future?modelTarget(future,m):null,targetOverride:officialTarget,targetSourceType:meta.source_type||'official-performance-objective',targetSourceName:meta.source_name||'استاندارد رسمی سویه',standardAgeDays:meta.standard_age_days||benchmarkAge});
-          result.officialRegistryFallbackUsed=true;
-        }
-        if((!result?.ok||n(result?.target)===null)&&mgMap[m]?.value!==null&&mgMap[m]?.value!==undefined){
-          const mg=mgMap[m];
-          result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.benchmarkAgeDays??future?.age??null,futureStandard:future?modelTarget(future,m):null,targetOverride:mg.value,targetSourceType:mg.sourceType||'management',targetSourceName:mg.sourceName||'هدف مدیریتی',targetSourceYear:mg.sourceYear||null,standardAgeDays:benchmarkAge});
+        const official=officialTarget(r,m,model.rows,i);
+        const mg=mgMap[m]||null;
+        const future=model.rows.slice(i+1).find((x,j)=>modelTarget(x,m,model.rows,i+1+j)!==null);
+        const futureIndex=future?model.rows.indexOf(future):-1;
+        const futureStandard=future?modelTarget(future,m,model.rows,futureIndex):null;
+        const common={flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.benchmarkAgeDays??future?.age??null,futureStandard};
+
+        /* CRITICAL FIX: if the canonical report model already has an official
+           reference, use it FIRST. Do not call the DB resolver first and then
+           accept a bogus target such as 0/unknown. */
+        let result=null;
+        if(official!==null){
+          const meta=officialMeta(r,m,model.rows,i);
+          result=await A.analyze({...common,targetOverride:official,targetSourceType:meta.source_type,targetSourceName:meta.source_name,targetSourceYear:r?.raw?.source_year||null,standardAgeDays:meta.standard_age_days||benchmarkAge});
+          result.officialRegistryUsed=true;
+        }else if(mg?.value!==null&&mg?.value!==undefined){
+          result=await A.analyze({...common,targetOverride:mg.value,targetSourceType:mg.sourceType||'management',targetSourceName:mg.sourceName||'هدف مدیریتی',targetSourceYear:mg.sourceYear||null,standardAgeDays:benchmarkAge});
           result.managementFallbackUsed=true;
+        }else{
+          result=await A.analyze(common);
         }
-        return{...result,metric:m,currentValue:cur,management:mgMap[m]||null};
+        return{...result,metric:m,currentValue:cur,management:mg};
       }catch(e){console.warn('[Adine PI] metric failed',m,e);return{ok:false,metric:m,currentValue:cur,management:mgMap[m]||null,code:'metric_analysis_error',message:String(e?.message||e)}}
     });
     Promise.all(analyses).then(results=>{

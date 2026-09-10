@@ -59,7 +59,7 @@
       if(!A?.analyze)return{ok:false,metric:m,currentValue:cur,management:mgMap[m]||null,code:'intelligence_engine_unavailable'};
       try{
         const future=model.rows.slice(i+1).find(x=>modelTarget(x,m)!==null);
-        const result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:flock.genetics||null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.age??null,futureStandard:future?modelTarget(future,m):null});
+        const result=await A.analyze({flockId,evaluationDate:r.raw?.evaluation_date||r.raw?.record_date||null,ageDays:r.age,metric:m,currentValue:cur,productionType:'broiler',genetics:null,strain:flock.strain||null,history:history(model.rows,i,m),targetAgeDays:future?.age??null,futureStandard:future?modelTarget(future,m):null});
         return{...result,metric:m,currentValue:cur,management:mgMap[m]||null};
       }catch(e){console.warn('[Adine PI] metric failed',m,e);return{ok:false,metric:m,currentValue:cur,management:mgMap[m]||null,code:'metric_analysis_error',message:String(e?.message||e)}}
     });

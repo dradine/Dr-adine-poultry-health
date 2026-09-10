@@ -8,33 +8,7 @@
 const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
 const median=a=>{const x=a.filter(Number.isFinite).sort((a,b)=>a-b);if(!x.length)return null;const m=Math.floor(x.length/2);return x.length%2?x[m]:(x[m-1]+x[m])/2};
 const metricDirection=metric=>["fcr","cumulative_fcr","mortality","cv","feed_per_egg_mass","mortality_rate"].includes(String(metric||"").toLowerCase())?"lower":"higher";
-
-/*
-  Strict scoring philosophy:
-  - Official/management references remain untouched and are still supplied by
-    the existing resolver/RPC.
-  - FCR/CV/mortality: adverse performance is above the reference.
-  - Body weight/weekly gain: target is a target, not a minimum; both meaningful
-    under- and over-shoots are penalized.
-  - Uniformity: higher is better, but the score is capped at 100 once the
-    configured reference is met.
-  - Piecewise interpolation avoids the old linear rule that called a 3.4%
-    adverse FCR deviation "excellent" and a ~5.6% low weight "good".
-*/
-const SCORE_BANDS={
-  adverse:[
-    {to:1.0,score:100,label:"excellent"},
-    {to:2.5,score:94,label:"good"},
-    {to:5.0,score:84,label:"watch"},
-    {to:8.0,score:69,label:"critical"},
-    {to:15.0,score:50,label:"critical"}
-  ],
-  targetCentered:{
-    {to:1.5,score:100,label:"excellent"}
-  }
-};
-/* JavaScript object syntax above intentionally cannot use anonymous keyed
-   entries; keep the actual band arrays separate and explicit. */
+/* Strict scoring only. Reference values themselves are not modified. */
 const BANDS={
   fcr:[[1,100],[2.5,94],[5,84],[8,69],[15,50]],
   cumulative_fcr:[[1,100],[2.5,94],[5,84],[8,69],[15,50]],
@@ -47,85 +21,28 @@ const BANDS={
 };
 const LABELS={excellent:"عالی",good:"خوب",watch:"قابل قبول",critical:"نیازمند اقدام",unknown:"اطلاعات ناکافی"};
 function interpolate(adverse,bands){
-  if(!Number.isFinite(adverse))return null;
-  if(adverse<=0)return 100;
+  if(!Number.isFinite(adverse))return null;if(adverse<=0)return 100;
   let prevX=0,prevY=100;
-  for(const [x,y] of bands){
-    if(adverse<=x){const r=(adverse-prevX)/(x-prevX);return Number((prevY+(y-prevY)*r).toFixed(1));}
-    prevX=x;prevY=y;
-  }
-  const lastX=bands[bands.length-1][0],lastY=bands[bands.length-1][1];
-  const tail=Math.min(1,Math.max(0,(adverse-lastX)/(15-lastX)));
+  for(const [x,y] of bands){if(adverse<=x){const r=(adverse-prevX)/(x-prevX);return Number((prevY+(y-prevY)*r).toFixed(1));}prevX=x;prevY=y;}
+  const lastX=bands[bands.length-1][0],lastY=bands[bands.length-1][1],tail=Math.min(1,Math.max(0,(adverse-lastX)/(15-lastX)));
   return Number(Math.max(0,lastY*(1-tail)).toFixed(1));
 }
 function scoringMeta(current,target,metric){
-  const c=n(current),t=n(target),m=String(metric||"").toLowerCase();
-  if(c===null||t===null||t<=0)return null;
+  const c=n(current),t=n(target),m=String(metric||"").toLowerCase();if(c===null||t===null||t<=0)return null;
   const rawPct=(c-t)/Math.abs(t)*100;
-  let adversePct;
-  if(["body_weight","weekly_weight_gain"].includes(m)) adversePct=Math.abs(rawPct);
-  else if(metricDirection(m)==="lower") adversePct=Math.max(0,rawPct);
-  else adversePct=Math.max(0,-rawPct);
-  const bands=BANDS[m]||([[1,100],[2.5,94],[5,84],[8,69],[15,50]]);
-  const s=interpolate(adversePct,bands);
-  let status=s===null?"unknown":s>=95?"excellent":s>=85?"good":s>=70?"watch":"critical";
-  const favorable=metricDirection(m)==="lower"?rawPct<0:(m==="body_weight"||m==="weekly_weight_gain"?Math.abs(rawPct)===0:rawPct>0);
-  let reasonFa;
-  if(rawPct===0)reasonFa="مطابق مرجع";
-  else if(m==="body_weight"||m==="weekly_weight_gain")reasonFa=rawPct<0?`${Math.abs(rawPct).toFixed(2)}٪ پایین‌تر از هدف`:`${Math.abs(rawPct).toFixed(2)}٪ بالاتر از هدف`;
-  else if(metricDirection(m)==="lower")reasonFa=rawPct>0?`${Math.abs(rawPct).toFixed(2)}٪ بدتر از مرجع`:`${Math.abs(rawPct).toFixed(2)}٪ بهتر از مرجع`;
-  else reasonFa=rawPct<0?`${Math.abs(rawPct).toFixed(2)}٪ پایین‌تر از مرجع`:`${Math.abs(rawPct).toFixed(2)}٪ بالاتر از مرجع`;
-  return{score:s,status,rawDeviationPercent:Number(rawPct.toFixed(2)),adverseDeviationPercent:Number(adversePct.toFixed(2)),favorable,reasonFa,labelFa:LABELS[status]||LABELS.unknown};
+  let adversePct;if(["body_weight","weekly_weight_gain"].includes(m))adversePct=Math.abs(rawPct);else if(metricDirection(m)==="lower")adversePct=Math.max(0,rawPct);else adversePct=Math.max(0,-rawPct);
+  const bands=BANDS[m]||[[1,100],[2.5,94],[5,84],[8,69],[15,50]],s=interpolate(adversePct,bands);
+  const st=s===null?"unknown":s>=95?"excellent":s>=85?"good":s>=70?"watch":"critical";
+  let reasonFa;if(rawPct===0)reasonFa="مطابق مرجع";else if(["body_weight","weekly_weight_gain"].includes(m))reasonFa=rawPct<0?`${Math.abs(rawPct).toFixed(2)}٪ پایین‌تر از هدف`:`${Math.abs(rawPct).toFixed(2)}٪ بالاتر از هدف`;else if(metricDirection(m)==="lower")reasonFa=rawPct>0?`${Math.abs(rawPct).toFixed(2)}٪ بدتر از مرجع`:`${Math.abs(rawPct).toFixed(2)}٪ بهتر از مرجع`;else reasonFa=rawPct<0?`${Math.abs(rawPct).toFixed(2)}٪ پایین‌تر از مرجع`:`${Math.abs(rawPct).toFixed(2)}٪ بالاتر از مرجع`;
+  return{score:s,status:st,rawDeviationPercent:Number(rawPct.toFixed(2)),adverseDeviationPercent:Number(adversePct.toFixed(2)),favorable:metricDirection(m)==="lower"?rawPct<0:(m==="body_weight"||m==="weekly_weight_gain"?rawPct===0:rawPct>0),reasonFa,labelFa:LABELS[st]||LABELS.unknown};
 }
 const score=(current,target,metric)=>{const x=scoringMeta(current,target,metric);return x?x.score:null};
 const status=s=>s==null?"unknown":s>=95?"excellent":s>=85?"good":s>=70?"watch":"critical";
-
-function robustTrend(points){
-  const a=(Array.isArray(points)?points:[]).map((p,i)=>typeof p==="object"?{x:n(p.x??p.ageDays??p.age??i),y:n(p.y??p.value)}:{x:i,y:n(p)}).filter(p=>p.x!==null&&p.y!==null).sort((a,b)=>a.x-b.x);
-  if(a.length<4)return null;
-  const slopes=[];for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){const dx=a[j].x-a[i].x;if(dx)slopes.push((a[j].y-a[i].y)/dx)}
-  const slope=median(slopes),intercept=median(a.map(p=>p.y-slope*p.x));
-  const residuals=a.map(p=>Math.abs(p.y-(intercept+slope*p.x))),mad=median(residuals)||0;
-  const mean=a.reduce((s,p)=>s+p.y,0)/a.length,ssTot=a.reduce((s,p)=>s+(p.y-mean)**2,0),ssRes=a.reduce((s,p)=>s+(p.y-(intercept+slope*p.x))**2,0);
-  return{n:a.length,slope,intercept,r2:ssTot?Math.max(0,1-ssRes/ssTot):0,mad,lastX:a[a.length-1].x,lastY:a[a.length-1].y,direction:slope>0?"rising":slope<0?"falling":"stable"};
-}
-function normalizedTrend(points){
-  const a=(Array.isArray(points)?points:[]).map((p,i)=>({x:n(p?.x??p?.ageDays??p?.age??i),y:n(p?.y??p?.value),standard:n(p?.standard??p?.standardValue)})).filter(p=>p.x!==null&&p.y!==null&&p.standard!==null&&p.standard>0).sort((a,b)=>a.x-b.x);
-  if(a.length<4)return null;const ratios=a.map(p=>({x:p.x,y:p.y/p.standard})),t=robustTrend(ratios);return t?{...t,ratios,a}:null;
-}
-function forecast(points,{horizonWeeks=4,targetAgeDays=null,futureStandard=null}={}){
-  const nt=normalizedTrend(points);
-  if(nt){
-    const targetX=targetAgeDays!=null?n(targetAgeDays):(nt.lastX+7*horizonWeeks),ratio=nt.intercept+nt.slope*targetX,fs=n(futureStandard),reference=fs!==null?fs:(nt.a.find(p=>p.x===targetX)?.standard??nt.a[nt.a.length-1]?.standard);
-    if(reference!==null&&reference!==undefined){
-      const lowRatio=ratio-1.96*nt.mad,highRatio=ratio+1.96*nt.mad,projected=ratio*reference;
-      return{available:true,method:"Theil-Sen age-normalized trend",observations:nt.n,r2:Number(nt.r2.toFixed(3)),slope_per_day:Number(nt.slope.toFixed(6)),projected_age_or_index:targetX,projected_relative_ratio:Number(ratio.toFixed(4)),projected_value:Number(projected.toFixed(4)),prediction_interval_approx:[Number((Math.min(lowRatio,highRatio)*reference).toFixed(4)),Number((Math.max(lowRatio,highRatio)*reference).toFixed(4))],direction:nt.direction,confidence:nt.n>=8&&nt.r2>=0.5?"medium-high":nt.n>=6?"medium":"low"};
-    }
-  }
-  const t=robustTrend(points);if(!t)return{available:false,code:"insufficient_history",minimum_points:4};
-  const step=(Array.isArray(points)?points:[]).some(p=>typeof p==="object"&&n(p.x??p.ageDays)!=null)?7:1,targetX=targetAgeDays!=null?n(targetAgeDays):(t.lastX+step*horizonWeeks),projected=t.intercept+t.slope*targetX,low=projected-1.96*t.mad,high=projected+1.96*t.mad;
-  return{available:true,method:"Theil-Sen robust trend",observations:t.n,r2:Number(t.r2.toFixed(3)),slope_per_day:Number(t.slope.toFixed(6)),projected_age_or_index:targetX,projected_value:Number(projected.toFixed(4)),prediction_interval_approx:[Number(Math.min(low,high).toFixed(4)),Number(Math.max(low,high).toFixed(4))],direction:t.direction,confidence:t.n>=8&&t.r2>=0.5?"medium-high":t.n>=6?"medium":"low"};
-}
-function adaptiveAlert(history,currentValue,currentStandard,metric){
-  const prior=(Array.isArray(history)?history:[]).map(p=>{const y=n(p?.y??p?.value),s=n(p?.standard??p?.standardValue);return y!==null&&s!==null&&s>0?y/s:null}).filter(v=>v!==null),current=n(currentValue),standard=n(currentStandard);
-  if(prior.length<4||current===null||standard===null||standard<=0)return{available:false,code:"insufficient_history",minimum_prior_observations:4};
-  const deviations=prior.map(v=>v-1),baseDev=median(deviations),mad=median(deviations.map(v=>Math.abs(v-baseDev)))||0,scale=Math.max(1.4826*mad,0.01),curDev=current/standard-1,z=(curDev-baseDev)/scale,adverse=metricDirection(metric)==="lower"?z>=3:z<=-3;
-  if(!adverse)return{available:true,alert:false,robust_z:Number(z.toFixed(2)),baseline_deviation_percent:Number((baseDev*100).toFixed(2)),mad_percent:Number((mad*100).toFixed(2))};
-  return{available:true,alert:true,severity:Math.abs(z)>=4.5?"high":"watch",robust_z:Number(z.toFixed(2)),baseline_deviation_percent:Number((baseDev*100).toFixed(2)),mad_percent:Number((mad*100).toFixed(2)),message_fa:"انحراف فعلی نسبت به الگوی تاریخی همین گله غیرعادی است و نیاز به پایش دارد."};
-}
-async function analyze({flockId,evaluationDate,ageDays,metric,currentValue,productionType,genetics,strain,history=[],targetAgeDays=null,futureStandard=null,targetOverride=null,targetSourceType=null,targetSourceName=null,targetSourceYear=null,standardAgeDays=null}={}){
-  if(n(ageDays)===null||n(currentValue)===null)return{ok:false,code:"insufficient_data",metric};
-  let r;
-  if(n(targetOverride)!==null){
-    const target=n(targetOverride);r={ok:true,metric,metric_code:metric,current:n(currentValue),target,delta:n(currentValue)-target,delta_percent:target===0?null:(n(currentValue)-target)/Math.abs(target)*100,direction:metricDirection(metric),source_type:targetSourceType||"unknown",source_name:targetSourceName||null,source_year:targetSourceYear||null,confidence:targetSourceType==="official"?"high":targetSourceType==="scientific"?"medium":"low",standard_age_days:standardAgeDays??ageDays,is_exact_age:true};
-  }else{
-    const client=global.supabaseClient||global.supabase;if(!client)return{ok:false,code:"supabase_unavailable",metric};
-    const {data,error}=await client.rpc("calculate_performance_intelligence",{p_flock_id:flockId,p_evaluation_date:evaluationDate,p_age_days:ageDays,p_metric:metric,p_current_value:currentValue,p_production_type:productionType,p_genetics:genetics||null,p_strain:strain||null});
-    if(error)return{ok:false,code:"database_error",message:error.message,metric};r=data||{};if(!r.ok)return{...r,metric};
-  }
-  const meta=scoringMeta(r.current,r.target,metric),s=meta?.status||status(meta?.score),f=forecast(history,{horizonWeeks:4,targetAgeDays,futureStandard}),alert=adaptiveAlert(history,r.current,r.target,metric);
-  return{...r,metric,score:meta?.score??null,status:s,scoreMeta:meta,ui:{badge:s,label:meta?.labelFa||LABELS[s]||LABELS.unknown,level:s,reason:meta?.reasonFa||"بدون انحراف قابل گزارش"},forecast:f,alert};
-}
+function robustTrend(points){const a=(Array.isArray(points)?points:[]).map((p,i)=>typeof p==="object"?{x:n(p.x??p.ageDays??p.age??i),y:n(p.y??p.value)}:{x:i,y:n(p)}).filter(p=>p.x!==null&&p.y!==null).sort((a,b)=>a.x-b.x);if(a.length<4)return null;const slopes=[];for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++){const dx=a[j].x-a[i].x;if(dx)slopes.push((a[j].y-a[i].y)/dx)}const slope=median(slopes),intercept=median(a.map(p=>p.y-slope*p.x)),residuals=a.map(p=>Math.abs(p.y-(intercept+slope*p.x))),mad=median(residuals)||0,mean=a.reduce((s,p)=>s+p.y,0)/a.length,ssTot=a.reduce((s,p)=>s+(p.y-mean)**2,0),ssRes=a.reduce((s,p)=>s+(p.y-(intercept+slope*p.x))**2,0);return{n:a.length,slope,intercept,r2:ssTot?Math.max(0,1-ssRes/ssTot):0,mad,lastX:a[a.length-1].x,lastY:a[a.length-1].y,direction:slope>0?"rising":slope<0?"falling":"stable"}}
+function normalizedTrend(points){const a=(Array.isArray(points)?points:[]).map((p,i)=>({x:n(p?.x??p?.ageDays??p?.age??i),y:n(p?.y??p?.value),standard:n(p?.standard??p?.standardValue)})).filter(p=>p.x!==null&&p.y!==null&&p.standard!==null&&p.standard>0).sort((a,b)=>a.x-b.x);if(a.length<4)return null;const ratios=a.map(p=>({x:p.x,y:p.y/p.standard})),t=robustTrend(ratios);return t?{...t,ratios,a}:null}
+function forecast(points,{horizonWeeks=4,targetAgeDays=null,futureStandard=null}={}){const nt=normalizedTrend(points);if(nt){const targetX=targetAgeDays!=null?n(targetAgeDays):(nt.lastX+7*horizonWeeks),ratio=nt.intercept+nt.slope*targetX,fs=n(futureStandard),reference=fs!==null?fs:(nt.a.find(p=>p.x===targetX)?.standard??nt.a[nt.a.length-1]?.standard);if(reference!==null&&reference!==undefined){const lowRatio=ratio-1.96*nt.mad,highRatio=ratio+1.96*nt.mad,projected=ratio*reference;return{available:true,method:"Theil-Sen age-normalized trend",observations:nt.n,r2:Number(nt.r2.toFixed(3)),slope_per_day:Number(nt.slope.toFixed(6)),projected_age_or_index:targetX,projected_relative_ratio:Number(ratio.toFixed(4)),projected_value:Number(projected.toFixed(4)),prediction_interval_approx:[Number((Math.min(lowRatio,highRatio)*reference).toFixed(4)),Number((Math.max(lowRatio,highRatio)*reference).toFixed(4))],direction:nt.direction,confidence:nt.n>=8&&nt.r2>=0.5?"medium-high":nt.n>=6?"medium":"low"}}}const t=robustTrend(points);if(!t)return{available:false,code:"insufficient_history",minimum_points:4};const step=(Array.isArray(points)?points:[]).some(p=>typeof p==="object"&&n(p.x??p.ageDays)!=null)?7:1,targetX=targetAgeDays!=null?n(targetAgeDays):(t.lastX+step*horizonWeeks),projected=t.intercept+t.slope*targetX,low=projected-1.96*t.mad,high=projected+1.96*t.mad;return{available:true,method:"Theil-Sen robust trend",observations:t.n,r2:Number(t.r2.toFixed(3)),slope_per_day:Number(t.slope.toFixed(6)),projected_age_or_index:targetX,projected_value:Number(projected.toFixed(4)),prediction_interval_approx:[Number(Math.min(low,high).toFixed(4)),Number(Math.max(low,high).toFixed(4))],direction:t.direction,confidence:t.n>=8&&t.r2>=0.5?"medium-high":t.n>=6?"medium":"low"}}
+function adaptiveAlert(history,currentValue,currentStandard,metric){const prior=(Array.isArray(history)?history:[]).map(p=>{const y=n(p?.y??p?.value),s=n(p?.standard??p?.standardValue);return y!==null&&s!==null&&s>0?y/s:null}).filter(v=>v!==null),current=n(currentValue),standard=n(currentStandard);if(prior.length<4||current===null||standard===null||standard<=0)return{available:false,code:"insufficient_history",minimum_prior_observations:4};const deviations=prior.map(v=>v-1),baseDev=median(deviations),mad=median(deviations.map(v=>Math.abs(v-baseDev)))||0,scale=Math.max(1.4826*mad,0.01),curDev=current/standard-1,z=(curDev-baseDev)/scale,adverse=metricDirection(metric)==="lower"?z>=3:z<=-3;if(!adverse)return{available:true,alert:false,robust_z:Number(z.toFixed(2)),baseline_deviation_percent:Number((baseDev*100).toFixed(2)),mad_percent:Number((mad*100).toFixed(2))};return{available:true,alert:true,severity:Math.abs(z)>=4.5?"high":"watch",robust_z:Number(z.toFixed(2)),baseline_deviation_percent:Number((baseDev*100).toFixed(2)),mad_percent:Number((mad*100).toFixed(2)),message_fa:"انحراف فعلی نسبت به الگوی تاریخی همین گله غیرعادی است و نیاز به پایش دارد."}}
+async function analyze({flockId,evaluationDate,ageDays,metric,currentValue,productionType,genetics,strain,history=[],targetAgeDays=null,futureStandard=null,targetOverride=null,targetSourceType=null,targetSourceName=null,targetSourceYear=null,standardAgeDays=null}={}){if(n(ageDays)===null||n(currentValue)===null)return{ok:false,code:"insufficient_data",metric};let r;if(n(targetOverride)!==null){const target=n(targetOverride);r={ok:true,metric,metric_code:metric,current:n(currentValue),target,delta:n(currentValue)-target,delta_percent:target===0?null:(n(currentValue)-target)/Math.abs(target)*100,direction:metricDirection(metric),source_type:targetSourceType||"unknown",source_name:targetSourceName||null,source_year:targetSourceYear||null,confidence:targetSourceType==="official"?"high":targetSourceType==="scientific"?"medium":"low",standard_age_days:standardAgeDays??ageDays,is_exact_age:true}}else{const client=global.supabaseClient||global.supabase;if(!client)return{ok:false,code:"supabase_unavailable",metric};const {data,error}=await client.rpc("calculate_performance_intelligence",{p_flock_id:flockId,p_evaluation_date:evaluationDate,p_age_days:ageDays,p_metric:metric,p_current_value:currentValue,p_production_type:productionType,p_genetics:genetics||null,p_strain:strain||null});if(error)return{ok:false,code:"database_error",message:error.message,metric};r=data||{};if(!r.ok)return{...r,metric}}const meta=scoringMeta(r.current,r.target,metric),s=meta?.status||status(meta?.score),f=forecast(history,{horizonWeeks:4,targetAgeDays,futureStandard}),alert=adaptiveAlert(history,r.current,r.target,metric);return{...r,metric,score:meta?.score??null,status:s,scoreMeta:meta,ui:{badge:s,label:meta?.labelFa||LABELS[s]||LABELS.unknown,level:s,reason:meta?.reasonFa||"بدون انحراف قابل گزارش"},forecast:f,alert}}
 global.AdinePerformanceIntelligence={version:"STRICT-V2",analyze,forecast,robustTrend,normalizedTrend,adaptiveAlert,score,status,metricDirection,scoringMeta,LABELS,BANDS};
 (function(){function load(src){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.async=false;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}async function boot(){try{if(!global.AdineForecastSnapshot)await load("forecast-snapshot-client-v1.js");if(!global.AdineForecastSnapshotHook)await load("forecast-snapshot-hook-v2.js")}catch(e){console.warn("Forecast snapshot integration unavailable:",e)}}if(typeof document!=="undefined"){if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot()}})();
 })(typeof window!=="undefined"?window:globalThis);

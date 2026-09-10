@@ -20,7 +20,7 @@
   const u15=r=>val(r,['uniformity_15_percent','uniformity_15']);
   const live=r=>val(r,['live_birds','bird_count']);
   const ratio=r=>val(r,['water_feed_ratio']);
-  const norm=v=>String(v??'').normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').trim().toLowerCase();
+  const norm=v=>String(v??'').normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/[‐‑‒–—−]/g,'-').replace(/[._/\\]+/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
 
   function registryFor(strain){
     const registry=global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{};
@@ -60,9 +60,6 @@
     return current===null||initial===null?null:current-initial;
   }
 
-  // Week 1 has no published official day-0 weight. Therefore its gain target is
-  // a management target: official day-7 weight minus the flock's recorded start weight.
-  // From week 2 onward it is the difference between consecutive official points.
   function managementWeeklyWeightGain(flock,rows,index){
     const current=standardFor(flock,rows[index]),cw=n(current?.weight);
     if(cw===null)return null;
@@ -70,9 +67,7 @@
     return previous===null?null:cw-previous;
   }
 
-  // No official cumulative gain is published because the registry begins at day 7.
   function officialCumulativeGain(){return null}
-
   function managementWeeklyFcr(flock,rows,index){return officialWeeklyFcr(flock,rows,index)}
   function managementWeightGain(flock,rows,index){return managementWeeklyWeightGain(flock,rows,index)}
   function qualityTargets(){return{cv:10,uniformity10:80,uniformity15:90}}

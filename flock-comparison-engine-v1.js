@@ -26,12 +26,23 @@
   function normalizeRecord(r,index,flock){return{raw:r,index,week:weekOf(r),age:ageOf(r),date:dateOf(r),weight:weight(r),fcr:fcr(r),cumulativeFcr:cumFcr(r),feed:feed(r),water:water(r),cv:cv(r),uniformity10:u10(r),uniformity15:u15(r),mortalityCount:mortCount(r),storedMortalityPercent:storedMortPct(r),liveBirds:live(r),waterFeedRatio:ratio(r),flockInitialBirds:n(flock?.initial_bird_count),feedPerBird:first(r,['feed_per_bird_g']),waterPerBird:first(r,['water_per_bird_ml'])}}
   function prepareFlock(flock,records){const sorted=[...(records||[])].map((r,i)=>normalizeRecord(r,i,flock)).filter(r=>r.week!==null).sort((a,b)=>a.week-b.week||String(a.date).localeCompare(String(b.date)));const byWeek=new Map();for(const r of sorted){if(!byWeek.has(r.week))byWeek.set(r.week,r)}return{flock,records:sorted,byWeek}}
   function weeklyGain(prepared,w){const r=prepared.byWeek.get(w);if(!r||r.weight===null)return null;const prev=prepared.byWeek.get(w-1);const initial=n(prepared.flock?.initial_average_weight_g);const base=prev?.weight??(w===1?initial:null);return base===null||base===undefined?null:r.weight-base}
-  function weeklyMortalityPercent(prepared,w){const r=prepared.byWeek.get(w);if(!r)return null;const deaths=r.mortalityCount;if(deaths===null||deaths<0)return null;const endLive=r.liveBirds;if(endLive!==null&&endLive>=0&&endLive+deaths>0)return deaths/(endLive+deaths)*100;return null}
-  function cumulativeMortality(prepared,w){const initial=n(prepared.flock?.initial_bird_count);if(initial===null||initial<=0)return null;let total=0,found=false;for(const r of prepared.records){if(r.week>w)break;const m=r.mortalityCount;if(m!==null){total+=m;found=true}}return found?total/initial*100:null}
   function cumulativeMortalityCount(prepared,w){let total=0,found=false;for(const r of prepared.records){if(r.week>w)break;const m=r.mortalityCount;if(m!==null){total+=m;found=true}}return found?total:null}
+  /* Limited fix: keep the existing live_birds value when present; only if it is absent,
+     derive live birds from initial birds minus cumulative mortality for this comparison. */
+  function effectiveLiveBirds(prepared,w){
+    const r=prepared.byWeek.get(w);
+    if(r?.liveBirds!==null&&r?.liveBirds!==undefined&&r.liveBirds>=0)return r.liveBirds;
+    const initial=n(prepared.flock?.initial_bird_count);
+    if(initial===null||initial<0)return null;
+    if(w===1)return initial;
+    const deaths=cumulativeMortalityCount(prepared,w);
+    return deaths===null?null:Math.max(0,initial-deaths);
+  }
+  function weeklyMortalityPercent(prepared,w){const r=prepared.byWeek.get(w);if(!r)return null;const deaths=r.mortalityCount;if(deaths===null||deaths<0)return null;const endLive=effectiveLiveBirds(prepared,w);if(endLive!==null&&endLive>=0&&endLive+deaths>0)return deaths/(endLive+deaths)*100;return null}
+  function cumulativeMortality(prepared,w){const initial=n(prepared.flock?.initial_bird_count);if(initial===null||initial<=0)return null;let total=0,found=false;for(const r of prepared.records){if(r.week>w)break;const m=r.mortalityCount;if(m!==null){total+=m;found=true}}return found?total/initial*100:null}
   function allWeeks(items){const set=new Set();items.forEach(p=>p.records.forEach(r=>set.add(r.week)));return [...set].sort((a,b)=>a-b)}
   function sharedWeeks(items){if(!items.length)return[];let shared=new Set(items[0].records.map(r=>r.week));for(const p of items.slice(1)){const own=new Set(p.records.map(r=>r.week));shared=new Set([...shared].filter(w=>own.has(w)))}return [...shared].sort((a,b)=>a-b)}
-  function snapshot(prepared,week){const r=prepared.byWeek.get(week);return{week,age:r?.age??week*7,date:r?.date||null,weight:r?.weight??null,weeklyGain:weeklyGain(prepared,week),fcr:r?.fcr??null,cumulativeFcr:r?.cumulativeFcr??null,feed:r?.feed??null,water:r?.water??null,cv:r?.cv??null,uniformity10:r?.uniformity10??null,uniformity15:r?.uniformity15??null,mortalityCount:r?.mortalityCount??null,mortalityPercent:weeklyMortalityPercent(prepared,week),storedMortalityPercent:r?.storedMortalityPercent??null,cumulativeMortality:cumulativeMortality(prepared,week),cumulativeMortalityCount:cumulativeMortalityCount(prepared,week),liveBirds:r?.liveBirds??null,waterFeedRatio:r?.waterFeedRatio??null,recorded:!!r}}
+  function snapshot(prepared,week){const r=prepared.byWeek.get(week);return{week,age:r?.age??week*7,date:r?.date||null,weight:r?.weight??null,weeklyGain:weeklyGain(prepared,week),fcr:r?.fcr??null,cumulativeFcr:r?.cumulativeFcr??null,feed:r?.feed??null,water:r?.water??null,cv:r?.cv??null,uniformity10:r?.uniformity10??null,uniformity15:r?.uniformity15??null,mortalityCount:r?.mortalityCount??null,mortalityPercent:weeklyMortalityPercent(prepared,week),storedMortalityPercent:r?.storedMortalityPercent??null,cumulativeMortality:cumulativeMortality(prepared,week),cumulativeMortalityCount:cumulativeMortalityCount(prepared,week),liveBirds:effectiveLiveBirds(prepared,week),waterFeedRatio:r?.waterFeedRatio??null,recorded:!!r}}
   function compare(items){const weeks=sharedWeeks(items);return{weeks,allWeeks:allWeeks(items),series:items.map(p=>({flock:p.flock,points:weeks.map(w=>snapshot(p,w))}))}}
   global.AdineBroilerFlockComparisonEngine={version:'BROILER-FLOCK-COMPARISON-V1.1',isBroiler,prepareFlock,compare,snapshot,sharedWeeks,allWeeks};
 })(typeof window!=='undefined'?window:globalThis);

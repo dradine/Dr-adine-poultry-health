@@ -17,7 +17,7 @@
 <script src="reports-router.js?v=20260901.8"></script>
 <style>
 /* ADINE: the week selector belongs only to the standalone weekly report. */
-.report-toolbar.is-comprehensive .toolbar-left{display:none!important}
+.report-toolbar.is-comprehensive .toolbar-left,.report-toolbar.is-compare .toolbar-left{display:none!important}
 </style>
 </head>
 <body>
@@ -53,6 +53,7 @@
     if(!toolbar||!root||!active)return;
     var tab=active.getAttribute('data-tab');
     toolbar.classList.toggle('is-comprehensive',tab==='overall');
+    toolbar.classList.toggle('is-compare',tab==='compare-empty');
   }
   document.addEventListener('click',function(e){
     if(e.target.closest&&e.target.closest('.report-tab'))setTimeout(syncReportChrome,0);

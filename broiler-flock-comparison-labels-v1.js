@@ -6,6 +6,13 @@
 (function(){
   function clean(s){return String(s||'').replace(/\s+/g,' ').trim()}
   function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function compactNameFromOption(text){
+    const raw=clean(text);
+    const parts=raw.split(/\s+—\s+/).map(clean);
+    /* flockLabel is: farm — house — flock name — placement date */
+    if(parts.length>=4)return parts[2]||'گله';
+    return raw;
+  }
   function apply(){
     const root=document.getElementById('root');
     if(!root)return;
@@ -16,11 +23,9 @@
       if(!s)return;
       const opt=s.options[s.selectedIndex];
       if(!opt||!opt.value)return;
-      const raw=clean(opt.textContent);
-      const parts=raw.split('/').map(clean);
-      const name=parts.length>=3?parts[parts.length-1]:raw;
+      const name=compactNameFromOption(opt.textContent);
       const meta=clean(s.parentElement?.querySelector('.fc-meta')?.textContent||'');
-      const strain=meta.split('|')[0]?.trim()||'سویه نامشخص';
+      const strain=clean(meta.split('|')[0])||'سویه نامشخص';
       const html=`<span class="fc-flock-index">${i+1}</span><span class="fc-compact-flock-name">${escapeHtml(name)}</span><span class="fc-compact-flock-strain">${escapeHtml(strain)}</span>`;
       if(h.innerHTML!==html)h.innerHTML=html;
     });

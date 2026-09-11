@@ -1,0 +1,62 @@
+/* ADINE POULTRY HEALTH CENTER — BROILER BENCHMARK V1
+   Independent flock-level peer benchmark. Read-only. */
+(function(global){'use strict';
+const METRICS={
+ body_weight:{label:'وزن متوسط',unit:'گرم',dec:0,kind:'context'},
+ weekly_gain:{label:'افزایش وزن هفتگی',unit:'گرم',dec:0,kind:'higher'},
+ weekly_fcr:{label:'FCR هفتگی',unit:'',dec:2,kind:'lower'},
+ cumulative_fcr:{label:'FCR تجمعی',unit:'',dec:2,kind:'lower'},
+ cv:{label:'CV',unit:'٪',dec:1,kind:'lower'},
+ uniformity10:{label:'یکنواختی ±۱۰٪',unit:'٪',dec:1,kind:'higher'},
+ uniformity15:{label:'یکنواختی ±۱۵٪',unit:'٪',dec:1,kind:'higher'},
+ weekly_mortality:{label:'تلفات هفتگی',unit:'٪',dec:2,kind:'lower'},
+ cumulative_mortality:{label:'تلفات تجمعی',unit:'٪',dec:2,kind:'lower'},
+ livability:{label:'زنده‌مانی',unit:'٪',dec:2,kind:'higher'}
+};
+function client(){return global.supabaseClient||global.supabase||null}
+function fmt(v,d){if(v===null||v===undefined||Number.isNaN(Number(v)))return '—';return Number(v).toLocaleString('fa-IR',{maximumFractionDigits:d,minimumFractionDigits:0})}
+function pct(v){return v===null||v===undefined?'—':`P${fmt(Math.round(Number(v)),0)}`}
+function labelFor(key){return METRICS[key]?.label||key}
+async function load(flockId,ageDays,opts={}){
+ const sb=client(); if(!sb) throw new Error('اتصال به Supabase آماده نیست.');
+ const {data,error}=await sb.rpc('get_broiler_benchmark_v1',{p_flock_id:flockId,p_age_days:ageDays??null,p_age_window_days:opts.ageWindow??3,p_recent_limit:opts.recentLimit??30});
+ if(error) throw error; return data;
+}
+function cohort(data,key){return (data?.cohorts||[]).find(x=>x.key===key)||null}
+function render(root,data,state){
+ if(!root)return;
+ if(!data?.ok){root.innerHTML=`<div class="bb-error">${data?.message||'داده کافی برای Benchmark وجود ندارد.'}</div>`;return}
+ const f=data.flock||{};
+ const cohorts=data.cohorts||[];
+ const regionNames={north:'شمال',south:'جنوب',east:'شرق',west:'غرب',center:'مرکز'};
+ const age=f.age_days??'—';
+ root.innerHTML=`<section class="bb-shell" dir="rtl">
+ <div class="bb-head"><div><div class="bb-kicker">BENCHMARK گوشتی آدینه</div><h2>جایگاه گله در جامعه همتا</h2><p>سن ${fmt(age,0)} روز · ${f.strain?`سویه ${f.strain}`:'سویه ثبت نشده'}${f.region?` · منطقه ${regionNames[f.region]||f.region}`:''}</p></div><button class="bb-back" type="button" data-bb-back>بازگشت</button></div>
+ <div class="bb-controls"><label>جامعه مقایسه<select data-bb-cohort>${cohorts.map(c=>`<option value="${c.key}" ${c.key===(state?.cohort||'all')?'selected':''}>${c.label}</option>`).join('')}</select></label><label>بازه سنی<select data-bb-window><option value="2">±۲ روز</option><option value="3" selected>±۳ روز</option><option value="5">±۵ روز</option><option value="7">±۷ روز</option></select></label></div>
+ <div class="bb-summary"><div><span>گله</span><strong>${f.name||'گله انتخاب‌شده'}</strong></div><div><span>سن Benchmark</span><strong>${fmt(age,0)} روز</strong></div><div><span>جامعه</span><strong id="bb-n">—</strong><small id="bb-confidence"></small></div></div>
+ <div class="bb-grid">${Object.keys(METRICS).map(k=>`<article class="bb-metric" data-metric="${k}"><div class="bb-metric-title"><span>${labelFor(k)}</span><b data-value>—</b></div><div class="bb-bar"><i data-marker></i></div><div class="bb-statline"><span data-pctl>جایگاه: —</span><span data-range>—</span></div><div class="bb-detail"><span>P10 <b data-p10>—</b></span><span>P25 <b data-p25>—</b></span><span>میانه <b data-med>—</b></span><span>P75 <b data-p75>—</b></span><span>P90 <b data-p90>—</b></span></div></article>`).join('')}</div>
+ <div class="bb-note"><b>تفسیر:</b> Benchmark جایگزین استاندارد رسمی یا هدف مدیریتی نیست؛ جایگاه گله را در بین گله‌های واقعی مشابه سیستم نشان می‌دهد. گله‌های فعال و بسته‌شده، در صورت داشتن رکورد معتبر در سن موردنظر، در جامعه محاسبه می‌شوند.</div>
+ </section>`;
+ const c=cohort(data,state?.cohort||'all')||cohorts[0];
+ if(!c)return;
+ let total=0;
+ Object.keys(METRICS).forEach(k=>{
+  const m=c.metrics?.[k],el=root.querySelector(`[data-metric="${k}"]`); if(!el)return;
+  if(!m){el.style.display='none';return} el.style.display='block'; total=Math.max(total,Number(m.n)||0);
+  el.querySelector('[data-value]').textContent=fmt(m.current,METRICS[k].dec)+(METRICS[k].unit?' '+METRICS[k].unit:'');
+  el.querySelector('[data-pctl]').textContent=m.percentile==null?'جایگاه: —':`جایگاه: ${pct(m.percentile)}`;
+  el.querySelector('[data-range]').textContent=m.n?`${fmt(m.n,0)} گله`:'داده کافی نیست';
+  el.querySelector('[data-p10]').textContent=fmt(m.p10,METRICS[k].dec);el.querySelector('[data-p25]').textContent=fmt(m.p25,METRICS[k].dec);el.querySelector('[data-med]').textContent=fmt(m.median,METRICS[k].dec);el.querySelector('[data-p75]').textContent=fmt(m.p75,METRICS[k].dec);el.querySelector('[data-p90]').textContent=fmt(m.p90,METRICS[k].dec);
+  const p=Math.max(0,Math.min(100,Number(m.percentile)||0));el.querySelector('[data-marker]').style.right=`${p}%`;
+  el.dataset.status=m.n<10?'low':m.n<20?'initial':m.n<50?'reliable':'stable';
+ });
+ root.querySelector('#bb-n').textContent=fmt(total,0)+' گله';
+ root.querySelector('#bb-confidence').textContent=total<10?'جامعه کوچک':total<20?'بنچمارک اولیه':total<50?'قابل اتکا':'جامعه قوی';
+}
+function mount(root,flockId,ageDays){
+ let state={cohort:'all',ageWindow:3};
+ async function refresh(){root.innerHTML='<div class="bb-loading">در حال محاسبه Benchmark…</div>';try{const data=await load(flockId,ageDays,{ageWindow:state.ageWindow});render(root,data,state);root.querySelector('[data-bb-cohort]')?.addEventListener('change',e=>{state.cohort=e.target.value;refresh()});root.querySelector('[data-bb-window]')?.addEventListener('change',e=>{state.ageWindow=Number(e.target.value)||3;refresh()});root.querySelector('[data-bb-back]')?.addEventListener('click',()=>global.AdineComparisonLanding?.showLanding?.())}catch(e){root.innerHTML=`<div class="bb-error">خطا در Benchmark: ${e?.message||'خطای نامشخص'}</div>`}}
+ refresh(); return {refresh};
+}
+global.AdineBroilerBenchmark={load,render,mount,METRICS};
+})(window);

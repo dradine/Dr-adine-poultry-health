@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>گزارشات | مرکز تخصصی سلامت طیور آدینه</title>
-<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="reports.css"><link rel="stylesheet" href="broiler-comprehensive-report-v1.css"><link rel="stylesheet" href="broiler-comprehensive-report-v2.css"><link rel="stylesheet" href="broiler-flock-comparison-v1.css?v=20260911.9"><link rel="stylesheet" href="broiler-flock-comparison-landing-v1.css?v=20260911.7">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="reports.css"><link rel="stylesheet" href="broiler-comprehensive-report-v1.css"><link rel="stylesheet" href="broiler-comprehensive-report-v2.css"><link rel="stylesheet" href="broiler-flock-comparison-v1.css?v=20260911.9"><link rel="stylesheet" href="broiler-flock-comparison-landing-v1.css?v=20260911.7"><link rel="stylesheet" href="broiler-benchmark-v1.css?v=20260911.1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js?v=20260901.8"></script>
 <script src="standard-data.js?v=20260901.8"></script>
@@ -17,12 +17,7 @@
 <script src="reports-router.js?v=20260901.8"></script>
 <style>
 .report-toolbar.is-comprehensive .toolbar-left,.report-toolbar.is-compare .toolbar-left{display:none!important}
-.fc-side-table-wrap{overflow-x:auto!important}
-.fc-side-table{width:100%!important;min-width:0!important;table-layout:fixed!important}
-.fc-side-table .fc-metric-head,.fc-side-table .fc-metric-name{width:105px!important}
-.fc-side-table .fc-flock-head{min-width:0!important;width:auto!important}
-.fc-side-table .fc-value-cell{min-width:0!important;width:auto!important;padding-left:3px!important;padding-right:3px!important}
-.fc-side-table th,.fc-side-table td{padding-left:3px!important;padding-right:3px!important}
+.fc-side-table-wrap{overflow-x:auto!important}.fc-side-table{width:100%!important;min-width:0!important;table-layout:fixed!important}.fc-side-table .fc-metric-head,.fc-side-table .fc-metric-name{width:105px!important}.fc-side-table .fc-flock-head{min-width:0!important;width:auto!important}.fc-side-table .fc-value-cell{min-width:0!important;width:auto!important;padding-left:3px!important;padding-right:3px!important}.fc-side-table th,.fc-side-table td{padding-left:3px!important;padding-right:3pxpx!important}
 @media(max-width:700px){.fc-side-table{min-width:560px!important}.fc-side-table .fc-metric-head,.fc-side-table .fc-metric-name{width:95px!important}}
 </style>
 </head>
@@ -51,25 +46,11 @@
 <script src="adine-weight-band-engine-v1.js?v=2.0.2"></script>
 <script src="weight-band-runtime-v1.js?v=2.2.0"></script>
 <script>
-(function(){
-  function syncReportChrome(){
-    var toolbar=document.querySelector('.report-toolbar');
-    var root=document.getElementById('root');
-    var active=document.querySelector('.report-tab.active');
-    if(!toolbar||!root||!active)return;
-    var tab=active.getAttribute('data-tab');
-    toolbar.classList.toggle('is-comprehensive',tab==='overall');
-    toolbar.classList.toggle('is-compare',tab==='compare-empty');
-  }
-  document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('.report-tab'))setTimeout(syncReportChrome,0);
-  },true);
-  new MutationObserver(syncReportChrome).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
-  syncReportChrome();
-})();
+(function(){function syncReportChrome(){var toolbar=document.querySelector('.report-toolbar');var root=document.getElementById('root');var active=document.querySelector('.report-tab.active');if(!toolbar||!root||!active)return;var tab=active.getAttribute('data-tab');toolbar.classList.toggle('is-comprehensive',tab==='overall');toolbar.classList.toggle('is-compare',tab==='compare-empty')}document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.report-tab'))setTimeout(syncReportChrome,0)},true);new MutationObserver(syncReportChrome).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});syncReportChrome()})();
 </script>
 <script src="flock-comparison-engine-v1.js?v=20260911.4"></script>
-<script src="broiler-flock-comparison-landing-v1.js?v=20260911.4"></script>
+<script src="broiler-benchmark-engine-v1.js?v=20260911.1"></script>
+<script src="broiler-flock-comparison-landing-v1.js?v=20260911.1"></script>
 <script src="broiler-flock-comparison-ui-v2.js?v=20260911.6"></script>
 <script src="broiler-flock-comparison-labels-v1.js?v=20260911.6"></script>
 <script src="broiler-flock-comparison-labels-v2.js?v=20260911.2"></script>

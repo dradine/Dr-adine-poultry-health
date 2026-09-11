@@ -1,5 +1,5 @@
 /* ADINE — comparison result labels
-   Display only: flock number + flock name + strain.
+   Display: flock number + flock name + strain, inline.
    Farm, house and placement date remain excluded from result labels.
    No calculations, data flow or report structure are changed.
 */
@@ -26,28 +26,32 @@
     const root=document.getElementById('root');
     if(!root)return;
 
-    /* Keep the existing layout; only replace the visible identifier text. */
     root.querySelectorAll('.fc-flock-head').forEach((h,i)=>{
-      const html=`<span class="fc-flock-index">${getLabel(i)}</span>`;
-      if(h.innerHTML!==html)h.innerHTML=html;
+      h.classList.add('adine-inline-flock-label');
+      h.innerHTML=`<span class="fc-flock-index adine-inline-flock-text">${getLabel(i)}</span>`;
     });
 
     root.querySelectorAll('.fc-table thead tr').forEach(tr=>{
       Array.from(tr.children).slice(1).forEach((th,i)=>{
-        const html=`<span class="fc-flock-index">${getLabel(i)}</span>`;
-        if(th.innerHTML!==html)th.innerHTML=html;
+        th.classList.add('adine-inline-flock-label');
+        th.innerHTML=`<span class="fc-flock-index adine-inline-flock-text">${getLabel(i)}</span>`;
       });
     });
 
-    /* The existing stylesheet adds numeric ::after labels to the weekly table.
-       Disable only those generated numbers so the new text is not duplicated. */
     let style=document.getElementById('adine-flock-label-override');
     if(!style){
       style=document.createElement('style');
       style.id='adine-flock-label-override';
-      style.textContent='.fc-table thead th:nth-child(2)::after,.fc-table thead th:nth-child(3)::after,.fc-table thead th:nth-child(4)::after{content:none!important}';
       document.head.appendChild(style);
     }
+    style.textContent=`
+      .fc-side-table .fc-flock-head.adine-inline-flock-label{font-size:.76rem!important;white-space:nowrap!important;min-width:175px!important;}
+      .fc-side-table .fc-flock-head.adine-inline-flock-label>*{display:inline!important;}
+      .fc-side-table .fc-flock-head.adine-inline-flock-label .adine-inline-flock-text{display:inline!important;width:auto!important;height:auto!important;padding:0!important;background:none!important;border-radius:0!important;color:#27443a!important;font-size:.76rem!important;font-weight:900!important;white-space:nowrap!important;}
+      .fc-table thead th.adine-inline-flock-label{font-size:.76rem!important;white-space:nowrap!important;}
+      .fc-table thead th.adine-inline-flock-label .adine-inline-flock-text{display:inline!important;width:auto!important;height:auto!important;padding:0!important;background:none!important;border-radius:0!important;color:#27443a!important;font-size:.76rem!important;font-weight:900!important;white-space:nowrap!important;}
+      .fc-table thead th.adine-inline-flock-label::after{content:none!important;display:none!important;}
+    `;
   }
 
   let scheduled=false;

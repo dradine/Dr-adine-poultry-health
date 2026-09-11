@@ -1,6 +1,6 @@
 /* ADINE — comparison result labels
    Display: flock number + flock name + strain only.
-   Strain is normalized for display: company/genetics prefixes and repeated strain text are removed.
+   Strain is normalized to remove manufacturer/company text and duplicate strain text.
    Farm, house and placement date remain excluded from result labels.
    Chart legends use the exact same flock label.
    No calculations, data flow or report structure are changed.
@@ -8,6 +8,7 @@
 "use strict";
 (function(){
   const digits=['۱','۲','۳'];
+  const COMPANY_RE=/(?:aviagen|aviagen group|cobb[-\s]?vantress|cobb[-\s]?broilers|cobb|hubbard|sasso|lohmann|hendrix|h&n|hendrix genetics|novogen|hy[-\s]?line|hyline|isa|isabrown|dek[bB]|bovans|hisex|shaver|ross poultry|ross breeders)/ig;
 
   function normalizeStrain(value){
     let s=String(value||'').trim();
@@ -18,18 +19,25 @@
       .replace(/\s+/g,' ')
       .trim();
 
-    // Remove common company/manufacturer prefixes when they are stored together with the strain.
-    s=s.replace(/^(?:aviagen|cobb[-\s]?vantress|cobb|hubbard|sasso|lohmann|hendrix|h&n)\s*(?:[-:]\s*)?/i,'').trim();
+    // Split compound values first. Company/manufacturer-only segments are discarded.
+    let parts=s.split(/\s+-\s+|\s*:\s*/).map(x=>x.trim()).filter(Boolean);
+    parts=parts.map(part=>{
+      // Remove company names wherever they were concatenated with the strain.
+      return part.replace(COMPANY_RE,' ').replace(/\s+/g,' ').trim();
+    }).filter(Boolean);
 
-    // If the same strain is stored repeatedly (e.g. "Ross 308 FF - Ross 308 FF"), keep one copy.
-    const parts=s.split(/\s+-\s+/).map(x=>x.trim()).filter(Boolean);
-    if(parts.length>1){
-      const compact=x=>x.toLowerCase().replace(/[\s_-]+/g,'');
-      const first=compact(parts[0]);
-      if(first && parts.every(p=>compact(p)===first))s=parts[0];
-    }
+    // If a segment became empty, it was company/manufacturer text only.
+    // Keep unique strain segments in their original order.
+    const compact=x=>String(x||'').toLowerCase().replace(/[\s_\-]+/g,'');
+    const unique=[];
+    parts.forEach(p=>{
+      if(!unique.some(u=>compact(u)===compact(p)))unique.push(p);
+    });
+    parts=unique;
 
-    // Remove a repeated suffix/prefix caused by concatenated strain values.
+    s=parts.join(' - ').trim();
+
+    // Handle common concatenated forms such as "Ross 308 FF Ross 308 FF".
     const words=s.split(/\s+/).filter(Boolean);
     if(words.length>=2){
       for(let cut=1;cut<=Math.floor(words.length/2);cut++){
@@ -39,7 +47,11 @@
       }
     }
 
-    return s.trim();
+    // Remove company names one more time after joining segments, then clean separators.
+    s=s.replace(COMPANY_RE,' ').replace(/\s+-\s+/g,' - ').replace(/\s+/g,' ').trim();
+    s=s.replace(/^(?:[-:]\s*)+|(?:\s*[-:]\s*)+$/g,'').trim();
+
+    return s;
   }
 
   function getSelectedFlock(i){
@@ -63,8 +75,7 @@
     const flockName=flock?.flock_name?.trim();
     if(flockName)name=flockName;
 
-    // Only the strain field is used. If the comparison state is not exposed globally,
-    // read the first selector metadata field (which is the strain field in this UI).
+    // Result labels use only the actual strain field, never genetics/company.
     let strain=normalizeStrain(flock?.strain);
     if(!strain){
       const meta=select.parentElement?.querySelector('.fc-meta')?.textContent||'';
@@ -87,8 +98,12 @@
         const datasets=chart.data?.datasets||[];
         datasets.forEach((ds,i)=>{
           const current=String(ds.label??'').trim();
-          // Comparison flock datasets are created with numeric labels.
           if(/^(?:[1-3]|[۱-۳])$/.test(current))ds.label=getLabel(i);
+          else if(COMPANY_RE.test(current) || /(?:ross|cobb|hubbard|sasso|lohmann)/i.test(current)){
+            const normalized=normalizeStrain(current);
+            if(normalized)ds.label=normalized;
+          }
+          COMPANY_RE.lastIndex=0;
         });
         chart.update('none');
       }catch(e){/* presentation-only; never affect report calculations */}
@@ -146,6 +161,7 @@
     apply();
     setTimeout(apply,250);
     setTimeout(apply,750);
+    setTimeout(apply,1500);
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});

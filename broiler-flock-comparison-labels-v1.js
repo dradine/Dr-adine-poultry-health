@@ -8,50 +8,53 @@
 "use strict";
 (function(){
   const digits=['۱','۲','۳'];
-  const COMPANY_RE=/(?:aviagen|aviagen group|cobb[-\s]?vantress|cobb[-\s]?broilers|cobb|hubbard|sasso|lohmann|hendrix|h&n|hendrix genetics|novogen|hy[-\s]?line|hyline|isa|isabrown|dek[bB]|bovans|hisex|shaver|ross poultry|ross breeders)/ig;
+  const COMPANY_NAMES=/^(?:aviagen(?:\s+group)?|cobb[-\s]?vantress|cobb[-\s]?broilers|hubbard|sasso|lohmann|hendrix(?:\s+genetics)?|h&n|novogen|hy[-\s]?line|isa(?:\s+brown)?|dek[bB]|bovans|hisex|shaver|ross\s+breeders|ross\s+poultry)$/i;
+  const COMPANY_PREFIX=/^(?:aviagen(?:\s+group)?|cobb[-\s]?vantress|cobb[-\s]?broilers|hubbard|sasso|lohmann|hendrix(?:\s+genetics)?|h&n|novogen|hy[-\s]?line|isa(?:\s+brown)?|dek[bB]|bovans|hisex|shaver|ross\s+breeders|ross\s+poultry)\s*(?:[-:|]+\s*|\s+)/i;
+
+  function key(value){
+    return String(value||'').toLowerCase().replace(/[\s_\-–—|:]+/g,'');
+  }
 
   function normalizeStrain(value){
     let s=String(value||'').trim();
     if(!s)return '';
 
-    s=s.replace(/[|]+/g,' ')
-      .replace(/[–—]+/g,' - ')
-      .replace(/\s+/g,' ')
-      .trim();
+    s=s.replace(/[–—|]+/g,' - ').replace(/\s+/g,' ').trim();
 
-    // Split compound values first. Company/manufacturer-only segments are discarded.
-    let parts=s.split(/\s+-\s+|\s*:\s*/).map(x=>x.trim()).filter(Boolean);
-    parts=parts.map(part=>{
-      // Remove company names wherever they were concatenated with the strain.
-      return part.replace(COMPANY_RE,' ').replace(/\s+/g,' ').trim();
-    }).filter(Boolean);
+    // Remove manufacturer/company prefix without removing legitimate strain names such as Cobb 500.
+    s=s.replace(COMPANY_PREFIX,'').trim();
 
-    // If a segment became empty, it was company/manufacturer text only.
-    // Keep unique strain segments in their original order.
-    const compact=x=>String(x||'').toLowerCase().replace(/[\s_\-]+/g,'');
+    // Hyphen formatting in stored values is inconsistent ("-Ross 308ff-Ross 308 ff-").
+    // Treat separator hyphens as separators, then remove company-only and duplicate segments.
+    let parts=s.split(/\s*-\s*/).map(x=>x.trim()).filter(Boolean);
+    parts=parts.map(part=>part.replace(COMPANY_PREFIX,'').trim()).filter(Boolean);
+    parts=parts.filter(part=>!COMPANY_NAMES.test(part));
+
     const unique=[];
-    parts.forEach(p=>{
-      if(!unique.some(u=>compact(u)===compact(p)))unique.push(p);
+    parts.forEach(part=>{
+      if(!unique.some(existing=>key(existing)===key(part)))unique.push(part);
     });
-    parts=unique;
 
-    s=parts.join(' - ').trim();
+    if(unique.length) s=unique.join(' - ');
 
-    // Handle common concatenated forms such as "Ross 308 FF Ross 308 FF".
+    // Collapse duplicated strain text even when spacing/case differs.
     const words=s.split(/\s+/).filter(Boolean);
     if(words.length>=2){
       for(let cut=1;cut<=Math.floor(words.length/2);cut++){
         const a=words.slice(0,cut).join(' ');
         const b=words.slice(cut,cut*2).join(' ');
-        if(a.toLowerCase()===b.toLowerCase() && words.length===cut*2){s=a;break;}
+        if(key(a)===key(b) && words.length===cut*2){s=a;break;}
       }
     }
 
-    // Remove company names one more time after joining segments, then clean separators.
-    s=s.replace(COMPANY_RE,' ').replace(/\s+-\s+/g,' - ').replace(/\s+/g,' ').trim();
-    s=s.replace(/^(?:[-:]\s*)+|(?:\s*[-:]\s*)+$/g,'').trim();
+    // Also collapse repeated hyphen-separated copies after normalization.
+    const finalParts=s.split(/\s+-\s+/).map(x=>x.trim()).filter(Boolean);
+    if(finalParts.length>1){
+      const firstKey=key(finalParts[0]);
+      if(firstKey && finalParts.every(p=>key(p)===firstKey))s=finalParts[0];
+    }
 
-    return s;
+    return s.replace(/^(?:[-:]\s*)+|(?:\s*[-:]\s*)+$/g,'').replace(/\s+/g,' ').trim();
   }
 
   function getSelectedFlock(i){
@@ -75,7 +78,7 @@
     const flockName=flock?.flock_name?.trim();
     if(flockName)name=flockName;
 
-    // Result labels use only the actual strain field, never genetics/company.
+    // Result labels use only the strain field, never genetics/company.
     let strain=normalizeStrain(flock?.strain);
     if(!strain){
       const meta=select.parentElement?.querySelector('.fc-meta')?.textContent||'';
@@ -98,12 +101,11 @@
         const datasets=chart.data?.datasets||[];
         datasets.forEach((ds,i)=>{
           const current=String(ds.label??'').trim();
-          if(/^(?:[1-3]|[۱-۳])$/.test(current))ds.label=getLabel(i);
-          else if(COMPANY_RE.test(current) || /(?:ross|cobb|hubbard|sasso|lohmann)/i.test(current)){
+          if(/^(?:1|2|3|۱|۲|۳)$/.test(current))ds.label=getLabel(i);
+          else if(/aviagen|cobb[-\s]?vantress|hubbard|sasso|lohmann|hendrix|ross\s+breeders|ross\s+poultry/i.test(current)){
             const normalized=normalizeStrain(current);
             if(normalized)ds.label=normalized;
           }
-          COMPANY_RE.lastIndex=0;
         });
         chart.update('none');
       }catch(e){/* presentation-only; never affect report calculations */}

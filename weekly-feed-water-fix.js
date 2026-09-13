@@ -292,6 +292,88 @@
         return true;
     }
 
+    /* =========================================================
+       WEEKLY SAMPLING GUIDANCE — BROILER ONLY
+       Scientific minimum: max(100, ceil(1% of population)).
+       This wrapper changes only the recommendation/status field;
+       CV, SD, mean, uniformity and all other calculations remain
+       owned by weekly.js and are not modified.
+    ========================================================= */
+
+    function getWeeklySamplingPopulation() {
+        const liveBirds = numberOf(BIRDS_ID);
+        if (Number.isFinite(liveBirds) && liveBirds > 0) {
+            return Math.floor(liveBirds);
+        }
+
+        const flock = window.currentFlockForSpecialized || window.currentFlock || null;
+        if (!flock) return null;
+
+        const candidates = [
+            flock.initial_bird_count,
+            flock.initialBirdCount,
+            flock.initial_birds,
+            flock.placement_birds,
+            flock.bird_count
+        ];
+
+        for (const candidate of candidates) {
+            const value = numberFrom(candidate);
+            if (Number.isFinite(value) && value > 0) {
+                return Math.floor(value);
+            }
+        }
+
+        return null;
+    }
+
+    function isBroilerFlock() {
+        const flock = window.currentFlockForSpecialized || window.currentFlock || null;
+        const type = String(flock?.production_type ?? flock?.productionType ?? "").trim().toLowerCase();
+        return ["broiler", "گوشتی", "مرغ گوشتی", "broiler chicken"].includes(type);
+    }
+
+    function patchWeeklySamplingRecommendation() {
+        if (typeof window.calculateWeightStatistics !== "function") return false;
+        if (window.calculateWeightStatistics.__populationSamplingPatched) return true;
+
+        const original = window.calculateWeightStatistics;
+
+        function patchedWeightStatistics(...args) {
+            const result = original.apply(this, args);
+            if (!result || typeof result !== "object") return result;
+            if (!isBroilerFlock()) return result;
+
+            const population = getWeeklySamplingPopulation();
+            if (!Number.isFinite(population) || population <= 0) return result;
+
+            const recommended = Math.max(100, Math.ceil(population * 0.01));
+            const count = Number(result.count);
+            let samplingStatus = result.samplingStatus;
+
+            if (Number.isFinite(count)) {
+                if (count < 30) {
+                    samplingStatus = "ضعیف — حجم نمونه کمتر از ۳۰ پرنده است";
+                } else if (count < recommended) {
+                    samplingStatus = `قابل استفاده با احتیاط — نمونه فعلی ${count} پرنده است؛ حداقل پیشنهادی ${recommended} پرنده است`;
+                } else {
+                    samplingStatus = `مناسب — حداقل پیشنهادی ${recommended} پرنده بر اساس ۱٪ جمعیت است`;
+                }
+            }
+
+            return {
+                ...result,
+                recommendedSampleSize: recommended,
+                samplingStatus
+            };
+        }
+
+        patchedWeightStatistics.__populationSamplingPatched = true;
+        patchedWeightStatistics.__original = original;
+        window.calculateWeightStatistics = patchedWeightStatistics;
+        return true;
+    }
+
     function observeSpecializedRatio() {
         if (window.__weeklyFeedWaterRatioObserver) return;
         const target = document.body || document.documentElement;
@@ -320,6 +402,7 @@
         patchWeeklyBuilder();
         patchWeeklySave();
         patchWeeklyEdit();
+        patchWeeklySamplingRecommendation();
         return true;
     }
 

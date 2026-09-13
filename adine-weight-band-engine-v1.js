@@ -221,28 +221,56 @@
       pctBox.appendChild(countEl);
     }
 
-    const refreshCount = () => {
+    const pct15Box = document.getElementById("awbMgmt15Pct")?.closest(".awb-box");
+    let count15El = document.getElementById("awbMgmt15Count");
+    if (!count15El && pct15Box) {
+      count15El = document.createElement("div");
+      count15El.id = "awbMgmt15Count";
+      count15El.style.cssText = "font-size:12px;font-weight:700;margin-top:8px;opacity:.82";
+      pct15Box.appendChild(count15El);
+    }
+
+    const refreshCounts = () => {
       try {
         const r = window.AdineWeightBandRuntime?.calculate?.();
-        const n = r?.management?.estimatedFlockCount;
-        countEl.textContent = n == null ? "تعداد برآوردی در گله: —" : "تعداد برآوردی در گله: " + Number(n).toLocaleString("fa-IR") + " قطعه";
+        const n10 = r?.management?.estimatedFlockCount;
+        if (countEl) countEl.textContent = n10 == null ? "تعداد برآوردی در گله: —" : "تعداد برآوردی در گله: " + Number(n10).toLocaleString("fa-IR") + " قطعه";
+        if (count15El) {
+          const target = r?.officialTargetWeight;
+          const b15 = target == null ? null : makeBand(target, 15);
+          const a15 = b15 ? analyseBand({ weights: getWeightsForUI(), lower: b15.lower, upper: b15.upper, mean: r.mean, cv: r.cv, flockSize: r.flockSize }) : null;
+          const n15 = a15?.estimatedFlockCount;
+          count15El.textContent = n15 == null ? "تعداد برآوردی در گله: —" : "تعداد برآوردی در گله: " + Number(n15).toLocaleString("fa-IR") + " قطعه";
+        }
       } catch (_) {
-        countEl.textContent = "تعداد برآوردی در گله: —";
+        if (countEl) countEl.textContent = "تعداد برآوردی در گله: —";
+        if (count15El) count15El.textContent = "تعداد برآوردی در گله: —";
       }
     };
 
-    refreshCount();
+    const getWeightsForUI = () => {
+      try {
+        if (typeof getWeights === "function") {
+          const w = getWeights();
+          if (Array.isArray(w)) return w.map(Number).filter(v => Number.isFinite(v) && v > 0);
+        }
+      } catch (_) {}
+      return Array.from(document.querySelectorAll("#weightsContainer .bird-weight"))
+        .map(e => Number(e.value)).filter(v => Number.isFinite(v) && v > 0);
+    };
+
+    refreshCounts();
     if (!countEl.dataset.bound) {
       countEl.dataset.bound = "1";
       ["liveBirds", "weekNumber"].forEach(id => {
         const el = document.getElementById(id);
-        if (el) { el.addEventListener("input", refreshCount); el.addEventListener("change", refreshCount); }
+        if (el) { el.addEventListener("input", refreshCounts); el.addEventListener("change", refreshCounts); }
       });
       const oldSync = window.AdineWeightBandRuntime?.sync;
       if (typeof oldSync === "function" && !oldSync.__adineCountRefined) {
         const wrappedSync = function () {
           const result = oldSync.apply(this, arguments);
-          setTimeout(refreshCount, 0);
+          setTimeout(refreshCounts, 0);
           return result;
         };
         wrappedSync.__adineCountRefined = true;

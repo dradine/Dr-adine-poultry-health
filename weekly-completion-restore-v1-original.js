@@ -1,0 +1,80 @@
+/* ADINE - Weekly broiler completion v7 */
+(function(){'use strict';
+const PANEL='weeklyBroilerCompletionPanel',RATIO='weeklyBroilerWaterFeedRatio',LITTER='weeklyBroilerLitterScore',TOGGLE='weeklyBroilerAdvancedToggle',ADV='weeklyBroilerAdvancedGroup';
+const n=v=>{let s=String(v??'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/٬|,/g,'').replace(/٫/g,'.');let x=Number(s);return Number.isFinite(x)?x:null};
+function flock(){try{if(typeof currentFlock!=='undefined'&&currentFlock)return currentFlock}catch(e){}return window.currentFlockForSpecialized||window.currentFlock||null}
+function broiler(f){let t=String(f?.production_type||f?.productionType||'').toLowerCase();return /گوشتی|broiler|meat/.test(t)}
+function host(){return document.getElementById('specializedMetrics')}
+const common=[['avg_temp_c','میانگین دمای سالن','°C','number','پایش روزانه؛ مقدار نماینده هفتگی ثبت شود'],['relative_humidity_pct','رطوبت نسبی','%','number','در سطح پرنده و چند نقطه سالن بررسی شود'],['ammonia_ppm','آمونیاک','ppm','number','بهتر است با آمونیاک‌متر اندازه‌گیری شود'],['co2_ppm','CO₂','ppm','number','شاخص مهم تهویه در سالن‌های بسته'],['litter_moisture_pct','رطوبت بستر','%','number','در بخش نماینده سالن برآورد/اندازه‌گیری شود'],['water_quality_note','وضعیت آب','توضیح','text','شفافیت، بو، رسوب، فشار و خطوط آب'],['health_alert','رخداد یا هشدار سلامت','توضیح','text','هر تغییر غیرعادی کوتاه ثبت شود'],['management_note','ملاحظه مدیریتی هفته','توضیح','text','تهویه، دان، آب، نور، تراکم یا رفتار گله']];
+const broilerFields=[['dead_bird_avg_weight_g','میانگین وزن پرندگان تلف‌شده','g','number','اختیاری؛ برای FCR اصلاح‌شده با تلفات'],['feed_form','شکل دان','توضیح','text','آردی/کرامبل/پلت و تغییرات کیفی'],['footpad_score','امتیاز کف پا','0–2','number','شاخص رفاه و وضعیت بستر'],['behavior_note','رفتار گله','توضیح','text','پخش یکنواخت، تجمع، تنفس دهانی و فعالیت']];
+function htmlField(x){return '<div class="form-group weekly-special-field"><label for="wm_'+x[0]+'">'+x[1]+' <span>('+x[2]+')</span></label><input id="wm_'+x[0]+'" data-weekly-specialized="'+x[0]+'" type="text" inputmode="'+(x[3]==='number'?'decimal':'text')+'" autocomplete="off"><small>'+x[4]+'</small></div>'}
+function findAdvanced(){return document.getElementById(ADV)||document.querySelector('#specializedMetrics .advanced-group')}
+function ensureAdvanced(){let h=host();if(!h)return null;let g=findAdvanced();if(g)return g;g=document.createElement('div');g.id=ADV;g.className='weekly-metric-group advanced-group';g.hidden=true;g.style.display='none';g.innerHTML='<div class="weekly-metric-group-title">پایش پیشرفته و کیفیت</div><div class="form-grid">'+common.concat(broilerFields).map(htmlField).join('')+'</div>';h.appendChild(g);return g}
+function setOpen(open){let g=ensureAdvanced();if(g){g.hidden=!open;g.style.display=open?'block':'none'}let b=document.getElementById(TOGGLE);if(b){b.setAttribute('aria-expanded',open?'true':'false');b.textContent=open?'− بستن پایش تکمیلی':'＋ پایش تکمیلی و کیفیت'}}
+window.toggleWeeklyAdvanced=function(){let g=findAdvanced();setOpen(!(g&&g.style.display==='block'&&!g.hidden))};
+function ensurePanelButton(p){let b=document.getElementById(TOGGLE);if(b)return b;let wrap=document.createElement('div');wrap.id=TOGGLE+'Wrap';wrap.className='weekly-advanced-toggle-wrap';b=document.createElement('button');b.type='button';b.id=TOGGLE;b.className='btn btn-secondary weekly-advanced-toggle';b.setAttribute('aria-expanded','false');b.textContent='＋ پایش تکمیلی و کیفیت';b.addEventListener('click',function(e){e.preventDefault();window.toggleWeeklyAdvanced()});wrap.appendChild(b);let sub=p.querySelector('.weekly-completion-sub');if(sub)sub.after(wrap);else p.appendChild(wrap);return b}
+function panel(){let h=host();if(!h)return;let p=document.getElementById(PANEL);if(!p){p=document.createElement('section');p.id=PANEL;p.className='weekly-broiler-completion-panel';p.innerHTML='<div class="weekly-completion-title"><span class="required-star">★</span> تکمیل اطلاعات مهم گوشتی</div><div class="weekly-completion-sub">دو شاخص مهم و ضروری؛ سایر اطلاعات در «پایش تکمیلی و کیفیت» قرار دارند.</div><div class="form-grid weekly-completion-grid"><div class="form-group"><label><span class="required-star">★</span> نسبت آب به دان (L/kg)</label><input id="'+RATIO+'" data-weekly-specialized="water_feed_ratio" readonly inputmode="decimal"><small>خودکار: مصرف کل آب ÷ مصرف کل دان.</small></div><div class="form-group"><label><span class="required-star">★</span> وضعیت بستر (۰ تا ۵)</label><input id="'+LITTER+'" data-weekly-specialized="litter_score" inputmode="decimal"><small>۰ عالی، ۵ بسیار نامطلوب.</small></div></div>';h.insertBefore(p,h.firstChild)}let c=document.getElementById('specializedMetricsCard');if(c){c.hidden=false;c.style.display='block'}ensurePanelButton(p);ensureAdvanced();ratio()}
+function ratio(){let r=document.getElementById(RATIO),f=n(document.getElementById('feedTotal')?.value),w=n(document.getElementById('waterTotal')?.value);if(r)r.value=f!=null&&f>0&&w!=null&&w>=0?(w/f).toFixed(3):''}
+function bind(){['feedTotal','waterTotal'].forEach(id=>{let e=document.getElementById(id);if(e&&!e.dataset.wfr7){e.dataset.wfr7='1';e.addEventListener('input',ratio);e.addEventListener('change',ratio)}});let l=document.getElementById(LITTER);if(l&&!l.dataset.l7){l.dataset.l7='1';l.addEventListener('input',()=>{let x=n(l.value);if(x!=null)l.value=Math.max(0,Math.min(5,x))})}}
+function run(){let f=flock();if(!f||!broiler(f))return;panel();bind();ratio()}
+function start(){run();let mo=new MutationObserver(()=>{let f=flock();if(f&&broiler(f)){panel();bind();ratio()}});if(document.body)mo.observe(document.body,{childList:true,subtree:true});let i=0,t=setInterval(()=>{run();if(++i>160)clearInterval(t)},250)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+const css=document.createElement('style');css.textContent='#specializedMetricsCard{background:#2f3936!important;color:#eef2f0!important;border:1px solid rgba(255,255,255,.10)!important;box-shadow:0 7px 24px rgba(0,0,0,.20)!important;border-radius:14px!important;padding:14px!important}#specializedMetricsCard>.section-title{font-size:15px!important;color:#f4f5f4!important;border-bottom:1px solid rgba(255,255,255,.14)!important;padding-bottom:8px!important;margin-bottom:10px!important}#specializedMetricsCard #specializedMetricsIntro{background:#39433f!important;color:#dce2df!important;border:1px solid rgba(255,255,255,.08)!important;border-radius:10px!important;padding:8px 10px!important;font-size:10px!important;line-height:1.7!important;margin-bottom:9px!important}#specializedMetricsCard #specializedMetricsIntro strong{font-size:11px!important;color:#f0f2f1!important}#specializedMetricsCard .weekly-metric-group{background:#353f3c!important;border-color:rgba(255,255,255,.08)!important;border-radius:11px!important;padding:10px!important;margin-top:8px!important}#specializedMetricsCard .weekly-metric-group-title{font-size:11px!important;color:#eef2f0!important;margin-bottom:7px!important}#specializedMetricsCard label{font-size:10px!important;color:#e0e5e2!important;line-height:1.5!important}#specializedMetricsCard label span{font-size:9px!important;color:#aeb8b4!important}#specializedMetricsCard small{font-size:8.5px!important;color:#aeb8b4!important;line-height:1.45!important}#specializedMetricsCard input,#specializedMetricsCard textarea,#specializedMetricsCard select{font-size:10px!important;min-height:35px!important;padding:6px 9px!important;border-radius:8px!important}.weekly-advanced-toggle-wrap{margin:8px 0!important}.weekly-advanced-toggle{font-size:9.5px!important;min-height:34px!important;padding:5px 10px!important;background:#414b47!important;color:#eef2f0!important;border:1px solid rgba(255,255,255,.10)!important}#'+PANEL+'{display:block!important;background:#333d39!important;color:#edf1ef!important;padding:10px!important;border-radius:11px!important;font-size:10px!important}';document.head.appendChild(css);
+})();
+(function(){function loadDeleteUI(){if(document.querySelector('script[data-weekly-delete-v3]'))return;var s=document.createElement('script');s.src='weekly-delete-ui-v3.js?v=3';s.async=false;s.setAttribute('data-weekly-delete-v3','true');(document.head||document.documentElement).appendChild(s)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDeleteUI);else loadDeleteUI()})();
+(function(){'use strict';function unify(){var nav=document.getElementById('bottomNavigation')||document.querySelector('.bottom-navigation');if(!nav||nav.dataset.unifiedBottomNav==='1')return;nav.dataset.unifiedBottomNav='1';nav.classList.add('bottom-nav');nav.style.cssText+=';position:fixed!important;bottom:0!important;left:0!important;right:0!important;z-index:200!important;height:70px!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;background:rgba(255,255,255,.97)!important;border-top:1px solid #e1e8e4!important;box-shadow:0 -4px 18px rgba(0,0,0,.05)!important;padding-bottom:env(safe-area-inset-bottom)!important;border-radius:0!important;transform:none!important;width:auto!important;';var items=nav.querySelectorAll('.bottom-nav-item');items.forEach(function(item){item.style.cssText+=';border:0!important;background:transparent!important;color:#7b8883!important;font-family:inherit!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;font-size:20px!important;cursor:pointer!important;height:100%!important;width:auto!important;border-radius:0!important;padding:0!important;';if(item.classList.contains('active'))item.style.setProperty('color','#173f35','important');var icon=item.querySelector('.bottom-nav-icon');if(icon)icon.style.cssText+=';display:flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:26px!important;line-height:0!important;';var svg=item.querySelector('.bottom-nav-icon svg');if(svg)svg.style.cssText+=';display:block!important;width:23px!important;height:23px!important;fill:none!important;stroke:currentColor!important;stroke-width:2.2!important;stroke-linecap:round!important;stroke-linejoin:round!important;';var labels=item.querySelectorAll(':scope > span:not(.bottom-nav-icon)');labels.forEach(function(label){label.style.cssText+=';font-size:10px!important;font-weight:700!important;line-height:1.2!important;';})});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',unify,{once:true});else unify()})();
+/* =========================================================
+   REPORT CONTEXT BRIDGE
+   The report page must receive the exact flock selected in
+   weekly monitoring. Never fall back to another flock.
+========================================================= */
+(function(){'use strict';
+function getActive(){try{if(typeof currentFlock!=='undefined'&&currentFlock&&currentFlock.id)return currentFlock}catch(e){}return window.currentFlockForSpecialized&&window.currentFlockForSpecialized.id?window.currentFlockForSpecialized:null}
+function openReport(){const f=getActive();if(!f||!f.id){alert('ابتدا یک گله را در «گله فعال» انتخاب کنید.');return false}const w=document.getElementById('weekNumber')?.value||'';const u='reports.html?flock_id='+encodeURIComponent(f.id)+(w?'&week='+encodeURIComponent(w):'');location.href=u;return false}
+window.openCurrentReport=openReport;window.goToWeeklyReport=openReport;
+})();
+
+/* =========================================================
+   WEEKLY BROILER SAMPLING GUIDANCE
+   Minimum = max(100, ceil(1% of population)).
+   This wraps only the recommendation/status returned by
+   weekly.js. Original weight statistics are left untouched.
+========================================================= */
+(function(){'use strict';
+function samplePopulation(){
+  const live=n(document.getElementById('liveBirds')?.value);
+  if(Number.isFinite(live)&&live>0)return Math.floor(live);
+  const f=flock();
+  if(!f)return null;
+  const candidates=[f.initial_bird_count,f.initialBirdCount,f.initial_birds,f.placement_birds,f.bird_count];
+  for(const v of candidates){const x=n(v);if(Number.isFinite(x)&&x>0)return Math.floor(x)}
+  return null;
+}
+function patch(){
+  if(typeof window.calculateWeightStatistics!=='function')return false;
+  if(window.calculateWeightStatistics.__populationSamplingPatched)return true;
+  const original=window.calculateWeightStatistics;
+  function wrapped(...args){
+    const result=original.apply(this,args);
+    const f=flock();
+    if(!result||typeof result!=='object'||!broiler(f))return result;
+    const population=samplePopulation();
+    if(!Number.isFinite(population)||population<=0)return result;
+    const recommended=Math.max(100,Math.ceil(population*0.01));
+    const count=Number(result.count);
+    let status=result.samplingStatus;
+    if(Number.isFinite(count)){
+      if(count<30)status='ضعیف — حجم نمونه کمتر از ۳۰ پرنده است';
+      else if(count<recommended)status=`قابل استفاده با احتیاط — نمونه فعلی ${count} پرنده است؛ حداقل پیشنهادی ${recommended} پرنده است`;
+      else status=`مناسب — حداقل پیشنهادی ${recommended} پرنده بر اساس ۱٪ جمعیت است`;
+    }
+    return {...result,recommendedSampleSize:recommended,samplingStatus:status};
+  }
+  wrapped.__populationSamplingPatched=true;
+  wrapped.__original=original;
+  window.calculateWeightStatistics=wrapped;
+  return true;
+}
+function start(){let tries=0;const t=setInterval(()=>{tries++;if(patch()||tries>=120)clearInterval(t)},100)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();

@@ -43,15 +43,51 @@
   function card(title,value,detail,state) { return `<article class="bpi-card ${state||''}"><div class="bpi-card-title">${esc(title)}</div><div class="bpi-card-value">${value}</div><div class="bpi-card-detail">${esc(detail)}</div></article>`; }
   function statusForABPI(a) { if(!a||!a.available)return 'اطلاعات ناکافی'; return a.calibrationStatus==='provisional'?'شاخص آزمایشی':'قابل گزارش'; }
 
+  function makeShell(root) {
+    if (root.querySelector('#broiler-performance-intelligence-v1-shell')) return root.querySelector('#broiler-performance-intelligence-v1-shell');
+    const existing = Array.from(root.childNodes);
+    const shell = document.createElement('div');
+    shell.id = 'broiler-performance-intelligence-v1-shell';
+    shell.className = 'bpi-tabs-shell';
+    const tabs = document.createElement('div');
+    tabs.className = 'bpi-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.innerHTML = '<button type="button" class="bpi-tab active" data-bpi-tab="overall" role="tab" aria-selected="true">تحلیل جامع عملکرد</button><button type="button" class="bpi-tab" data-bpi-tab="intelligence" role="tab" aria-selected="false">هوش عملکرد گله</button>';
+    const overall = document.createElement('div');
+    overall.className = 'bpi-panel active';
+    overall.dataset.bpiPanel = 'overall';
+    existing.forEach(node => overall.appendChild(node));
+    const intelligence = document.createElement('div');
+    intelligence.className = 'bpi-panel';
+    intelligence.dataset.bpiPanel = 'intelligence';
+    intelligence.innerHTML = '<section class="section broiler-performance-intelligence-v1"><div class="empty">در حال آماده‌سازی هوش عملکرد گله…</div></section>';
+    shell.appendChild(tabs);
+    shell.appendChild(overall);
+    shell.appendChild(intelligence);
+    root.appendChild(shell);
+    return shell;
+  }
+
+  function setBpiTab(shell, name) {
+    shell.querySelectorAll('.bpi-tab').forEach(btn => {
+      const active = btn.dataset.bpiTab === name;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    shell.querySelectorAll('.bpi-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.bpiPanel === name));
+  }
+
   async function render() {
     if (rendering) return;
     const root=$('root'); if(!root)return;
     rendering = true;
     try {
-      document.getElementById('broiler-performance-intelligence-v1')?.remove();
       const ctx=await loadContext();
       if(ctx.model.type!=='broiler'||!ctx.model.ready||!ctx.model.rows?.length)return;
       const A=global.AdineBroilerPerformanceIntelligence; if(!A)throw new Error('BROILER_PI_ENGINE_UNAVAILABLE');
+      const shell=makeShell(root);
+      const panel=shell.querySelector('[data-bpi-panel="intelligence"]');
+      panel.innerHTML='<section class="section broiler-performance-intelligence-v1"><div class="empty">در حال محاسبه شاخص‌های هوش عملکرد گله…</div></section>';
       const rows=ctx.model.rows,r=rows[rows.length-1],bwKg=n(r.weight)===null?null:n(r.weight)/1000;
       const live=n(r.liveBirds),placed=n(ctx.placed),canonicalLiv=n(r.raw?.livability);
       const liv=canonicalLiv!==null?Math.max(0,Math.min(100,canonicalLiv)):(placed!==null&&placed>0&&live!==null?Math.max(0,Math.min(100,(live/placed)*100)):null);
@@ -78,7 +114,15 @@
         ${card('Health–Performance',health.available?fmt(health.correlation,3):'—',health.available?'همبستگی زمانی؛ نه رابطه علّی':'سابقه سلامت و عملکرد برای تحلیل کافی نیست',health.available?'watch':'neutral')}
         ${card('Market Optimization',market.available&&market.recommended?`سن ${fmt(market.recommended.ageDays,0)} روز`:'—',market.available?'مقایسه اقتصادی سناریوهای ارائه‌شده':'سناریوهای وزن/خوراک/قیمت برای بهینه‌سازی موجود نیست',market.available?'watch':'neutral')}
       </div><div class="bpi-note"><strong>مرزبندی:</strong> EPEF و ABPI شاخص‌های تحلیلی این لایه‌اند. Benchmark از سرویس Benchmark موجود پروژه خوانده می‌شود. استاندارد رسمی، FCR، وزن، تلفات، CV و یکنواختی از مسیر canonical قبلی می‌آیند و این لایه آن‌ها را تغییر نمی‌دهد.</div>`;
-      root.appendChild(section);
+      panel.replaceChildren(section);
+    } catch (e) {
+      console.error('[Adine BPI V1 adapter]', e);
+      const root=$('root');
+      if(root && isComprehensiveBroilerTab()) {
+        const shell=makeShell(root);
+        const panel=shell.querySelector('[data-bpi-panel="intelligence"]');
+        if(panel) panel.innerHTML='<section class="section broiler-performance-intelligence-v1"><div class="error">هوش عملکرد گله فعلاً قابل بارگذاری نیست. گزارش جامع عملکرد بدون تغییر در دسترس است.</div></section>';
+      }
     } finally {
       rendering = false;
     }
@@ -87,17 +131,23 @@
   function isComprehensiveBroilerTab(){const active=document.querySelector('.report-tab.active');return active?.getAttribute('data-tab')==='overall';}
   function schedule(){if(!isComprehensiveBroilerTab()||rendering)return;setTimeout(()=>render().catch(e=>console.error('[Adine BPI V1 adapter]',e)),0);}
 
+  document.addEventListener('click',e=>{
+    const reportTab=e.target.closest?.('.report-tab');
+    if(reportTab){schedule();return;}
+    const bpiTab=e.target.closest?.('.bpi-tab');
+    if(bpiTab){const shell=bpiTab.closest('.bpi-tabs-shell');if(shell)setBpiTab(shell,bpiTab.dataset.bpiTab);}
+  },true);
+
   function startObserver(){
     if(observerStarted)return;
     const root=$('root');
     if(!root||typeof MutationObserver==='undefined')return;
     observerStarted=true;
-    const observer=new MutationObserver(()=>{ if(!rendering && isComprehensiveBroilerTab() && !document.getElementById('broiler-performance-intelligence-v1')) schedule(); });
+    const observer=new MutationObserver(()=>{ if(!rendering && isComprehensiveBroilerTab() && !root.querySelector('#broiler-performance-intelligence-v1-shell')) schedule(); });
     observer.observe(root,{childList:true,subtree:true});
     observer.observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
   }
 
-  document.addEventListener('click',e=>{if(e.target.closest?.('.report-tab'))schedule();},true);
   document.addEventListener('DOMContentLoaded',()=>{startObserver();schedule();}, {once:true});
   setTimeout(()=>{startObserver();schedule();},0);
   global.AdineBroilerPerformanceIntelligenceAdapterV1=Object.freeze({version:'BPI-ADAPTER-V1',render});

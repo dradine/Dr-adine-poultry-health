@@ -175,3 +175,122 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
+
+/* ADINE - Weight-band UI collapse only
+   Presentation-only layer. It does not touch calculations, standards, save logic,
+   navigation, or the underlying weight-band engine. Both sections start closed. */
+(function(){'use strict';
+  const STYLE_ID='adine-weight-band-collapse-style-v1';
+  const MAIN_ID='adineWeightBandSection';
+
+  function addStyle(){
+    if(document.getElementById(STYLE_ID))return;
+    const s=document.createElement('style');
+    s.id=STYLE_ID;
+    s.textContent=`
+      #${MAIN_ID}.awb-collapsible .awb-collapse-head,
+      #${MAIN_ID}.awb-collapsible .awb-section-toggle{cursor:pointer;user-select:none;}
+      #${MAIN_ID}.awb-collapsible .awb-collapse-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+      #${MAIN_ID}.awb-collapsible .awb-collapse-icon,
+      #${MAIN_ID}.awb-collapsible .awb-processing-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;width:28px;height:28px;border:1px solid rgba(15,23,42,.14);border-radius:8px;font-size:20px;line-height:1;font-weight:700;margin-top:0;}
+      #${MAIN_ID}.awb-collapsible .awb-section-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;}
+      #${MAIN_ID}.awb-collapsible .awb-section-toggle .awb-section-label{display:block;}
+      #${MAIN_ID}.awb-collapsible .awb-collapsed-body{display:none!important;}
+      #${MAIN_ID}.awb-collapsible .awb-section-toggle[aria-expanded="false"]{margin-bottom:0;}
+    `;
+    document.head.appendChild(s);
+  }
+
+  function makeMain(sec){
+    if(!sec||sec.dataset.awbCollapseReady==='1')return;
+    const head=sec.querySelector(':scope > .awb-head');
+    if(!head)return;
+    const body=document.createElement('div');
+    body.className='awb-collapsed-body';
+    const nodes=Array.from(sec.children).filter(el=>el!==head);
+    nodes.forEach(el=>body.appendChild(el));
+    sec.appendChild(body);
+
+    const old=Array.from(head.children);
+    const content=document.createElement('div');
+    content.className='awb-collapse-head';
+    old.forEach(el=>content.appendChild(el));
+    const icon=document.createElement('span');
+    icon.className='awb-collapse-icon';
+    icon.textContent='+';
+    icon.setAttribute('aria-hidden','true');
+    content.appendChild(icon);
+    head.textContent='';
+    head.appendChild(content);
+    head.classList.add('awb-section-toggle');
+    head.setAttribute('role','button');
+    head.setAttribute('tabindex','0');
+    head.setAttribute('aria-expanded','false');
+    sec.classList.add('awb-collapsible');
+
+    const toggle=()=>{
+      const open=head.getAttribute('aria-expanded')==='true';
+      const next=!open;
+      head.setAttribute('aria-expanded',String(next));
+      body.classList.toggle('awb-collapsed-body',!next);
+      icon.textContent=next?'−':'+';
+    };
+    head.addEventListener('click',toggle);
+    head.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});
+  }
+
+  function makeProcessing(sec){
+    const title=sec.querySelector(':scope > .awb-collapsed-body > .awb-section-title') || sec.querySelector(':scope > .awb-section-title');
+    if(!title||title.dataset.awbProcessingReady==='1')return;
+    const parent=title.parentElement;
+    if(!parent)return;
+    const body=document.createElement('div');
+    body.className='awb-processing-collapsed-body awb-collapsed-body';
+    let next=title.nextElementSibling;
+    while(next){
+      const following=next.nextElementSibling;
+      body.appendChild(next);
+      next=following;
+    }
+    title.insertAdjacentElement('afterend',body);
+    title.dataset.awbProcessingReady='1';
+    title.classList.add('awb-section-toggle');
+    title.setAttribute('role','button');
+    title.setAttribute('tabindex','0');
+    title.setAttribute('aria-expanded','false');
+    const label=document.createElement('span');
+    label.className='awb-section-label';
+    while(title.firstChild)label.appendChild(title.firstChild);
+    const icon=document.createElement('span');
+    icon.className='awb-processing-icon';
+    icon.textContent='+';
+    icon.setAttribute('aria-hidden','true');
+    title.textContent='';
+    title.appendChild(label);
+    title.appendChild(icon);
+    const toggle=()=>{
+      const open=title.getAttribute('aria-expanded')==='true';
+      const nextOpen=!open;
+      title.setAttribute('aria-expanded',String(nextOpen));
+      body.classList.toggle('awb-collapsed-body',!nextOpen);
+      icon.textContent=nextOpen?'−':'+';
+    };
+    title.addEventListener('click',toggle);
+    title.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});
+  }
+
+  function apply(){
+    const sec=document.getElementById(MAIN_ID);
+    if(!sec)return;
+    addStyle();
+    makeMain(sec);
+    makeProcessing(sec);
+  }
+
+  function start(){
+    apply();
+    if(document.body)new MutationObserver(apply).observe(document.body,{childList:true,subtree:true});
+    let i=0;const t=setInterval(()=>{apply();if(++i>120)clearInterval(t)},250);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();

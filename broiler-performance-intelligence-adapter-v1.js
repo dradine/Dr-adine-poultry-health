@@ -52,7 +52,7 @@
     const tabs = document.createElement('div');
     tabs.className = 'bpi-tabs';
     tabs.setAttribute('role', 'tablist');
-    tabs.innerHTML = '<button type="button" class="bpi-tab active" data-bpi-tab="overall" role="tab" aria-selected="true">تحلیل جامع عملکرد</button><button type="button" class="bpi-tab" data-bpi-tab="intelligence" role="tab" aria-selected="false">هوش عملکرد گله</button>';
+    tabs.innerHTML = '<button type="button" class="bpi-tab active" data-bpi-tab="overall" role="tab" aria-selected="true"><span class="bpi-tab-label" style="color:#fff!important;-webkit-text-fill-color:#fff!important">تحلیل جامع عملکرد</span><span class="bpi-tab-check" aria-hidden="true" style="position:absolute;top:7px;left:10px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#10B981!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:14px;font-weight:1000;line-height:1;text-shadow:none;box-shadow:0 2px 7px rgba(0,0,0,.22);z-index:5;pointer-events:none">✓</span></button><button type="button" class="bpi-tab" data-bpi-tab="intelligence" role="tab" aria-selected="false"><span class="bpi-tab-label" style="color:#fff!important;-webkit-text-fill-color:#fff!important">هوش عملکرد گله</span><span class="bpi-tab-check" aria-hidden="true" style="display:none;position:absolute;top:7px;left:10px;width:22px;height:22px;border-radius:50%;align-items:center;justify-content:center;background:#10B981!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:14px;font-weight:1000;line-height:1;text-shadow:none;box-shadow:0 2px 7px rgba(0,0,0,.22);z-index:5;pointer-events:none">✓</span></button>';
     const overall = document.createElement('div');
     overall.className = 'bpi-panel active';
     overall.dataset.bpiPanel = 'overall';
@@ -73,6 +73,8 @@
       const active = btn.dataset.bpiTab === name;
       btn.classList.toggle('active', active);
       btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      const check = btn.querySelector('.bpi-tab-check');
+      if (check) check.style.display = active ? 'flex' : 'none';
     });
     shell.querySelectorAll('.bpi-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.bpiPanel === name));
   }

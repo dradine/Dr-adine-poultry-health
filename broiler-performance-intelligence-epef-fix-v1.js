@@ -14,9 +14,6 @@
   function calc(last, ctx){
     const weight=n(last?.weight);
     const bw=weight===null?null:weight/1000;
-    // The V3 adapter currently exposes the derived livability as `liv`.
-    // Prefer an explicit livability value, then the adapter's derived value,
-    // then the canonical latest-row value. No new estimate is introduced here.
     const liv=n(ctx?.livability ?? ctx?.liv ?? last?.raw?.livability ?? last?.livability);
     const age=n(last?.age ?? last?.raw?.age_days ?? last?.raw?.ageDays);
     const fcr=n(last?.cumulativeFcr ?? last?.raw?.cumulative_fcr ?? last?.raw?.cumulativeFcr);
@@ -37,13 +34,7 @@
     return true;
   }
 
-  /* Strict, user-facing EPEF interpretation.
-   * These are performance-reference bands, not official universal EPEF standards.
-   * The 400/440/470/505 thresholds are intentionally conservative so a flock
-   * is not labeled "good" too easily. 400 is a recognized Aviagen club-level
-   * reference in some programs; 505 is a current elite Ross Club threshold in UK.
-   * They are not claimed as Iran-specific or strain-specific official cutoffs.
-   */
+  /* Strict performance-reference bands. These are not universal official standards. */
   const LEVELS=[
     {min:505,key:'excellent',label:'ممتاز',cls:'epef-excellent',ref:505},
     {min:470,key:'very-good',label:'بسیار خوب',cls:'epef-very-good',ref:470},
@@ -59,10 +50,7 @@
   }
   function parseDisplayedNumber(text){
     if(!text) return null;
-    const s=String(text)
-      .replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-      .replace(/[٬,]/g,'')
-      .replace('٫','.');
+    const s=String(text).replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٬,]/g,'').replace('٫','.');
     return n(s.replace(/[^0-9.\-]/g,''));
   }
   function ensureStyle(){
@@ -91,15 +79,17 @@
     const value=parseDisplayedNumber(valueEl?.textContent);
     const lv=level(value);
     if(!lv) return;
+    const stamp=String(value);
+    if(card.dataset.epefRating===stamp) return;
     ensureStyle();
     card.classList.remove('good','warn','epef-excellent','epef-very-good','epef-needs-improvement','epef-poor');
     card.classList.add(lv.cls);
-    const ref=lv.ref;
-    const delta=value-ref;
+    const delta=value-lv.ref;
     const sign=delta>0?'+':'';
     if(subEl){
-      subEl.innerHTML=`<span>شاخص بهره‌وری تولید</span><div class="bpi3-epef-rating"><span class="label">${lv.label}</span><span class="delta">${sign}${delta.toFixed(1)}</span></div><span class="bpi3-epef-reference">مرجع سطح: ${ref.toLocaleString('fa-IR')} · مرجع عملکردی، نه استاندارد رسمی جهانی</span>`;
+      subEl.innerHTML=`<span>شاخص بهره‌وری تولید</span><div class="bpi3-epef-rating"><span class="label">${lv.label}</span><span class="delta">${sign}${delta.toFixed(1)}</span></div><span class="bpi3-epef-reference">مرجع سطح: ${lv.ref.toLocaleString('fa-IR')} · مرجع عملکردی، نه استاندارد رسمی جهانی</span>`;
     }
+    card.dataset.epefRating=stamp;
   }
   function hookRating(){
     let tries=0;

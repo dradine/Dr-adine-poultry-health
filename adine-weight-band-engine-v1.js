@@ -230,33 +230,49 @@
       pct15Box.appendChild(count15El);
     }
 
+    const readDisplayedPercent = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const text = String(el.textContent || "")
+        .replace(/[٪%]/g, "")
+        .replace(/[٬,]/g, "")
+        .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+        .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+        .replace(/٫/g, ".")
+        .trim();
+      const p = Number(text);
+      return Number.isFinite(p) ? p : null;
+    };
+
     const refreshCounts = () => {
       try {
-        const r = window.AdineWeightBandRuntime?.calculate?.();
-        const n10 = r?.management?.estimatedFlockCount;
-        if (countEl) countEl.textContent = n10 == null ? "تعداد برآوردی در گله: —" : "تعداد برآوردی در گله: " + Number(n10).toLocaleString("fa-IR") + " قطعه";
-        if (count15El) {
-          const target = r?.officialTargetWeight;
-          const b15 = target == null ? null : makeBand(target, 15);
-          const a15 = b15 ? analyseBand({ weights: getWeightsForUI(), lower: b15.lower, upper: b15.upper, mean: r.mean, cv: r.cv, flockSize: r.flockSize }) : null;
-          const n15 = a15?.estimatedFlockCount;
-          count15El.textContent = n15 == null ? "تعداد برآوردی در گله: —" : "تعداد برآوردی در گله: " + Number(n15).toLocaleString("fa-IR") + " قطعه";
-        }
+        const flockSizeRaw = document.getElementById("liveBirds")?.value;
+        const flockSizeText = String(flockSizeRaw ?? "")
+          .replace(/[٬,]/g, "")
+          .replace(/[۰-۹]/g, d => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))
+          .replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
+          .replace(/٫/g, ".")
+          .trim();
+        const flockSize = Number(flockSizeText);
+        const p10 = readDisplayedPercent("awbMgmt10Pct");
+        const p15 = readDisplayedPercent("awbMgmt15Pct");
+        const count10 = Number.isFinite(flockSize) && flockSize >= 0 && p10 !== null
+          ? Math.round((p10 / 100) * flockSize)
+          : null;
+        const count15 = Number.isFinite(flockSize) && flockSize >= 0 && p15 !== null
+          ? Math.round((p15 / 100) * flockSize)
+          : null;
+
+        if (countEl) countEl.textContent = count10 == null
+          ? "تعداد برآوردی در گله: —"
+          : "تعداد برآوردی در گله: " + count10.toLocaleString("fa-IR") + " قطعه";
+        if (count15El) count15El.textContent = count15 == null
+          ? "تعداد برآوردی در گله: —"
+          : "تعداد برآوردی در گله: " + count15.toLocaleString("fa-IR") + " قطعه";
       } catch (_) {
         if (countEl) countEl.textContent = "تعداد برآوردی در گله: —";
         if (count15El) count15El.textContent = "تعداد برآوردی در گله: —";
       }
-    };
-
-    const getWeightsForUI = () => {
-      try {
-        if (typeof getWeights === "function") {
-          const w = getWeights();
-          if (Array.isArray(w)) return w.map(Number).filter(v => Number.isFinite(v) && v > 0);
-        }
-      } catch (_) {}
-      return Array.from(document.querySelectorAll("#weightsContainer .bird-weight"))
-        .map(e => Number(e.value)).filter(v => Number.isFinite(v) && v > 0);
     };
 
     refreshCounts();

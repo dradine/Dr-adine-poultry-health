@@ -14,7 +14,10 @@
   function calc(last, ctx){
     const weight=n(last?.weight);
     const bw=weight===null?null:weight/1000;
-    const liv=n(ctx?.livability ?? last?.raw?.livability ?? last?.livability);
+    // The V3 adapter currently exposes the derived livability as `liv`.
+    // Prefer an explicit livability value, then the adapter's derived value,
+    // then the canonical latest-row value. No new estimate is introduced here.
+    const liv=n(ctx?.livability ?? ctx?.liv ?? last?.raw?.livability ?? last?.livability);
     const age=n(last?.age ?? last?.raw?.age_days ?? last?.raw?.ageDays);
     const fcr=n(last?.cumulativeFcr ?? last?.raw?.cumulative_fcr ?? last?.raw?.cumulativeFcr);
     if([bw,liv,age,fcr].some(v=>v===null)||bw<=0||liv<0||liv>100||age<=0||fcr<=0) return null;

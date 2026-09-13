@@ -101,40 +101,77 @@ function start(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 
-/* ADINE - Weekly calculation runtime guard v1
-   Narrow repair for the "محاسبه پایش" button only.
-   It preserves the existing weekly calculation engine, standards,
-   results rendering, page layout and bottom navigation. If a non-core
-   wrapper around calculateWeightStatistics throws, the exact same
-   calculation is retried once against its original engine. */
+/* ADINE - Weekly calculation runtime guard v2
+   Surgical UI bridge only. It never changes weekly statistics, standards,
+   navigation or layout. It captures the existing render payload and, only
+   when the legacy results container is empty/hidden after calculation, asks
+   the existing renderer to paint that same payload again. */
 (function(){'use strict';
-  function patch(){
+  let lastResult=null;
+  function patchRender(){
+    const r=window.renderResults;
+    if(typeof r!=='function'||r.__weeklyLegacyCaptureV2)return false;
+    return true;
+  }
+  function capture(){
+    const r=window.renderResults;
+    if(typeof r!=='function'||r.__weeklyLegacyCaptureV2)return false;
+    const wrapped=function(result){
+      lastResult=result;
+      return r.apply(this,arguments);
+    };
+    wrapped.__weeklyLegacyCaptureV2=true;
+    wrapped.__original=r;
+    window.renderResults=wrapped;
+    return true;
+  }
+  function ensureResults(){
+    const card=document.getElementById('resultsCard');
+    const res=document.getElementById('results');
+    if(!card||!res||!lastResult)return;
+    if(!res.children.length||getComputedStyle(card).display==='none'){
+      try{window.renderResults(lastResult)}catch(e){console.warn('Weekly legacy results restore:',e)}
+      if(res.children.length)card.style.display='block';
+    }
+  }
+  function patchCalc(){
     const fn=window.calculateWeekly;
-    if(typeof fn!=='function'||fn.__weeklyCalcGuardV1)return false;
-    function guarded(){
+    if(typeof fn!=='function'||fn.__weeklyCalcRestoreV2)return false;
+    return true;
+  }
+  function installCalc(){
+    const fn=window.calculateWeekly;
+    if(typeof fn!=='function'||fn.__weeklyCalcRestoreV2)return false;
+    const guarded=function(){
+      let value;
       try{
-        return fn.apply(this,arguments);
+        value=fn.apply(this,arguments);
       }catch(firstError){
         const stats=window.calculateWeightStatistics;
         const original=stats&&typeof stats.__original==='function'?stats.__original:null;
-        if(!original)throw firstError;
-        window.calculateWeightStatistics=original;
-        try{
-          return fn.apply(this,arguments);
-        }finally{
-          window.calculateWeightStatistics=stats;
+        if(original){
+          window.calculateWeightStatistics=original;
+          try{value=fn.apply(this,arguments)}finally{window.calculateWeightStatistics=stats}
+        }else{
+          try{ensureResults()}catch(_){}
+          throw firstError;
         }
       }
-    }
-    guarded.__weeklyCalcGuardV1=true;
+      try{ensureResults()}catch(e){console.warn('Weekly legacy results check:',e)}
+      return value;
+    };
+    guarded.__weeklyCalcRestoreV2=true;
     guarded.__original=fn;
     window.calculateWeekly=guarded;
     return true;
   }
   function start(){
-    if(patch())return;
     let i=0;
-    const t=setInterval(()=>{if(patch()||++i>120)clearInterval(t)},100);
+    const t=setInterval(()=>{
+      if(!patchRender())capture();
+      if(installCalc())clearInterval(t);
+      if(++i>160)clearInterval(t);
+    },100);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

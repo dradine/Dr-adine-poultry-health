@@ -23,10 +23,25 @@ document.addEventListener('DOMContentLoaded',async()=>{
  const flockSelect=$('flockSelect');
  if(flockSelect){
    flockSelect.innerHTML=flocks.map(f=>`<option value=\"${esc(f.id)}\">${esc(f.flock_name||'گله بدون نام')} — ${esc(f.production_type||'نوع نامشخص')}</option>`).join('') || '<option value=\"\">گله‌ای ثبت نشده</option>';
+
+   // Restore the flock that the user last selected. Priority:
+   // explicit URL -> shared app selection -> legacy flock key.
+   // Only restore it when it belongs to the current farm/list.
+   let storedFlockId = new URLSearchParams(location.search).get('flockId') || new URLSearchParams(location.search).get('flock');
+   if (!storedFlockId && typeof getCurrentSelection === 'function') {
+     try { storedFlockId = getCurrentSelection()?.flockId || null; } catch (_) {}
+   }
+   if (!storedFlockId) {
+     try { storedFlockId = localStorage.getItem('adine_selected_flock') || null; } catch (_) {}
+   }
+   if (storedFlockId && Array.from(flockSelect.options).some(o => String(o.value) === String(storedFlockId))) {
+     flockSelect.value = String(storedFlockId);
+   }
  }
  function updateLinks(){
    const fid=flockSelect?.value||'';
-   if(fid){ localStorage.setItem('adine_selected_flock',fid); if(typeof setCurrentSelection==='function') setCurrentSelection({farmId:farmId,houseId:null,flockId:fid}); }
+   if(typeof setCurrentSelection==='function') setCurrentSelection({farmId:farmId,houseId:null,flockId:fid||null});
+   if(fid) localStorage.setItem('adine_selected_flock',fid);
    const q='?farm='+encodeURIComponent(farmId)+(fid?'&flockId='+encodeURIComponent(fid):'')+'&professional=1';
    $('healthLink').href='health.html'+q; $('mortalityLink').href='mortality.html'+q; $('reportsLink').href='reports.html'+q; $('recordsLink').href='records.html'+q;
  }

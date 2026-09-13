@@ -1,0 +1,25 @@
+name: Broiler Performance Intelligence V1
+
+on:
+  push:
+    branches: [main, feature/broiler-performance-intelligence-v1]
+    paths:
+      - 'broiler-performance-intelligence-v1.js'
+      - 'tests/broiler-performance-intelligence-v1.test.js'
+      - '.github/workflows/broiler-performance-intelligence-v1.yml'
+  pull_request:
+    paths:
+      - 'broiler-performance-intelligence-v1.js'
+      - 'tests/broiler-performance-intelligence-v1.test.js'
+      - '.github/workflows/broiler-performance-intelligence-v1.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --check broiler-performance-intelligence-v1.js
+      - run: node tests/broiler-performance-intelligence-v1.test.js

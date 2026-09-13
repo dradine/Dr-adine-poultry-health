@@ -5,7 +5,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
  const role=String(auth.profile?.role||'').toLowerCase(), type=String(auth.profile?.user_type||'').toLowerCase();
  if(['owner','admin'].includes(role)){location.replace('owner.html');return;}
  if(['poultry_operator','poultry_manager','poultry_technical_expert'].includes(type)){location.replace('Dashboard.html');return;}
- const farmId=new URLSearchParams(location.search).get('farm')||localStorage.getItem('adine_selected_farm');
+ const params=new URLSearchParams(location.search);
+ const farmId=params.get('farm')||localStorage.getItem('adine_selected_farm');
  const $=id=>document.getElementById(id), esc=v=>AdineAccess.esc(v);
  $('backBtn').onclick=$('backBtn2').onclick=()=>location.href='professional.html';
  if(!farmId){$('farmName').textContent='شناسه فارم مشخص نیست';return;}
@@ -24,33 +25,48 @@ document.addEventListener('DOMContentLoaded',async()=>{
  if(flockSelect){
    flockSelect.innerHTML=flocks.map(f=>`<option value="${esc(f.id)}">${esc(f.flock_name||'گله بدون نام')} — ${esc(f.production_type||'نوع نامشخص')}</option>`).join('') || '<option value="">گله‌ای ثبت نشده</option>';
 
-   // Restore the current flock only when it belongs to this farm/list.
-   // The shared selection is authoritative; URL is used as a fallback for direct links.
-   let storedFlockId = null;
-   if (typeof getCurrentSelection === 'function') {
-     try { storedFlockId = getCurrentSelection()?.flockId || null; } catch (_) {}
+   // Selection precedence is deliberate: an explicit URL flock is the
+   // navigation context; only when it is absent do we restore local state.
+   // This prevents an older legacy key from overriding a newly selected flock.
+   let storedFlockId = params.get('flockId') || params.get('flock') || null;
+   if (!storedFlockId) {
+     try {
+       const raw=localStorage.getItem('adine_poultry_current_selection');
+       const selection=raw?JSON.parse(raw):null;
+       storedFlockId=selection?.flockId||selection?.flock_id||null;
+     } catch (_) {}
    }
    if (!storedFlockId) {
      try { storedFlockId = localStorage.getItem('adine_selected_flock') || null; } catch (_) {}
-   }
-   if (!storedFlockId) {
-     const p=new URLSearchParams(location.search);
-     storedFlockId=p.get('flockId')||p.get('flock')||null;
    }
    if (storedFlockId && Array.from(flockSelect.options).some(o => String(o.value) === String(storedFlockId))) {
      flockSelect.value = String(storedFlockId);
    }
  }
- function syncSelectionAndLinks(){
-   const fid=String(flockSelect?.value||'').trim();
-   if(typeof setCurrentSelection==='function') setCurrentSelection({farmId:farmId,houseId:null,flockId:fid||null});
+ function persistSelection(fid){
+   const flockId=String(fid||'').trim()||null;
    try {
-     if(fid) localStorage.setItem('adine_selected_flock',fid);
+     const raw=localStorage.getItem('adine_poultry_current_selection');
+     const previous=raw?JSON.parse(raw):{};
+     const next={...(previous&&typeof previous==='object'?previous:{}),farmId:String(farmId),houseId:null,flockId};
+     if(flockId) localStorage.setItem('adine_poultry_current_selection',JSON.stringify(next));
+     else localStorage.removeItem('adine_poultry_current_selection');
+   } catch (_) {}
+   try {
+     if(flockId) localStorage.setItem('adine_selected_flock',flockId);
      else localStorage.removeItem('adine_selected_flock');
    } catch (_) {}
-
-   // The selected flock is written to the URL immediately. This prevents any
-   // destination page from inheriting an older flockId from browser history/cache.
+ }
+ function buildDestination(page){
+   const fid=String(flockSelect?.value||'').trim();
+   persistSelection(fid);
+   const q='?farm='+encodeURIComponent(farmId)+(fid?'&flockId='+encodeURIComponent(fid):'')+'&professional=1';
+   return page+q;
+ }
+ function syncSelectionAndLinks(){
+   const fid=String(flockSelect?.value||'').trim();
+   persistSelection(fid);
+   // Keep the visible page URL synchronized with the actual select value.
    try {
      const url=new URL(window.location.href);
      if(fid) url.searchParams.set('flockId',fid);
@@ -58,18 +74,27 @@ document.addEventListener('DOMContentLoaded',async()=>{
      url.searchParams.delete('flock');
      history.replaceState(null,'',url.toString());
    } catch (_) {}
-
-   const q='?farm='+encodeURIComponent(farmId)+(fid?'&flockId='+encodeURIComponent(fid):'')+'&professional=1';
-   $('healthLink').href='health.html'+q; $('mortalityLink').href='mortality.html'+q; $('reportsLink').href='reports.html'+q; $('recordsLink').href='records.html'+q;
-   return q;
+   $('healthLink').href=buildDestination('health.html');
+   $('mortalityLink').href=buildDestination('mortality.html');
+   $('reportsLink').href=buildDestination('reports.html');
+   $('recordsLink').href=buildDestination('records.html');
  }
  flockSelect?.addEventListener('change',syncSelectionAndLinks);
  flockSelect?.addEventListener('input',syncSelectionAndLinks);
 
- // Rebuild the destination URL at click time as a final guard against a stale href.
- ['healthLink','mortalityLink','reportsLink','recordsLink'].forEach(id=>{
+ // Do not rely on the browser's cached/stale anchor href. At click time,
+ // persist the current select value and navigate explicitly to that exact URL.
+ [['healthLink','health.html'],['mortalityLink','mortality.html'],['reportsLink','reports.html'],['recordsLink','records.html']].forEach(([id,page])=>{
    const el=$(id); if(!el)return;
-   el.addEventListener('click',()=>syncSelectionAndLinks());
+   el.addEventListener('click',e=>{
+     e.preventDefault();
+     const destination=buildDestination(page);
+     try {
+       const url=new URL(destination,window.location.href);
+       history.replaceState(null,'',url.toString());
+     } catch (_) {}
+     window.location.assign(destination);
+   });
  });
  syncSelectionAndLinks();
  

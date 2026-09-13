@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
  const flocks=flockRes.data||[];
  const flockSelect=$('flockSelect');
  if(flockSelect){
-   flockSelect.innerHTML=flocks.map(f=>`<option value=\"${esc(f.id)}\">${esc(f.flock_name||'گله بدون نام')} — ${esc(f.production_type||'نوع نامشخص')}</option>`).join('') || '<option value=\"\">گله‌ای ثبت نشده</option>';
+   flockSelect.innerHTML=flocks.map(f=>`<option value="${esc(f.id)}">${esc(f.flock_name||'گله بدون نام')} — ${esc(f.production_type||'نوع نامشخص')}</option>`).join('') || '<option value="">گله‌ای ثبت نشده</option>';
 
    // Restore the flock that the user last selected. Priority:
    // explicit URL -> shared app selection -> legacy flock key.
@@ -42,6 +42,18 @@ document.addEventListener('DOMContentLoaded',async()=>{
    const fid=flockSelect?.value||'';
    if(typeof setCurrentSelection==='function') setCurrentSelection({farmId:farmId,houseId:null,flockId:fid||null});
    if(fid) localStorage.setItem('adine_selected_flock',fid);
+
+   // Keep the page URL synchronized with the newly selected flock.
+   // Otherwise an old ?flockId=... remains in the address bar and wins
+   // during the next page initialization, restoring the previous flock.
+   try {
+     const url=new URL(window.location.href);
+     if(fid) url.searchParams.set('flockId',fid);
+     else url.searchParams.delete('flockId');
+     url.searchParams.delete('flock');
+     history.replaceState(null,'',url.toString());
+   } catch (_) {}
+
    const q='?farm='+encodeURIComponent(farmId)+(fid?'&flockId='+encodeURIComponent(fid):'')+'&professional=1';
    $('healthLink').href='health.html'+q; $('mortalityLink').href='mortality.html'+q; $('reportsLink').href='reports.html'+q; $('recordsLink').href='records.html'+q;
  }

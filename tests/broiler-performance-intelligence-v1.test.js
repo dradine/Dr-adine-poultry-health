@@ -11,7 +11,7 @@ assert.ok(A);
 assert.strictEqual(A.version, "BROILER-PI-V1");
 const e = A.epef({ bodyWeightKg: 2.5, livabilityPct: 97, ageDays: 42, fcr: 1.55 });
 assert.ok(e.available);
-assert.strictEqual(e.value, 372.0);
+assert.strictEqual(e.value, 372.5);
 assert.strictEqual(A.epef({ bodyWeightKg: 2.5, livabilityPct: 105, ageDays: 42, fcr: 1.55 }).available, false);
 assert.strictEqual(A.epef({ bodyWeightKg: 0, livabilityPct: 97, ageDays: 42, fcr: 1.55 }).available, false);
 assert.strictEqual(A.epef({ bodyWeightKg: 2.5, livabilityPct: 97, ageDays: 0, fcr: 1.55 }).available, false);

@@ -134,11 +134,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       if(res.children.length)card.style.display='block';
     }
   }
-  function patchCalc(){
-    const fn=window.calculateWeekly;
-    if(typeof fn!=='function'||fn.__weeklyCalcRestoreV2)return false;
-    return true;
-  }
   function installCalc(){
     const fn=window.calculateWeekly;
     if(typeof fn!=='function'||fn.__weeklyCalcRestoreV2)return false;
@@ -168,7 +163,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   function start(){
     let i=0;
     const t=setInterval(()=>{
-      if(!patchRender())capture();
+      const r=window.renderResults;
+      if(typeof r==='function'&&!r.__weeklyLegacyCaptureV2){
+        const wrapped=function(result){lastResult=result;return r.apply(this,arguments)};
+        wrapped.__weeklyLegacyCaptureV2=true;wrapped.__original=r;window.renderResults=wrapped;
+      }
       if(installCalc())clearInterval(t);
       if(++i>160)clearInterval(t);
     },100);
@@ -176,121 +175,50 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
 
-/* ADINE - Weight-band UI collapse only
-   Presentation-only layer. It does not touch calculations, standards, save logic,
-   navigation, or the underlying weight-band engine. Both sections start closed. */
+/* ADINE - Weight-band UI collapse v2
+   Presentation-only. No calculation, standard, persistence, navigation, or page-layout logic is changed. */
 (function(){'use strict';
-  const STYLE_ID='adine-weight-band-collapse-style-v1';
+  const STYLE_ID='adine-weight-band-collapse-style-v2';
   const MAIN_ID='adineWeightBandSection';
+  const MAIN_READY='awbCollapseReadyV2';
+  const PROC_READY='awbProcessingReadyV2';
 
-  function addStyle(){
+  function style(){
     if(document.getElementById(STYLE_ID))return;
-    const s=document.createElement('style');
-    s.id=STYLE_ID;
-    s.textContent=`
-      #${MAIN_ID}.awb-collapsible .awb-collapse-head,
-      #${MAIN_ID}.awb-collapsible .awb-section-toggle{cursor:pointer;user-select:none;}
-      #${MAIN_ID}.awb-collapsible .awb-collapse-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
-      #${MAIN_ID}.awb-collapsible .awb-collapse-icon,
-      #${MAIN_ID}.awb-collapsible .awb-processing-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;width:28px;height:28px;border:1px solid rgba(15,23,42,.14);border-radius:8px;font-size:20px;line-height:1;font-weight:700;margin-top:0;}
-      #${MAIN_ID}.awb-collapsible .awb-section-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;}
-      #${MAIN_ID}.awb-collapsible .awb-section-toggle .awb-section-label{display:block;}
-      #${MAIN_ID}.awb-collapsible .awb-collapsed-body{display:none!important;}
-      #${MAIN_ID}.awb-collapsible .awb-section-toggle[aria-expanded="false"]{margin-bottom:0;}
-    `;
+    const s=document.createElement('style');s.id=STYLE_ID;
+    s.textContent='#'+MAIN_ID+'.awb-collapse-v2 .awb-v2-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;cursor:pointer!important;user-select:none!important}#'+MAIN_ID+'.awb-collapse-v2 .awb-v2-toggle{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;border:1px solid rgba(15,23,42,.16)!important;border-radius:8px!important;background:#fff!important;color:#172033!important;font-size:20px!important;font-weight:800!important;line-height:1!important;cursor:pointer!important}#'+MAIN_ID+'.awb-collapse-v2 .awb-v2-body.awb-v2-closed{display:none!important}#'+MAIN_ID+'.awb-collapse-v2 .awb-section-title.awb-v2-proc-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;cursor:pointer!important;user-select:none!important}#'+MAIN_ID+'.awb-collapse-v2 .awb-v2-proc-toggle{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 28px!important;width:28px!important;height:28px!important;border:1px solid rgba(15,23,42,.16)!important;border-radius:8px!important;background:#fff!important;color:#172033!important;font-size:19px!important;font-weight:800!important;line-height:1!important}#'+MAIN_ID+'.awb-collapse-v2 .awb-v2-proc-body.awb-v2-closed{display:none!important}';
     document.head.appendChild(s);
   }
 
-  function makeMain(sec){
-    if(!sec||sec.dataset.awbCollapseReady==='1')return;
-    const head=sec.querySelector(':scope > .awb-head');
-    if(!head)return;
-    const body=document.createElement('div');
-    body.className='awb-collapsed-body';
-    const nodes=Array.from(sec.children).filter(el=>el!==head);
-    nodes.forEach(el=>body.appendChild(el));
+  function main(){
+    const sec=document.getElementById(MAIN_ID);if(!sec||sec.dataset[MAIN_READY]==='1')return;
+    const head=sec.querySelector('.awb-head');if(!head)return;
+    const body=document.createElement('div');body.className='awb-v2-body awb-v2-closed';
+    Array.from(sec.children).forEach(el=>{if(el!==head)body.appendChild(el)});
     sec.appendChild(body);
-
-    const old=Array.from(head.children);
-    const content=document.createElement('div');
-    content.className='awb-collapse-head';
-    old.forEach(el=>content.appendChild(el));
-    const icon=document.createElement('span');
-    icon.className='awb-collapse-icon';
-    icon.textContent='+';
-    icon.setAttribute('aria-hidden','true');
-    content.appendChild(icon);
-    head.textContent='';
-    head.appendChild(content);
-    head.classList.add('awb-section-toggle');
-    head.setAttribute('role','button');
-    head.setAttribute('tabindex','0');
-    head.setAttribute('aria-expanded','false');
-    sec.classList.add('awb-collapsible');
-
-    const toggle=()=>{
-      const open=head.getAttribute('aria-expanded')==='true';
-      const next=!open;
-      head.setAttribute('aria-expanded',String(next));
-      body.classList.toggle('awb-collapsed-body',!next);
-      icon.textContent=next?'−':'+';
-    };
-    head.addEventListener('click',toggle);
-    head.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});
+    const toggle=document.createElement('button');toggle.type='button';toggle.className='awb-v2-toggle';toggle.textContent='+';toggle.setAttribute('aria-label','باز کردن تحلیل محدوده وزنی آدینه');toggle.setAttribute('aria-expanded','false');
+    head.classList.add('awb-v2-head');head.appendChild(toggle);
+    const open=()=>{const isOpen=toggle.getAttribute('aria-expanded')==='true';const next=!isOpen;toggle.setAttribute('aria-expanded',String(next));toggle.textContent=next?'−':'+';toggle.setAttribute('aria-label',next?'بستن تحلیل محدوده وزنی آدینه':'باز کردن تحلیل محدوده وزنی آدینه');body.classList.toggle('awb-v2-closed',!next)};
+    toggle.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});
+    head.addEventListener('click',e=>{if(e.target!==toggle)open()});
+    sec.classList.add('awb-collapse-v2');sec.dataset[MAIN_READY]='1';
   }
 
-  function makeProcessing(sec){
-    const title=sec.querySelector(':scope > .awb-collapsed-body > .awb-section-title') || sec.querySelector(':scope > .awb-section-title');
-    if(!title||title.dataset.awbProcessingReady==='1')return;
-    const parent=title.parentElement;
-    if(!parent)return;
-    const body=document.createElement('div');
-    body.className='awb-processing-collapsed-body awb-collapsed-body';
-    let next=title.nextElementSibling;
-    while(next){
-      const following=next.nextElementSibling;
-      body.appendChild(next);
-      next=following;
-    }
-    title.insertAdjacentElement('afterend',body);
-    title.dataset.awbProcessingReady='1';
-    title.classList.add('awb-section-toggle');
-    title.setAttribute('role','button');
-    title.setAttribute('tabindex','0');
-    title.setAttribute('aria-expanded','false');
-    const label=document.createElement('span');
-    label.className='awb-section-label';
-    while(title.firstChild)label.appendChild(title.firstChild);
-    const icon=document.createElement('span');
-    icon.className='awb-processing-icon';
-    icon.textContent='+';
-    icon.setAttribute('aria-hidden','true');
-    title.textContent='';
-    title.appendChild(label);
-    title.appendChild(icon);
-    const toggle=()=>{
-      const open=title.getAttribute('aria-expanded')==='true';
-      const nextOpen=!open;
-      title.setAttribute('aria-expanded',String(nextOpen));
-      body.classList.toggle('awb-collapsed-body',!nextOpen);
-      icon.textContent=nextOpen?'−':'+';
-    };
-    title.addEventListener('click',toggle);
-    title.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});
+  function processing(){
+    const sec=document.getElementById(MAIN_ID);if(!sec||sec.dataset[PROC_READY]==='1')return;
+    const title=sec.querySelector('.awb-section-title');if(!title)return;
+    const body=title.parentElement?.querySelector('.awb-v2-body');if(!body)return;
+    const procBody=document.createElement('div');procBody.className='awb-v2-proc-body awb-v2-closed';
+    let n=title.nextElementSibling;while(n){const next=n.nextElementSibling;procBody.appendChild(n);n=next}
+    title.insertAdjacentElement('afterend',procBody);
+    const toggle=document.createElement('span');toggle.className='awb-v2-proc-toggle';toggle.textContent='+';toggle.setAttribute('aria-hidden','true');
+    title.classList.add('awb-v2-proc-head');title.appendChild(toggle);
+    const open=()=>{const isOpen=title.dataset.awbProcOpen==='1';const next=!isOpen;title.dataset.awbProcOpen=next?'1':'0';toggle.textContent=next?'−':'+';procBody.classList.toggle('awb-v2-closed',!next)};
+    title.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open()});
+    sec.dataset[PROC_READY]='1';
   }
 
-  function apply(){
-    const sec=document.getElementById(MAIN_ID);
-    if(!sec)return;
-    addStyle();
-    makeMain(sec);
-    makeProcessing(sec);
-  }
-
-  function start(){
-    apply();
-    if(document.body)new MutationObserver(apply).observe(document.body,{childList:true,subtree:true});
-    let i=0;const t=setInterval(()=>{apply();if(++i>120)clearInterval(t)},250);
-  }
+  function apply(){const sec=document.getElementById(MAIN_ID);if(!sec)return;style();main();processing()}
+  function start(){apply();if(document.body)new MutationObserver(()=>apply()).observe(document.body,{childList:true,subtree:true});let i=0;const t=setInterval(()=>{apply();if(++i>120)clearInterval(t)},250)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

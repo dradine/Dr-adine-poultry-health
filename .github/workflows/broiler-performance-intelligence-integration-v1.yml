@@ -1,0 +1,58 @@
+name: Broiler Performance Intelligence V1 Integration
+
+on:
+  push:
+    branches: [feature/broiler-performance-intelligence-v1-integration]
+    paths:
+      - 'reports.html'
+      - 'broiler-performance-intelligence-v1.js'
+      - 'broiler-performance-intelligence-adapter-v1.js'
+      - 'broiler-performance-intelligence-adapter-v1.css'
+      - 'tests/broiler-performance-intelligence-v1.test.js'
+      - 'tests/broiler-performance-intelligence-adapter-v1.test.js'
+      - '.github/workflows/broiler-performance-intelligence-integration-v1.yml'
+  pull_request:
+    paths:
+      - 'reports.html'
+      - 'broiler-performance-intelligence-v1.js'
+      - 'broiler-performance-intelligence-adapter-v1.js'
+      - 'broiler-performance-intelligence-adapter-v1.css'
+      - 'tests/broiler-performance-intelligence-v1.test.js'
+      - 'tests/broiler-performance-intelligence-adapter-v1.test.js'
+      - '.github/workflows/broiler-performance-intelligence-integration-v1.yml'
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check broiler-performance-intelligence-v1.js
+          node --check broiler-performance-intelligence-adapter-v1.js
+      - name: Isolated engine regression
+        run: node tests/broiler-performance-intelligence-v1.test.js
+      - name: Adapter isolation regression
+        run: node tests/broiler-performance-intelligence-adapter-v1.test.js
+      - name: Existing-file change guard
+        shell: bash
+        run: |
+          git fetch origin main --quiet
+          changed="$(git diff --name-only origin/main...HEAD)"
+          echo "$changed"
+          allowed='^(.github/workflows/broiler-performance-intelligence-v1.yml|.github/workflows/broiler-performance-intelligence-integration-v1.yml|BROILER_PERFORMANCE_INTELLIGENCE_V1_ARCHITECTURE.md|broiler-performance-intelligence-v1.js|broiler-performance-intelligence-adapter-v1.js|broiler-performance-intelligence-adapter-v1.css|tests/broiler-performance-intelligence-v1.test.js|tests/broiler-performance-intelligence-adapter-v1.test.js|reports.html)$'
+          bad=0
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            if ! printf '%s\n' "$file" | grep -Eq "$allowed"; then
+              echo "FORBIDDEN CHANGED FILE: $file"
+              bad=1
+            fi
+          done <<< "$changed"
+          test "$bad" -eq 0
+          echo 'Existing-file change guard: PASS'

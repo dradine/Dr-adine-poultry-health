@@ -1,63 +1,27 @@
-/* ADINE BROILER PERFORMANCE INTELLIGENCE — EPEF FIX V1
- * Surgical compatibility/presentation layer. Does not alter canonical weekly calculations,
- * FCR engines, official/management standards, reports or stored data.
- * Reference-gap presentation is intentionally handled by its own post-render layer.
+/* ADINE BROILER PERFORMANCE INTELLIGENCE — EPEF + REFERENCE GAP FINAL PRESENTATION
+ * Read-only presentation/compatibility layer. Canonical calculations and standards are untouched.
  */
 (function(global){
-  'use strict';
-  function n(v){
-    if(v===null||v===undefined||v==='') return null;
-    const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));
-    return Number.isFinite(x)?x:null;
-  }
-  function calc(last, ctx){
-    const weight=n(last?.weight);
-    const bw=weight===null?null:weight/1000;
-    const liv=n(ctx?.livability ?? ctx?.liv ?? last?.raw?.livability ?? last?.livability);
-    const age=n(last?.age ?? last?.raw?.age_days ?? last?.raw?.ageDays);
-    const fcr=n(last?.cumulativeFcr ?? last?.raw?.cumulative_fcr ?? last?.raw?.cumulativeFcr);
-    if([bw,liv,age,fcr].some(v=>v===null)||bw<=0||liv<0||liv>100||age<=0||fcr<=0) return null;
-    return {available:true,value:Number(((bw*liv*100)/(age*fcr)).toFixed(1)),formula:'(Livability % × live weight kg × 100) / (age days × cumulative FCR)',provenance:'calculated'};
-  }
-  function install(){
-    const A=global.AdineBroilerPerformanceIntelligenceV3;
-    if(!A||A.__epefFixV1Installed||typeof A.build!=='function') return false;
-    const original=A.build;
-    A.build=function(ctx){
-      const out=original.apply(this,arguments);
-      const ep=calc(out?.latest,ctx);
-      if(ep) out.epef=ep;
-      return out;
-    };
-    A.__epefFixV1Installed=true;
-    return true;
-  }
-  const LEVELS=[
-    {min:505,key:'excellent',label:'ممتاز',cls:'epef-excellent',ref:505},
-    {min:470,key:'very-good',label:'بسیار خوب',cls:'epef-very-good',ref:470},
-    {min:440,key:'good',label:'خوب',cls:'good',ref:440},
-    {min:400,key:'acceptable',label:'قابل قبول',cls:'warn',ref:400},
-    {min:350,key:'needs-improvement',label:'نیازمند بهبود',cls:'epef-needs-improvement',ref:350},
-    {min:-Infinity,key:'poor',label:'نامطلوب',cls:'epef-poor',ref:350}
-  ];
-  function level(value){const x=n(value);if(x===null)return null;return LEVELS.find(z=>x>=z.min)||LEVELS[LEVELS.length-1]}
-  function parseDisplayedNumber(text){if(!text)return null;const s=String(text).replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٬,]/g,'').replace('٫','.');return n(s.replace(/[^0-9.\-]/g,''))}
-  function ensureStyle(){
-    if(document.getElementById('adine-epef-rating-style'))return;
-    const style=document.createElement('style');style.id='adine-epef-rating-style';style.textContent=`
-      .bpi3-card.epef-excellent,.bpi3-card.epef-very-good,.bpi3-card.good{border-color:rgba(22,163,74,.45)!important;background:linear-gradient(180deg,rgba(240,253,244,.98),rgba(255,255,255,.98))!important}
-      .bpi3-card.epef-excellent .bpi3-card-value,.bpi3-card.epef-very-good .bpi3-card-value,.bpi3-card.good .bpi3-card-value{color:#15803d!important}
-      .bpi3-card.warn{border-color:rgba(202,138,4,.45)!important;background:linear-gradient(180deg,rgba(254,252,232,.98),rgba(255,255,255,.98))!important}
-      .bpi3-card.epef-needs-improvement{border-color:rgba(234,88,12,.45)!important;background:linear-gradient(180deg,rgba(255,247,237,.98),rgba(255,255,255,.98))!important}
-      .bpi3-card.epef-poor{border-color:rgba(220,38,38,.48)!important;background:linear-gradient(180deg,rgba(254,242,242,.98),rgba(255,255,255,.98))!important}
-      .bpi3-epef-rating{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;font-size:.78rem;font-weight:700}.bpi3-epef-rating .label{white-space:nowrap}.bpi3-epef-rating .delta{font-weight:600;opacity:.82;direction:rtl}.bpi3-epef-reference{display:block;margin-top:3px;font-size:.7rem;opacity:.72}`;document.head.appendChild(style)
-  }
-  function paintRating(){
-    const cards=[...document.querySelectorAll('.bpi3-card')],card=cards.find(c=>c.querySelector('.bpi3-card-label')?.textContent.trim()==='EPEF');if(!card)return;
-    const valueEl=card.querySelector('.bpi3-card-value'),subEl=card.querySelector('.bpi3-card-sub'),value=parseDisplayedNumber(valueEl?.textContent),lv=level(value);if(!lv)return;
-    const stamp=String(value);if(card.dataset.epefRating===stamp)return;ensureStyle();card.classList.remove('good','warn','epef-excellent','epef-very-good','epef-needs-improvement','epef-poor');card.classList.add(lv.cls);
-    const delta=value-lv.ref,sign=delta>0?'+':'';if(subEl)subEl.innerHTML=`<span>شاخص بهره‌وری تولید</span><div class="bpi3-epef-rating"><span class="label">${lv.label}</span><span class="delta">${sign}${delta.toFixed(1)}</span></div><span class="bpi3-epef-reference">مرجع سطح: ${lv.ref.toLocaleString('fa-IR')} · مرجع عملکردی، نه استاندارد رسمی جهانی</span>`;card.dataset.epefRating=stamp
-  }
-  if(!install()){let tries=0;const timer=setInterval(function(){if(install()||++tries>=100)clearInterval(timer)},50)}
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',paintRating);else paintRating();
+'use strict';
+const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
+const fmt=(v,d=1)=>{const x=n(v);return x===null?'—':x.toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d})};
+const signed=(v,d=1)=>{const x=n(v);return x===null?'—':(x>0?'+':'')+fmt(x,d)};
+function epef(last,ctx){const w=n(last?.weight),liv=n(ctx?.livability??ctx?.liv??last?.raw?.livability??last?.livability),age=n(last?.age??last?.raw?.age_days),fcr=n(last?.cumulativeFcr??last?.raw?.cumulative_fcr);if([w,liv,age,fcr].some(v=>v===null)||w<=0||liv<0||liv>100||age<=0||fcr<=0)return null;return{available:true,value:Number(((w/1000*liv*100)/(age*fcr)).toFixed(1)),formula:'(Livability % × live weight kg × 100) / (age days × cumulative FCR)',provenance:'calculated'}}
+function install(){const A=global.AdineBroilerPerformanceIntelligenceV3;if(!A||A.__epefFinalInstalled||typeof A.build!=='function')return false;const original=A.build;A.build=function(ctx){const out=original.apply(this,arguments),ep=epef(out?.latest,ctx);if(ep)out.epef=ep;return out};A.__epefFinalInstalled=true;return true}
+const LEVELS=[{min:505,label:'ممتاز',cls:'epef-excellent',ref:505},{min:470,label:'بسیار خوب',cls:'epef-very-good',ref:470},{min:440,label:'خوب',cls:'good',ref:440},{min:400,label:'قابل قبول',cls:'warn',ref:400},{min:350,label:'نیازمند بهبود',cls:'epef-needs-improvement',ref:350},{min:-Infinity,label:'نامطلوب',cls:'epef-poor',ref:350}];
+function epefRating(){const card=[...document.querySelectorAll('.bpi3-card')].find(c=>c.querySelector('.bpi3-card-label')?.textContent.trim()==='EPEF');if(!card)return;const text=card.querySelector('.bpi3-card-value')?.textContent||'',s=text.replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace('٫','.').replace(/[٬,]/g,'').replace(/[^0-9.\-]/g,''),v=n(s);if(v===null)return;const lv=LEVELS.find(x=>v>=x.min)||LEVELS.at(-1);card.classList.remove('good','warn','epef-excellent','epef-very-good','epef-needs-improvement','epef-poor');card.classList.add(lv.cls);const sub=card.querySelector('.bpi3-card-sub');if(sub)sub.innerHTML=`<span>شاخص بهره‌وری تولید</span><b>${lv.label} · ${signed(v-lv.ref,1)}</b><span>مرجع سطح عملکردی، نه استاندارد رسمی جهانی</span>`}
+const DEF={weight:{key:'weight',std:'standardWeight',dir:'higher',label:'وزن',slope:1,unit:'g/day'},fcr:{key:'cumulativeFcr',std:'standardCumulativeFcr',dir:'lower',label:'FCR تجمعی',slope:4,unit:'واحد FCR/day'}};
+function gap(a,r){a=n(a);r=n(r);return a===null||r===null||r===0?null:(a-r)/Math.abs(r)*100}
+function pctChange(a,b){a=n(a);b=n(b);return a===null||b===null||b===0?null:(a-b)/Math.abs(b)*100}
+function linSlope(rows,key){const p=rows.map(r=>({x:n(r.age),y:n(r[key])})).filter(z=>z.x!==null&&z.y!==null);if(p.length<2)return null;const mx=p.reduce((s,z)=>s+z.x,0)/p.length,my=p.reduce((s,z)=>s+z.y,0)/p.length,sxx=p.reduce((s,z)=>s+(z.x-mx)**2,0);return sxx?p.reduce((s,z)=>s+(z.x-mx)*(z.y-my),0)/sxx:null}
+function source(row,std){const s=row?.[std+'Source'];return s==='official'?'مرجع رسمی':s==='management'?'مرجع مدیریتی':s?String(s):'مرجع موجود نیست'}
+async function refs(rows,flock,id){const out=rows.map(r=>({...r}));if(!global.supabaseClient||!id)return out;const genetics=flock?.genetics??flock?.genetic_line??null,strain=flock?.strain??null;for(const r of out){for(const [metric,key,std] of [['body_weight','weight','standardWeight'],['fcr_cumulative','cumulativeFcr','standardCumulativeFcr'],['cv','cv','standardCv']]){if(n(r[std])!==null||n(r[key])===null||n(r.age)===null)continue;try{const date=r.raw?.evaluation_date||r.raw?.record_date||new Date().toISOString().slice(0,10);const {data,error}=await global.supabaseClient.rpc('calculate_performance_intelligence',{p_flock_id:id,p_evaluation_date:date,p_age_days:Number(r.age),p_metric:metric,p_current_value:n(r[key]),p_production_type:'broiler',p_genetics:genetics,p_strain:strain});if(!error&&data?.ok&&n(data.target)!==null){r[std]=n(data.target);r[std+'Source']=data.source_type||null}}catch(_){}}}return out}
+function evalMetric(rows,d){const a=rows.filter(r=>n(r[d.key])!==null&&n(r[d.std])!==null&&n(r.age)!==null).sort((x,y)=>n(x.age)-n(y.age));if(a.length<2)return null;const cur=a.at(-1),prev=a.at(-2),cg=gap(cur[d.key],cur[d.std]),pg=gap(prev[d.key],prev[d.std]);if(cg===null||pg===null)return null;const delta=cg-pg,perf=d.dir==='higher'?delta:-delta,actual=pctChange(cur[d.key],prev[d.key]),ref=pctChange(cur[d.std],prev[d.std]);let title='پایدار نسبت به مرجع',arrow='→',cls='ref-neutral';if(perf>0.15){title='بهبود نسبت به مرجع';arrow='↗';cls='ref-good'}else if(perf<-0.15){title='بدتر شدن نسبت به مرجع';arrow='↘';cls='ref-bad'}const pos=d.dir==='higher'?(cg>=0?'بالاتر از مرجع':'پایین‌تر از مرجع'):(cg<=0?'بهتر از مرجع':'بدتر از مرجع');return{cur,prev,cg,pg,delta,perf,actual,ref,title,arrow,cls,pos,slope:linSlope(a,d.key)}}
+function card(label){return[...document.querySelectorAll('.bpi3-card')].find(c=>c.querySelector('.bpi3-card-label')?.textContent.trim()===label)}
+function paint(card,ev,d){if(!card||!ev)return;card.classList.remove('good','warn','bad','ref-good','ref-watch','ref-bad','ref-neutral');card.classList.add('bpi3-reference-card',ev.cls);const v=card.querySelector('.bpi3-card-value'),s=card.querySelector('.bpi3-card-sub');if(v)v.textContent=ev.arrow+' '+ev.title;const lines=[`${source(ev.cur,d.std)} · شیب واقعی ${fmt(ev.slope,d.slope)} ${d.unit}`,`فاصله فعلی: ${signed(ev.cg,1)}٪`,`فاصله هفته قبل: ${signed(ev.pg,1)}٪`,`تغییر فاصله: ${signed(ev.delta,1)} واحد درصد`,`تغییر ${d.label} واقعی: ${signed(ev.actual,1)}٪`,`تغییر مرجع: ${signed(ev.ref,1)}٪`,`وضعیت: ${ev.pos}`];if(s)s.innerHTML=lines.map(x=>`<span>${x}</span>`).join('<br>')}
+function paintCv(card,rows){if(!card)return;const a=rows.filter(r=>n(r.cv)!==null).sort((x,y)=>n(x.age)-n(y.age));if(a.length<2)return;const cur=a.at(-1),prev=a.at(-2),ch=pctChange(cur.cv,prev.cv),s=linSlope(a,'cv');let title='→ پراکندگی پایدار',cls='ref-neutral';if(ch>0.15){title='↗ پراکندگی بیشتر';cls='ref-watch'}else if(ch<-0.15){title='↘ پراکندگی کمتر';cls='ref-good'}card.classList.remove('good','warn','bad','ref-good','ref-watch','ref-bad','ref-neutral');card.classList.add('bpi3-reference-card',cls);const v=card.querySelector('.bpi3-card-value'),sub=card.querySelector('.bpi3-card-sub');if(v)v.textContent=title;if(sub)sub.innerHTML=`<span>تغییر CV واقعی: ${signed(ch,1)}٪</span><br><span>شیب توصیفی: ${fmt(s,4)} / روز</span>`}
+let busy=false;async function render(){const panel=document.querySelector('#broiler-performance-intelligence-v3-shell [data-bpi3-panel="intelligence"]');if(!panel||panel.querySelector('.bpi3-loading')||busy)return;const r=global.AdineReportRouter;if(!r)return;const id=r.currentFlockId();if(!id)return;busy=true;try{const[flock,raw]=await Promise.all([r.getFlock(id),r.getWeeklyRecords(id)]);const model=r.buildModel(flock,raw),rows=await refs(model?.rows||[],flock,id);paint(card('روند وزن'),evalMetric(rows,DEF.weight),DEF.weight);paint(card('روند FCR'),evalMetric(rows,DEF.fcr),DEF.fcr);paintCv(card('روند CV'),rows);epefRating()}catch(e){console.warn('[Adine PI final presentation]',e)}finally{busy=false}}
+function start(){let i=0;const timer=setInterval(()=>{render();if(++i>=100)clearInterval(timer)},250);new MutationObserver(()=>render()).observe(document.body,{subtree:true,childList:true,characterData:true});render()}
+if(!install()){let i=0;const t=setInterval(()=>{if(install()||++i>=100)clearInterval(t)},50)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })(typeof window!=='undefined'?window:globalThis);

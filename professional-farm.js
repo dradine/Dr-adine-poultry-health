@@ -24,28 +24,33 @@ document.addEventListener('DOMContentLoaded',async()=>{
  if(flockSelect){
    flockSelect.innerHTML=flocks.map(f=>`<option value="${esc(f.id)}">${esc(f.flock_name||'گله بدون نام')} — ${esc(f.production_type||'نوع نامشخص')}</option>`).join('') || '<option value="">گله‌ای ثبت نشده</option>';
 
-   // Restore the flock that the user last selected. Priority:
-   // explicit URL -> shared app selection -> legacy flock key.
-   // Only restore it when it belongs to the current farm/list.
-   let storedFlockId = new URLSearchParams(location.search).get('flockId') || new URLSearchParams(location.search).get('flock');
-   if (!storedFlockId && typeof getCurrentSelection === 'function') {
+   // Restore the current flock only when it belongs to this farm/list.
+   // The shared selection is authoritative; URL is used as a fallback for direct links.
+   let storedFlockId = null;
+   if (typeof getCurrentSelection === 'function') {
      try { storedFlockId = getCurrentSelection()?.flockId || null; } catch (_) {}
    }
    if (!storedFlockId) {
      try { storedFlockId = localStorage.getItem('adine_selected_flock') || null; } catch (_) {}
    }
+   if (!storedFlockId) {
+     const p=new URLSearchParams(location.search);
+     storedFlockId=p.get('flockId')||p.get('flock')||null;
+   }
    if (storedFlockId && Array.from(flockSelect.options).some(o => String(o.value) === String(storedFlockId))) {
      flockSelect.value = String(storedFlockId);
    }
  }
- function updateLinks(){
-   const fid=flockSelect?.value||'';
+ function syncSelectionAndLinks(){
+   const fid=String(flockSelect?.value||'').trim();
    if(typeof setCurrentSelection==='function') setCurrentSelection({farmId:farmId,houseId:null,flockId:fid||null});
-   if(fid) localStorage.setItem('adine_selected_flock',fid);
+   try {
+     if(fid) localStorage.setItem('adine_selected_flock',fid);
+     else localStorage.removeItem('adine_selected_flock');
+   } catch (_) {}
 
-   // Keep the page URL synchronized with the newly selected flock.
-   // Otherwise an old ?flockId=... remains in the address bar and wins
-   // during the next page initialization, restoring the previous flock.
+   // The selected flock is written to the URL immediately. This prevents any
+   // destination page from inheriting an older flockId from browser history/cache.
    try {
      const url=new URL(window.location.href);
      if(fid) url.searchParams.set('flockId',fid);
@@ -56,9 +61,17 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
    const q='?farm='+encodeURIComponent(farmId)+(fid?'&flockId='+encodeURIComponent(fid):'')+'&professional=1';
    $('healthLink').href='health.html'+q; $('mortalityLink').href='mortality.html'+q; $('reportsLink').href='reports.html'+q; $('recordsLink').href='records.html'+q;
+   return q;
  }
- flockSelect?.addEventListener('change',updateLinks);
- updateLinks();
+ flockSelect?.addEventListener('change',syncSelectionAndLinks);
+ flockSelect?.addEventListener('input',syncSelectionAndLinks);
+
+ // Rebuild the destination URL at click time as a final guard against a stale href.
+ ['healthLink','mortalityLink','reportsLink','recordsLink'].forEach(id=>{
+   const el=$(id); if(!el)return;
+   el.addEventListener('click',()=>syncSelectionAndLinks());
+ });
+ syncSelectionAndLinks();
  
  async function loadMessages(){
    const {data,error}=await supabaseClient.from('professional_messages').select('id,sender_id,recipient_id,body,attachment_path,attachment_name,attachment_size,attachment_type,created_at').eq('farm_id',farmId).or(`sender_id.eq.${auth.user.id},recipient_id.eq.${auth.user.id}`).order('created_at',{ascending:true});

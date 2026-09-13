@@ -10,7 +10,6 @@
 
     const productionLabels = new Set(["شروع تولید","تاریخ شروع تولید","سن شروع تولید (روز)","تعداد پرنده شروع تولید","وزن شروع تولید (گرم)"]);
 
-    /* Remove the old permanent/partial production fields. */
     function removeDuplicateProductionFields(){
         const form=$("flockForm"); if(!form)return;
         form.querySelectorAll("label").forEach(label=>{
@@ -22,7 +21,6 @@
         });
     }
 
-    /* Always create one clean, protected conditional block with all four fields. */
     function addProductionSection(){
         const form=$("flockForm"), notes=$("flockNotes");
         if(!form||!notes)return;
@@ -39,6 +37,20 @@
             <div class="form-group"><label for="productionBaselineBirdCount">تعداد پرنده شروع تولید</label><input id="productionBaselineBirdCount" type="text" inputmode="numeric" autocomplete="off"></div>
             <div class="form-group"><label for="productionBaselineWeightG">وزن شروع تولید (گرم)</label><input id="productionBaselineWeightG" type="text" inputmode="decimal" autocomplete="off"></div>`;
         notes.closest(".form-group")?.before(wrap);
+    }
+
+    /* Maternal flock information: exactly after strain/program and before sex/bird count. */
+    function addMaternalFlockFields(){
+        const form=$("flockForm");
+        const sex=$("flockSex");
+        if(!form||!sex||$("maternalFlockFields"))return;
+        const wrap=document.createElement("div");
+        wrap.id="maternalFlockFields";
+        wrap.className="form-grid full maternal-flock-fields";
+        wrap.innerHTML=`
+            <div class="form-group"><label for="maternalFlockName">نام گله مادر / شرکت تأمین‌کننده</label><input id="maternalFlockName" type="text" autocomplete="off" placeholder="مثلاً گله مادر راس / شرکت تأمین‌کننده"></div>
+            <div class="form-group"><label for="maternalFlockAgeWeeks">سن گله مادر (هفته)</label><input id="maternalFlockAgeWeeks" type="text" inputmode="decimal" autocomplete="off" placeholder="مثلاً ۴۵"></div>`;
+        sex.closest(".form-group")?.before(wrap);
     }
 
     function updateProductionVisibility(){
@@ -68,7 +80,6 @@
         if(v!==null&&v!==undefined&&v!=="")input.value=Number(v).toLocaleString("fa-IR");
     }
 
-    /* Density is a visible, read-only field in the house form. */
     function addDensity(){
         const form=$("houseForm"),length=$("houseLength"),width=$("houseWidth");
         if(!form||!length||!width)return;
@@ -106,11 +117,12 @@
             e.preventDefault();e.stopImmediatePropagation();
             if(typeof selectedFarm==="undefined"||!selectedFarm)return alert("ابتدا یک فارم انتخاب کنید.");
             const houseId=text("flockHouse"),name=text("flockName"),type=text("productionType"),weight=num("initialAverageWeightG"),birds=num("birdCount");
+            const maternalName=text("maternalFlockName"),maternalAge=num("maternalFlockAgeWeeks");
             if(!houseId||!name||!type)return alert("سالن، نام گله و نوع پرورش الزامی است.");
             if(weight===null||weight<=0)return alert("میانگین وزن اولیه گله را وارد کنید.");
             if(birds===null||birds<=0)return alert("تعداد اولیه جوجه / مرغ را وارد کنید.");
             const placementDate=iso("placementDate");if(!placementDate)return alert("تاریخ جوجه‌ریزی / استقرار گله را وارد کنید.");
-            const p={farm_id:selectedFarm.id,house_id:houseId,owner_id:currentUser.id,flock_name:name,flock_code:text("flockCode"),production_type:type,genetics:text("genetics"),strain:text("flockStrain")||text("genetics"),program:text("flockProgram"),sex:text("flockSex")||"mixed",initial_bird_count:birds,current_bird_count:birds,initial_average_weight_g:weight,placement_date:placementDate,start_age_days:num("startAgeDays")??1,status:"active",notes:text("flockNotes")};
+            const p={farm_id:selectedFarm.id,house_id:houseId,owner_id:currentUser.id,flock_name:name,flock_code:text("flockCode"),production_type:type,genetics:text("genetics"),strain:text("flockStrain")||text("genetics"),program:text("flockProgram"),maternal_flock_name:maternalName||null,maternal_flock_age_weeks:maternalAge,sex:text("flockSex")||"mixed",initial_bird_count:birds,current_bird_count:birds,initial_average_weight_g:weight,placement_date:placementDate,start_age_days:num("startAgeDays")??1,status:"active",notes:text("flockNotes")};
             if(productionRelevant()){
                 const sd=iso("productionStartDate"),sa=num("productionStartAgeDays"),sb=num("productionBaselineBirdCount"),sw=num("productionBaselineWeightG");
                 if(!sd||sa===null||sb===null||sw===null||sa<=0||sb<=0||sw<=0)return alert("اطلاعات شروع تولید تخم‌گذار/مادر را کامل وارد کنید.");
@@ -126,6 +138,7 @@
     }
 
     function init(){
+        addMaternalFlockFields();
         addProductionSection();
         interceptHouse();interceptFlock();
         $("productionType")?.addEventListener("change",updateProductionVisibility);

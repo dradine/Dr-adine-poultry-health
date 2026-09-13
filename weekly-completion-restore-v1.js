@@ -33,3 +33,48 @@ function getActive(){try{if(typeof currentFlock!=='undefined'&&currentFlock&&cur
 function openReport(){const f=getActive();if(!f||!f.id){alert('ابتدا یک گله را در «گله فعال» انتخاب کنید.');return false}const w=document.getElementById('weekNumber')?.value||'';const u='reports.html?flock_id='+encodeURIComponent(f.id)+(w?'&week='+encodeURIComponent(w):'');location.href=u;return false}
 window.openCurrentReport=openReport;window.goToWeeklyReport=openReport;
 })();
+
+/* =========================================================
+   WEEKLY BROILER SAMPLING GUIDANCE
+   Minimum = max(100, ceil(1% of population)).
+   This wraps only the recommendation/status returned by
+   weekly.js. Original weight statistics are left untouched.
+========================================================= */
+(function(){'use strict';
+function samplePopulation(){
+  const live=n(document.getElementById('liveBirds')?.value);
+  if(Number.isFinite(live)&&live>0)return Math.floor(live);
+  const f=flock();
+  if(!f)return null;
+  const candidates=[f.initial_bird_count,f.initialBirdCount,f.initial_birds,f.placement_birds,f.bird_count];
+  for(const v of candidates){const x=n(v);if(Number.isFinite(x)&&x>0)return Math.floor(x)}
+  return null;
+}
+function patch(){
+  if(typeof window.calculateWeightStatistics!=='function')return false;
+  if(window.calculateWeightStatistics.__populationSamplingPatched)return true;
+  const original=window.calculateWeightStatistics;
+  function wrapped(...args){
+    const result=original.apply(this,args);
+    const f=flock();
+    if(!result||typeof result!=='object'||!broiler(f))return result;
+    const population=samplePopulation();
+    if(!Number.isFinite(population)||population<=0)return result;
+    const recommended=Math.max(100,Math.ceil(population*0.01));
+    const count=Number(result.count);
+    let status=result.samplingStatus;
+    if(Number.isFinite(count)){
+      if(count<30)status='ضعیف — حجم نمونه کمتر از ۳۰ پرنده است';
+      else if(count<recommended)status=`قابل استفاده با احتیاط — نمونه فعلی ${count} پرنده است؛ حداقل پیشنهادی ${recommended} پرنده است`;
+      else status=`مناسب — حداقل پیشنهادی ${recommended} پرنده بر اساس ۱٪ جمعیت است`;
+    }
+    return {...result,recommendedSampleSize:recommended,samplingStatus:status};
+  }
+  wrapped.__populationSamplingPatched=true;
+  wrapped.__original=original;
+  window.calculateWeightStatistics=wrapped;
+  return true;
+}
+function start(){let tries=0;const t=setInterval(()=>{tries++;if(patch()||tries>=120)clearInterval(t)},100)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();

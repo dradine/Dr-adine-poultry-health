@@ -16,7 +16,7 @@
 
   function epef({ bodyWeightKg, livabilityPct, ageDays, fcr }) {
     const bw = n(bodyWeightKg), liv = n(livabilityPct), age = n(ageDays), f = n(fcr);
-    if ([bw, liv, age, f].some(v => v === null) || age <= 0 || f <= 0) return { available: false, code: "insufficient_data" };
+    if ([bw, liv, age, f].some(v => v === null) || bw <= 0 || liv < 0 || liv > 100 || age <= 0 || f <= 0) return { available: false, code: "invalid_input" };
     return { available: true, value: round((bw * liv * 100) / (age * f), 1), formula: "BW_kg × livability_% × 100 / (age_days × FCR)", provenance: "calculated" };
   }
 

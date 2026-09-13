@@ -533,13 +533,44 @@ function setCurrentSelection(
     selection
 ) {
 
-    return writeStorage(
+    const next = {
+        ...getCurrentSelection(),
+        ...selection
+    };
+
+    const saved = writeStorage(
         "current_selection",
-        {
-            ...getCurrentSelection(),
-            ...selection
-        }
+        next
     );
+
+    /*
+     * Keep the legacy flock-selection key synchronized as well.
+     * Some professional/legacy pages do not load app-core.js and read
+     * adine_selected_flock directly. Without this bridge, selecting a
+     * new flock could look correct on one page and silently revert to an
+     * older flock on the next page.
+     */
+    try {
+        if (Object.prototype.hasOwnProperty.call(selection || {}, "flockId")) {
+            if (next.flockId) {
+                localStorage.setItem(
+                    "adine_selected_flock",
+                    String(next.flockId)
+                );
+            } else {
+                localStorage.removeItem(
+                    "adine_selected_flock"
+                );
+            }
+        }
+    } catch (error) {
+        console.warn(
+            "Legacy flock selection sync failed:",
+            error
+        );
+    }
+
+    return saved;
 
 }
 
@@ -551,6 +582,17 @@ function clearCurrentSelection() {
             "current_selection"
         )
     );
+
+    try {
+        localStorage.removeItem(
+            "adine_selected_flock"
+        );
+    } catch (error) {
+        console.warn(
+            "Legacy flock selection clear failed:",
+            error
+        );
+    }
 
 }
 

@@ -100,3 +100,41 @@ function start(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
+
+/* ADINE - Weekly calculation runtime guard v1
+   Narrow repair for the "محاسبه پایش" button only.
+   It preserves the existing weekly calculation engine, standards,
+   results rendering, page layout and bottom navigation. If a non-core
+   wrapper around calculateWeightStatistics throws, the exact same
+   calculation is retried once against its original engine. */
+(function(){'use strict';
+  function patch(){
+    const fn=window.calculateWeekly;
+    if(typeof fn!=='function'||fn.__weeklyCalcGuardV1)return false;
+    function guarded(){
+      try{
+        return fn.apply(this,arguments);
+      }catch(firstError){
+        const stats=window.calculateWeightStatistics;
+        const original=stats&&typeof stats.__original==='function'?stats.__original:null;
+        if(!original)throw firstError;
+        window.calculateWeightStatistics=original;
+        try{
+          return fn.apply(this,arguments);
+        }finally{
+          window.calculateWeightStatistics=stats;
+        }
+      }
+    }
+    guarded.__weeklyCalcGuardV1=true;
+    guarded.__original=fn;
+    window.calculateWeekly=guarded;
+    return true;
+  }
+  function start(){
+    if(patch())return;
+    let i=0;
+    const t=setInterval(()=>{if(patch()||++i>120)clearInterval(t)},100);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();

@@ -13,12 +13,6 @@
   };
   const clamp = (x, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, x));
   const round = (x, d = 3) => Number(Number(x).toFixed(d));
-  const median = (xs) => {
-    const a = xs.filter(Number.isFinite).slice().sort((x, y) => x - y);
-    if (!a.length) return null;
-    const m = Math.floor(a.length / 2);
-    return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
-  };
 
   function epef({ bodyWeightKg, livabilityPct, ageDays, fcr }) {
     const bw = n(bodyWeightKg), liv = n(livabilityPct), age = n(ageDays), f = n(fcr);
@@ -27,9 +21,15 @@
   }
 
   function livability({ placed, mortalityPct, cullPct, livabilityPct }) {
-    if (n(livabilityPct) !== null) return { available: true, value: clamp(n(livabilityPct), 0, 100), provenance: "measured_or_calculated" };
-    const p = n(placed), m = n(mortalityPct), c = n(cullPct) ?? 0;
-    if (p !== null && p > 0 && (m !== null || c !== null)) return { available: true, value: clamp(100 - ((m ?? 0) + c), 0, 100), provenance: "calculated" };
+    const suppliedLivability = n(livabilityPct);
+    if (suppliedLivability !== null) {
+      return { available: true, value: clamp(suppliedLivability, 0, 100), provenance: "measured_or_calculated" };
+    }
+    const p = n(placed), m = n(mortalityPct), c = n(cullPct);
+    if (m !== null || c !== null) {
+      return { available: true, value: clamp(100 - ((m ?? 0) + (c ?? 0)), 0, 100), provenance: "calculated" };
+    }
+    if (p !== null && p > 0) return { available: false, code: "insufficient_data" };
     return { available: false, code: "insufficient_data" };
   }
 
@@ -59,11 +59,12 @@
     }
     const revenuePerBird = (() => {
       const cp = n(carcassPricePerKg), cw = n(carcassWeightKg), lp = n(livePricePerKg);
-      if (cw !== null && cp !== null) return cw * cp;
-      if (bw !== null && lp !== null) return bw * lp;
+      if (cw !== null && cp !== null && cw >= 0 && cp >= 0) return cw * cp;
+      if (bw !== null && lp !== null && bw >= 0 && lp >= 0) return bw * lp;
       return null;
     })();
-    const variableCostPerBird = [out.feedCostPerBird, n(chickCostPerBird), n(otherCostPerBird), n(processingCostPerBird)].some(v => v !== null)
+    const hasAnyCost = out.feedCostPerBird !== undefined || [chickCostPerBird, otherCostPerBird, processingCostPerBird].some(v => n(v) !== null);
+    const variableCostPerBird = hasAnyCost
       ? (out.feedCostPerBird ?? 0) + (n(chickCostPerBird) ?? 0) + (n(otherCostPerBird) ?? 0) + (n(processingCostPerBird) ?? 0) : null;
     if (revenuePerBird !== null && variableCostPerBird !== null) {
       out.revenuePerBird = round(revenuePerBird, 2);
@@ -99,10 +100,10 @@
     Object.keys(domains).forEach(k => {
       if (domains[k] !== null && Number.isFinite(w[k]) && w[k] > 0) { sum += clamp(domains[k]) * w[k]; denom += w[k]; }
     });
-    if (!denom) return { available: false, code: "insufficient_data", confidence: "low" };
+    if (!denom) return { available: false, code: "insufficient_data", confidence: "low", calibrationStatus: "provisional" };
     const value = round(sum / denom, 1);
     const coverage = denom / Object.values(w).reduce((a, b) => a + b, 0);
-    return { available: true, value, coverage: round(coverage, 3), confidence: coverage >= 0.85 ? "high" : coverage >= 0.65 ? "medium" : "limited", domains, weights: w, methodology: "weighted domain score; EPEF excluded to prevent double counting", provenance: "calculated" };
+    return { available: true, value, coverage: round(coverage, 3), confidence: coverage >= 0.85 ? "high" : coverage >= 0.65 ? "medium" : "limited", calibrationStatus: "provisional", domains, weights: w, methodology: "weighted domain score; EPEF excluded to prevent double counting", provenance: "calculated" };
   }
 
   function percentile(value, population, direction = "higher") {

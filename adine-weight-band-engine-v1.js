@@ -282,6 +282,22 @@
         const el = document.getElementById(id);
         if (el) { el.addEventListener("input", refreshCounts); el.addEventListener("change", refreshCounts); }
       });
+
+      /* The runtime writes the percentage elements after this UI refinement runs.
+         Watch those exact DOM nodes so the count is refreshed immediately after
+         the displayed percentage changes, without touching the statistical engine. */
+      const pctNodes = ["awbMgmt10Pct", "awbMgmt15Pct"]
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
+      if (pctNodes.length) {
+        const pctObserver = new MutationObserver(refreshCounts);
+        pctNodes.forEach(node => pctObserver.observe(node, {
+          childList: true,
+          characterData: true,
+          subtree: true
+        }));
+      }
+
       const oldSync = window.AdineWeightBandRuntime?.sync;
       if (typeof oldSync === "function" && !oldSync.__adineCountRefined) {
         const wrappedSync = function () {

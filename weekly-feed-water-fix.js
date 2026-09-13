@@ -1,7 +1,7 @@
 /* =========================================================
    ADINE POULTRY HEALTH CENTER
    WEEKLY FEED / WATER AUTO CALCULATOR
-   Mortality-aware management calculation
+   Raw + mortality-adjusted water:feed metrics
    ========================================================= */
 
 "use strict";
@@ -14,6 +14,7 @@
     const FEED_PER_BIRD_ID = "feedPerBird";
     const WATER_PER_BIRD_ID = "waterPerBird";
     const PRIMARY_RATIO_SELECTOR = '[data-weekly-specialized="water_feed_ratio"]';
+    const ADJUSTED_RATIO_ID = "weeklyMortalityAdjustedWaterFeedRatio";
 
     function numberOf(id) {
         const el = document.getElementById(id);
@@ -39,25 +40,14 @@
         return Number(value.toFixed(decimals)).toString();
     }
 
-    /*
-     * Mortality-aware population model:
-     * endBirds = live birds entered for the end of the week
-     * startBirds = endBirds + deaths during the week
-     * effectiveBirds = midpoint of start and end populations
-     *
-     * Therefore weekly mortality directly changes BOTH:
-     *   1) feed per bird (grams)
-     *   2) water per bird (grams/ml)
-     * and also the mortality-adjusted water:feed index.
-     *
-     * The raw water:feed ratio is retained separately and is never destroyed.
-     */
     function calculateMetrics(feedKg, waterL, liveBirds, mortalityWeek) {
         const feed = numberFrom(feedKg);
         const water = numberFrom(waterL);
         const live = numberFrom(liveBirds);
         const mortality = Math.max(0, numberFrom(mortalityWeek) ?? 0);
 
+        // Canonical Water:Feed = total water (L) / total feed (kg).
+        // This value is independent of mortality and is the primary ratio.
         const rawRatio = Number.isFinite(feed) && feed > 0 && Number.isFinite(water) && water >= 0
             ? water / feed
             : null;
@@ -68,12 +58,10 @@
             ? (startBirds + endBirds) / 2
             : null;
 
-        // Total feed is kg/week -> grams/week, divided by mortality-adjusted effective birds.
         const feedPerBirdG = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(feed) && feed >= 0
             ? (feed * 1000) / effectiveBirds
             : null;
 
-        // Total water is L/week -> ml/week (approximately grams for water), divided by the same population.
         const waterPerBirdMl = effectiveBirds !== null && effectiveBirds > 0 && Number.isFinite(water) && water >= 0
             ? (water * 1000) / effectiveBirds
             : null;
@@ -93,11 +81,13 @@
         return {
             feedPerBirdG,
             waterPerBirdMl,
-            // Alias in grams because the UI label may use «گرم» for water.
             waterPerBirdG: waterPerBirdMl,
-            waterFeedRatio: mortalityAdjustedRatio,
+            // Primary/canonical ratio: L/kg, never mortality-adjusted.
+            waterFeedRatio: rawRatio,
             rawWaterFeedRatio: rawRatio,
+            // Diagnostic/secondary metric: kept separately.
             mortalityAdjustedWaterFeedRatio: mortalityAdjustedRatio,
+            waterToFeedRatio: rawRatio,
             mortalityFactor,
             mortalityRate,
             effectiveBirds,
@@ -144,13 +134,35 @@
         primaryRatio.dataset.autoCalculated = "true";
     }
 
+    function syncAdjustedRatio(ratio) {
+        const primaryRatio = document.querySelector(PRIMARY_RATIO_SELECTOR);
+        if (!primaryRatio) return;
+
+        let adjusted = document.getElementById(ADJUSTED_RATIO_ID);
+        if (!adjusted) {
+            const wrapper = document.createElement("div");
+            wrapper.id = ADJUSTED_RATIO_ID;
+            wrapper.setAttribute("data-weekly-mortality-adjusted-ratio", "true");
+            wrapper.style.marginTop = "6px";
+            wrapper.style.fontSize = "0.9em";
+            wrapper.textContent = "نسبت تعدیل‌شده بر اساس تلفات: —";
+            primaryRatio.insertAdjacentElement("afterend", wrapper);
+            adjusted = wrapper;
+        }
+
+        adjusted.textContent = Number.isFinite(ratio)
+            ? `نسبت تعدیل‌شده بر اساس تلفات: ${format(ratio, 3)} L/kg`
+            : "نسبت تعدیل‌شده بر اساس تلفات: —";
+    }
+
     function calculateFeedWater() {
         const metrics = getMetricsFromInputs();
         const feedEl = document.getElementById(FEED_PER_BIRD_ID);
         const waterEl = document.getElementById(WATER_PER_BIRD_ID);
         if (feedEl) feedEl.value = format(metrics.feedPerBirdG, 2);
         if (waterEl) waterEl.value = format(metrics.waterPerBirdMl, 2);
-        syncPrimaryRatio(metrics.mortalityAdjustedWaterFeedRatio);
+        syncPrimaryRatio(metrics.rawWaterFeedRatio);
+        syncAdjustedRatio(metrics.mortalityAdjustedWaterFeedRatio);
         window.weeklyFeedWaterAuto = metrics;
         return metrics;
     }
@@ -184,9 +196,11 @@
             feedPerBird: metrics.feedPerBirdG,
             waterPerBird: metrics.waterPerBirdMl,
             waterPerBirdG: metrics.waterPerBirdG,
-            waterFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
-            waterToFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
+            // Canonical stored/displayed ratio remains raw L/kg.
+            waterFeedRatio: metrics.rawWaterFeedRatio,
+            waterToFeedRatio: metrics.rawWaterFeedRatio,
             rawWaterFeedRatio: metrics.rawWaterFeedRatio,
+            // Mortality-adjusted metric is preserved separately.
             mortalityAdjustedWaterFeedRatio: metrics.mortalityAdjustedWaterFeedRatio,
             mortalityFactor: metrics.mortalityFactor,
             mortalityRate: metrics.mortalityRate,
@@ -287,7 +301,8 @@
             if (!primaryRatio) return;
             setReadonlyCalculatedFields();
             const metrics = getMetricsFromInputs();
-            syncPrimaryRatio(metrics.mortalityAdjustedWaterFeedRatio);
+            syncPrimaryRatio(metrics.rawWaterFeedRatio);
+            syncAdjustedRatio(metrics.mortalityAdjustedWaterFeedRatio);
         });
         observer.observe(target, { childList: true, subtree: true });
         window.__weeklyFeedWaterRatioObserver = observer;

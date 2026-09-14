@@ -13,13 +13,22 @@ const registry=context.BROILER_OFFICIAL_STANDARDS_V1;
 const source=context.AdineBroilerPerformanceIntelligenceSourceV1;
 assert(registry,'canonical broiler registry must exist');
 assert.strictEqual(registry.version,'BROILER-CANONICAL-STANDARDS-V4');
-assert(source&&source.version==='BROILER-PI-SOURCE-V9');
+assert(source&&source.version==='BROILER-PI-SOURCE-V9.2');
 assert.strictEqual(typeof context.getBroilerOfficialStandard,'function');
 assert.strictEqual(context.ADINE_STANDARDS_RESOLVER_VERSION,'STANDARDS-RESOLVER-V4');
 
 const ages=registry.weeklyAges;
 const strains=Object.keys(registry.strains);
 assert.strictEqual(strains.length,13,'all currently registered broiler strains must be represented');
+assert.deepStrictEqual(ages,[7,14,21,28,35,42,49,56]);
+assert.deepStrictEqual(
+  [6,7,8,13,14,15,20,21,22,27,28,29,34,35,36,41,42,43,48,49,50,55,56,57].map(context.resolveBroilerEvaluationAge),
+  [7,7,7,14,14,14,21,21,21,28,28,28,35,35,35,42,42,42,49,49,49,56,56,56]
+);
+assert.strictEqual(context.resolveBroilerEvaluationAge(12),null,'day 12 must not silently attach to week 2');
+assert.strictEqual(context.resolveBroilerEvaluationAge(16),null,'day 16 must not silently attach to week 2');
+assert.strictEqual(context.resolveBroilerEvaluationWeek(13),2);
+assert.strictEqual(context.resolveBroilerEvaluationWeek(15),2);
 
 for(const strain of strains){
   const s=registry.strains[strain];
@@ -38,10 +47,17 @@ for(const strain of strains){
   }
 }
 
-const ross=source.enrich({production_type:'broiler',genetics:'Ross',strain:'Ross 308 AP'},[{id:'r56',age_days:56}])[0];
-assert.strictEqual(ross.canonicalTargets.weight,4446);
-assert.strictEqual(ross.canonicalTargets.cumulativeFcr,1.776);
-assert.strictEqual(ross.managementFallbackUsed,false);
+const ross=source.enrich({production_type:'broiler',genetics:'Ross',strain:'Ross 308 AP'},[{id:'r13',age_days:13},{id:'r15',age_days:15},{id:'r56',age_days:56}]);
+assert.strictEqual(ross[0].canonicalTargets.weight,540);
+assert.strictEqual(ross[0].standardAgeDays,14);
+assert.strictEqual(ross[0].evaluationWeek,2);
+assert.strictEqual(ross[0].ageWindowApplied,true);
+assert.strictEqual(ross[1].canonicalTargets.weight,540);
+assert.strictEqual(ross[1].standardAgeDays,14);
+assert.strictEqual(ross[1].evaluationWeek,2);
+assert.strictEqual(ross[2].canonicalTargets.weight,4446);
+assert.strictEqual(ross[2].canonicalTargets.cumulativeFcr,1.776);
+assert.strictEqual(ross[2].managementFallbackUsed,false);
 
 const ep7=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Efficiency Plus'},[{id:'ep7',age_days:7}])[0];
 assert.strictEqual(ep7.canonicalTargets.weight,216);

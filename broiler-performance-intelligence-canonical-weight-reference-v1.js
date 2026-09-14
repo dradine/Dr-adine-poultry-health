@@ -1,13 +1,12 @@
-/* ADINE BPI — CANONICAL WEEKLY REFERENCE BRIDGE V3
+/* ADINE BPI — CANONICAL WEEKLY REFERENCE BRIDGE V4
  * Presentation-only bridge.
- * BPI consumes the same canonical standards already present in the weekly-report model.
- * No independent standards resolver is used here.
+ * BPI consumes the exact standardWeight already produced by the weekly-report model.
+ * No independent standards resolver, raw difference reconstruction, or alternate reference is used here.
  */
 (function(global){
 'use strict';
-if(global.__ADINE_BPI_CANONICAL_WEIGHT_REFERENCE_V3__)return;
-global.__ADINE_BPI_CANONICAL_WEIGHT_REFERENCE_V3__=true;
-const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
+if(global.__ADINE_BPI_CANONICAL_WEIGHT_REFERENCE_V4__)return;
+global.__ADINE_BPI_CANONICAL_WEIGHT_REFERENCE_V4__=true;
 function restoreCardFormat(){
   const old=document.getElementById('bpi3-reference-layer-v11-style');
   if(old)old.remove();
@@ -31,19 +30,10 @@ function patch(){
   const original=I.__canonicalOriginalBuild||I.build;
   if(!I.__canonicalOriginalBuild)I.__canonicalOriginalBuild=original;
   I.build=function(metric,rows,opts){
-    if(metric!=='weight')return original.call(this,metric,rows,opts);
-    const canonical=(rows||[]).map(r=>{
-      const raw=r?.raw||{};
-      const diff=n(raw.standard_difference_percent);
-      const actual=n(r.weight);
-      if(diff!==null&&actual!==null&&actual>0){
-        const ref=actual/(1+diff/100);
-        return {...r,standardWeight:ref,standardWeightSource:r.standardWeightSource??r.weightSource,standardWeightSourceLabel:r.standardWeightSourceLabel??r.weightSourceLabel};
-      }
-      const stored=n(raw.standard_weight);
-      return stored===null?r:{...r,standardWeight:stored};
-    });
-    return original.call(this,metric,canonical,opts);
+    // Weight reference is already canonical in AdineReportRouter -> AdineBroilerReportEngine.
+    // Do not reconstruct it from raw.standard_difference_percent: that value is not the
+    // authority for this presentation layer and can belong to a different calculation path.
+    return original.call(this,metric,rows,opts);
   };
   restoreCardFormat();
   return true;

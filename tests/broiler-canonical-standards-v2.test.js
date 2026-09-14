@@ -14,6 +14,7 @@ const source=context.AdineBroilerPerformanceIntelligenceSourceV1;
 assert(registry,'canonical broiler registry must exist');
 assert.strictEqual(registry.version,'BROILER-CANONICAL-STANDARDS-V2');
 assert(source&&source.version==='BROILER-PI-SOURCE-V7');
+assert.strictEqual(typeof context.getBroilerOfficialStandard,'function');
 
 const ages=registry.weeklyAges;
 const strains=Object.keys(registry.strains);
@@ -21,6 +22,9 @@ assert.strictEqual(strains.length,13,'all currently registered broiler strains m
 
 for(const strain of strains){
   const s=registry.strains[strain];
+  const legacy=context.getBroilerOfficialStandard(strain);
+  assert(legacy,'legacy registry bridge missing');
+  assert.strictEqual(legacy.records.length,ages.length,`${strain}: legacy bridge week count mismatch`);
   for(const age of ages){
     const flock={production_type:'broiler',genetics:s.family,strain};
     const row={id:`${strain}-${age}`,age_days:age};
@@ -29,6 +33,8 @@ for(const strain of strains){
     assert(out.canonicalTargets.fcr!==null,`${strain} day ${age}: weekly FCR target missing`);
     assert(out.canonicalTargets.cumulativeFcr!==null,`${strain} day ${age}: cumulative FCR target missing`);
     assert(out.canonicalTargets.adg!==null,`${strain} day ${age}: weekly gain target missing`);
+    const legacyRow=legacy.records.find(x=>Number(x[0])===age);
+    assert(legacyRow&&legacyRow[1]!==null&&legacyRow[2]!==null,`${strain} day ${age}: legacy bridge target missing`);
     assert(['official-performance-objective','management-standard'].includes(out.targetSourceType),`${strain} day ${age}: invalid target source type`);
   }
 }

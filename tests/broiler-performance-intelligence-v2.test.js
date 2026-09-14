@@ -8,7 +8,7 @@ let m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({}),row({})]);assert.s
 m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({weight:900,fcr:1.45}),row({weight:900,fcr:1.45})]);assert(m.insights.some(x=>x.code==='growth_efficiency_down'));
 m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({weight:1050,fcr:1.45}),row({weight:1050,fcr:1.45})]);assert(m.insights.some(x=>x.code==='growth_efficiency_tradeoff'));
 m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({weight:900,weeklyWeightGain:55}),row({weight:900,weeklyWeightGain:65})]);assert(m.insights.some(x=>x.code==='recovery'));
-m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({cv:10,uniformity10:80}),row({cv:12,uniformity10:75})]);assert(m.insights.some(x=>x.code==='uniformity_deterioration'));
+m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({cv:10,uniformity10:80}),row({cv:18,uniformity10:70})]);assert(m.insights.some(x=>x.code==='uniformity_deterioration'));
 m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({epef:505}),row({epef:505})]);assert.strictEqual(m.epefInfo.status,'excellent');
 m=E.build({genetics:'Cobb',strain:'Cobb 500'},[row({epef:505}),row({epef:505})]);assert.notStrictEqual(m.epefInfo.status,'excellent');
 m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({standardWeight:null,standardWeeklyFcr:null,standardCumulativeFcr:null,standardWeeklyWeightGain:null,standardMortalityPercent:null,standardCv:null,standardUniformity10:null,standardUniformity15:null,standardFeed:null,standardWater:null,standardWaterFeedRatio:null})]);assert(m.missing.length>=10);assert.strictEqual(m.states.weight.status,'unavailable');

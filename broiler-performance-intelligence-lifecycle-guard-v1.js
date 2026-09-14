@@ -1,19 +1,21 @@
-/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V4
+/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V5
  * Presentation/lifecycle isolation only.
- * Prevents stale/partially-rendered report DOM from becoming visible while
- * reports.js replaces #root and the BPI adapter asynchronously rebuilds its shell.
+ * Prevents stale/partially-rendered report DOM and BPI internal panels from
+ * becoming visible while reports.js / the BPI adapter asynchronously rebuild UI.
  * No calculations, standards, persistence, or canonical data are touched.
  */
 (function(global){
 'use strict';
-if(global.__ADINE_BPI_LIFECYCLE_GUARD_V4__)return;
-global.__ADINE_BPI_LIFECYCLE_GUARD_V4__=true;
+if(global.__ADINE_BPI_LIFECYCLE_GUARD_V5__)return;
+global.__ADINE_BPI_LIFECYCLE_GUARD_V5__=true;
 
 const ROOT_ID='root',SHELL_ID='broiler-performance-intelligence-v3-shell',PARK_ID='adine-bpi-shell-parking-v1';
-let lastShell=null,rehydrating=false,transitioning=false;
+let lastShell=null,rehydrating=false,transitioning=false,bpiTransitioning=false;
 const $=id=>document.getElementById(id);
 const root=()=>$(ROOT_ID);
 const activeTab=()=>document.querySelector('.report-tab.active')?.getAttribute('data-tab')||null;
+const bpiShell=()=>document.querySelector('#'+SHELL_ID);
+const activeBpiPanel=()=>bpiShell()?.querySelector('.bpi3-panel.active')||null;
 
 function parking(){
   let p=$(PARK_ID);
@@ -48,13 +50,35 @@ function conceal(){
 function reveal(){
   const r=root();
   if(!r)return;
-  // Reveal only after the new DOM has been committed. visibility is used rather
-  // than display:none so the page does not collapse/reflow during async work.
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(!transitioning)return;
     r.style.visibility='';
     r.removeAttribute('aria-busy');
     transitioning=false;
+  }));
+}
+function concealBpi(){
+  const s=bpiShell();
+  if(!s)return;
+  bpiTransitioning=true;
+  s.style.visibility='hidden';
+  s.setAttribute('aria-busy','true');
+}
+function bpiReady(){
+  const s=bpiShell(),p=activeBpiPanel();
+  if(!s||!p)return false;
+  const name=p.getAttribute('data-bpi3-panel');
+  if(name==='intelligence')return !!p.querySelector('.bpi3-intro');
+  return !p.querySelector('.bpi3-loading');
+}
+function revealBpi(){
+  const s=bpiShell();
+  if(!s||!bpiTransitioning||!bpiReady())return;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(!bpiTransitioning||!bpiReady())return;
+    s.style.visibility='';
+    s.removeAttribute('aria-busy');
+    bpiTransitioning=false;
   }));
 }
 function rootHasRenderableContent(){
@@ -88,6 +112,7 @@ function reconcile(){
     if(s){
       rehydrateReferenceLayer(s);
       if(transitioning)reveal();
+      if(bpiTransitioning)revealBpi();
     }
   }else{
     park();
@@ -97,11 +122,18 @@ function reconcile(){
 
 function onTabCapture(e){
   const b=e.target?.closest?.('.report-tab');
-  if(!b)return;
-  const next=b.getAttribute('data-tab');
-  conceal();
-  if(activeTab()==='overall'&&next!=='overall')park();
-  if(next==='overall')setTimeout(reconcile,0);
+  if(b){
+    const next=b.getAttribute('data-tab');
+    conceal();
+    if(activeTab()==='overall'&&next!=='overall')park();
+    if(next==='overall')setTimeout(reconcile,0);
+    return;
+  }
+  const ib=e.target?.closest?.('.bpi3-tab');
+  if(ib){
+    concealBpi();
+    setTimeout(()=>{quarantineLegacy();revealBpi()},0);
+  }
 }
 
 document.addEventListener('click',onTabCapture,true);
@@ -117,6 +149,7 @@ if(typeof MutationObserver!=='undefined'){
     }else if(s)park();
     quarantineLegacy();
     if(transitioning)reconcile();
+    if(bpiTransitioning)revealBpi();
   });
   mo.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
 }

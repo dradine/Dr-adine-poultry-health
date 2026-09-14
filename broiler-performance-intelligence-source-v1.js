@@ -25,7 +25,7 @@ function enrich(flock,rows){
   return (Array.isArray(rows)?rows:[]).map(r=>{
     const raw=r.raw||r;
     const pm=raw.production_metrics||{};
-    const liv=n(r.livability??raw.livability??pm.livability_cumulative_percent);
+    const livability=n(r.livability??raw.livability??pm.livability_cumulative_percent);
     const epef=n(r.epef??r.EPEF??r.pef??raw.epef??pm.epef??pm.pef);
     const resolved=resolveWeeklyOfficial(flock,r);
     const canonicalTargets=Object.freeze({

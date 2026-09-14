@@ -1,11 +1,14 @@
-/* ADINE — Comprehensive report two-tab controller V5
+/* ADINE — Comprehensive report two-tab controller V6
    Owns only the landing/selection state for the comprehensive report.
-   V5 keeps the landing as the selector and opens the real comprehensive
-   analysis in-place; it does NOT reload reports.html into the legacy weekly
-   default state. */
+   V6 keeps the landing as the selector and opens the real comprehensive
+   analysis in-place. It also protects the analysis view from the legacy
+   reports.js async initialization/render race, without changing weekly
+   calculations or the weekly report renderer itself.
+*/
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 let landingActive=false;
+let analysisRepairScheduled=false;
 function getId(){try{return global.AdineReportRouter?.currentFlockId?.()||new URLSearchParams(location.search).get('flockId')||localStorage.getItem('adine_selected_flock')||''}catch(_){return ''}}
 function setParentVisual(active){
   const nav=document.querySelector('.report-tabs');
@@ -44,16 +47,12 @@ function selectMain(){
   global.__adineComprehensiveLandingActive=false;
   const id=getId();
   if(!id){root()?.replaceChildren(Object.assign(document.createElement('section'),{className:'section',innerHTML:'<div class="error">شناسه گله انتخاب‌شده پیدا نشد.</div>'}));return}
-  /* Keep the same page alive. A full navigation resets reports.js activeTab
-     to weekly, which was the cause of the previous bug. */
   try{
     const p=new URLSearchParams(location.search);
     p.set('flockId',id);p.set('reportMode','comprehensive');p.set('view','analysis');
     history.replaceState(history.state,'',location.pathname+'?'+p.toString());
   }catch(_){ }
   syncParentTab();
-  /* The V2.2 comprehensive UI already owns the actual report renderer.
-     Its public hook is the existing adine:report-ready event. */
   setTimeout(()=>window.dispatchEvent(new Event('adine:report-ready')),0);
 }
 async function intelligence(){
@@ -91,11 +90,41 @@ function enforceLanding(){
     if(!landingActive)landing();
   }
 }
+function isAnalysisMode(){
+  const p=new URLSearchParams(location.search);
+  return p.get('reportMode')==='comprehensive'&&p.get('view')==='analysis';
+}
+function repairAnalysis(){
+  if(!isAnalysisMode()||landingActive)return;
+  const r=root();
+  const overall=document.querySelector('.report-tab[data-tab="overall"].active');
+  if(!r||!overall)return;
+  /* reports.js has an async init(). If it finishes after the user selected
+     the comprehensive card, its local activeTab can still be "weekly" and
+     it can overwrite #root. The real V2.2 report identifies itself with
+     .cr2-hero; only repair when that report is absent. */
+  if(r.querySelector('.cr2-hero'))return;
+  if(analysisRepairScheduled)return;
+  analysisRepairScheduled=true;
+  setTimeout(()=>{
+    analysisRepairScheduled=false;
+    if(!isAnalysisMode()||landingActive)return;
+    const rr=root();
+    if(!rr||!document.querySelector('.report-tab[data-tab="overall"].active'))return;
+    if(rr.querySelector('.cr2-hero'))return;
+    window.dispatchEvent(new Event('adine:report-ready'));
+  },0);
+}
 document.addEventListener('click',e=>{if(e.target?.closest?.('[data-pi-tab]'))handler(e);else top(e)},true);
 document.addEventListener('DOMContentLoaded',()=>{setTimeout(enforceLanding,250)});
 const rootObserver=new MutationObserver(()=>{
   const params=new URLSearchParams(location.search);
-  if(params.get('reportMode')!=='comprehensive'||params.get('view')==='analysis'||!landingActive)return;
+  if(params.get('reportMode')!=='comprehensive')return;
+  if(params.get('view')==='analysis'){
+    repairAnalysis();
+    return;
+  }
+  if(!landingActive)return;
   if(document.querySelector('.report-tab[data-tab="overall"]')){
     setParentVisual(true);
     const r=root();

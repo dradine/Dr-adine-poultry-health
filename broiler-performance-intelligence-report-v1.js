@@ -1,31 +1,44 @@
-/* ADINE — Broiler Performance Intelligence report presentation layer V1
-   Read-only. Does not alter weekly records, calculations, standards or navigation. */
+/* ADINE — Broiler Performance Intelligence presentation V2
+   Presentation only. Reads the isolated intelligence model; no calculations,
+   standards lookup, database writes or source-data mutations.
+*/
 (function(global){'use strict';
-const $=s=>document.querySelector(s), root=()=>document.getElementById('root');
+const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
-const fmt=(v,d=1)=>{const x=n(v);return x===null?'—':x.toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d})};
+const fmt=(v,d=1)=>n(v)===null?'—':n(v).toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const pct=v=>n(v)===null?'—':fmt(v,1)+'٪';
-function card(label,value,sub,kind='neutral'){return `<article class="pi-card ${kind}"><div>${esc(label)}</div><strong>${esc(value)}</strong><small>${esc(sub||'')}</small></article>`}
-function state(s){return s==='excellent'?'عالی':s==='good'?'خوب':s==='watch'?'نیازمند پایش':s==='critical'?'نیازمند اقدام':'اطلاعات ناکافی'}
-function render(){const r=root();if(!r)return;const model=global.AdineReportRouter?.currentModel?.();const flock=global.__adineReportFlock||null;const rows=global.__adineReportRows||[];if(!rows.length){r.innerHTML='<section class="section"><div class="empty">برای تحلیل هوشمند، حداقل یک رکورد هفتگی معتبر لازم است.</div></section>';return}
- const last=rows[rows.length-1]||{}, previous=rows.slice(0,-1);const age=n(last.age_days??last.age);const weight=n(last.average_weight_g??last.average_weight??last.weight_g??last.weight);const fcr=n(last.fcr);const cumFcr=n(last.cumulative_fcr);const cv=n(last.cv_percent??last.cv);const u10=n(last.uniformity_10_percent??last.uniformity_10);const u15=n(last.uniformity_15_percent??last.uniformity_15);const mort=n(last.mortality_count??last.mortality);
- const ref=(last.standardWeight??last.standard_weight), fcrRef=(last.standardWeeklyFcr??last.standard_fcr), cumRef=(last.standardCumulativeFcr??last.standard_cumulative_fcr);
- const engine=global.AdinePerformanceIntelligence;const analyses=[];
- async function one(metric,current,target,history){if(!engine||current===null)return null;try{return await engine.analyze({flockId:flock?.id,evaluationDate:last.evaluation_date||last.record_date||null,ageDays:age,metric,currentValue:current,productionType:'broiler',genetics:flock?.genetics,strain:flock?.strain,history,targetOverride:target,targetSourceType:target!==null?'official':'unknown',standardAgeDays:age})}catch(e){return null}}
- Promise.all([
-   one('body_weight',weight,n(ref),previous.map(x=>({x:n(x.age_days??x.age),y:n(x.average_weight_g??x.average_weight??x.weight_g??x.weight),standard:n(x.standardWeight??x.standard_weight)}))),
-   one('fcr',fcr,n(fcrRef),previous.map(x=>({x:n(x.age_days??x.age),y:n(x.fcr),standard:n(x.standardWeeklyFcr??x.standard_fcr)}))),
-   one('cumulative_fcr',cumFcr,n(cumRef),previous.map(x=>({x:n(x.age_days??x.age),y:n(x.cumulative_fcr),standard:n(x.standardCumulativeFcr??x.standard_cumulative_fcr)}))),
-   one('cv',cv,10,previous.map(x=>({x:n(x.age_days??x.age),y:n(x.cv_percent??x.cv),standard:10}))),
-   one('uniformity_10',u10,80,previous.map(x=>({x:n(x.age_days??x.age),y:n(x.uniformity_10_percent??x.uniformity_10),standard:80}))),
-   one('uniformity_15',u15,90,previous.map(x=>({x:n(x.age_days??x.age),y:n(x.uniformity_15_percent??x.uniformity_15),standard:90}))),
-   one('mortality_rate',mort,null,previous.map(x=>({x:n(x.age_days??x.age),y:n(x.mortality_count??x.mortality),standard:1})))
- ]).then(a=>{const valid=a.filter(Boolean),bad=valid.filter(x=>x.status==='critical'||x.alert?.alert),good=valid.filter(x=>x.status==='excellent'||x.status==='good');const avg=valid.length?valid.reduce((s,x)=>s+(x.score??0),0)/valid.length:null;const forecast=valid.filter(x=>x.forecast?.available);const alerts=valid.filter(x=>x.alert?.alert);
- r.innerHTML=`<section class="section pi-hero"><div><div class="eyebrow">هوش عملکرد گله گوشتی</div><h2>تحلیل هوشمند عملکرد گله</h2><p>این بخش فقط لایه تصمیم‌یار است؛ محاسبات اصلی، استانداردهای رسمی و داده‌های ثبت‌شده را تغییر نمی‌دهد.</p><div class="pi-meta"><span>سن: <b>${fmt(age,0)} روز</b></span><span>رکوردهای تحلیل‌شده: <b>${fmt(rows.length,0)}</b></span><span>شاخص‌های قابل تحلیل: <b>${fmt(valid.length,0)}</b></span></div></div><div class="pi-score"><span>امتیاز هوشمند</span><strong>${fmt(avg,0)}/100</strong><small>${bad.length?'نیازمند توجه':good.length===valid.length?'وضعیت مطلوب':'پایش'}</small></div></section>
- <section class="section"><div class="pi-grid">${card('وزن',weight===null?'—':fmt(weight,0)+' گرم',valid[0]?.ui?.reasonFa||'')}${card('FCR هفتگی',fcr===null?'—':fmt(fcr,3),valid[1]?.ui?.reasonFa||'')}${card('FCR تجمعی',cumFcr===null?'—':fmt(cumFcr,3),valid[2]?.ui?.reasonFa||'')}${card('CV',pct(cv),valid[3]?.ui?.reasonFa||'')}${card('یکنواختی ±10',pct(u10),valid[4]?.ui?.reasonFa||'')}${card('یکنواختی ±15',pct(u15),valid[5]?.ui?.reasonFa||'')}</div></section>
- <section class="section"><div class="section-title"><div><div class="eyebrow">تصمیم‌یار</div><h2>مهم‌ترین یافته‌ها</h2></div></div><div class="pi-findings">${valid.map(x=>`<div class="pi-finding ${x.status||''}"><b>${esc(x.metric)}</b><span>${esc(x.ui?.label||state(x.status))}</span><p>${esc(x.ui?.reasonFa||'بدون انحراف قابل گزارش')}</p>${x.alert?.alert?`<em>⚠ ${esc(x.alert.message_fa||'انحراف غیرعادی نسبت به الگوی تاریخی')}</em>`:''}</div>`).join('')}</div></section>
- <section class="section"><div class="section-title"><div><div class="eyebrow">پیش‌بینی روند</div><h2>چشم‌انداز کوتاه‌مدت</h2></div></div><div class="pi-forecast">${forecast.length?forecast.map(x=>{const f=x.forecast;return `<div class="pi-forecast-item"><b>${esc(x.metric)}</b><span>${esc(f.direction==='rising'?'روند افزایشی':f.direction==='falling'?'روند کاهشی':'روند ثابت')}</span><small>روش: ${esc(f.method)} · اطمینان: ${esc(f.confidence)}</small></div>`}).join(''):'<div class="pi-muted">برای پیش‌بینی، سابقه کافی در دسترس نیست.</div>'}</div></section>`;});
+const statusText=s=>({excellent:'ممتاز',good:'مطلوب',watch:'نیازمند پایش',critical:'نیازمند اقدام',unavailable:'قابل ارزیابی نیست'}[s]||'قابل ارزیابی نیست');
+const trendText=t=>({improving:'در حال بهبود',worsening:'در حال بدتر شدن',stable:'نسبتاً پایدار',insufficient:'سابقه کافی نیست'}[t?.direction]||'سابقه کافی نیست');
+function metric(label,value,state,detail){return `<article class="pi-metric"><div class="pi-metric-label">${esc(label)}</div><div class="pi-metric-value">${esc(value)}</div><div class="pi-metric-sub">${esc(detail||'')}</div><div class="pi-metric-status ${esc(state?.status||'unavailable')}">${esc(statusText(state?.status))}</div></article>`}
+function render(){const r=root();if(!r)return;const model=global.__adinePerformanceIntelligenceModel;if(!model||!model.ready){r.innerHTML='<section class="section"><div class="empty">برای هوش عملکرد، حداقل یک ارزیابی هفتگی معتبر لازم است.</div></section>';return}
+ const s=model.states||{};const f=model.epefInfo||{};const status=model.status||'watch';
+ const flock=global.__adineReportFlock||{};const strain=flock.strain||flock.genetics||'—';
+ const insights=model.insights||[];
+ const sourceNote='تمام مقایسه‌های مرجع از همان مدل ارزیابی هفتگی/گزارش جامع این گله خوانده شده‌اند؛ هوش عملکرد استاندارد مستقل یا داده خارجی را وارد نمی‌کند.';
+ const missing=model.missing||[];
+ r.innerHTML=`<div class="pi-intelligence" dir="rtl">
+ <section class="pi-hero"><div class="pi-hero-main"><div class="pi-eyebrow">تصمیم‌یار تخصصی • گوشتی</div><h2>هوش عملکرد گله</h2><p>تحلیل چندشاخصی رشد، کارایی خوراک، بقا و یکنواختی؛ با تفسیر روندی و محافظه‌کارانه.</p><div class="pi-meta"><span>سویه: <b>${esc(strain)}</b></span><span>سن: <b>${fmt(model.age,0)} روز</b></span><span>ارزیابی‌های معتبر: <b>${fmt(model.coverage?.records,0)}</b></span><span>منبع: <b>ارزیابی هفتگی</b></span></div></div><div class="pi-status-card ${esc(status)}"><span class="pi-status-dot"></span><strong>${esc(statusText(status))}</strong><small>وضعیت کلی تصمیم‌یار<br>بر پایه شاخص‌های موجود</small></div></section>
+ <section class="pi-section"><div class="pi-section-head"><div><h3>شاخص‌های اصلی</h3><p>مقدار فعلی در برابر مرجع ثبت‌شده</p></div></div><div class="pi-metrics">
+ ${metric('وزن متوسط',s.weightState?.current===undefined?'—':fmt(s.weightState?.current,0)+' گرم',s.weightState,s.weightState?.deviation===null?'مرجع در ارزیابی موجود نیست':`${fmt(s.weightState.deviation,1)}٪ نسبت به مرجع`)}
+ ${metric('FCR هفتگی',s.fcrState?.current===undefined?'—':fmt(s.fcrState?.current,3),s.fcrState,s.fcrState?.deviation===null?'مرجع FCR موجود نیست':`${fmt(s.fcrState.deviation,1)}٪ نسبت به مرجع`)}
+ ${metric('FCR تجمعی',s.cumFcrState?.current===undefined?'—':fmt(s.cumFcrState?.current,3),s.cumFcrState,s.cumFcrState?.deviation===null?'مرجع تجمعی موجود نیست':`${fmt(s.cumFcrState.deviation,1)}٪ نسبت به مرجع`)}
+ ${metric('ADG / افزایش هفتگی',s.adgState?.current===undefined?'—':fmt(s.adgState?.current,1)+' گرم/روز',s.adgState,s.adgState?.deviation===null?'مرجع ADG موجود نیست':`${fmt(s.adgState.deviation,1)}٪ نسبت به مرجع`)}
+ ${metric('تلفات',s.mortalityState?.current===undefined?'—':pct(s.mortalityState?.current),s.mortalityState,s.mortalityState?.deviation===null?'مرجع تلفات موجود نیست':`${fmt(s.mortalityState.deviation,1)}٪ نسبت به مرجع`)}
+ ${metric('CV',s.cvState?.current===undefined?'—':pct(s.cvState?.current),s.cvState,s.cvState?.deviation===null?'مرجع CV موجود نیست':`${fmt(s.cvState.deviation,1)}٪ نسبت به مرجع`)}
+ ${metric('یکنواختی ±10٪',s.u10State?.current===undefined?'—':pct(s.u10State?.current),s.u10State,s.u10State?.deviation===null?'مرجع یکنواختی موجود نیست':`${fmt(s.u10State.deviation,1)}٪ نسبت به مرجع`)}
+ ${metric('یکنواختی ±15٪',s.u15State?.current===undefined?'—':pct(s.u15State?.current),s.u15State,s.u15State?.deviation===null?'مرجع یکنواختی موجود نیست':`${fmt(s.u15State.deviation,1)}٪ نسبت به مرجع`)}
+ </div></section>
+ <section class="pi-section"><div class="pi-section-head"><div><h3>EPEF</h3><p>شاخص ترکیبی بهره‌وری؛ برای جلوگیری از دوباره‌شماری، مستقل از امتیازدهی سایر KPIها نمایش داده می‌شود.</p></div></div><div class="pi-epef"><strong>${model.epef===null||model.epef===undefined?'—':fmt(model.epef,0)}</strong><div class="pi-epef-copy"><b>${esc(statusText(f.status))}</b><span>${esc(f.text||'EPEF در داده‌های ارزیابی موجود نیست.')}</span></div></div></section>
+ <section class="pi-section"><div class="pi-section-head"><div><h3>روند عملکرد</h3><p>روند فقط از سوابق هفتگی موجود در همین گله خوانده شده است.</p></div></div><div class="pi-metrics">
+ ${metric('روند وزن',trendText(s.weightTrend),{status:s.weightTrend?.direction==='worsening'?'watch':s.weightTrend?.direction==='improving'?'good':'unavailable'},s.weightTrend?.deltaPercent===undefined?'':`${fmt(s.weightTrend.deltaPercent,1)}٪ تغییر در آخرین سوابق`)}
+ ${metric('روند ADG',trendText(s.adgTrend),{status:s.adgTrend?.direction==='worsening'?'watch':s.adgTrend?.direction==='improving'?'good':'unavailable'},'سیگنال روندی، نه پیش‌بینی قطعی')}
+ ${metric('روند FCR',trendText(s.fcrTrend),{status:s.fcrTrend?.direction==='worsening'?'watch':s.fcrTrend?.direction==='improving'?'good':'unavailable'},'برای FCR کاهش مطلوب است')}
+ ${metric('روند CV',trendText(s.cvTrend),{status:s.cvTrend?.direction==='worsening'?'watch':s.cvTrend?.direction==='improving'?'good':'unavailable'},'برای CV کاهش مطلوب است')}
+ </div></section>
+ <section class="pi-section"><div class="pi-section-head"><div><h3>مهم‌ترین تفسیرها</h3><p>حداکثر چند insight با اولویت بالا؛ نه فهرست شلوغ هشدارها</p></div></div><div class="pi-insights">${insights.length?insights.map(x=>`<article class="pi-insight ${esc(x.severity||'watch')}"><h4>${esc(x.title)}</h4><p>${esc(x.text)}</p><small>قاعده: ${esc(x.code)}</small></article>`).join(''):'<article class="pi-insight positive"><h4>الگوی بحرانی شناسایی نشد</h4><p>در داده‌های موجود، ترکیب شاخص‌ها الگوی مهمی برای هشدار عملکردی ایجاد نکرده است.</p></article>'}</div></section>
+ <div class="pi-note"><b>مبنای علمی و داده‌ای:</b> ${esc(sourceNote)}<br><span class="pi-missing">${missing.length?`داده‌های فاقد پوشش کامل: ${esc(missing.join('، '))}`:'پوشش داده‌ای شاخص‌های اصلی مناسب است.'}</span></div>
+ </div>`;
 }
- global.AdineBroilerPerformanceIntelligenceReport={render};
+global.AdineBroilerPerformanceIntelligenceReport={render};
 })(window);

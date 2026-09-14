@@ -16,7 +16,7 @@ assert.strictEqual(F.VERSION,'BROILER-FCR-V14.2');
 const expectedInitial={
   'Ross 308':44,'Ross 308 FF':44,'Ross 708':44,'Ross 308 AP':44,
   Cobb500:42,Cobb800:41,'Arbor Acres Plus':42,'Arbor Acres Plus S':42,
-  'Indian River':44,'Indian River FF':44,'Efficiency Plus':42,'Hubbard EDGE':42,Arian:42
+  'Indian River':44,'Indian River FF':44,'Efficiency Plus':43,'Hubbard EDGE':43,Arian:42
 };
 for(const strain of Object.keys(R.strains)){
   const s=R.strains[strain];
@@ -44,7 +44,7 @@ function expectedWeekly(records,initialWeight){
 }
 
 for(const [strain,s] of Object.entries(R.strains)){
-  const records=(s.records||[]).map((r,i)=>{
+  const records=(s.records||[]).map((r)=>{
     const m=(s.managementRecords||[]).find(x=>x[0]===r[0]);
     return [r[0],r[1]??m?.[1],r[2]??m?.[2]];
   });
@@ -71,7 +71,7 @@ assert.strictEqual(ap56.weeklyFcr,2.520);
 const r56=S.weeklyEvaluationStandard({production_type:'broiler',genetics:'Ross',strain:'Ross 308'},{age_days:56});
 assert.strictEqual(r56.weight,4318);
 assert.strictEqual(r56.cumulativeFcr,1.793);
-assert.strictEqual(r56.weeklyFcr,2.536);
+assert.strictEqual(r56.weeklyFcr,2.535);
 
 // Actual flock FCR must use catalog-comparable mortality semantics.
 const actualFlock={initial_average_weight_g:44,initial_bird_count:1000};

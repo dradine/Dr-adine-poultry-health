@@ -46,7 +46,7 @@ assert.strictEqual(ross.managementFallbackUsed,false);
 
 const ep7=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Efficiency Plus'},[{id:'ep7',age_days:7}])[0];
 assert.strictEqual(ep7.canonicalTargets.weight,216);
-assert.strictEqual(ep7.canonicalTargets.cumulativeFcr,null);
+assert.strictEqual(ep7.canonicalTargets.cumulativeFcr,0.960);
 assert.strictEqual(ep7.canonicalTargets.fcr,0.960);
 assert.strictEqual(ep7.managementFallbackUsed,true);
 assert.strictEqual(ep7.targetSourceType,'management-standard');
@@ -63,6 +63,7 @@ assert.strictEqual(ep28.targetSourceType,'official-performance-objective');
 
 const edge7=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Hubbard EDGE'},[{id:'edge7',age_days:7}])[0];
 assert.strictEqual(edge7.canonicalTargets.weight,217);
+assert.strictEqual(edge7.canonicalTargets.cumulativeFcr,0.971);
 assert.strictEqual(edge7.canonicalTargets.fcr,0.971);
 assert.strictEqual(edge7.managementFallbackUsed,true);
 

@@ -1,19 +1,17 @@
-/* ADINE REPORTS — BROILER DOMAIN ENGINE V7
+/* ADINE REPORTS — BROILER DOMAIN ENGINE V8.1
    Read-only reporting adapter.
-   Actual values come from canonical weekly_records.
-   Official references are resolved from the canonical broiler official registry.
-   Weekly report calculations are not modified.
-   Reference provenance is carried explicitly so downstream BPI never has to infer it.
+   Actual values and reference targets used by reports come from the canonical
+   weekly-report data path. This engine does not invent management targets.
 */
 "use strict";
 (function(global){
   const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
   const val=(r,keys)=>{for(const k of keys){const x=n(r?.[k]);if(x!==null)return x}return null};
   const weight=r=>val(r,['average_weight_g','average_weight','weight_g']);
-  const fcr=r=>val(r,['fcr']);
-  const cumulativeFcr=r=>val(r,['cumulative_fcr']);
   const age=r=>val(r,['age_days']);
   const week=r=>val(r,['week_number','production_week']);
+  const fcr=r=>val(r,['fcr']);
+  const cumulativeFcr=r=>val(r,['cumulative_fcr']);
   const feed=r=>val(r,['feed_total_kg','feed']);
   const water=r=>val(r,['water_total_liter','water']);
   const cv=r=>val(r,['cv_percent','cv']);
@@ -21,94 +19,21 @@
   const u15=r=>val(r,['uniformity_15_percent','uniformity_15']);
   const live=r=>val(r,['live_birds','bird_count']);
   const ratio=r=>val(r,['water_feed_ratio']);
-  const norm=v=>String(v??'').normalize('NFKC').replace(/[\u200c\u200f\u202a-\u202e]/g,'').replace(/[‐‑‒–—−]/g,'-').replace(/[._/\\]+/g,' ').replace(/\s+/g,' ').trim().toLowerCase();
-
-  function registryFor(strain){
-    const registry=global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{};
-    if(registry[strain])return registry[strain];
-    const key=norm(strain);
-    const found=Object.keys(registry).find(k=>norm(k)===key);
-    return found?registry[found]:null;
-  }
-
-  /*
-     Weekly monitoring is compared against the breeder's weekly reference age,
-     not the literal calendar age stored on the record. This is intentional:
-     a record labelled week 2 may be entered at day 13/15 because of farm
-     scheduling, while the official weekly reference is day 14.
-  */
-  function benchmarkAge(r){
-    const w=week(r);
-    if(Number.isFinite(w)&&w>0)return w*7;
-    return age(r);
-  }
-
-  function standardFor(flock,r){
-    const strain=String(flock?.strain??'').trim();
-    const registry=registryFor(strain),a=benchmarkAge(r);
-    if(registry && Number.isFinite(a)){
-      const hit=(registry.records||[]).find(x=>Number(x[0])===a);
-      if(hit)return{weight:n(hit[1]),fcr:n(hit[2]),weightSourceLabel:registry.sourceLabel,fcrSourceLabel:registry.sourceLabel,sourceType:registry.sourceType,sourceUrl:registry.sourceUrl,official:true,standardAgeDays:a,strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain};
-    }
-    return null;
-  }
-
-  function officialWeeklyFcr(flock,rows,index){
-    const current=standardFor(flock,rows[index]),cc=n(current?.fcr),cw=n(current?.weight);
-    if(cc===null||cw===null)return null;
-    if(index===0)return cc;
-    const previous=standardFor(flock,rows[index-1]),pc=n(previous?.fcr),pw=n(previous?.weight);
-    if([pc,pw].some(x=>x===null)||cw<=pw)return null;
-    return(cc*cw-pc*pw)/(cw-pw);
-  }
-
-  function actualWeeklyGain(rows,index,flock){
-    const current=weight(rows[index]);if(current===null)return null;
-    const previous=index>0?weight(rows[index-1]):n(flock?.initial_average_weight_g);
-    return previous===null?null:current-previous;
-  }
-
-  function actualCumulativeGain(rows,index,flock){
-    const current=weight(rows[index]),initial=n(flock?.initial_average_weight_g);
-    return current===null||initial===null?null:current-initial;
-  }
-
-  function managementWeeklyWeightGain(flock,rows,index){
-    const current=standardFor(flock,rows[index]),cw=n(current?.weight);
-    if(cw===null)return null;
-    const previous=index===0?n(flock?.initial_average_weight_g):n(standardFor(flock,rows[index-1])?.weight);
-    return previous===null?null:cw-previous;
-  }
-
-  function officialCumulativeGain(flock,rows,index){
-    const current=standardFor(flock,rows[index]),cw=n(current?.weight),initial=n(flock?.initial_average_weight_g);
-    return cw===null||initial===null?null:cw-initial;
-  }
-
-  function managementWeeklyFcr(flock,rows,index){return officialWeeklyFcr(flock,rows,index)}
-  function managementWeightGain(flock,rows,index){return managementWeeklyWeightGain(flock,rows,index)}
-
-  /* No independent CV/uniformity target is invented here. If the canonical
-     weekly model supplies a metric-specific reference, downstream layers may
-     consume it; otherwise the metric is descriptive-only. */
-  function qualityTargets(){return{cv:null,uniformity10:null,uniformity15:null}}
+  const benchmarkAge=r=>{const w=week(r);return Number.isFinite(w)&&w>0?w*7:age(r)};
+  function standardFor(flock,r){const canonicalWeight=n(r?.standard_weight??r?.standardWeight),canonicalCum=n(r?.official_cumulative_fcr??r?.officialCumulativeFcr),canonicalWeekly=n(r?.official_weekly_fcr??r?.officialWeeklyFcr),canonicalManagement=n(r?.management_weekly_fcr??r?.managementWeeklyFcr);if(canonicalWeight!==null||canonicalCum!==null||canonicalWeekly!==null||canonicalManagement!==null)return{weight:canonicalWeight,fcr:canonicalCum,weeklyFcr:canonicalWeekly,managementFcr:canonicalManagement,weightSourceLabel:'ارزیابی هفتگی / canonical',fcrSourceLabel:r?.officialFcrSource||'ارزیابی هفتگی / canonical',sourceType:'canonical-weekly-report',sourceUrl:null,official:true,standardAgeDays:age(r),strainKey:String(flock?.strain??'')};return null}
+  function officialWeeklyFcr(flock,rows,index){return n(rows[index]?.official_weekly_fcr??rows[index]?.officialWeeklyFcr)}
+  function officialCumulativeFcr(rows,index){return n(rows[index]?.official_cumulative_fcr??rows[index]?.officialCumulativeFcr)}
+  function managementWeeklyFcr(rows,index){return n(rows[index]?.management_weekly_fcr??rows[index]?.managementWeeklyFcr)}
+  function managementCumulativeFcr(rows,index){return n(rows[index]?.management_cumulative_fcr??rows[index]?.managementCumulativeFcr)}
+  function managementWeight(rows,index){return n(rows[index]?.management_weight??rows[index]?.managementWeight??rows[index]?.management_target_weight??rows[index]?.managementTargetWeight)}
+  function officialWeeklyWeightGain(flock,rows,index){const current=n(rows[index]?.standard_weight??rows[index]?.standardWeight);if(current===null)return null;const previous=index>0?n(rows[index-1]?.standard_weight??rows[index-1]?.standardWeight):n(flock?.initial_average_weight_g);return previous===null?null:current-previous}
+  function managementWeeklyWeightGain(flock,rows,index){const current=managementWeight(rows,index);if(current===null)return null;const previous=index>0?managementWeight(rows,index-1):null;return previous===null?null:current-previous}
+  function actualWeeklyGain(rows,index,flock){const current=weight(rows[index]);if(current===null)return null;const previous=index>0?weight(rows[index-1]):n(flock?.initial_average_weight_g);return previous===null?null:current-previous}
+  function actualCumulativeGain(rows,index,flock){const current=weight(rows[index]),initial=n(flock?.initial_average_weight_g);return current===null||initial===null?null:current-initial}
+  function officialCumulativeGain(flock,rows,index){const current=n(rows[index]?.standard_weight??rows[index]?.standardWeight),initial=n(flock?.initial_average_weight_g);return current===null||initial===null?null:current-initial}
+  function qualityTargets(r){return{cv:val(r,['standardCv','standard_cv','officialCv']),uniformity10:val(r,['standardUniformity10','standard_uniformity_10','officialUniformity10']),uniformity15:val(r,['standardUniformity15','standard_uniformity_15','officialUniformity15'])}}
   function classify(actual,target,direction){if(actual===null||target===null)return'neutral';if(direction==='lower')return actual<=target?'good':'warn';if(direction==='higher')return actual>=target?'good':'warn';return'neutral'}
-
-  function makeRow(flock,rows,index){
-    const r=rows[index],s=standardFor(flock,r),weeklyStandardFcr=officialWeeklyFcr(flock,rows,index),q=qualityTargets();
-    const actualWeight=weight(r),actualFcr=fcr(r),actualCum=cumulativeFcr(r),actualWeekly=actualWeeklyGain(rows,index,flock),actualCumulative=actualCumulativeGain(rows,index,flock);
-    const managementGain=managementWeeklyWeightGain(flock,rows,index);
-    const sourceType=s?.sourceType||null,sourceLabel=s?.sourceLabel||s?.weightSourceLabel||null;
-    return{
-      raw:r,index,week:week(r),age:age(r),benchmarkAgeDays:benchmarkAge(r),weight:actualWeight,standardWeight:n(s?.weight),weightSource:sourceType,weightSourceLabel:s?.weightSourceLabel||sourceLabel,standardWeightSource:sourceType,standardWeightSourceLabel:s?.weightSourceLabel||sourceLabel,
-      weightGain:actualWeekly,weeklyWeightGain:actualWeekly,cumulativeWeightGain:actualCumulative,managementWeightGain:managementGain,standardWeeklyWeightGain:managementGain,standardWeeklyWeightGainSource:sourceType,standardWeeklyWeightGainSourceLabel:s?.weightSourceLabel||sourceLabel,standardCumulativeWeightGain:officialCumulativeGain(flock,rows,index),standardCumulativeWeightGainSource:sourceType,standardCumulativeWeightGainSourceLabel:s?.weightSourceLabel||sourceLabel,
-      fcr:actualFcr,cumulativeFcr:actualCum,standardWeeklyFcr:n(weeklyStandardFcr),officialWeeklyFcr:n(weeklyStandardFcr),standardWeeklyFcrSource:sourceType,standardWeeklyFcrSourceLabel:s?.fcrSourceLabel||sourceLabel,standardCumulativeFcr:n(s?.fcr),standardCumulativeFcrSource:sourceType,standardCumulativeFcrSourceLabel:s?.fcrSourceLabel||sourceLabel,managementWeeklyFcr:n(weeklyStandardFcr),
-      fcrSource:r?.production_metrics?.calculation_version||'canonical-record',fcrSourceLabel:s?.fcrSourceLabel||sourceLabel,cv:cv(r),cvStandard:q.cv,uniformity10:u10(r),uniformity10Standard:q.uniformity10,uniformity15:u15(r),uniformity15Standard:q.uniformity15,
-      feed:feed(r),water:water(r),mortalityPercent:val(r,['mortality']),mortalityCount:val(r,['mortality_count']),liveBirds:live(r),waterFeedRatio:ratio(r),
-      weightStatus:classify(actualWeight,n(s?.weight),'higher'),fcrStatus:classify(actualFcr,n(weeklyStandardFcr),'lower'),cvStatus:classify(cv(r),q.cv,'lower'),uniformity10Status:classify(u10(r),q.uniformity10,'higher'),uniformity15Status:classify(u15(r),q.uniformity15,'higher')
-    };
-  }
-
-  function build(flock,rows){const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));return{domain:'broiler',engineVersion:'BROILER-REPORT-V7',calculationAuthority:'canonical-weekly-record',standardAuthority:'canonical-broiler-official-registry',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}}
-  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V7',build,standardFor,officialWeeklyFcr,actualWeeklyGain,actualCumulativeGain,managementWeeklyWeightGain,officialCumulativeGain,managementWeeklyFcr,managementWeightGain,benchmarkAge};
+  function makeRow(flock,rows,index){const r=rows[index],s=standardFor(flock,r),q=qualityTargets(r),actualWeight=weight(r),actualFcr=fcr(r),actualCum=cumulativeFcr(r),actualWeekly=actualWeeklyGain(rows,index,flock),actualCumulative=actualCumulativeGain(rows,index,flock),mgmtWeight=managementWeight(rows,index),mgmtGain=managementWeeklyWeightGain(flock,rows,index),officialGain=officialWeeklyWeightGain(flock,rows,index),sourceLabel=s?.weightSourceLabel||'ارزیابی هفتگی / canonical';return{raw:r,index,week:week(r),age:age(r),benchmarkAgeDays:age(r),weight:actualWeight,standardWeight:n(r?.standard_weight??r?.standardWeight),weightSource:'canonical-weekly-record',weightSourceLabel:sourceLabel,standardWeightSource:'canonical-weekly-record',standardWeightSourceLabel:sourceLabel,weightGain:actualWeekly,weeklyWeightGain:actualWeekly,cumulativeWeightGain:actualCumulative,managementWeight:mgmtWeight,managementWeightGain:mgmtGain,standardWeeklyWeightGain:officialGain,officialWeeklyWeightGain:officialGain,standardWeeklyWeightGainSource:officialGain===null?null:'canonical-weekly-report',standardWeeklyWeightGainSourceLabel:officialGain===null?null:sourceLabel,managementWeeklyWeightGain:mgmtGain,standardCumulativeWeightGain:officialCumulativeGain(flock,rows,index),standardCumulativeWeightGainSource:'canonical-weekly-record',standardCumulativeWeightGainSourceLabel:sourceLabel,fcr:actualFcr,cumulativeFcr:actualCum,standardWeeklyFcr:officialWeeklyFcr(flock,rows,index),officialWeeklyFcr:officialWeeklyFcr(flock,rows,index),standardWeeklyFcrSource:'canonical-weekly-report',standardWeeklyFcrSourceLabel:r?.officialFcrSource||sourceLabel,standardCumulativeFcr:officialCumulativeFcr(rows,index),officialCumulativeFcr:officialCumulativeFcr(rows,index),standardCumulativeFcrSource:'canonical-weekly-report',standardCumulativeFcrSourceLabel:r?.officialFcrSource||sourceLabel,managementWeeklyFcr:managementWeeklyFcr(rows,index),managementCumulativeFcr:managementCumulativeFcr(rows,index),managementFcrSource:r?.managementFcrSource||null,fcrSource:r?.production_metrics?.calculation_version||'canonical-record',fcrSourceLabel:r?.officialFcrSource||sourceLabel,cv:cv(r),cvStandard:q.cv,uniformity10:u10(r),uniformity10Standard:q.uniformity10,uniformity15:u15(r),uniformity15Standard:q.uniformity15,feed:feed(r),water:water(r),mortalityPercent:val(r,['mortality']),mortalityCount:val(r,['mortality_count']),liveBirds:live(r),waterFeedRatio:ratio(r),targetAuthority:'canonical-weekly-report',targetRecordId:r?.targetRecordId||r?.id||null,weightStatus:classify(actualWeight,n(r?.standard_weight??r?.standardWeight),'higher'),fcrStatus:classify(actualFcr,officialWeeklyFcr(flock,rows,index),'lower'),cvStatus:classify(cv(r),q.cv,'lower'),uniformity10Status:classify(u10(r),q.uniformity10,'higher'),uniformity15Status:classify(u15(r),q.uniformity15,'higher')}}
+  function build(flock,rows){const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));return{domain:'broiler',engineVersion:'BROILER-REPORT-V8.1',calculationAuthority:'canonical-weekly-record',standardAuthority:'canonical-weekly-report',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}}
+  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V8.1',build,standardFor,officialWeeklyFcr,actualWeeklyGain,actualCumulativeGain,managementWeeklyWeightGain,officialCumulativeGain,managementWeeklyFcr,managementWeightGain:managementWeeklyWeightGain,benchmarkAge};
 })(typeof window!=='undefined'?window:globalThis);

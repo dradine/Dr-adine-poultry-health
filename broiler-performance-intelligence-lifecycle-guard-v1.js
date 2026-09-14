@@ -1,16 +1,15 @@
-/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V7
+/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V8
  * Presentation/lifecycle isolation only.
- * No calculations, standards, persistence, or canonical data are touched.
  *
- * V7 fixes the actual stale-DOM readiness race: the comprehensive isolation
- * guards previously treated an existing .cr2-hero as a fresh render. After
- * comparison -> overall/BPI, that old node could make #root visible before
- * reports.js had produced the new layer.
+ * This guard is allowed to control visibility only while entering/staying in
+ * the Comprehensive/BPI report. Weekly and Comparison remain fully owned by
+ * their existing renderers and are never hidden, parked, or gated here.
+ * No calculations, standards, persistence, or canonical data are touched.
  */
 (function(global){
 'use strict';
-if(global.__ADINE_BPI_LIFECYCLE_GUARD_V7__)return;
-global.__ADINE_BPI_LIFECYCLE_GUARD_V7__=true;
+if(global.__ADINE_BPI_LIFECYCLE_GUARD_V8__)return;
+global.__ADINE_BPI_LIFECYCLE_GUARD_V8__=true;
 
 const ROOT_ID='root',SHELL_ID='broiler-performance-intelligence-v3-shell',PARK_ID='adine-bpi-shell-parking-v1';
 let lastShell=null,rehydrating=false,transitioning=false,bpiTransitioning=false,reportReady=false;
@@ -22,6 +21,14 @@ const bpiShell=()=>document.querySelector('#'+SHELL_ID);
 const activeBpiPanel=()=>bpiShell()?.querySelector('.bpi3-panel.active')||null;
 const heroes=()=>Array.from(document.querySelectorAll('#root .cr2-hero'));
 
+function clearRootGate(){
+  const r=root();
+  if(!r)return;
+  r.style.visibility='';
+  r.removeAttribute('aria-busy');
+  transitioning=false;
+  reportReady=true;
+}
 function armOverallWait(){
   staleHeroes=new WeakSet(heroes());
   reportReady=false;
@@ -93,12 +100,6 @@ function revealBpi(){
     bpiTransitioning=false;
   }));
 }
-function rootHasRenderableContent(){
-  const r=root();
-  if(!r)return false;
-  if(activeTab()==='overall')return !!shellInRoot();
-  return !!r.querySelector('.section,.error,.empty,.bpi3-shell');
-}
 function rehydrateReferenceLayer(shell){
   if(!shell||shell===lastShell)return;
   lastShell=shell;
@@ -126,12 +127,8 @@ function reconcile(){
       if(bpiTransitioning)revealBpi();
     }
   }else{
-    park();
-    if(transitioning&&rootHasRenderableContent()){
-      const r=root();
-      if(r){r.style.visibility='';r.removeAttribute('aria-busy');}
-      transitioning=false;
-    }
+    // Weekly/Comparison are not controlled by this guard.
+    clearRootGate();
   }
 }
 function detectFreshReport(){
@@ -146,13 +143,14 @@ function onTabCapture(e){
   const b=e.target?.closest?.('.report-tab');
   if(b){
     const next=b.getAttribute('data-tab');
-    conceal();
     if(next==='overall'){
+      conceal();
       armOverallWait();
       setTimeout(reconcile,0);
     }else{
-      reportReady=true;
+      // Never hide or gate Weekly/Comparison.
       if(activeTab()==='overall')park();
+      clearRootGate();
     }
     return;
   }
@@ -165,23 +163,36 @@ function onTabCapture(e){
 document.addEventListener('click',onTabCapture,true);
 if(typeof MutationObserver!=='undefined'){
   const mo=new MutationObserver(()=>{
-    const s=shellInRoot();
-    if(activeTab()==='overall'){
+    const tab=activeTab();
+    if(tab==='overall'){
+      const s=shellInRoot()||restore();
       if(s)rehydrateReferenceLayer(s);
-      else {
-        const restored=restore();
-        if(restored)rehydrateReferenceLayer(restored);
-      }
       detectFreshReport();
-    }else if(s)park();
-    quarantineLegacy();
-    if(transitioning&&reportReady)reconcile();
-    if(bpiTransitioning)revealBpi();
+      quarantineLegacy();
+      if(transitioning&&reportReady)reconcile();
+      if(bpiTransitioning)revealBpi();
+    }else{
+      // Do not interfere with Weekly/Comparison DOM.
+      if(tab!=='overall')clearRootGate();
+      quarantineLegacy();
+    }
   });
   mo.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
 }
-window.addEventListener('pageshow',()=>{conceal();armOverallWait();setTimeout(()=>{if(hasFreshHero())reportReady=true;reconcile()},0)});
-window.addEventListener('popstate',()=>{conceal();armOverallWait();setTimeout(reconcile,0)});
+window.addEventListener('pageshow',()=>{
+  if(activeTab()==='overall'){
+    conceal();
+    armOverallWait();
+    setTimeout(reconcile,0);
+  }else clearRootGate();
+});
+window.addEventListener('popstate',()=>{
+  if(activeTab()==='overall'){
+    conceal();
+    armOverallWait();
+    setTimeout(reconcile,0);
+  }else clearRootGate();
+});
 window.addEventListener('adine:report-ready',()=>{
   if(activeTab()==='overall'){
     setTimeout(()=>{
@@ -191,15 +202,19 @@ window.addEventListener('adine:report-ready',()=>{
   }
 });
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{
-  conceal();
-  staleHeroes=new WeakSet();
-  reportReady=heroes().length>0;
-  setTimeout(reconcile,0);
+  if(activeTab()==='overall'){
+    conceal();
+    staleHeroes=new WeakSet();
+    reportReady=heroes().length>0;
+    setTimeout(reconcile,0);
+  }else clearRootGate();
 },{once:true});
 else{
-  conceal();
-  staleHeroes=new WeakSet();
-  reportReady=heroes().length>0;
-  setTimeout(reconcile,0);
+  if(activeTab()==='overall'){
+    conceal();
+    staleHeroes=new WeakSet();
+    reportReady=heroes().length>0;
+    setTimeout(reconcile,0);
+  }else clearRootGate();
 }
 })(window);

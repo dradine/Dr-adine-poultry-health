@@ -52,7 +52,16 @@
 
   function compareView(){return ''}
 
-  function render(){destroyCharts();const root=$('root');if(!model?.ready){root.innerHTML=`<section class="section"><div class="empty">${model?.label?`موتور گزارش ${esc(model.label)} هنوز نصب نشده است.`:'نوع پرورش نامعتبر است.'}</div></section>`;return}if(activeTab==='weekly')root.innerHTML=weeklyView();else if(activeTab==='overall')root.innerHTML=overallView();else root.innerHTML=compareView();$('scope').textContent=`${model.label} — ${model.rows.length} هفته`;requestAnimationFrame(drawCharts)}
+  function render(){
+    destroyCharts();
+    /* The legacy overall/comprehensive renderer is intentionally disabled.
+       The dedicated broiler-comprehensive-report-ui-v2 owns this tab now.
+       Weekly and comparison rendering remain unchanged. */
+    if(activeTab==='overall')return;
+    const root=$('root');
+    if(!model?.ready){root.innerHTML=`<section class="section"><div class="empty">${model?.label?`موتور گزارش ${esc(model.label)} هنوز نصب نشده است.`:'نوع پرورش نامعتبر است.'}</div></section>`;return}
+    if(activeTab==='weekly')root.innerHTML=weeklyView();else root.innerHTML=compareView();$('scope').textContent=`${model.label} — ${model.rows.length} هفته`;requestAnimationFrame(drawCharts)
+  }
   function drawCharts(){if(!model?.rows?.length)return;const labels=model.rows.map(r=>'هفته '+fmt(r.week,0));if(activeTab==='overall'){chart('weightTrend',labels,[{label:'وزن واقعی',data:model.rows.map(r=>r.weight)},{label:'استاندارد رسمی',data:model.rows.map(r=>r.standardWeight)}]);chart('fcrTrend',labels,[{label:'FCR هفتگی واقعی',data:model.rows.map(r=>r.fcr)},{label:'استاندارد رسمی هفتگی',data:model.rows.map(r=>r.standardWeeklyFcr)}]);chart('cumFcrTrend',labels,[{label:'FCR تجمعی واقعی',data:model.rows.map(r=>r.cumulativeFcr)},{label:'استاندارد رسمی تجمعی',data:model.rows.map(r=>r.standardCumulativeFcr)}]);chart('qualityTrend',labels,[{label:'CV',data:model.rows.map(r=>r.cv)},{label:'یکنواختی ±10',data:model.rows.map(r=>r.uniformity10)}])}}
   function populateWeeks(){const s=$('week');s.innerHTML=model.rows.map((r,i)=>`<option value="${i}">هفته ${fmt(r.week,0)} — ${fmt(r.age,0)} روز</option>`).join('');const wanted=Number(new URLSearchParams(location.search).get('week'));if(Number.isInteger(wanted)&&wanted>0){const idx=model.rows.findIndex(r=>r.week===wanted);if(idx>=0)s.value=String(idx)}}
   async function init(){try{await AdineReportRouter.requireUser();const id=AdineReportRouter.currentFlockId();if(!id)throw new Error('برای گزارش، شناسه گله انتخاب‌شده موجود نیست. از ثبت هفتگی وارد گزارش شوید.');flock=await AdineReportRouter.getFlock(id);rows=await AdineReportRouter.getWeeklyRecords(id);model=AdineReportRouter.buildModel(flock,rows);$('identity').innerHTML=`<div class="identity-item"><small>گله</small><strong>${esc(flock.flock_name||flock.flock_code)}</strong></div><div class="identity-item"><small>نوع پرورش</small><strong>${esc(model.label)}</strong></div><div class="identity-item"><small>ژنتیک</small><strong>${esc(flock.genetics)}</strong></div><div class="identity-item"><small>سویه</small><strong>${esc(flock.strain)}</strong></div><div class="identity-item"><small>وضعیت</small><strong>${esc(flock.status||'—')}</strong></div>`;if(model.ready)populateWeeks();render()}catch(e){console.error(e);$('scope').textContent='خطا';$('root').innerHTML=`<section class="section"><div class="error">${esc(e?.message||'خطا در بارگذاری گزارش')}<br><button class="report-btn secondary" type="button" onclick="location.href='weekly.html'">بازگشت به ثبت هفتگی</button></div></section>`}}

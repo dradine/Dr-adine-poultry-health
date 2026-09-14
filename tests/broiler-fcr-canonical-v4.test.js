@@ -15,7 +15,7 @@ assert.strictEqual(F.VERSION,'BROILER-FCR-V14.2');
 
 const expectedInitial={
   'Ross 308':44,'Ross 308 FF':44,'Ross 708':44,'Ross 308 AP':44,
-  Cobb500:42,Cobb800:41,'Arbor Acres Plus':42,'Arbor Acres Plus S':42,
+  Cobb500:42,Cobb800:43,'Arbor Acres Plus':42,'Arbor Acres Plus S':42,
   'Indian River':44,'Indian River FF':44,'Efficiency Plus':43,'Hubbard EDGE':43,Arian:42
 };
 for(const strain of Object.keys(R.strains)){
@@ -57,7 +57,6 @@ for(const [strain,s] of Object.entries(R.strains)){
   }
 }
 
-// Ross 308 AP catalog anchors.
 const ap=R.strains['Ross 308 AP'];
 assert.deepStrictEqual(ap.records[0],[7,214,.772]);
 assert.deepStrictEqual(ap.records[3],[28,1657,1.257]);
@@ -67,13 +66,17 @@ assert.strictEqual(ap56.weight,4446);
 assert.strictEqual(ap56.cumulativeFcr,1.776);
 assert.strictEqual(ap56.weeklyFcr,2.520);
 
-// Ross 308 placement weight was previously wrong in the canonical registry; verify it now.
+const cobb800=R.strains.Cobb800;
+assert.strictEqual(cobb800.initialWeight,43);
+assert.deepStrictEqual(cobb800.records[0],[7,202,.825]);
+assert.deepStrictEqual(cobb800.records[1],[14,461,1.046]);
+assert.deepStrictEqual(cobb800.records[7],[56,4358,1.762]);
+
 const r56=S.weeklyEvaluationStandard({production_type:'broiler',genetics:'Ross',strain:'Ross 308'},{age_days:56});
 assert.strictEqual(r56.weight,4318);
 assert.strictEqual(r56.cumulativeFcr,1.793);
 assert.strictEqual(r56.weeklyFcr,2.535);
 
-// Actual flock FCR must use catalog-comparable mortality semantics.
 const actualFlock={initial_average_weight_g:44,initial_bird_count:1000};
 const actual=F.canonical([
   {age_days:7,average_weight_g:214,live_birds:990,feed_total_kg:168.3},

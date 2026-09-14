@@ -5,9 +5,9 @@ const assert=require('assert');
 const context={console};
 context.window=context;
 vm.createContext(context);
-vm.runInContext(fs.readFileSync('broiler-official-standards-v1.js','utf8'),context);
-vm.runInContext(fs.readFileSync('standards-resolver-core-v1.js','utf8'),context);
-vm.runInContext(fs.readFileSync('broiler-performance-intelligence-source-v1.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('broiler-official-standards-v1.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('standards-resolver-core-v1.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('broiler-performance-intelligence-source-v1.js','utf8'),context);
 
 const registry=context.BROILER_OFFICIAL_STANDARDS_V1;
 const source=context.AdineBroilerPerformanceIntelligenceSourceV1;
@@ -44,18 +44,32 @@ assert.strictEqual(ross.canonicalTargets.weight,4446);
 assert.strictEqual(ross.canonicalTargets.cumulativeFcr,1.776);
 assert.strictEqual(ross.managementFallbackUsed,false);
 
-const ep=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Efficiency Plus'},[{id:'ep7',age_days:7}])[0];
-assert.strictEqual(ep.managementFallbackUsed,true);
-assert.strictEqual(ep.targetSourceType,'management-standard');
-assert(ep.canonicalTargets.weight!==null&&ep.canonicalTargets.fcr!==null);
+const ep7=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Efficiency Plus'},[{id:'ep7',age_days:7}])[0];
+assert.strictEqual(ep7.canonicalTargets.weight,216);
+assert.strictEqual(ep7.canonicalTargets.cumulativeFcr,null);
+assert.strictEqual(ep7.canonicalTargets.fcr,0.960);
+assert.strictEqual(ep7.managementFallbackUsed,true);
+assert.strictEqual(ep7.targetSourceType,'management-standard');
+
+const ep21=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Efficiency Plus'},[{id:'ep21',age_days:21}])[0];
+assert.strictEqual(ep21.canonicalTargets.weight,1035);
+assert.strictEqual(ep21.canonicalTargets.cumulativeFcr,1.13);
+assert.strictEqual(ep21.managementFallbackUsed,true,'weekly FCR at week 3 depends on the derived week-2 endpoint');
 
 const ep28=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Efficiency Plus'},[{id:'ep28',age_days:28}])[0];
 assert.strictEqual(ep28.canonicalTargets.weight,1647,'official week-4 weight must remain authoritative');
-assert.strictEqual(ep28.managementFallbackUsed,true,'week-4 weekly FCR uses a management fallback at the prior endpoint');
+assert.strictEqual(ep28.managementFallbackUsed,false,'week-4 weekly FCR has two official cumulative endpoints');
+assert.strictEqual(ep28.targetSourceType,'official-performance-objective');
+
+const edge7=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Hubbard EDGE'},[{id:'edge7',age_days:7}])[0];
+assert.strictEqual(edge7.canonicalTargets.weight,217);
+assert.strictEqual(edge7.canonicalTargets.fcr,0.971);
+assert.strictEqual(edge7.managementFallbackUsed,true);
 
 const edge=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Hubbard EDGE'},[{id:'edge21',age_days:21}])[0];
-assert.strictEqual(edge.canonicalTargets.weight,1058,'official weight must survive when only FCR is missing');
-assert.strictEqual(edge.managementFallbackUsed,true);
+assert.strictEqual(edge.canonicalTargets.weight,1058,'official weight must survive when the current FCR was not available until the breeder table begins reporting it');
+assert.strictEqual(edge.canonicalTargets.cumulativeFcr,1.13);
+assert.strictEqual(edge.managementFallbackUsed,true,'week-3 weekly FCR still depends on the derived week-2 endpoint');
 
 const arian=source.enrich({production_type:'broiler',genetics:'آرین ایران',strain:'Arian'},[{id:'a56',age_days:56}])[0];
 assert.strictEqual(arian.targetSourceType,'management-standard');

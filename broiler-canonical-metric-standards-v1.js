@@ -21,7 +21,7 @@ if(metric==='u10')return ret(u10,'management','management-standard',MG.sourceLab
 if(metric==='u15')return ret(u15,'management','management-standard',MG.sourceLabel);
 if(metric==='wfr')return ret(wfr,'management','management-standard',MG.sourceLabel);
 if(metric==='water')return ret(water,'management-derived','management-derived-from-feed-and-water-ratio',MG.sourceLabel);
-if(metric==='epef'){const e=w!==null&&weeklyFcr!==null&&mort!==null?((100-mort)*w)/(Number(age)*weeklyFcr):null;return ret(e,'management-derived','mixed-official-management',MG.sourceLabel)}
+if(metric==='epef'){const e=w!==null&&cf!==null&&mort!==null?((100-mort)*w)/(Number(age)*cf):null;return ret(e,'mixed-derived','mixed-official-management',MG.sourceLabel)}
 return null}
 g.BROILER_MANAGEMENT_STANDARD_V1=MG;g.broilerCanonicalMetricTarget=target;
 })(typeof window!=='undefined'?window:globalThis);

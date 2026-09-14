@@ -17,7 +17,7 @@ m=E.build({},[row({week:4,age:28,weight:1000,standardWeight:1000,managementWeigh
 // 5 disagreement remains visible in current state.
 assert.strictEqual(m.states.weight.official.relativeStatus,'better');assert.strictEqual(m.states.weight.management.relativeStatus,'below_target');
 // 6 three-week trajectory is target-relative, not raw.
-m=E.build({},[row({week:1,age:7,weight:1000,standardWeight:1000,managementWeight:1000}),row({week:2,age:14,weight:1040,standardWeight:1060,managementWeight:1060}),row({week:3,age:21,weight:1090,standardWeight:1120,managementWeight:1120})]);assert.strictEqual(m.states.weight.official.trend.pointsUsed,3);assert.strictEqual(m.states.weight.official.trend.direction,'deteriorating');
+m=E.build({},[row({week:1,age:7,weight:1000,standardWeight:1000,managementWeight:1000}),row({week:2,age:14,weight:1040,standardWeight:1060,managementWeight:1060}),row({week:3,age:21,weight:1090,standardWeight:1120,managementWeight:1120})]);assert.strictEqual(m.states.weight.official.trend.pointsUsed,3);assert.strictEqual(m.states.weight.official.trend.direction,'deteriorating');assert(m.states.weight.official.trend.trajectoryChangePp<0);
 // 7 missing target => unavailable, never guessed.
 m=E.build({},[row({week:1,standardWeight:null,managementWeight:null}),row({week:2,standardWeight:null,managementWeight:null})]);assert.strictEqual(m.states.weight.official.status,'unavailable');assert.strictEqual(m.states.weight.official.trend.direction,'unavailable');
 // 8 missing EPEF is not synthesized.
@@ -30,4 +30,12 @@ m=E.build({},[row({week:1,age:7,weight:-1})]);assert(m.validation.some(x=>x.type
 m=E.build({},[row({week:4,age:28,cumulativeFcr:1.20,standardCumulativeFcr:1.30,managementCumulativeFcr:1.28}),row({week:5,age:35,cumulativeFcr:1.25,standardCumulativeFcr:1.40,managementCumulativeFcr:1.36})]);assert.strictEqual(m.states.cumulativeFcr.official.trend.direction,'improving');assert.strictEqual(m.states.cumulativeFcr.management.trend.direction,'improving');
 // 13 raw change is descriptive only and never determines trend.
 assert.strictEqual(m.rawTrendIsDescriptiveOnly,true);assert(Object.prototype.hasOwnProperty.call(m.states.fcr,'rawChange'));
+// 14 exact target is on-target and presentation status must not be a warning.
+m=E.build({},[row({week:1,age:7,weight:1000,standardWeight:1000,managementWeight:1000})]);assert.strictEqual(m.states.weight.official.relativeStatus,'on_target');assert.strictEqual(m.states.weight.official.status,'good');
+// 15 current/previous target fields are paired to the same row.
+m=E.build({},[row({week:1,age:7,weight:900,standardWeight:1000}),row({week:2,age:14,weight:1100,standardWeight:1200})]);assert.strictEqual(m.states.weight.official.trend.previous,900);assert.strictEqual(m.states.weight.official.trend.previousTarget,1000);assert.strictEqual(m.states.weight.official.trend.current,1100);assert.strictEqual(m.states.weight.official.trend.currentTarget,1200);
+// 16 duplicate evaluation dates are a data-quality issue.
+m=E.build({},[row({week:1,age:7,evaluation_date:'2026-09-01'}),row({week:2,age:14,evaluation_date:'2026-09-01'})]);assert(m.validation.some(x=>x.type==='duplicate_evaluation_date'));
+// 17 management target is unavailable when canonical management data is absent; it is never copied from official.
+m=E.build({},[row({week:1,age:7,standardWeight:1100,managementWeight:null})]);assert.strictEqual(m.states.weight.official.target,1100);assert.strictEqual(m.states.weight.management.target,null);assert.strictEqual(m.states.weight.management.status,'unavailable');
 console.log('BROILER PERFORMANCE INTELLIGENCE V3 TESTS: PASS');

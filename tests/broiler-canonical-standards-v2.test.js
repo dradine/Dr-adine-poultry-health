@@ -12,9 +12,10 @@ vm.runInNewContext(fs.readFileSync('broiler-performance-intelligence-source-v1.j
 const registry=context.BROILER_OFFICIAL_STANDARDS_V1;
 const source=context.AdineBroilerPerformanceIntelligenceSourceV1;
 assert(registry,'canonical broiler registry must exist');
-assert.strictEqual(registry.version,'BROILER-CANONICAL-STANDARDS-V2');
-assert(source&&source.version==='BROILER-PI-SOURCE-V7');
+assert.strictEqual(registry.version,'BROILER-CANONICAL-STANDARDS-V4');
+assert(source&&source.version==='BROILER-PI-SOURCE-V9');
 assert.strictEqual(typeof context.getBroilerOfficialStandard,'function');
+assert.strictEqual(context.ADINE_STANDARDS_RESOLVER_VERSION,'STANDARDS-RESOLVER-V4');
 
 const ages=registry.weeklyAges;
 const strains=Object.keys(registry.strains);
@@ -22,9 +23,9 @@ assert.strictEqual(strains.length,13,'all currently registered broiler strains m
 
 for(const strain of strains){
   const s=registry.strains[strain];
-  const legacy=context.getBroilerOfficialStandard(strain);
-  assert(legacy,'legacy registry bridge missing');
-  assert.strictEqual(legacy.records.length,ages.length,`${strain}: legacy bridge week count mismatch`);
+  const canonical=context.getBroilerOfficialStandard(strain);
+  assert(canonical,'canonical strain accessor missing');
+  assert.strictEqual(canonical.records.length,ages.length,`${strain}: canonical week count mismatch`);
   for(const age of ages){
     const flock={production_type:'broiler',genetics:s.family,strain};
     const row={id:`${strain}-${age}`,age_days:age};
@@ -33,8 +34,6 @@ for(const strain of strains){
     assert(out.canonicalTargets.fcr!==null,`${strain} day ${age}: weekly FCR target missing`);
     assert(out.canonicalTargets.cumulativeFcr!==null,`${strain} day ${age}: cumulative FCR target missing`);
     assert(out.canonicalTargets.adg!==null,`${strain} day ${age}: weekly gain target missing`);
-    const legacyRow=legacy.records.find(x=>Number(x[0])===age);
-    assert(legacyRow&&legacyRow[1]!==null&&legacyRow[2]!==null,`${strain} day ${age}: legacy bridge target missing`);
     assert(['official-performance-objective','management-standard'].includes(out.targetSourceType),`${strain} day ${age}: invalid target source type`);
   }
 }
@@ -68,9 +67,9 @@ assert.strictEqual(edge7.canonicalTargets.fcr,0.971);
 assert.strictEqual(edge7.managementFallbackUsed,true);
 
 const edge=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Hubbard EDGE'},[{id:'edge21',age_days:21}])[0];
-assert.strictEqual(edge.canonicalTargets.weight,1058,'official weight must survive when the current FCR was not available until the breeder table begins reporting it');
+assert.strictEqual(edge.canonicalTargets.weight,1058);
 assert.strictEqual(edge.canonicalTargets.cumulativeFcr,1.13);
-assert.strictEqual(edge.managementFallbackUsed,true,'week-3 weekly FCR still depends on the derived week-2 endpoint');
+assert.strictEqual(edge.managementFallbackUsed,true);
 
 const arian=source.enrich({production_type:'broiler',genetics:'آرین ایران',strain:'Arian'},[{id:'a56',age_days:56}])[0];
 assert.strictEqual(arian.targetSourceType,'management-standard');
@@ -78,4 +77,10 @@ assert.strictEqual(arian.canonicalTargets.weight,3440);
 assert.strictEqual(arian.canonicalTargets.cumulativeFcr,1.98);
 assert(arian.canonicalTargets.fcr!==null&&arian.canonicalTargets.adg!==null);
 
-console.log('broiler-canonical-standards-v2: PASS');
+/* Every broiler target must be obtainable through the single public engine. */
+for(const strain of strains)for(const age of ages){
+  const t=context.broilerCanonicalMetricTarget(strain,age,'weight');
+  assert(t&&t.value!==null,`${strain} day ${age}: canonical public engine failed`);
+}
+
+console.log('broiler-canonical-standards-v4: PASS');

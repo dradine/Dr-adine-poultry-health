@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Run canonical broiler standards completeness tests
+        run: node tests/broiler-canonical-standards-v2.test.js
       - name: Run intelligence regression tests
         run: node tests/broiler-performance-intelligence-v2.test.js
       - name: Run canonical weekly target source regression tests

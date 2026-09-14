@@ -19,6 +19,8 @@ jobs:
         run: node tests/broiler-canonical-standards-v2.test.js
       - name: Run legacy standards bridge regression tests
         run: node tests/broiler-official-standards.test.js
+      - name: Run canonical broiler FCR regression tests
+        run: node tests/broiler-fcr-canonical-v4.test.js
       - name: Run intelligence regression tests
         run: node tests/broiler-performance-intelligence-v2.test.js
       - name: Run canonical weekly target source regression tests

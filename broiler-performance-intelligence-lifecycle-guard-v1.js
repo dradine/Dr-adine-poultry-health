@@ -1,16 +1,22 @@
-/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V5
+/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V6
  * Presentation/lifecycle isolation only.
  * Prevents stale/partially-rendered report DOM and BPI internal panels from
  * becoming visible while reports.js / the BPI adapter asynchronously rebuild UI.
  * No calculations, standards, persistence, or canonical data are touched.
+ *
+ * Critical V6 rule:
+ * entering the Comprehensive/BPI report never reveals #root merely because
+ * an old .cr2-hero or an existing BPI shell is still present. Visibility is
+ * released only after the current report lifecycle emits adine:report-ready,
+ * and the BPI panel itself is ready when BPI is the selected inner view.
  */
 (function(global){
 'use strict';
-if(global.__ADINE_BPI_LIFECYCLE_GUARD_V5__)return;
-global.__ADINE_BPI_LIFECYCLE_GUARD_V5__=true;
+if(global.__ADINE_BPI_LIFECYCLE_GUARD_V6__)return;
+global.__ADINE_BPI_LIFECYCLE_GUARD_V6__=true;
 
 const ROOT_ID='root',SHELL_ID='broiler-performance-intelligence-v3-shell',PARK_ID='adine-bpi-shell-parking-v1';
-let lastShell=null,rehydrating=false,transitioning=false,bpiTransitioning=false;
+let lastShell=null,rehydrating=false,transitioning=false,bpiTransitioning=false,reportReady=false;
 const $=id=>document.getElementById(id);
 const root=()=>$(ROOT_ID);
 const activeTab=()=>document.querySelector('.report-tab.active')?.getAttribute('data-tab')||null;
@@ -49,9 +55,9 @@ function conceal(){
 }
 function reveal(){
   const r=root();
-  if(!r)return;
+  if(!r||!transitioning||!reportReady)return;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(!transitioning)return;
+    if(!transitioning||!reportReady||activeTab()!=='overall')return;
     r.style.visibility='';
     r.removeAttribute('aria-busy');
     transitioning=false;
@@ -75,7 +81,7 @@ function revealBpi(){
   const s=bpiShell();
   if(!s||!bpiTransitioning||!bpiReady())return;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(!bpiTransitioning||!bpiReady())return;
+    if(!bpiTransitioning||!bpiReady()||activeTab()!=='overall')return;
     s.style.visibility='';
     s.removeAttribute('aria-busy');
     bpiTransitioning=false;
@@ -111,12 +117,18 @@ function reconcile(){
     const s=shellInRoot()||restore();
     if(s){
       rehydrateReferenceLayer(s);
-      if(transitioning)reveal();
+      /* V6: do not reveal root from DOM existence. The old comprehensive
+         DOM can survive a comparison transition and is not a readiness signal. */
+      if(transitioning&&reportReady)reveal();
       if(bpiTransitioning)revealBpi();
     }
   }else{
     park();
-    if(transitioning&&rootHasRenderableContent())reveal();
+    if(transitioning&&rootHasRenderableContent()){
+      const r=root();
+      if(r){r.style.visibility='';r.removeAttribute('aria-busy');}
+      transitioning=false;
+    }
   }
 }
 
@@ -125,8 +137,13 @@ function onTabCapture(e){
   if(b){
     const next=b.getAttribute('data-tab');
     conceal();
-    if(activeTab()==='overall'&&next!=='overall')park();
-    if(next==='overall')setTimeout(reconcile,0);
+    if(next==='overall'){
+      reportReady=false;
+      setTimeout(reconcile,0);
+    }else{
+      reportReady=true;
+      if(activeTab()==='overall')park();
+    }
     return;
   }
   const ib=e.target?.closest?.('.bpi3-tab');
@@ -148,14 +165,21 @@ if(typeof MutationObserver!=='undefined'){
       }
     }else if(s)park();
     quarantineLegacy();
-    if(transitioning)reconcile();
+    /* Important: MutationObserver may observe the stale previous report.
+       It must never turn that observation into a visibility release. */
+    if(transitioning&&reportReady)reconcile();
     if(bpiTransitioning)revealBpi();
   });
   mo.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
 }
-window.addEventListener('pageshow',()=>{conceal();setTimeout(reconcile,0)});
-window.addEventListener('popstate',()=>{conceal();setTimeout(reconcile,0)});
-window.addEventListener('adine:report-ready',()=>setTimeout(reconcile,0));
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{conceal();setTimeout(reconcile,0)},{once:true});
-else {conceal();setTimeout(reconcile,0)}
+window.addEventListener('pageshow',()=>{conceal();reportReady=false;setTimeout(reconcile,0)});
+window.addEventListener('popstate',()=>{conceal();reportReady=false;setTimeout(reconcile,0)});
+window.addEventListener('adine:report-ready',()=>{
+  if(activeTab()==='overall'){
+    reportReady=true;
+    setTimeout(reconcile,0);
+  }
+});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{conceal();reportReady=false;setTimeout(reconcile,0)},{once:true});
+else {conceal();reportReady=false;setTimeout(reconcile,0)}
 })(window);

@@ -21,4 +21,8 @@ const edge=target('Hubbard EDGE',14,'fcr');assert.strictEqual(edge.value,1.073);
 const ar=target('Arian',56,'weight');assert.strictEqual(ar.value,3440);assert.strictEqual(ar.targetType,'management-fallback');
 const u=target('Cobb800',35,'u10');assert.strictEqual(u.value,79);assert.strictEqual(u.targetType,'management');
 const u15=target('Cobb800',35,'u15');assert.strictEqual(u15.value,94);assert.strictEqual(u15.targetType,'management');
+const apE=target('Ross 308 AP',56,'epef');
+const expectedE=((100-3.5)*4446)/(56*1.776);
+assert(Math.abs(apE.value-expectedE)<1e-9,'EPEF target must use cumulative FCR');
+assert.strictEqual(apE.sourceType,'mixed-official-management');
 console.log('BROILER CANONICAL METRIC STANDARDS V1 TESTS: PASS');

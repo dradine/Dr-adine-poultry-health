@@ -1,138 +1,31 @@
-/* ADINE BROILER PERFORMANCE — REFERENCE-AWARE TREND LAYER V6
+/* ADINE BROILER PERFORMANCE — REFERENCE-AWARE TREND LAYER V7
  * Isolated, read-only presentation layer.
  * Canonical weekly calculations and standards are never changed.
- * The trend decision is based on CHANGE IN REFERENCE GAP, with metric direction respected.
+ * Position and trend are intentionally separated: being better than reference
+ * does not mean the flock "needs improvement" merely because the advantage changes.
  */
 (function(global){
 'use strict';
-if(global.__ADINE_REFERENCE_LAYER_V6__) return;
-global.__ADINE_REFERENCE_LAYER_V6__=true;
+if(global.__ADINE_REFERENCE_LAYER_V7__) return;
+global.__ADINE_REFERENCE_LAYER_V7__=true;
 
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const fmt=(v,d=1)=>{const x=n(v);return x===null?'—':x.toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d})};
 const signed=(v,d=1)=>{const x=n(v);return x===null?'—':(x>0?'+':'')+fmt(x,d)};
 const card=label=>[...document.querySelectorAll('.bpi3-card')].find(c=>c.querySelector('.bpi3-card-label')?.textContent.trim()===label);
 const release=c=>c?.classList.remove('bpi3-ref-pending');
-
-function injectStyle(){
-  if(document.getElementById('bpi3-reference-layer-v6-style'))return;
-  const s=document.createElement('style');s.id='bpi3-reference-layer-v6-style';
-  s.textContent=`
-    .bpi3-ref-pending{visibility:hidden!important}
-    .bpi3-reference-card .bpi3-card-value{font-size:15px;line-height:1.7}
-    .bpi3-ref-summary{display:block;margin-top:5px;font-size:10px;font-weight:800;color:#334155}
-    .bpi3-ref-detail{display:grid;gap:2px;margin-top:7px;font-size:10px;line-height:1.8}
-    .bpi3-ref-row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed #e2e8f0;padding-bottom:1px}
-    .bpi3-ref-row:last-child{border-bottom:0}
-    .bpi3-ref-key{color:#64748b}.bpi3-ref-val{color:#172033;font-weight:700;text-align:left}
-    .bpi3-ref-interpret{margin-top:7px;padding:7px 8px;border-radius:9px;background:#f8fafc;color:#334155;font-size:10px;line-height:1.9}
-    .bpi3-reference-card.ref-good .bpi3-ref-interpret{background:#f0fdf4}
-    .bpi3-reference-card.ref-bad .bpi3-ref-interpret{background:#fef2f2}
-    .bpi3-reference-card.ref-neutral .bpi3-ref-interpret{background:#f8fafc}
-  `;
-  (document.head||document.documentElement).appendChild(s);
-}
+function injectStyle(){if(document.getElementById('bpi3-reference-layer-v7-style'))return;const s=document.createElement('style');s.id='bpi3-reference-layer-v7-style';s.textContent=`
+.bpi3-ref-pending{visibility:hidden!important}.bpi3-reference-card .bpi3-card-value{font-size:15px;line-height:1.7}.bpi3-ref-summary{display:block;margin-top:5px;font-size:10px;font-weight:800;color:#334155}.bpi3-ref-detail{display:grid;gap:2px;margin-top:7px;font-size:10px;line-height:1.8}.bpi3-ref-row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed #e2e8f0;padding-bottom:1px}.bpi3-ref-row:last-child{border-bottom:0}.bpi3-ref-key{color:#64748b}.bpi3-ref-val{color:#172033;font-weight:700;text-align:left}.bpi3-ref-interpret{margin-top:7px;padding:7px 8px;border-radius:9px;background:#f8fafc;color:#334155;font-size:10px;line-height:1.9}.bpi3-reference-card.ref-good .bpi3-ref-interpret{background:#f0fdf4}.bpi3-reference-card.ref-bad .bpi3-ref-interpret{background:#fef2f2}.bpi3-reference-card.ref-neutral .bpi3-ref-interpret{background:#f8fafc}`;(document.head||document.documentElement).appendChild(s)}
 function pending(){['روند وزن','روند FCR','روند CV'].forEach(x=>card(x)?.classList.add('bpi3-ref-pending'))}
-function sourceLabel(row,key){
-  const v=n(row?.[key]),s=String(row?.[key+'Source']??row?.standardSource??'').trim().toLowerCase();
-  const name=row?.[key+'SourceName']??row?.[key+'SourceLabel']??row?.standardSourceName??row?.standardSourceLabel;
-  const year=n(row?.[key+'SourceYear']??row?.standardSourceYear);
-  let base=s==='official'?'مرجع رسمی':s==='official-derived'?'مرجع رسمی مشتق‌شده':s==='scientific'?'مرجع علمی':s==='management'?'مرجع مدیریتی':v!==null?'مرجع عددی موجود':'مرجع معتبر موجود نیست';
-  if(name)base+=` · ${name}`; if(year)base+=` (${fmt(year,0)})`; return base;
-}
-async function resolveRows(rows,flock,id){
-  const out=(rows||[]).map(r=>({...r}));
-  if(!global.supabaseClient||!id)return out;
-  const genetics=flock?.genetics??flock?.genetic_line??null,strain=flock?.strain??null;
-  for(const r of out){
-    const date=r.raw?.evaluation_date||r.raw?.record_date||new Date().toISOString().slice(0,10);
-    for(const [metric,key,std] of [['body_weight','weight','standardWeight'],['fcr_cumulative','cumulativeFcr','standardCumulativeFcr'],['cv','cv','standardCv']]){
-      const current=n(r[key]),age=n(r.age); if(current===null||age===null)continue;
-      const hasRef=n(r[std])!==null,hasSource=!!r[std+'Source']; if(hasRef&&hasSource)continue;
-      try{
-        const q=await global.supabaseClient.rpc('calculate_performance_intelligence',{p_flock_id:id,p_evaluation_date:date,p_age_days:Number(age),p_metric:metric,p_current_value:current,p_production_type:'broiler',p_genetics:genetics,p_strain:strain});
-        if(q.error||!q.data?.ok)continue;
-        if(n(q.data.target)!==null)r[std]=n(q.data.target);
-        if(q.data.source_type)r[std+'Source']=q.data.source_type;
-        if(q.data.source_name)r[std+'SourceName']=q.data.source_name;
-        if(q.data.source_year)r[std+'SourceYear']=q.data.source_year;
-        if(q.data.standard_age_days)r[std+'StandardAge']=q.data.standard_age_days;
-        r[std+'ExactAge']=q.data.is_exact_age!==false;
-      }catch(_){/* keep canonical data */}
-    }
-  }
-  return out;
-}
+function sourceLabel(row,key){const v=n(row?.[key]),s=String(row?.[key+'Source']??row?.standardSource??'').trim().toLowerCase();const name=row?.[key+'SourceName']??row?.[key+'SourceLabel']??row?.standardSourceName??row?.standardSourceLabel;const year=n(row?.[key+'SourceYear']??row?.standardSourceYear);let base=s==='official'?'مرجع رسمی':s==='official-derived'?'مرجع رسمی مشتق‌شده':s==='scientific'?'مرجع علمی':s==='management'?'مرجع مدیریتی':v!==null?'مرجع عددی موجود':'مرجع معتبر موجود نیست';if(name)base+=` · ${name}`;if(year)base+=` (${fmt(year,0)})`;return base}
+async function resolveRows(rows,flock,id){const out=(rows||[]).map(r=>({...r}));if(!global.supabaseClient||!id)return out;const genetics=flock?.genetics??flock?.genetic_line??null,strain=flock?.strain??null;for(const r of out){const date=r.raw?.evaluation_date||r.raw?.record_date||new Date().toISOString().slice(0,10);for(const [metric,key,std] of [['body_weight','weight','standardWeight'],['fcr_cumulative','cumulativeFcr','standardCumulativeFcr'],['cv','cv','standardCv']]){const current=n(r[key]),age=n(r.age);if(current===null||age===null)continue;const hasRef=n(r[std])!==null,hasSource=!!r[std+'Source'];if(hasRef&&hasSource)continue;try{const q=await global.supabaseClient.rpc('calculate_performance_intelligence',{p_flock_id:id,p_evaluation_date:date,p_age_days:Number(age),p_metric:metric,p_current_value:current,p_production_type:'broiler',p_genetics:genetics,p_strain:strain});if(q.error||!q.data?.ok)continue;if(n(q.data.target)!==null)r[std]=n(q.data.target);if(q.data.source_type)r[std+'Source']=q.data.source_type;if(q.data.source_name)r[std+'SourceName']=q.data.source_name;if(q.data.source_year)r[std+'SourceYear']=q.data.source_year;if(q.data.standard_age_days)r[std+'StandardAge']=q.data.standard_age_days;r[std+'ExactAge']=q.data.is_exact_age!==false}catch(_){}}
+}return out}
 function statusClass(ev){return ev?.trend?.key?.includes('improvement')?'ref-good':ev?.trend?.key?.includes('worsening')?'ref-bad':'ref-neutral'}
-function directionText(ev){
-  if(!ev)return 'برای قضاوت روند داده کافی نیست.';
-  if(ev.trend.key==='strong_improvement')return 'روند بسیار امیدوارکننده است؛ فاصله گله از مسیر مرجع به‌طور محسوسی در جهت مطلوب تغییر کرده است.';
-  if(ev.trend.key==='improvement')return 'روند امیدوارکننده است؛ فاصله گله از مرجع در جهت مطلوب کاهش یافته است.';
-  if(ev.trend.key==='slight_improvement')return 'جهت حرکت مطلوب است، اما شدت بهبود محدود است و باید در ثبت‌های بعدی تأیید شود.';
-  if(ev.trend.key==='stable')return 'فاصله از مرجع تقریباً پایدار است و تغییر قابل‌توجهی نسبت به ثبت قبلی دیده نمی‌شود.';
-  if(ev.trend.key==='slight_worsening')return 'فاصله کمی نامطلوب‌تر شده است؛ فعلاً نشانه افت شدید نیست، اما پایش ادامه‌دار لازم است.';
-  if(ev.trend.key==='worsening')return 'فاصله از مرجع در جهت نامطلوب حرکت کرده و پایش نزدیک‌تر توصیه می‌شود.';
-  if(ev.trend.key==='strong_worsening')return 'فاصله از مرجع به‌طور محسوسی نامطلوب‌تر شده و بررسی عوامل مدیریتی و عملکردی توصیه می‌شود.';
-  return 'برای قضاوت روند داده کافی نیست.';
-}
-function paint(c,ev,d){
-  if(!c)return;
-  if(!ev?.available){release(c);return}
-  c.classList.remove('good','warn','bad','ref-good','ref-watch','ref-bad','ref-neutral');
-  c.classList.add('bpi3-reference-card',statusClass(ev));release(c);
-  const value=c.querySelector('.bpi3-card-value'),sub=c.querySelector('.bpi3-card-sub');
-  if(value)value.innerHTML=`${ev.trend.arrow} ${ev.trend.label}<span class="bpi3-ref-summary">${ev.position.label}</span>`;
-  const slope=ev.actualSlope?.available?`${fmt(ev.actualSlope.slope,d.slope)} ${d.unit}`:'شیب توصیفی: برای محاسبه شیب حداقل ۳ ثبت لازم است';
-  const source=sourceLabel(ev.currentRow,d.referenceKey);
-  const rows=[
-    ['مبنای مقایسه',source],
-    ['شیب توصیفی واقعی',slope],
-    ['فاصله فعلی از مرجع',`${signed(ev.currentGap,1)}٪`],
-    ['فاصله ثبت قبلی',`${signed(ev.previousGap,1)}٪`],
-    ['تغییر فاصله',`${signed(ev.gapChange,1)} واحد درصد`],
-    [`تغییر ${d.label} واقعی`,`${signed(ev.actualChange,1)}٪`],
-    ['تغییر مرجع',`${signed(ev.referenceChange,1)}٪`]
-  ];
-  if(sub)sub.innerHTML=`<div class="bpi3-ref-detail">${rows.map(r=>`<div class="bpi3-ref-row"><span class="bpi3-ref-key">${r[0]}</span><span class="bpi3-ref-val">${r[1]}</span></div>`).join('')}</div><div class="bpi3-ref-interpret"><b>تفسیر:</b> ${directionText(ev)}</div>`;
-}
-function paintCv(c,rows,Interpreter){
-  if(!c)return;
-  const a=(rows||[]).filter(r=>n(r.cv)!==null&&n(r.age)!==null).sort((x,y)=>n(x.age)-n(y.age));
-  if(a.length<2){release(c);return}
-  const hasRef=n(a[a.length-1].standardCv)!==null;
-  if(hasRef){
-    const ev=Interpreter.build('cv',a,{actualKey:'cv',referenceKey:'standardCv',direction:'lower',label:'CV',unit:'/ روز'});
-    if(ev?.available){ev.currentRow=ev.points[ev.points.length-1].row;paint(c,ev,{label:'CV',referenceKey:'standardCv',slope:4,unit:'/ روز'});return}
-  }
-  const cur=a[a.length-1],prev=a[a.length-2],ch=(n(cur.cv)!==null&&n(prev.cv)!==null&&n(prev.cv)!==0)?(cur.cv-prev.cv)/Math.abs(prev.cv)*100:null;
-  c.classList.remove('good','warn','bad','ref-good','ref-watch','ref-bad','ref-neutral');c.classList.add('bpi3-reference-card',ch!==null&&ch<0?'ref-good':ch!==null&&ch>0?'ref-bad':'ref-neutral');release(c);
-  const v=c.querySelector('.bpi3-card-value'),sub=c.querySelector('.bpi3-card-sub');
-  if(v)v.innerHTML=`${ch===null?'→ تغییر CV قابل قضاوت نیست':ch>0?'↗ پراکندگی بیشتر':'↘ پراکندگی کمتر'}<span class="bpi3-ref-summary">مرجع معتبر CV برای این ثبت در دسترس نیست</span>`;
-  const slope=(()=>{const pts=a.map(r=>({x:n(r.age),y:n(r.cv)}));if(pts.length<3)return 'برای شیب توصیفی حداقل ۳ ثبت لازم است';const x=pts.map(p=>p.x),y=pts.map(p=>p.y),mx=x.reduce((s,z)=>s+z,0)/x.length,my=y.reduce((s,z)=>s+z,0)/y.length,sxx=x.reduce((s,z)=>s+(z-mx)**2,0);if(!sxx)return 'قابل محاسبه نیست';return `${fmt(x.reduce((s,z,i)=>s+(z-mx)*(y[i]-my),0)/sxx,4)} / روز`})();
-  if(sub)sub.innerHTML=`<div class="bpi3-ref-detail"><div class="bpi3-ref-row"><span class="bpi3-ref-key">مبنای مقایسه</span><span class="bpi3-ref-val">بدون مرجع معتبر</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">CV ثبت فعلی</span><span class="bpi3-ref-val">${fmt(cur.cv,1)}٪</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">CV ثبت قبلی</span><span class="bpi3-ref-val">${fmt(prev.cv,1)}٪</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">تغییر CV</span><span class="bpi3-ref-val">${signed(ch,1)}٪</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">شیب توصیفی</span><span class="bpi3-ref-val">${slope}</span></div></div><div class="bpi3-ref-interpret"><b>تفسیر:</b> ${ch===null?'داده کافی برای تفسیر تغییر CV نداریم.':ch>0?'پراکندگی وزن افزایش یافته و یکنواختی نسبت به ثبت قبلی نامطلوب‌تر شده است؛ این شاخص باید همراه با وزن، تلفات و شرایط مدیریتی بررسی شود.':'پراکندگی وزن کاهش یافته و یکنواختی نسبت به ثبت قبلی بهتر شده است.'}</div>`;
-}
-let running=false,lastKey='';
-async function render(){
-  const panel=document.querySelector('#broiler-performance-intelligence-v3-shell [data-bpi3-panel="intelligence"]');
-  if(!panel)return;
-  const router=global.AdineReportRouter,Interpreter=global.AdineBroilerReferenceInterpreterV1;if(!router||!Interpreter)return;
-  const id=router.currentFlockId();if(!id||running)return;
-  pending();running=true;
-  try{
-    const[flock,raw]=await Promise.all([router.getFlock(id),router.getWeeklyRecords(id)]);
-    const model=router.buildModel(flock,raw),rows=await resolveRows(model?.rows||[],flock,id);
-    const key=JSON.stringify(rows.map(r=>[r.age,r.weight,r.cumulativeFcr,r.cv,r.standardWeight,r.standardCumulativeFcr,r.standardCv,r.standardWeightSource,r.standardCumulativeFcrSource,r.standardCvSource]));
-    if(key===lastKey){['روند وزن','روند FCR','روند CV'].forEach(x=>release(card(x)));return}
-    lastKey=key;
-    const w=Interpreter.build('weight',rows,{actualKey:'weight',referenceKey:'standardWeight',direction:'higher',label:'وزن',unit:'g/day'});
-    const f=Interpreter.build('fcr',rows,{actualKey:'cumulativeFcr',referenceKey:'standardCumulativeFcr',direction:'lower',label:'FCR تجمعی',unit:'واحد FCR/day'});
-    if(w?.available)w.currentRow=w.points[w.points.length-1].row;
-    if(f?.available)f.currentRow=f.points[f.points.length-1].row;
-    paint(card('روند وزن'),w,{label:'وزن',referenceKey:'standardWeight',slope:1,unit:'g/day'});
-    paint(card('روند FCR'),f,{label:'FCR تجمعی',referenceKey:'standardCumulativeFcr',slope:4,unit:'واحد FCR/day'});
-    paintCv(card('روند CV'),rows,Interpreter);
-  }catch(e){console.warn('[Adine PI reference layer v6]',e);['روند وزن','روند FCR','روند CV'].forEach(x=>release(card(x)))}finally{running=false}
-}
+function directionText(ev){return ev?.outlook||'برای قضاوت روند داده کافی نیست.'}
+function paint(c,ev,d){if(!c)return;if(!ev?.available){release(c);return}c.classList.remove('good','warn','bad','ref-good','ref-watch','ref-bad','ref-neutral');c.classList.add('bpi3-reference-card',statusClass(ev));release(c);const value=c.querySelector('.bpi3-card-value'),sub=c.querySelector('.bpi3-card-sub');if(value)value.innerHTML=`${ev.trend.arrow} ${ev.trend.label}<span class="bpi3-ref-summary">${ev.position.label}</span>`;const slope=ev.actualSlope?.available?`${fmt(ev.actualSlope.slope,d.slope)} ${d.unit}`:'برای شیب توصیفی حداقل ۳ ثبت لازم است';const source=sourceLabel(ev.currentRow,d.referenceKey);const rows=[['مبنای مقایسه',source],['شیب توصیفی واقعی',slope],['فاصله فعلی از مرجع',`${signed(ev.currentGap,1)}٪`],['فاصله ثبت قبلی',`${signed(ev.previousGap,1)}٪`],['تغییر فاصله',`${signed(ev.gapChange,1)} واحد درصد`],[`تغییر ${d.label} واقعی`,`${signed(ev.actualChange,1)}٪`],['تغییر مرجع',`${signed(ev.referenceChange,1)}٪`]];if(sub)sub.innerHTML=`<div class="bpi3-ref-detail">${rows.map(r=>`<div class="bpi3-ref-row"><span class="bpi3-ref-key">${r[0]}</span><span class="bpi3-ref-val">${r[1]}</span></div>`).join('')}</div><div class="bpi3-ref-interpret"><b>تفسیر:</b> ${directionText(ev)}</div>`}
+function paintCv(c,rows,Interpreter){if(!c)return;const a=(rows||[]).filter(r=>n(r.cv)!==null&&n(r.age)!==null).sort((x,y)=>n(x.age)-n(y.age));if(a.length<2){release(c);return}const hasRef=n(a[a.length-1].standardCv)!==null;if(hasRef){const ev=Interpreter.build('cv',a,{actualKey:'cv',referenceKey:'standardCv',direction:'lower',label:'CV',unit:'/ روز'});if(ev?.available){ev.currentRow=ev.points[ev.points.length-1].row;paint(c,ev,{label:'CV',referenceKey:'standardCv',slope:4,unit:'/ روز'});return}}
+const cur=a[a.length-1],prev=a[a.length-2],ch=(n(cur.cv)!==null&&n(prev.cv)!==null&&n(prev.cv)!==0)?(cur.cv-prev.cv)/Math.abs(prev.cv)*100:null;c.classList.remove('good','warn','bad','ref-good','ref-watch','ref-bad','ref-neutral');c.classList.add('bpi3-reference-card',ch!==null&&ch<0?'ref-good':ch!==null&&ch>0?'ref-bad':'ref-neutral');release(c);const v=c.querySelector('.bpi3-card-value'),sub=c.querySelector('.bpi3-card-sub');if(v)v.innerHTML=`${ch===null?'→ تغییر CV قابل قضاوت نیست':ch>0?'↗ پراکندگی بیشتر':'↘ پراکندگی کمتر'}<span class="bpi3-ref-summary">مرجع معتبر CV برای این ثبت در دسترس نیست</span>`;const slope=(()=>{const pts=a.map(r=>({x:n(r.age),y:n(r.cv)}));if(pts.length<3)return 'برای شیب توصیفی حداقل ۳ ثبت لازم است';const x=pts.map(p=>p.x),y=pts.map(p=>p.y),mx=x.reduce((s,z)=>s+z,0)/x.length,my=y.reduce((s,z)=>s+z,0)/y.length,sxx=x.reduce((s,z)=>s+(z-mx)**2,0);if(!sxx)return 'قابل محاسبه نیست';return `${fmt(x.reduce((s,z,i)=>s+(z-mx)*(y[i]-my),0)/sxx,4)} / روز`})();if(sub)sub.innerHTML=`<div class="bpi3-ref-detail"><div class="bpi3-ref-row"><span class="bpi3-ref-key">مبنای مقایسه</span><span class="bpi3-ref-val">بدون مرجع معتبر</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">CV ثبت فعلی</span><span class="bpi3-ref-val">${fmt(cur.cv,1)}٪</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">CV ثبت قبلی</span><span class="bpi3-ref-val">${fmt(prev.cv,1)}٪</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">تغییر CV</span><span class="bpi3-ref-val">${signed(ch,1)}٪</span></div><div class="bpi3-ref-row"><span class="bpi3-ref-key">شیب توصیفی</span><span class="bpi3-ref-val">${slope}</span></div></div><div class="bpi3-ref-interpret"><b>تفسیر:</b> ${ch===null?'داده کافی برای تفسیر تغییر CV نداریم.':ch>0?'پراکندگی وزن افزایش یافته و یکنواختی نسبت به ثبت قبلی نامطلوب‌تر شده است؛ این شاخص باید همراه با وزن، تلفات و شرایط مدیریتی بررسی شود.':'پراکندگی وزن کاهش یافته و یکنواختی نسبت به ثبت قبلی بهتر شده است.'}</div>`}
+let running=false,lastKey='';async function render(){const panel=document.querySelector('#broiler-performance-intelligence-v3-shell [data-bpi3-panel="intelligence"]');if(!panel)return;const router=global.AdineReportRouter,Interpreter=global.AdineBroilerReferenceInterpreterV1;if(!router||!Interpreter)return;const id=router.currentFlockId();if(!id||running)return;pending();running=true;try{const[flock,raw]=await Promise.all([router.getFlock(id),router.getWeeklyRecords(id)]);const model=router.buildModel(flock,raw),rows=await resolveRows(model?.rows||[],flock,id);const key=JSON.stringify(rows.map(r=>[r.age,r.weight,r.cumulativeFcr,r.cv,r.standardWeight,r.standardCumulativeFcr,r.standardCv,r.standardWeightSource,r.standardCumulativeFcrSource,r.standardCvSource]));if(key===lastKey){['روند وزن','روند FCR','روند CV'].forEach(x=>release(card(x)));return}lastKey=key;const w=Interpreter.build('weight',rows,{actualKey:'weight',referenceKey:'standardWeight',direction:'higher',label:'وزن',unit:'g/day'});const f=Interpreter.build('fcr',rows,{actualKey:'cumulativeFcr',referenceKey:'standardCumulativeFcr',direction:'lower',label:'FCR تجمعی',unit:'واحد FCR/day'});if(w?.available)w.currentRow=w.points[w.points.length-1].row;if(f?.available)f.currentRow=f.points[f.points.length-1].row;paint(card('روند وزن'),w,{label:'وزن',referenceKey:'standardWeight',slope:1,unit:'g/day'});paint(card('روند FCR'),f,{label:'FCR تجمعی',referenceKey:'standardCumulativeFcr',slope:4,unit:'واحد FCR/day'});paintCv(card('روند CV'),rows,Interpreter)}catch(e){console.warn('[Adine PI reference layer v7]',e);['روند وزن','روند FCR','روند CV'].forEach(x=>release(card(x)))}finally{running=false}}
 function start(){injectStyle();let tries=0;const timer=setInterval(()=>{render();if(++tries>=160)clearInterval(timer)},250);render()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })(typeof window!=='undefined'?window:globalThis);

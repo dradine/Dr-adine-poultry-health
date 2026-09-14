@@ -1,7 +1,12 @@
-/* ADINE BROILER PERFORMANCE — REFERENCE TREND INTERPRETER V1
+/* ADINE BROILER PERFORMANCE — REFERENCE TREND INTERPRETER V2
  * Pure, read-only interpretation layer.
  * Consumes canonical actual/reference values only.
  * Never writes to Supabase and never changes standards or canonical calculations.
+ *
+ * Important semantic rule:
+ * "Position" and "trend" are different things.
+ * A flock can already be better than reference while its advantage is shrinking.
+ * In that case we must NOT say "improvement"; we say "reduced advantage".
  */
 (function(global){
   'use strict';
@@ -16,11 +21,6 @@
     const a=n(actual),r=n(reference);
     return a===null||r===null||r===0?null:(a-r)/Math.abs(r)*100;
   };
-  const signed=(v,d=1)=>{
-    const x=n(v);
-    if(x===null)return null;
-    return Number(x.toFixed(d));
-  };
 
   function regression(points){
     const p=(points||[]).map(z=>({x:n(z.x),y:n(z.y)})).filter(z=>z.x!==null&&z.y!==null).sort((a,b)=>a.x-b.x);
@@ -34,9 +34,7 @@
     const residuals=p.map(z=>z.y-(intercept+slope*z.x));
     const sse=residuals.reduce((s,x)=>s+x*x,0);
     const sst=p.reduce((s,z)=>s+(z.y-my)**2,0);
-    return{
-      available:true,n:p.length,slope:round(slope,5),r2:round(sst>0?1-sse/sst:1,3),first:p[0],last:p[p.length-1]
-    };
+    return{available:true,n:p.length,slope:round(slope,5),r2:round(sst>0?1-sse/sst:1,3),first:p[0],last:p[p.length-1]};
   }
 
   function sourceInfo(row,key){
@@ -44,9 +42,7 @@
     const name=row?.[key+'SourceName']??row?.[key+'SourceLabel']??row?.standardSourceName??row?.standardSourceLabel??null;
     const year=n(row?.[key+'SourceYear']??row?.standardSourceYear);
     const value=n(row?.[key]);
-    if(raw==='official'||raw==='official-derived'){
-      return{type:raw,label:raw==='official-derived'?'مرجع رسمی مشتق‌شده':'مرجع رسمی',name,year,available:value!==null};
-    }
+    if(raw==='official'||raw==='official-derived')return{type:raw,label:raw==='official-derived'?'مرجع رسمی مشتق‌شده':'مرجع رسمی',name,year,available:value!==null};
     if(raw==='scientific')return{type:'scientific',label:'مرجع علمی',name,year,available:value!==null};
     if(raw==='management')return{type:'management',label:'مرجع مدیریتی',name,year,available:value!==null};
     if(value!==null)return{type:'numeric',label:'مرجع عددی موجود',name,year,available:true};
@@ -54,29 +50,40 @@
   }
 
   function position(gap,direction){
-    if(gap===null)return{key:'unknown',label:'قابل قضاوت نیست'};
+    if(gap===null)return{key:'unknown',label:'قابل قضاوت نیست',favorable:false};
     if(direction==='higher'){
-      if(gap>=2)return{key:'above',label:'بالاتر از مرجع'};
-      if(gap<=-5)return{key:'below_material',label:'پایین‌تر از مرجع'};
-      if(gap<0)return{key:'below_near',label:'کمی پایین‌تر از مرجع'};
-      return{key:'near',label:'نزدیک به مرجع'};
+      if(gap>=2)return{key:'above',label:'بالاتر از مرجع',favorable:true};
+      if(gap<=-5)return{key:'below_material',label:'پایین‌تر از مرجع',favorable:false};
+      if(gap<0)return{key:'below_near',label:'کمی پایین‌تر از مرجع',favorable:false};
+      return{key:'near',label:'نزدیک به مرجع',favorable:null};
     }
-    if(gap<=-2)return{key:'better',label:'بهتر از مرجع'};
-    if(gap>=5)return{key:'worse_material',label:'بدتر از مرجع'};
-    if(gap>0)return{key:'worse_near',label:'کمی بدتر از مرجع'};
-    return{key:'near',label:'نزدیک به مرجع'};
+    if(gap<=-2)return{key:'better',label:'بهتر از مرجع',favorable:true};
+    if(gap>=5)return{key:'worse_material',label:'بدتر از مرجع',favorable:false};
+    if(gap>0)return{key:'worse_near',label:'کمی بدتر از مرجع',favorable:false};
+    return{key:'near',label:'نزدیک به مرجع',favorable:null};
   }
 
-  function trendClass(improvement,delta){
-    if(improvement===null)return{key:'unknown',label:'روند نسبت به مرجع قابل قضاوت نیست',arrow:'→'};
+  /*
+   * improvement > 0 means the reference gap moved in the favorable direction.
+   * But the wording depends on the CURRENT position:
+   * - already favorable + favorable movement => advantage increased
+   * - already favorable + unfavorable movement => advantage reduced
+   * - unfavorable + favorable movement => gap improved toward reference
+   * - unfavorable + unfavorable movement => gap became more unfavorable
+   */
+  function trendClass(improvement,currentPosition){
+    if(improvement===null)return{key:'unknown',label:'روند نسبت به مرجع قابل قضاوت نیست',arrow:'→',mode:'unknown'};
     const a=Math.abs(improvement);
-    if(a<0.5)return{key:'stable',label:'پایدار نسبت به مرجع',arrow:'→'};
-    if(improvement>=5)return{key:'strong_improvement',label:'بهبود معنادار نسبت به مرجع',arrow:'↗'};
-    if(improvement>=1.5)return{key:'improvement',label:'بهبود نسبت به مرجع',arrow:'↗'};
-    if(improvement>0)return{key:'slight_improvement',label:'بهبود خفیف نسبت به مرجع',arrow:'↗'};
-    if(improvement<=-5)return{key:'strong_worsening',label:'بدتر شدن معنادار نسبت به مرجع',arrow:'↘'};
-    if(improvement<=-1.5)return{key:'worsening',label:'فاصله نامطلوب‌تر نسبت به مرجع',arrow:'↘'};
-    return{key:'slight_worsening',label:'بدتر شدن خفیف نسبت به مرجع',arrow:'↘'};
+    if(a<0.5)return{key:'stable',label:'وضعیت نسبت به مرجع پایدار',arrow:'→',mode:'stable'};
+    const favorable=currentPosition?.favorable===true;
+    if(improvement>0){
+      if(a>=5)return{key:'strong_improvement',label:favorable?'افزایش محسوس برتری نسبت به مرجع':'بهبود محسوس فاصله تا مرجع',arrow:'↗',mode:favorable?'advantage_increased':'gap_improved'};
+      if(a>=1.5)return{key:'improvement',label:favorable?'افزایش برتری نسبت به مرجع':'بهبود فاصله تا مرجع',arrow:'↗',mode:favorable?'advantage_increased':'gap_improved'};
+      return{key:'slight_improvement',label:favorable?'افزایش خفیف برتری نسبت به مرجع':'بهبود خفیف فاصله تا مرجع',arrow:'↗',mode:favorable?'advantage_increased':'gap_improved'};
+    }
+    if(a>=5)return{key:'strong_worsening',label:favorable?'کاهش محسوس برتری نسبت به مرجع':'بدتر شدن محسوس فاصله از مرجع',arrow:'↘',mode:favorable?'advantage_reduced':'gap_worsened'};
+    if(a>=1.5)return{key:'worsening',label:favorable?'کاهش برتری نسبت به مرجع':'بدتر شدن فاصله از مرجع',arrow:'↘',mode:favorable?'advantage_reduced':'gap_worsened'};
+    return{key:'slight_worsening',label:favorable?'کاهش خفیف برتری نسبت به مرجع':'بدتر شدن خفیف فاصله از مرجع',arrow:'↘',mode:favorable?'advantage_reduced':'gap_worsened'};
   }
 
   function build(metric,rows,opts){
@@ -86,13 +93,10 @@
     const label=opts?.label||metric;
     const unit=opts?.unit||'';
     const ordered=(rows||[]).slice().sort((a,b)=>(n(a.age)||0)-(n(b.age)||0));
-    const points=ordered.map(r=>({
-      age:n(r.age),actual:n(r[actualKey]),reference:n(r[referenceKey]),row:r
-    })).filter(p=>p.age!==null&&p.actual!==null&&p.reference!==null);
+    const points=ordered.map(r=>({age:n(r.age),actual:n(r[actualKey]),reference:n(r[referenceKey]),row:r})).filter(p=>p.age!==null&&p.actual!==null&&p.reference!==null);
     if(points.length<2)return{available:false,code:'insufficient_reference_history',n:points.length,minimum_n:2};
 
-    const cur=points[points.length-1];
-    const prev=points[points.length-2];
+    const cur=points[points.length-1],prev=points[points.length-2];
     const currentGap=absPct(cur.actual,cur.reference);
     const previousGap=absPct(prev.actual,prev.reference);
     const gapChange=currentGap!==null&&previousGap!==null?round(currentGap-previousGap,2):null;
@@ -102,27 +106,40 @@
     const actualSlope=regression(points.map(p=>({x:p.age,y:p.actual})));
     const referenceSlope=regression(points.map(p=>({x:p.age,y:p.reference})));
     const gapSlope=regression(points.map(p=>({x:p.age,y:currentSignedGap(p,direction)})));
-    const trend=trendClass(improvement,gapChange);
     const pos=position(currentGap,direction);
+    const trend=trendClass(improvement,pos);
     const src=sourceInfo(cur.row,referenceKey);
     const favorable=(improvement!==null&&improvement>0.5);
     const unfavorable=(improvement!==null&&improvement<-0.5);
 
     let outlook='';
-    if(trend.key==='strong_improvement')outlook='روند بسیار امیدوارکننده است؛ فاصله نسبت به مرجع به‌طور محسوسی در حال بهبود است.';
-    else if(trend.key==='improvement')outlook='روند امیدوارکننده است و گله نسبت به مسیر مرجع در جهت مطلوب حرکت کرده است.';
-    else if(trend.key==='slight_improvement')outlook='جهت حرکت مطلوب است، اما شدت بهبود هنوز محدود است و ادامه پایش لازم است.';
-    else if(trend.key==='stable')outlook='فاصله از مرجع تقریباً پایدار مانده و تغییر معنی‌داری نسبت به ثبت قبلی دیده نمی‌شود.';
-    else if(trend.key==='slight_worsening')outlook='فاصله کمی نامطلوب‌تر شده است؛ هنوز به‌تنهایی نشانه افت جدی نیست، اما باید در ثبت بعدی پایش شود.';
-    else if(trend.key==='worsening')outlook='فاصله از مرجع در جهت نامطلوب حرکت کرده و نیاز به پایش نزدیک‌تر دارد.';
-    else if(trend.key==='strong_worsening')outlook='فاصله از مرجع به‌طور محسوسی بدتر شده و بررسی عوامل مدیریتی و عملکردی توصیه می‌شود.';
-    else outlook='برای قضاوت روند، داده کافی در دسترس نیست.';
+    if(trend.mode==='advantage_increased'){
+      outlook=trend.key==='strong_improvement'
+        ?'گله در حال تقویت برتری خود نسبت به مرجع است؛ این جهت حرکت مطلوب و امیدوارکننده است.'
+        :'گله همچنان بهتر از مرجع است و فاصله مطلوب آن در حال افزایش است؛ جهت حرکت مثبت است.';
+    }else if(trend.mode==='gap_improved'){
+      outlook=trend.key==='strong_improvement'
+        ?'گله هنوز پایین‌تر/نامطلوب‌تر از مرجع است، اما فاصله آن به‌طور محسوسی در جهت مطلوب کاهش یافته است.'
+        :'گله هنوز به مرجع نرسیده، اما فاصله در جهت مطلوب در حال کاهش است؛ ادامه پایش برای تأیید پایداری این روند لازم است.';
+    }else if(trend.mode==='advantage_reduced'){
+      outlook=trend.key==='strong_worsening'
+        ?'گله هنوز بهتر از مرجع است، اما برتری آن به‌طور محسوسی کاهش یافته است؛ بنابراین وضعیت فعلی خوب است ولی جهت حرکت نیازمند توجه است.'
+        :'گله همچنان بهتر از مرجع است و در حال حاضر نیاز به «بهبود تا مرجع» ندارد؛ با این حال، بخشی از برتری نسبت به ثبت قبلی کاهش یافته و باید روند بعدی پایش شود.';
+    }else if(trend.mode==='gap_worsened'){
+      outlook=trend.key==='strong_worsening'
+        ?'گله پایین‌تر/نامطلوب‌تر از مرجع قرار دارد و فاصله در جهت نامطلوب به‌طور محسوسی بیشتر شده است؛ بررسی مدیریتی و عملکردی توصیه می‌شود.'
+        :'گله نسبت به مرجع نامطلوب‌تر شده و فاصله در جهت نامناسب حرکت کرده است؛ پایش نزدیک‌تر توصیه می‌شود.';
+    }else if(trend.mode==='stable'){
+      outlook=pos.favorable===true
+        ?'گله در حال حاضر بهتر از مرجع است و این برتری تقریباً حفظ شده است.'
+        :pos.favorable===false
+          ?'گله در حال حاضر از مرجع عقب‌تر است، اما فاصله فعلاً تغییر محسوسی نکرده است.'
+          :'گله نزدیک به مرجع است و تغییر محسوسی در فاصله آن دیده نمی‌شود.';
+    }else{
+      outlook='برای قضاوت روند نسبت به مرجع داده کافی در دسترس نیست.';
+    }
 
-    return{
-      available:true,metric,label,unit,direction,n:points.length,currentGap,previousGap,gapChange,improvement,actualChange,referenceChange,
-      actualSlope,referenceSlope,gapSlope,trend,position:pos,source:src,favorable,unfavorable,outlook,points,
-      currentAge:cur.age,previousAge:prev.age,currentValue:cur.actual,currentReference:cur.reference,previousValue:prev.actual,previousReference:prev.reference
-    };
+    return{available:true,metric,label,unit,direction,n:points.length,currentGap,previousGap,gapChange,improvement,actualChange,referenceChange,actualSlope,referenceSlope,gapSlope,trend,position:pos,source:src,favorable,unfavorable,outlook,points,currentAge:cur.age,previousAge:prev.age,currentValue:cur.actual,currentReference:cur.reference,previousValue:prev.actual,previousReference:prev.reference};
   }
 
   function currentSignedGap(p,direction){
@@ -132,13 +149,11 @@
 
   function narrative(ev){
     if(!ev?.available)return 'داده مرجع کافی برای تفسیر روند در دسترس نیست.';
-    const g=ev.currentGap,pg=ev.previousGap,dc=ev.gapChange;
-    const pos=ev.position.label.toLowerCase();
-    const gapNow=g===null?'نامشخص':`${g>0?'+':''}${g.toFixed(1)}٪`;
-    const gapPrev=pg===null?'نامشخص':`${pg>0?'+':''}${pg.toFixed(1)}٪`;
-    const change=dc===null?'نامشخص':`${dc>0?'+':''}${dc.toFixed(1)} واحد درصد`;
-    return `${ev.label} در آخرین ثبت ${pos} قرار دارد (${gapNow}). در ثبت قبلی فاصله ${gapPrev} بود؛ بنابراین فاصله نسبت به مرجع ${change} تغییر کرده است. ${ev.outlook}`;
+    const gapNow=ev.currentGap===null?'نامشخص':`${ev.currentGap>0?'+':''}${ev.currentGap.toFixed(1)}٪`;
+    const gapPrev=ev.previousGap===null?'نامشخص':`${ev.previousGap>0?'+':''}${ev.previousGap.toFixed(1)}٪`;
+    const change=ev.gapChange===null?'نامشخص':`${ev.gapChange>0?'+':''}${ev.gapChange.toFixed(1)} واحد درصد`;
+    return `${ev.label} در آخرین ثبت ${ev.position.label} قرار دارد (${gapNow}). در ثبت قبلی فاصله ${gapPrev} بود؛ بنابراین فاصله نسبت به مرجع ${change} تغییر کرده است. ${ev.outlook}`;
   }
 
-  global.AdineBroilerReferenceInterpreterV1={version:'BROILER-REFERENCE-INTERPRETER-V1',build,narrative,sourceInfo};
+  global.AdineBroilerReferenceInterpreterV1={version:'BROILER-REFERENCE-INTERPRETER-V2',build,narrative,sourceInfo};
 })(typeof window!=='undefined'?window:globalThis);

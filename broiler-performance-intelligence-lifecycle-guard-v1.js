@@ -1,26 +1,26 @@
-/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V12
+/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V13
  * Presentation/lifecycle coordination only.
  * Never hides #root and never gates Weekly/Comparison/Comprehensive rendering.
  *
- * Critical lifecycle rule:
- * The BPI shell is NOT reusable across top-level report tabs. The comprehensive
- * renderer replaces #root when Weekly/Comparison/Overall changes. Keeping the
- * old shell parked and restoring it later reuses stale intelligence cards/data.
- * Therefore a parked shell is discarded; the bootstrap creates a fresh shell
- * around the newly rendered comprehensive report, and the intelligence panel
- * is warmed once so its adapter reads a fresh canonical report model.
+ * A BPI shell is scoped to one top-level report render. The comprehensive
+ * renderer replaces #root when the user moves between Weekly/Overall/Compare.
+ * Reusing a parked shell therefore reuses stale intelligence DOM/data. A
+ * parked shell is discarded; the bootstrap creates a fresh shell around the
+ * newly rendered comprehensive report. The intelligence panel is warmed once
+ * through its normal tab click path so the adapter rebuilds from the current
+ * canonical report model.
  *
- * Comparison rule:
- * reports.js has a legacy compare branch that clears #root. We intercept the
- * top-level comparison click here and hand it directly to the comparison
- * landing UI, preventing the comparison sub-tabs from being immediately wiped.
+ * The top-level comparison click is intercepted before reports.js's legacy
+ * compare branch can clear #root. The comparison landing UI is then mounted,
+ * preserving its two sub-tabs (comparison / benchmark).
  */
 (function(global){
 'use strict';
-if(global.__ADINE_BPI_LIFECYCLE_GUARD_V12__)return;
-global.__ADINE_BPI_LIFECYCLE_GUARD_V12__=true;
+if(global.__ADINE_BPI_LIFECYCLE_GUARD_V13__)return;
+global.__ADINE_BPI_LIFECYCLE_GUARD_V13__=true;
 const ROOT_ID='root',SHELL_ID='broiler-performance-intelligence-v3-shell',PARK_ID='adine-bpi-shell-parking-v1';
 let refreshToken=0,refreshBusy=false;
+const warmed=new WeakSet();
 const $=id=>document.getElementById(id);
 const root=()=>$(ROOT_ID);
 const activeTab=()=>document.querySelector('.report-tab.active')?.getAttribute('data-tab')||null;
@@ -29,13 +29,16 @@ function shellInRoot(){return root()?.querySelector('#'+SHELL_ID)||null}
 function park(){const s=shellInRoot();if(s)parking().appendChild(s)}
 function discardParked(){const p=$(PARK_ID);p?.querySelector('#'+SHELL_ID)?.remove()}
 function freshShell(){discardParked();return shellInRoot()}
-function comparisonLanding(){try{if(global.AdineComparisonLanding?.showLanding){global.AdineComparisonLanding.showLanding();return true}}catch(e){console.error(e)}return false}
+function comparisonLanding(){try{return !!(global.AdineComparisonLanding?.showLanding&&global.AdineComparisonLanding.showLanding())}catch(e){console.error(e);return false}}
 function warmFreshIntelligence(shell){
-  if(!shell||refreshBusy)return;
-  const token=++refreshToken;refreshBusy=true;
+  if(!shell||refreshBusy||warmed.has(shell))return;
   const intel=shell.querySelector('.bpi3-tab[data-bpi3-tab="intelligence"]');
   const overall=shell.querySelector('.bpi3-tab[data-bpi3-tab="overall"]');
-  if(!intel||!overall){refreshBusy=false;return}
+  if(!intel||!overall)return;
+  warmed.add(shell);
+  const token=++refreshToken;refreshBusy=true;
+  /* Use the adapter's normal intelligence-tab path. This does not alter any
+     calculation/reference source; it only forces a fresh presentation build. */
   intel.click();
   let n=0;
   const timer=setInterval(()=>{
@@ -55,6 +58,7 @@ function reconcile(){
     park();
   }
 }
+/* Must run before reports.js's bubble listener. */
 document.addEventListener('click',function(e){
   const tab=e.target?.closest?.('.report-tab[data-tab="compare-empty"]');
   if(!tab)return;
@@ -62,18 +66,16 @@ document.addEventListener('click',function(e){
   e.stopImmediatePropagation();
   document.querySelectorAll('.report-tab').forEach(x=>x.classList.remove('active'));
   tab.classList.add('active');
-  setTimeout(()=>comparisonLanding(),0);
+  setTimeout(comparisonLanding,0);
 },true);
 document.addEventListener('click',function(e){
   if(e.target?.closest?.('.report-tab[data-tab="overall"]'))setTimeout(reconcile,0);
   if(e.target?.closest?.('.report-tab[data-tab="weekly"]'))setTimeout(reconcile,0);
-  if(e.target?.closest?.('.bpi3-tab'))setTimeout(()=>{if(activeTab()==='overall')refreshBusy=false},0);
 },true);
 if(typeof MutationObserver!=='undefined'){
   const mo=new MutationObserver(()=>{
     if(activeTab()==='overall'){
       const s=shellInRoot();
-      if(s&&!refreshBusy&&!s.querySelector('.bpi3-loading'))return;
       if(s&&!refreshBusy)warmFreshIntelligence(s);
     }else park();
   });

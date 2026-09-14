@@ -1,8 +1,9 @@
-/* ADINE REPORTS — BROILER DOMAIN ENGINE V6
+/* ADINE REPORTS — BROILER DOMAIN ENGINE V7
    Read-only reporting adapter.
    Actual values come from canonical weekly_records.
-   Official references are resolved from the canonical broiler official registry.
-   Weekly report calculations are not modified.
+   Official references are resolved from the canonical broiler official registry,
+   while an already-stored weekly standard_weight is authoritative when present.
+   Weekly report calculations are not otherwise modified.
 */
 "use strict";
 (function(global){
@@ -31,10 +32,10 @@
   }
 
   /*
-     Weekly monitoring is compared against the breeder's weekly reference age,
-     not the literal calendar age stored on the record. This is intentional:
-     a record labelled week 2 may be entered at day 13/15 because of farm
-     scheduling, while the official weekly reference is day 14.
+     Weekly monitoring is compared against the breeder's weekly reference age
+     when no canonical standard was already stored on the weekly record.
+     A stored weekly standard_weight is authoritative because it is the exact
+     standard selected by the canonical weekly-record path.
   */
   function benchmarkAge(r){
     const w=week(r);
@@ -44,10 +45,39 @@
 
   function standardFor(flock,r){
     const strain=String(flock?.strain??'').trim();
-    const registry=registryFor(strain),a=benchmarkAge(r);
+    const storedWeight=n(r?.standard_weight);
+    const a=age(r),fallbackAge=benchmarkAge(r);
+    const registry=registryFor(strain);
+
+    /* Canonical weekly-record standard wins over any secondary re-resolution. */
+    if(storedWeight!==null){
+      const meta=(registry && Number.isFinite(a))
+        ? (registry.records||[]).find(x=>Number(x[0])===a)
+        : null;
+      const fallbackMeta=meta || (registry && Number.isFinite(fallbackAge)
+        ? (registry.records||[]).find(x=>Number(x[0])===fallbackAge)
+        : null);
+      return{
+        weight:storedWeight,
+        fcr:n(fallbackMeta?.[2]),
+        weightSourceLabel:registry?.sourceLabel||'مرجع رسمی ذخیره‌شده در ثبت هفتگی',
+        fcrSourceLabel:registry?.sourceLabel||null,
+        sourceType:registry?.sourceType||'official',
+        sourceUrl:registry?.sourceUrl||null,
+        official:true,
+        standardAgeDays:a,
+        strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain
+      };
+    }
+
+    /* Legacy/fallback path for older records that predate stored standards. */
     if(registry && Number.isFinite(a)){
       const hit=(registry.records||[]).find(x=>Number(x[0])===a);
       if(hit)return{weight:n(hit[1]),fcr:n(hit[2]),weightSourceLabel:registry.sourceLabel,fcrSourceLabel:registry.sourceLabel,sourceType:registry.sourceType,sourceUrl:registry.sourceUrl,official:true,standardAgeDays:a,strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain};
+    }
+    if(registry && Number.isFinite(fallbackAge)){
+      const hit=(registry.records||[]).find(x=>Number(x[0])===fallbackAge);
+      if(hit)return{weight:n(hit[1]),fcr:n(hit[2]),weightSourceLabel:registry.sourceLabel,fcrSourceLabel:registry.sourceLabel,sourceType:registry.sourceType,sourceUrl:registry.sourceUrl,official:true,standardAgeDays:fallbackAge,strainKey:Object.keys(global.BROILER_OFFICIAL_STANDARDS_V1?.strains||{}).find(k=>registry===global.BROILER_OFFICIAL_STANDARDS_V1.strains[k])||strain};
     }
     return null;
   }
@@ -103,6 +133,6 @@
     };
   }
 
-  function build(flock,rows){const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));return{domain:'broiler',engineVersion:'BROILER-REPORT-V6',calculationAuthority:'canonical-weekly-record',standardAuthority:'canonical-broiler-official-registry',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}}
-  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V6',build,standardFor,officialWeeklyFcr,actualWeeklyGain,actualCumulativeGain,managementWeeklyWeightGain,officialCumulativeGain,managementWeeklyFcr,managementWeightGain,benchmarkAge};
+  function build(flock,rows){const sorted=[...(rows||[])].sort((a,b)=>(week(a)??9999)-(week(b)??9999));return{domain:'broiler',engineVersion:'BROILER-REPORT-V7',calculationAuthority:'canonical-weekly-record',standardAuthority:'canonical-broiler-official-registry-with-weekly-record-precedence',rows:sorted.map((r,i)=>makeRow(flock,sorted,i))}}
+  global.AdineBroilerReportEngine={version:'BROILER-REPORT-V7',build,standardFor,officialWeeklyFcr,actualWeeklyGain,actualCumulativeGain,managementWeeklyWeightGain,officialCumulativeGain,managementWeeklyFcr,managementWeightGain,benchmarkAge};
 })(typeof window!=='undefined'?window:globalThis);

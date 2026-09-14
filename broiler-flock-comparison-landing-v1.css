@@ -1,25 +1,19 @@
-/* Adine — Comparison landing: wide rectangular side-by-side cards */
-.fc-landing{width:100%;max-width:900px;margin:0 auto;padding:10px 4px 18px;text-align:center}
-.fc-landing-heading{margin-bottom:20px}.fc-landing-heading h2{margin:0;color:#20352f;font-size:19px;font-weight:900;line-height:1.5}.fc-landing-heading p{margin:5px 0 0;color:#718079;font-size:11px}
-.fc-landing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-content:center;gap:18px;width:100%;margin:0 auto}
-.fc-landing-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;width:100%;height:130px;min-width:0;min-height:130px;padding:18px 24px;border:1px solid transparent;border-radius:14px;overflow:hidden;cursor:pointer;text-align:center;font:inherit;box-shadow:0 7px 20px rgba(20,45,38,.10),inset 0 1px 0 rgba(255,255,255,.7);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;touch-action:manipulation;appearance:none;-webkit-tap-highlight-color:transparent}
-.fc-landing-card::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(145deg,rgba(255,255,255,.42),rgba(255,255,255,0) 60%)}
-.fc-landing-card::after{content:"›";position:absolute;left:14px;bottom:10px;transform:rotate(180deg);font-size:18px;font-weight:400;opacity:.38}
-.fc-landing-card:hover{transform:translateY(-3px);box-shadow:0 12px 27px rgba(20,45,38,.14)}
-.fc-landing-card:active{transform:translateY(-1px) scale(.985)}
-.fc-landing-card:focus-visible{outline:3px solid rgba(46,125,104,.24);outline-offset:3px}
-.fc-landing-card .fc-landing-icon{position:relative;z-index:1;flex:0 0 auto;width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.72);box-shadow:inset 0 0 0 1px rgba(255,255,255,.8),0 4px 10px rgba(20,45,38,.08);font-size:21px;font-weight:800;line-height:1}
-.fc-landing-card .fc-landing-title{position:relative;z-index:1;display:block;margin:0;font-size:15px;font-weight:900;line-height:1.45}
-.fc-landing-card .fc-landing-desc{position:relative;z-index:1;display:block;max-width:330px;font-size:10px;line-height:1.55;opacity:.8}
-.fc-landing-card.fc-landing-flocks{background:linear-gradient(145deg,#dff1ea 0%,#c5e3d8 55%,#add4c6 100%);border-color:#a8ccbf;color:#214b3d}
-.fc-landing-card.fc-landing-flocks .fc-landing-icon{color:#2f725c}.fc-landing-card.fc-landing-flocks::after{color:#2f725c}
-.fc-landing-card.fc-landing-benchmark{background:linear-gradient(145deg,#e9e4f3 0%,#d8d1e7 55%,#c6bddc 100%);border-color:#c1b8d3;color:#433b58}
-.fc-landing-card.fc-landing-benchmark .fc-landing-icon{color:#665786}.fc-landing-card.fc-landing-benchmark::after{color:#665786}
-.fc-landing-card.fc-landing-flocks:hover{border-color:#86b9a9}.fc-landing-card.fc-landing-benchmark:hover{border-color:#a89bc2}
+/* Adine — Comparison landing: logo-based side-by-side cards */
+.fc-landing{width:100%;max-width:900px;margin:0 auto;padding:6px 0 2px;text-align:center}
+.fc-landing-heading{margin-bottom:18px}.fc-landing-heading h2{margin:0;color:#20352f;font-size:19px;font-weight:900;line-height:1.5}.fc-landing-heading p{margin:5px 0 0;color:#718079;font-size:11px}
+.fc-landing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;width:100%;margin:0 auto}
+.fc-landing-card{appearance:none;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;width:100%;box-sizing:border-box;min-height:205px;padding:22px 20px 20px;border:1px solid transparent;border-radius:22px;text-align:center;cursor:pointer;box-shadow:0 10px 28px rgba(20,45,38,.10);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;isolation:isolate;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.fc-landing-card::before{content:"";position:absolute;inset:0;z-index:-2;background:linear-gradient(145deg,#ffffff 0%,#f7faf9 100%);pointer-events:none}
+.fc-landing-card::after{content:"";position:absolute;inset:-20%;z-index:-1;opacity:.13;background:radial-gradient(circle at 20% 15%,currentColor 0,transparent 42%);pointer-events:none}
+.fc-landing-card:hover{transform:translateY(-3px);box-shadow:0 15px 34px rgba(20,45,38,.16)}
+.fc-landing-card:active{transform:translateY(0)}
+.fc-landing-card:focus-visible{outline:3px solid rgba(34,79,68,.22);outline-offset:3px}
+.fc-landing-card.fc-landing-flocks{color:#245f4d;border-color:rgba(36,95,77,.24);background:linear-gradient(145deg,#edf9f4 0%,#ffffff 62%,#f3faf7 100%)}
+.fc-landing-card.fc-landing-flocks::before{background:linear-gradient(145deg,#eaf8f2 0%,#ffffff 60%,#f3faf7 100%)}
+.fc-landing-card.fc-landing-benchmark{color:#66508a;border-color:rgba(102,80,138,.24);background:linear-gradient(145deg,#f7f1ff 0%,#ffffff 62%,#faf6ff 100%)}
+.fc-landing-card.fc-landing-benchmark::before{background:linear-gradient(145deg,#f7f1ff 0%,#ffffff 60%,#faf6ff 100%)}
+.fc-logo{display:flex;align-items:center;justify-content:center;width:74px;height:74px;margin:0 auto 13px;border-radius:22px;background:rgba(255,255,255,.72);box-shadow:0 8px 20px rgba(20,45,38,.10),inset 0 0 0 1px rgba(255,255,255,.75);backdrop-filter:blur(4px)}
+.fc-logo svg{width:48px;height:48px}.fc-logo-flocks{color:#245f4d}.fc-logo-benchmark{color:#66508a}
+.fc-landing-title{position:relative;z-index:1;display:block;font-size:16px;font-weight:900;line-height:1.45}.fc-landing-desc{position:relative;z-index:1;display:block;margin-top:7px;max-width:330px;font-size:12px;color:#68736f;line-height:1.8}.fc-card-caption{display:inline-block;position:relative;z-index:1;margin-top:10px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.65);font-size:10px;font-weight:800;color:inherit}
 .fc-landing-back{display:inline-flex;align-items:center;gap:7px;margin:0 0 12px;padding:7px 11px;border:1px solid #d7e0dc;border-radius:10px;background:#fff;color:#4b6259;font:inherit;font-size:12px;cursor:pointer}.fc-landing-back:hover{background:#f7faf8}
-@media(max-width:650px){
- .fc-landing{max-width:100%;padding:8px 2px 14px}.fc-landing-heading{margin-bottom:14px}.fc-landing-heading h2{font-size:17px}.fc-landing-heading p{font-size:10px}.fc-landing-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.fc-landing-card{height:112px;min-height:112px;padding:12px 8px;border-radius:12px;gap:6px}.fc-landing-card .fc-landing-icon{width:38px;height:38px;border-radius:11px;font-size:19px}.fc-landing-card .fc-landing-title{font-size:13px}.fc-landing-card .fc-landing-desc{font-size:8.5px;line-height:1.5;max-width:210px}.fc-landing-card::after{left:8px;bottom:6px;font-size:17px}
-}
-@media(max-width:430px){
- .fc-landing-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.fc-landing-card{height:104px;min-height:104px;padding:9px 6px;border-radius:11px;gap:5px}.fc-landing-card .fc-landing-icon{width:34px;height:34px;border-radius:10px;font-size:17px}.fc-landing-card .fc-landing-title{font-size:12px}.fc-landing-card .fc-landing-desc{font-size:8px;line-height:1.4;max-width:170px}
-}
+@media(max-width:700px){.fc-landing-grid{grid-template-columns:1fr}.fc-landing-card{min-height:190px;padding:20px 16px;border-radius:22px}.fc-logo{width:68px;height:68px;border-radius:20px}.fc-logo svg{width:44px;height:44px}.fc-landing-title{font-size:16px}.fc-landing-desc{font-size:12px;line-height:1.8}.fc-landing-heading h2{font-size:17px}.fc-landing-heading p{font-size:10px}}

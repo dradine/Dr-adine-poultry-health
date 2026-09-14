@@ -1,6 +1,6 @@
-/* ADINE POULTRY HEALTH — BROILER FCR CANONICAL ENGINE V14.1 */
+/* ADINE POULTRY HEALTH — BROILER FCR CANONICAL ENGINE V14.2 */
 (function(global){'use strict';
-const VERSION='BROILER-FCR-V14.1';
+const VERSION='BROILER-FCR-V14.2';
 const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
 const norm=v=>String(v??'').trim().toLowerCase();
 const isBroiler=f=>['broiler','broilers','گوشتی','meat'].includes(norm(f?.production_type||f?.productionType));
@@ -13,11 +13,16 @@ function canonical(records,flock){
     const weight=n(r.average_weight_g??r.averageWeight),live=n(r.live_birds??r.liveBirds),feed=n(r.feed_total_kg??r.feedTotalKg??r.feed);
     const openingLive=index===0?ib:n(prev?.live_birds??prev?.liveBirds),openingWeight=index===0?iw:n(prev?.average_weight_g??prev?.averageWeight);
     let weekly=null;
-    if(live>0&&weight>0&&openingLive>0&&openingWeight!==null){const gain=(live*weight-openingLive*openingWeight)/1000;if(feed>0&&gain>0)weekly=feed/gain;}
+    /* Comparable FCR follows breeder-catalog semantics: mortality is not separately
+       credited/debited. Period feed is divided by current live birds multiplied by
+       the period's per-bird weight gain. */
+    if(live>0&&weight>0&&openingWeight!==null&&weight>openingWeight){const gain=live*(weight-openingWeight)/1000;if(feed>0&&gain>0)weekly=feed/gain;}
     if(feed!==null&&feed>=0)cumFeed+=feed;
-    const cumulativeGain=(live>0&&weight>0&&ib>0&&iw!==null)?(live*weight-ib*iw)/1000:null;
-    let cumulative=null;if(index===0)cumulative=weekly;else if(cumFeed>0&&cumulativeGain>0)cumulative=cumFeed/cumulativeGain;
-    const result={...r,ageDays:n(r.ageDays??r.age_days),weeklyFcr:weekly==null?null:Number(weekly.toFixed(4)),cumulativeFcr:cumulative==null?null:Number(cumulative.toFixed(4)),fcr:weekly==null?null:Number(weekly.toFixed(4)),calculationVersion:VERSION};
+    /* Cumulative comparable FCR uses the current live population and total
+       per-bird gain from placement, matching the breeder-table definition. */
+    const cumulativeGain=(live>0&&weight>0&&iw!==null&&weight>iw)?live*(weight-iw)/1000:null;
+    let cumulative=null;if(cumFeed>0&&cumulativeGain>0)cumulative=cumFeed/cumulativeGain;
+    const result={...r,ageDays:n(r.ageDays??r.age_days),weeklyFcr:weekly==null?null:Number(weekly.toFixed(4)),cumulativeFcr:cumulative==null?null:Number(cumulative.toFixed(4)),fcr:weekly==null?null:Number(weekly.toFixed(4)),calculationVersion:VERSION,fcrSemantics:'comparable-breeder-catalog-mortality-not-accounted-for'};
     prev=r;
     return result;
   });

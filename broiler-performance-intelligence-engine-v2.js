@@ -8,7 +8,20 @@
 (function(global){'use strict';
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const first=(r,ks)=>{for(const k of ks){const x=n(r?.[k]);if(x!==null)return x}return null};
-const canonicalTarget=(r,m)=>n(r?.canonicalTargets?.[m]);
+const canonicalKeys={
+  weight:['standardWeight','standard_weight'],
+  fcr:['standardWeeklyFcr','officialWeeklyFcr','official_weekly_fcr'],
+  cumulativeFcr:['standardCumulativeFcr','officialCumulativeFcr','official_cumulative_fcr'],
+  adg:['standardWeeklyWeightGain','officialWeeklyWeightGain','standard_weekly_weight_gain'],
+  mortality:['standardMortalityPercent','standard_mortality','officialMortalityPercent'],
+  cv:['cvStandard','standardCv','standard_cv','officialCv'],
+  u10:['uniformity10Standard','standardUniformity10','standard_uniformity_10','officialUniformity10'],
+  u15:['uniformity15Standard','standardUniformity15','standard_uniformity_15','officialUniformity15'],
+  feed:['standardFeedPerBirdDay','standard_feed_per_bird_day','standardFeed','standard_feed'],
+  water:['standardWaterPerBirdDay','standard_water_per_bird_day','standardWater','standard_water'],
+  wfr:['standardWaterFeedRatio','standard_water_feed_ratio','officialWaterFeedRatio']
+};
+const canonicalTarget=(r,m)=>{const direct=n(r?.canonicalTargets?.[m]);return direct!==null?direct:first(r,canonicalKeys[m]||[])};
 const defs={
   weight:{a:['weight','average_weight_g','average_weight'],o:'weight',m:['managementWeight','management_weight','managementTargetWeight','management_target_weight']},
   fcr:{a:['fcr'],o:'fcr',m:['managementWeeklyFcr','managementFcr','management_fcr','managementTargetFcr','management_target_fcr']},

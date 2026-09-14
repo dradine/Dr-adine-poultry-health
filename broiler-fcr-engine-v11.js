@@ -1,6 +1,6 @@
-/* ADINE POULTRY HEALTH — BROILER FCR CANONICAL ENGINE V14 */
+/* ADINE POULTRY HEALTH — BROILER FCR CANONICAL ENGINE V14.1 */
 (function(global){'use strict';
-const VERSION='BROILER-FCR-V14.0';
+const VERSION='BROILER-FCR-V14.1';
 const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
 const norm=v=>String(v??'').trim().toLowerCase();
 const isBroiler=f=>['broiler','broilers','گوشتی','meat'].includes(norm(f?.production_type||f?.productionType));
@@ -23,22 +23,11 @@ function canonical(records,flock){
   });
 }
 function status(actual,target){if(actual==null||target==null)return{key:'none',label:'قابل مقایسه نیست'};const d=(actual-target)/target*100;if(d<=0)return{key:'good',label:'بهتر از معیار'};if(d<=5)return{key:'near',label:'نزدیک به معیار'};if(d<=10)return{key:'warning',label:'نیازمند توجه'};return{key:'bad',label:'نامطلوب'};}
-function canonicalTarget(flock,row){
-  try{
-    if(global.AdineBroilerPerformanceIntelligenceSourceV1?.weeklyEvaluationStandard){
-      return global.AdineBroilerPerformanceIntelligenceSourceV1.weeklyEvaluationStandard(flock,row)||null;
-    }
-    if(global.resolvePoultryStandard){
-      const age=n(row?.age_days??row?.ageDays);if(age===null)return null;
-      const x=global.resolvePoultryStandard({productionType:'broiler',breed:flock?.genetics||'',genetics:flock?.genetics||'',strain:flock?.strain||'',ageDays:age});
-      if(!x)return null;
-      return {weight:x.weight,cumulativeFcr:null,weeklyFcr:x.fcr,sourceType:x.confidence==='official'?'official-performance-objective':'management-standard',sourceLabel:x.sourceName||x.fcrSourceLabel||'استاندارد کاننیکال'};
-    }
-  }catch(e){console.warn('ADINE FCR canonical target unavailable:',e)}
-  return null;
-}
+function loadCanonicalSource(){return new Promise((resolve,reject)=>{if(global.AdineBroilerPerformanceIntelligenceSourceV1?.version==='BROILER-PI-SOURCE-V7'){resolve();return}if(typeof document==='undefined'){reject(new Error('PI_SOURCE_NOT_LOADED'));return}const s=document.createElement('script');s.src='broiler-performance-intelligence-source-v1.js?v=20260915.7';s.async=false;s.onload=()=>global.AdineBroilerPerformanceIntelligenceSourceV1?.version==='BROILER-PI-SOURCE-V7'?resolve():reject(new Error('PI_SOURCE_VERSION_MISMATCH'));s.onerror=()=>reject(new Error('PI_SOURCE_LOAD_FAILED'));document.head.appendChild(s)})}
+function canonicalTarget(flock,row){try{if(global.AdineBroilerPerformanceIntelligenceSourceV1?.weeklyEvaluationStandard)return global.AdineBroilerPerformanceIntelligenceSourceV1.weeklyEvaluationStandard(flock,row)||null;if(global.resolvePoultryStandard){const age=n(row?.age_days??row?.ageDays);if(age===null)return null;const x=global.resolvePoultryStandard({productionType:'broiler',breed:flock?.genetics||'',genetics:flock?.genetics||'',strain:flock?.strain||'',ageDays:age});if(!x)return null;return{weight:x.weight,cumulativeFcr:null,weeklyFcr:x.fcr,sourceType:x.confidence==='official'?'official-performance-objective':'management-standard',sourceLabel:x.sourceName||x.fcrSourceLabel||'استاندارد کاننیکال'}}}catch(e){console.warn('ADINE FCR canonical target unavailable:',e)}return null}
 async function analysis(flockId){
   if(!global.supabaseClient||!flockId)return{ok:false,rows:[]};
+  await loadCanonicalSource();
   const flockResult=await global.supabaseClient.from('flocks').select('*').eq('id',flockId).maybeSingle();
   if(flockResult.error)throw flockResult.error;
   const flock=flockResult.data;

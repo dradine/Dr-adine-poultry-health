@@ -7,6 +7,9 @@ on:
       - 'reports-router.js'
       - 'broiler-report-engine.js'
       - 'broiler-official-standards-v1.js'
+      - 'broiler-canonical-metric-standards-v1.js'
+      - 'broiler-performance-intelligence-source-v1.js'
+      - 'broiler-performance-intelligence-engine-v2.js'
       - 'standard-data.js'
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
@@ -22,6 +25,9 @@ on:
       - 'reports-router.js'
       - 'broiler-report-engine.js'
       - 'broiler-official-standards-v1.js'
+      - 'broiler-canonical-metric-standards-v1.js'
+      - 'broiler-performance-intelligence-source-v1.js'
+      - 'broiler-performance-intelligence-engine-v2.js'
       - 'standard-data.js'
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
@@ -45,6 +51,9 @@ jobs:
           node --check reports-router.js
           node --check broiler-report-engine.js
           node --check broiler-official-standards-v1.js
+          node --check broiler-canonical-metric-standards-v1.js
+          node --check broiler-performance-intelligence-source-v1.js
+          node --check broiler-performance-intelligence-engine-v2.js
           node --check standards-resolver-core-v1.js
           node --check standard-data.js
           node --check broiler-comprehensive-report-engine-v2.js
@@ -56,6 +65,12 @@ jobs:
         run: node tests/weight-band-v2.test.js
       - name: Official registry test
         run: node tests/broiler-official-standards.test.js
+      - name: Canonical metric standards coverage test
+        run: node tests/broiler-canonical-metric-standards-v1.test.js
+      - name: Broiler PI source test
+        run: node tests/broiler-performance-intelligence-source-v4.test.js
+      - name: Broiler PI engine test
+        run: node tests/broiler-performance-intelligence-v2.test.js
       - name: Domain regression test
         run: node tests/reports-architecture.test.js
       - name: Comprehensive broiler V2 regression test

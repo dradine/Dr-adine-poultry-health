@@ -5,9 +5,9 @@ const assert=require('assert');
 const context={console};
 context.window=context;
 vm.createContext(context);
-vm.runInNewContext(fs.readFileSync('broiler-official-standards-v1.js','utf8'),context);
-vm.runInNewContext(fs.readFileSync('standards-resolver-core-v1.js','utf8'),context);
-vm.runInNewContext(fs.readFileSync('broiler-performance-intelligence-source-v1.js','utf8'),context);
+vm.runInContext(fs.readFileSync('broiler-official-standards-v1.js','utf8'),context);
+vm.runInContext(fs.readFileSync('standards-resolver-core-v1.js','utf8'),context);
+vm.runInContext(fs.readFileSync('broiler-performance-intelligence-source-v1.js','utf8'),context);
 
 const registry=context.BROILER_OFFICIAL_STANDARDS_V1;
 const source=context.AdineBroilerPerformanceIntelligenceSourceV1;
@@ -17,7 +17,7 @@ assert(source&&source.version==='BROILER-PI-SOURCE-V7');
 
 const ages=registry.weeklyAges;
 const strains=Object.keys(registry.strains);
-assert.strictEqual(strains.length,12,'all currently selectable broiler strains must be represented');
+assert.strictEqual(strains.length,13,'all currently registered broiler strains must be represented');
 
 for(const strain of strains){
   const s=registry.strains[strain];

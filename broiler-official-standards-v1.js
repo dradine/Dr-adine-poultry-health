@@ -1,25 +1,14 @@
-/* ADINE — CANONICAL BROILER STANDARDS REGISTRY V3
+/* ADINE — CANONICAL BROILER STANDARDS ENGINE V4
    SINGLE SOURCE OF TRUTH for all broiler official + management targets.
-   Consumers MUST resolve targets through this registry/resolver only.
+   Consumers MUST resolve broiler targets through this engine only.
    Official breeder objectives are authoritative where published; explicit
-   management fallbacks live in the same registry when breeder documents do
-   not publish the required metric/week. Derived metrics are calculated here.
+   management fallbacks live here when breeder documents do not publish the
+   required metric/week. Derived metrics are calculated here.
 */
 const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
-  productionType:"broiler",
-  version:"BROILER-CANONICAL-STANDARDS-V3",
-  weeklyAges:[7,14,21,28,35,42,49,56],
-  managementProfile:Object.freeze({
-    sourceType:"management-standard",
-    sourceYear:2026,
-    sourceLabel:"استاندارد مدیریتی کاننیکال گوشتی آدینه — شاخص‌های عملیاتی و CV/یکنواختی بر پایه منابع مدیریتی مستند",
-    mortality:[1,1.2,1.5,1.8,2.2,2.6,3,3.5],
-    cv:[8,8,8,8,8,8,8,8],
-    u10:[79,79,79,79,79,79,79,79],
-    u15:[94,94,94,94,94,94,94,94],
-    wfr:[1.8,1.8,1.8,1.8,1.8,1.8,1.8,1.8]
-  }),
-  managementFallbackMethod:"STRAIN-SPECIFIC-DOCUMENTED-DERIVATION-OR-CROSS-CATALOG-MEDIAN-V3",
+  productionType:"broiler",version:"BROILER-CANONICAL-STANDARDS-V4",weeklyAges:[7,14,21,28,35,42,49,56],
+  managementProfile:Object.freeze({sourceType:"management-standard",sourceYear:2026,sourceLabel:"استاندارد مدیریتی کاننیکال گوشتی آدینه — شاخص‌های عملیاتی و CV/یکنواختی بر پایه منابع مدیریتی مستند",mortality:[1,1.2,1.5,1.8,2.2,2.6,3,3.5],cv:[8,8,8,8,8,8,8,8],u10:[79,79,79,79,79,79,79,79],u15:[94,94,94,94,94,94,94,94],wfr:[1.8,1.8,1.8,1.8,1.8,1.8,1.8,1.8]}),
+  managementFallbackMethod:"STRAIN-SPECIFIC-DOCUMENTED-DERIVATION-OR-CROSS-CATALOG-MEDIAN-V4",
   strains:{
     "Ross 308":{producer:"Aviagen",family:"Ross",variant:"As-Hatched",initialWeight:44,sourceYear:2022,sourceType:"official-performance-objective",sourceLabel:"Ross 308 / Ross 308 FF Broiler Performance Objectives 2022",sourceUrl:"https://aviagen.com/assets/Tech_Center/Ross_Broiler/RossxRoss308-BroilerPerformanceObjectives2022-EN.pdf",records:[[7,213,.780],[14,533,1.005],[21,1012,1.142],[28,1616,1.269],[35,2296,1.399],[42,2998,1.531],[49,3681,1.663],[56,4318,1.793]]},
     "Ross 308 FF":{producer:"Aviagen",family:"Ross",variant:"Fast-Feathering / As-Hatched",initialWeight:44,sourceYear:2022,sourceType:"official-performance-objective",sourceLabel:"Ross 308 / Ross 308 FF Broiler Performance Objectives 2022",sourceUrl:"https://aviagen.com/assets/Tech_Center/Ross_Broiler/RossxRoss308-BroilerPerformanceObjectives2022-EN.pdf",records:[[7,213,.780],[14,533,1.005],[21,1012,1.142],[28,1616,1.269],[35,2296,1.399],[42,2998,1.531],[49,3681,1.663],[56,4318,1.793]]},
@@ -33,7 +22,7 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
     "Indian River FF":{producer:"Aviagen",family:"Indian River",variant:"Fast-Feathering / As-Hatched",initialWeight:44,sourceYear:2022,sourceType:"official-performance-objective",sourceLabel:"Indian River / Indian River FF Broiler Performance Objectives 2022",sourceUrl:"https://aviagen.com/assets/Tech_Center/LIR_Broiler/IndianRiver-BroilerPerformanceObjectives2022-EN.pdf",records:[[7,211,.788],[14,531,1.003],[21,1010,1.142],[28,1616,1.275],[35,2295,1.411],[42,2995,1.549],[49,3671,1.686],[56,4297,1.822]]},
     "Efficiency Plus":{producer:"Hubbard",family:"Efficiency Plus",variant:"As-Hatched",initialWeight:43,sourceYear:2025,sourceType:"official-performance-objective-partial",sourceLabel:"Hubbard Efficiency Plus Broiler Performance Objectives",sourceUrl:"https://www.hubbardbreeders.com/media/broiler-performance-objectives-hep-enfres-1.pdf",records:[[7,216,null],[14,541,null],[21,1035,1.13],[28,1647,1.27],[35,2330,1.41],[42,3028,1.54],[49,3704,1.67],[56,4324,1.80]],managementRecords:[[7,null,.960],[14,null,1.074]],managementMethod:"strain-specific-derived-from-official-cumulative-feed-and-bodyweight-at-placement"},
     "Hubbard EDGE":{producer:"Hubbard",family:"EDGE",variant:"As-Hatched",initialWeight:43,sourceYear:2025,sourceType:"official-performance-objective",sourceLabel:"Hubbard EDGE Broiler Performance Objectives",sourceUrl:"https://www.hubbardbreeders.com/media/broiler-performance-objectives-edge-en.pdf",records:[[7,217,null],[14,550,null],[21,1058,1.13],[28,1685,1.26],[35,2383,1.38],[42,3098,1.51],[49,3789,1.64],[56,4423,1.77]],managementRecords:[[7,null,.971],[14,null,1.073]],managementMethod:"strain-specific-derived-from-official-cumulative-feed-and-bodyweight-at-placement"},
-    "Arian":{producer:"آرین ایران",family:"Arian",variant:"مدیریتی / مواد غذایی متراکم",initialWeight:42,sourceYear:null,sourceType:"management-standard-reference",sourceLabel:"راهنمای پرورش جوجه آرین — مرجع مدیریتی داخلی؛ غیر breeder-performance-objective",sourceUrl:"https://poshal.blogfa.com/post/10/%D8%B1%D8%A7%D9%87%D9%86%D9%85%D8%A7%DB%8C-%D9%BE%D8%B1%D9%88%D8%B1%D8%B4-%D8%AC%D9%88%D8%AC%D9%87-%D8%A2%D8%B1%DB%8C%D9%86-",records:[],managementRecords:[[7,148,1.00],[14,391,1.30],[21,767,1.41],[28,1291,1.52],[35,1830,1.63],[42,2340,1.76],[49,2890,1.87],[56,3440,1.98]],managementMethod:"documented-domestic-management-reference-plus-linear-last-interval-extrapolation"}
+    "Arian":{producer:"آرین ایران",family:"Arian",variant:"مدیریتی / مواد غذایی متراکم",initialWeight:42,sourceYear:null,sourceType:"management-standard-reference",sourceLabel:"راهنمای پرورش جوجه آرین — مرجع مدیریتی داخلی؛ غیر breeder-performance-objective",sourceUrl:"https://poshal.blogfa.com/post/10/%D8%B1%D8%A7%D9%87%D9%86%D9%85%D8%A7%DB%8C-%D9%BE%D8%B1%D8%B1%D8%B4-%D8%AC%D9%88%D8%AC%D9%87-%D8%A2%D8%B1%DB%8C%D9%86-",records:[],managementRecords:[[7,148,1.00],[14,391,1.30],[21,767,1.41],[28,1291,1.52],[35,1830,1.63],[42,2340,1.76],[49,2890,1.87],[56,3440,1.98]],managementMethod:"documented-domestic-management-reference-plus-linear-last-interval-extrapolation"}
   }
 });
 (function(g){
@@ -51,8 +40,7 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
     const managementMetric=k=>mi>=0?(M?.[k]?.[mi]??null):null;
     const officialWeight=n(o?.[1])!==null,officialCf=n(o?.[2])!==null,previousOfficial=prevAge===null||(n(po?.[1])!==null&&n(po?.[2])!==null),officialDerived=(officialWeight&&officialCf&&previousOfficial);
     const ret=(value,targetType,sourceType,label)=>value===null?null:{value,targetType,sourceType,sourceLabel:label};
-    const officialLabel=s.sourceLabel||'استاندارد رسمی breeder';
-    const mgmtLabel=M?.sourceLabel||'استاندارد مدیریتی کاننیکال';
+    const officialLabel=s.sourceLabel||'استاندارد رسمی breeder';const mgmtLabel=M?.sourceLabel||'استاندارد مدیریتی کاننیکال';
     if(metric==='weight')return ret(w,officialWeight?'official-direct':'management-fallback',officialWeight?s.sourceType:M.sourceType,officialWeight?officialLabel:mgmtLabel);
     if(metric==='cumulativeFcr')return ret(cf,officialCf?'official-direct':'management-fallback',officialCf?s.sourceType:M.sourceType,officialCf?officialLabel:mgmtLabel);
     if(metric==='fcr')return ret(weeklyFcr,officialDerived?'official-derived':'management-derived',officialDerived?'official-derived-from-breeder-objectives':'management-derived',officialDerived?officialLabel:mgmtLabel);
@@ -65,4 +53,23 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
   }
   function get(strain){const s=R.strains?.[strain];if(!s)return null;return {...s,records:A.map(age=>{const o=rec(s.records,age),m=rec(s.managementRecords,age);return [age,o?.[1]??m?.[1]??null,o?.[2]??m?.[2]??null]})};}
   g.BROILER_OFFICIAL_STANDARDS_V1=R;g.getBroilerOfficialStandard=get;g.broilerCanonicalMetricTarget=target;
+})(typeof window!=='undefined'?window:globalThis);
+
+/* Runtime quarantine: standard-data.js is a shared legacy catalog for the
+   other production types. Its historical broiler registry is not an active
+   source. Remove that branch before any consumer can resolve it. */
+(function(g){
+  try{if(g.VERIFIED_STANDARDS&&Object.prototype.hasOwnProperty.call(g.VERIFIED_STANDARDS,'broiler'))delete g.VERIFIED_STANDARDS.broiler;}catch(e){}
+  const canonical=g.getStandard;
+  if(typeof canonical==='function'){
+    g.getStandard=function(type,genetics,strain){
+      const t=String(type??'').normalize('NFKC').toLowerCase();
+      if(t==='broiler'||t==='broilers'||t==='گوشتی'){
+        const s=g.BROILER_OFFICIAL_STANDARDS_V1?.strains?.[strain];
+        return s?g.getBroilerOfficialStandard(strain):null;
+      }
+      return canonical.apply(this,arguments);
+    };
+  }
+  g.ADINE_BROILER_STANDARD_AUTHORITY='BROILER_OFFICIAL_STANDARDS_V1';
 })(typeof window!=='undefined'?window:globalThis);

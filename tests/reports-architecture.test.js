@@ -39,4 +39,17 @@ assert.ok(Math.abs(out.rows[1].standardWeeklyFcr-1.1411104294)<1e-9);
 assert.strictEqual(out.rows[0].fcr,.772);
 assert.strictEqual(out.rows[1].cumulativeFcr,.995);
 assert.strictEqual(out.rows[0].fcrSource,"canonical-record");
+
+// Regression: if the weekly record already contains the canonical standard_weight,
+// the report engine must use that exact value instead of re-resolving a different
+// registry age (for example week 2 entered at day 13/15). This keeps weekly,
+// comprehensive and downstream intelligence reports on one reference value.
+const canonicalRows=[
+  {week_number:1,age_days:7,average_weight_g:214,fcr:.772,cumulative_fcr:.772,standard_weight:214},
+  {week_number:2,age_days:13,average_weight_g:500,fcr:.990,cumulative_fcr:.990,standard_weight:493}
+];
+const canonicalOut=context.AdineBroilerReportEngine.build(flock,canonicalRows);
+assert.strictEqual(canonicalOut.rows[1].standardWeight,493);
+assert.strictEqual(canonicalOut.rows[1].weightSourceLabel,"Indian River / Indian River FF Broiler Performance Objectives 2022");
+
 console.log("reports architecture tests: PASS");

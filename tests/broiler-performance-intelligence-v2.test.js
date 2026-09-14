@@ -7,7 +7,7 @@ const mgmt={managementWeight:1000,managementWeeklyFcr:1.05,managementCumulativeF
 function row(x){return Object.assign({week:1,age:7,weight:1000,fcr:1.05,cumulativeFcr:1.05,weeklyWeightGain:60,mortalityPercent:1,cv:10,uniformity10:80,uniformity15:90,epef:null},base,mgmt,x)}
 // 1 raw FCR worsens but target-relative FCR improves: 1.00/1.05 -> 1.02/1.08.
 let m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({week:4,age:28,fcr:1.00,standardWeeklyFcr:1.05,managementWeeklyFcr:1.05}),row({week:5,age:35,fcr:1.02,standardWeeklyFcr:1.08,managementWeeklyFcr:1.08})]);
-assert.strictEqual(m.states.fcr.rawChange,0.02);assert.strictEqual(m.states.fcr.official.trend.direction,'improving');assert(m.states.fcr.official.trend.changePp>0);assert.strictEqual(m.states.fcr.management.trend.direction,'improving');
+assert(Math.abs(m.states.fcr.rawChange-0.02)<1e-12);assert.strictEqual(m.states.fcr.official.trend.direction,'improving');assert(m.states.fcr.official.trend.changePp>0);assert.strictEqual(m.states.fcr.management.trend.direction,'improving');
 // 2 raw weight increases but target-relative weight deteriorates.
 m=E.build({},[row({week:4,age:28,weight:1000,standardWeight:1000,managementWeight:1000}),row({week:5,age:35,weight:1020,standardWeight:1100,managementWeight:1100})]);assert(m.states.weight.rawChange>0);assert.strictEqual(m.states.weight.official.trend.direction,'deteriorating');
 // 3 target-relative weight improves.

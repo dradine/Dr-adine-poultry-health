@@ -16,6 +16,8 @@ jobs:
           node-version: 20
       - name: Run intelligence regression tests
         run: node tests/broiler-performance-intelligence-v2.test.js
+      - name: Run canonical weekly target source regression tests
+        run: node tests/broiler-performance-intelligence-source-v4.test.js
       - name: Verify intelligence engine is isolated from network/database access
         run: |
           ! grep -nE 'supabaseClient|\.rpc\(|fetch\(|XMLHttpRequest|from\(' broiler-performance-intelligence-engine-v2.js

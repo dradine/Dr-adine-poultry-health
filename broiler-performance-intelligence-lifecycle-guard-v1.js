@@ -1,28 +1,34 @@
-/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V6
+/* ADINE BROILER PERFORMANCE — LIFECYCLE GUARD V7
  * Presentation/lifecycle isolation only.
- * Prevents stale/partially-rendered report DOM and BPI internal panels from
- * becoming visible while reports.js / the BPI adapter asynchronously rebuild UI.
  * No calculations, standards, persistence, or canonical data are touched.
  *
- * Critical V6 rule:
- * entering the Comprehensive/BPI report never reveals #root merely because
- * an old .cr2-hero or an existing BPI shell is still present. Visibility is
- * released only after the current report lifecycle emits adine:report-ready,
- * and the BPI panel itself is ready when BPI is the selected inner view.
+ * V7 fixes the actual stale-DOM readiness race: the comprehensive isolation
+ * guards previously treated an existing .cr2-hero as a fresh render. After
+ * comparison -> overall/BPI, that old node could make #root visible before
+ * reports.js had produced the new layer.
  */
 (function(global){
 'use strict';
-if(global.__ADINE_BPI_LIFECYCLE_GUARD_V6__)return;
-global.__ADINE_BPI_LIFECYCLE_GUARD_V6__=true;
+if(global.__ADINE_BPI_LIFECYCLE_GUARD_V7__)return;
+global.__ADINE_BPI_LIFECYCLE_GUARD_V7__=true;
 
 const ROOT_ID='root',SHELL_ID='broiler-performance-intelligence-v3-shell',PARK_ID='adine-bpi-shell-parking-v1';
 let lastShell=null,rehydrating=false,transitioning=false,bpiTransitioning=false,reportReady=false;
+let staleHeroes=new WeakSet();
 const $=id=>document.getElementById(id);
 const root=()=>$(ROOT_ID);
 const activeTab=()=>document.querySelector('.report-tab.active')?.getAttribute('data-tab')||null;
 const bpiShell=()=>document.querySelector('#'+SHELL_ID);
 const activeBpiPanel=()=>bpiShell()?.querySelector('.bpi3-panel.active')||null;
+const heroes=()=>Array.from(document.querySelectorAll('#root .cr2-hero'));
 
+function armOverallWait(){
+  staleHeroes=new WeakSet(heroes());
+  reportReady=false;
+}
+function hasFreshHero(){
+  return heroes().some(h=>!staleHeroes.has(h));
+}
 function parking(){
   let p=$(PARK_ID);
   if(!p){
@@ -93,7 +99,6 @@ function rootHasRenderableContent(){
   if(activeTab()==='overall')return !!shellInRoot();
   return !!r.querySelector('.section,.error,.empty,.bpi3-shell');
 }
-
 function rehydrateReferenceLayer(shell){
   if(!shell||shell===lastShell)return;
   lastShell=shell;
@@ -117,8 +122,6 @@ function reconcile(){
     const s=shellInRoot()||restore();
     if(s){
       rehydrateReferenceLayer(s);
-      /* V6: do not reveal root from DOM existence. The old comprehensive
-         DOM can survive a comparison transition and is not a readiness signal. */
       if(transitioning&&reportReady)reveal();
       if(bpiTransitioning)revealBpi();
     }
@@ -131,14 +134,21 @@ function reconcile(){
     }
   }
 }
-
+function detectFreshReport(){
+  if(activeTab()!=='overall'||reportReady)return false;
+  if(hasFreshHero()){
+    reportReady=true;
+    return true;
+  }
+  return false;
+}
 function onTabCapture(e){
   const b=e.target?.closest?.('.report-tab');
   if(b){
     const next=b.getAttribute('data-tab');
     conceal();
     if(next==='overall'){
-      reportReady=false;
+      armOverallWait();
       setTimeout(reconcile,0);
     }else{
       reportReady=true;
@@ -152,7 +162,6 @@ function onTabCapture(e){
     setTimeout(()=>{quarantineLegacy();revealBpi()},0);
   }
 }
-
 document.addEventListener('click',onTabCapture,true);
 if(typeof MutationObserver!=='undefined'){
   const mo=new MutationObserver(()=>{
@@ -163,23 +172,34 @@ if(typeof MutationObserver!=='undefined'){
         const restored=restore();
         if(restored)rehydrateReferenceLayer(restored);
       }
+      detectFreshReport();
     }else if(s)park();
     quarantineLegacy();
-    /* Important: MutationObserver may observe the stale previous report.
-       It must never turn that observation into a visibility release. */
     if(transitioning&&reportReady)reconcile();
     if(bpiTransitioning)revealBpi();
   });
   mo.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class']});
 }
-window.addEventListener('pageshow',()=>{conceal();reportReady=false;setTimeout(reconcile,0)});
-window.addEventListener('popstate',()=>{conceal();reportReady=false;setTimeout(reconcile,0)});
+window.addEventListener('pageshow',()=>{conceal();armOverallWait();setTimeout(()=>{if(hasFreshHero())reportReady=true;reconcile()},0)});
+window.addEventListener('popstate',()=>{conceal();armOverallWait();setTimeout(reconcile,0)});
 window.addEventListener('adine:report-ready',()=>{
   if(activeTab()==='overall'){
-    reportReady=true;
-    setTimeout(reconcile,0);
+    setTimeout(()=>{
+      if(hasFreshHero()||heroes().length===0)reportReady=true;
+      reconcile();
+    },0);
   }
 });
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{conceal();reportReady=false;setTimeout(reconcile,0)},{once:true});
-else {conceal();reportReady=false;setTimeout(reconcile,0)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{
+  conceal();
+  staleHeroes=new WeakSet();
+  reportReady=heroes().length>0;
+  setTimeout(reconcile,0);
+},{once:true});
+else{
+  conceal();
+  staleHeroes=new WeakSet();
+  reportReady=heroes().length>0;
+  setTimeout(reconcile,0);
+}
 })(window);

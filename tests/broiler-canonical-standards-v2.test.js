@@ -5,15 +5,15 @@ const assert=require('assert');
 const context={console};
 context.window=context;
 vm.createContext(context);
-vm.runInContext(fs.readFileSync('broiler-official-standards-v1.js','utf8'),context);
-vm.runInContext(fs.readFileSync('standards-resolver-core-v1.js','utf8'),context);
-vm.runInContext(fs.readFileSync('broiler-performance-intelligence-source-v1.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('broiler-official-standards-v1.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('standards-resolver-core-v1.js','utf8'),context);
+vm.runInNewContext(fs.readFileSync('broiler-performance-intelligence-source-v1.js','utf8'),context);
 
 const registry=context.BROILER_OFFICIAL_STANDARDS_V1;
 const source=context.AdineBroilerPerformanceIntelligenceSourceV1;
 assert(registry,'canonical broiler registry must exist');
 assert.strictEqual(registry.version,'BROILER-CANONICAL-STANDARDS-V2');
-assert(source&&source.version==='BROILER-PI-SOURCE-V6');
+assert(source&&source.version==='BROILER-PI-SOURCE-V7');
 
 const ages=registry.weeklyAges;
 const strains=Object.keys(registry.strains);
@@ -43,12 +43,18 @@ assert.strictEqual(ep.managementFallbackUsed,true);
 assert.strictEqual(ep.targetSourceType,'management-standard');
 assert(ep.canonicalTargets.weight!==null&&ep.canonicalTargets.fcr!==null);
 
+const ep28=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Efficiency Plus'},[{id:'ep28',age_days:28}])[0];
+assert.strictEqual(ep28.canonicalTargets.weight,1647,'official week-4 weight must remain authoritative');
+assert.strictEqual(ep28.managementFallbackUsed,true,'week-4 weekly FCR uses a management fallback at the prior endpoint');
+
 const edge=source.enrich({production_type:'broiler',genetics:'Hubbard',strain:'Hubbard EDGE'},[{id:'edge21',age_days:21}])[0];
 assert.strictEqual(edge.canonicalTargets.weight,1058,'official weight must survive when only FCR is missing');
 assert.strictEqual(edge.managementFallbackUsed,true);
 
 const arian=source.enrich({production_type:'broiler',genetics:'آرین ایران',strain:'Arian'},[{id:'a56',age_days:56}])[0];
 assert.strictEqual(arian.targetSourceType,'management-standard');
-assert(arian.canonicalTargets.weight!==null&&arian.canonicalTargets.fcr!==null);
+assert.strictEqual(arian.canonicalTargets.weight,3440);
+assert.strictEqual(arian.canonicalTargets.cumulativeFcr,1.98);
+assert(arian.canonicalTargets.fcr!==null&&arian.canonicalTargets.adg!==null);
 
 console.log('broiler-canonical-standards-v2: PASS');

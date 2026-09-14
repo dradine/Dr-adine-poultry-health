@@ -1,6 +1,6 @@
-/* ADINE — Stable latest-week display V6
+/* ADINE — Stable latest-week display V7
    Presentation only. Overall and comparison use the SAME active-flock source
-   and latest-week resolver. No separate comparison-week logic.
+   and latest-week resolver. Comprehensive report gets two internal tabs.
 */
 "use strict";
 (function(global){
@@ -37,13 +37,47 @@
       set(`<span>ارزیابی آخرین هفته</span><strong>${w===null?'هنوز ثبت هفتگی وجود ندارد':`هفته ${fmt(w)}`}</strong>`,true);
     }catch(e){console.error('[AdineLatestWeekSlotV2] overall',e);set('<span>ارزیابی آخرین هفته</span><strong>—</strong>',true)}
   }
-  async function comparison(){
-    /* IMPORTANT: comparison must be identical to comprehensive report here.
-       Use the active flock from the same report router and the same latest-week resolver.
-       Do not read comparison selectors, #fc2-week, or calculate a separate common week. */
-    return overall();
+  async function comparison(){return overall()}
+
+  function ensureComprehensiveStyles(){
+    if(document.getElementById('adine-comprehensive-subtabs-style'))return;
+    const s=document.createElement('style');s.id='adine-comprehensive-subtabs-style';s.textContent=`
+      .cr-subtabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px;padding:9px;background:#fff;border:1px solid #dfe8e3;border-radius:18px;box-shadow:0 7px 25px rgba(20,45,38,.06)}
+      .cr-subtab{border:1px solid #d4dfda;border-radius:12px;background:#fff;color:#344a42;padding:13px 8px;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
+      .cr-subtab.active{background:#173f35;color:#fff;border-color:#173f35}
+      .cr-subpane{display:block}.cr-subpane.is-hidden{display:none!important}
+      .cr-intelligence-placeholder{padding:42px 20px;text-align:center;background:#f9fbfa;border:1px solid #dfe8e3;border-radius:14px;color:#596c64}
+      .cr-intelligence-placeholder h2{margin:0 0 9px;font-size:17px;color:#173f35}.cr-intelligence-placeholder p{margin:0;font-size:10px;line-height:2}
+      @media(max-width:600px){.cr-subtab{font-size:9px;padding:11px 4px}}
+    `;document.head.appendChild(s);
   }
-  function sync(){const t=activeTab();if(t==='overall'||t==='compare-empty')overall();else set('',false)}
+  function mountComprehensiveTabs(){
+    if(activeTab()!=='overall')return;
+    const root=$('#root');
+    if(!root||root.querySelector('.cr-subtabs'))return;
+    ensureComprehensiveStyles();
+    const existing=document.createElement('div');existing.className='cr-subpane';
+    while(root.firstChild)existing.appendChild(root.firstChild);
+    const nav=document.createElement('nav');nav.className='cr-subtabs';nav.setAttribute('aria-label','بخش‌های گزارش جامع عملکرد');
+    const a=document.createElement('button');a.type='button';a.className='cr-subtab active';a.dataset.crTab='analysis';a.textContent='تحلیل جامع عملکرد گله';
+    const b=document.createElement('button');b.type='button';b.className='cr-subtab';b.dataset.crTab='intelligence';b.textContent='هوش عملکرد گله گوشتی';
+    nav.append(a,b);
+    const pane=document.createElement('div');pane.className='cr-subpane is-hidden';pane.dataset.crPane='intelligence';
+    pane.innerHTML='<section class="section"><div class="cr-intelligence-placeholder"><h2>هوش عملکرد گله گوشتی</h2><p>این تب برای موتور جدید هوش عملکرد گله گوشتی آماده شده است.</p></div></section>';
+    root.append(nav,existing,pane);
+    nav.addEventListener('click',e=>{
+      const btn=e.target.closest('.cr-subtab');if(!btn)return;
+      const intelligence=btn.dataset.crTab==='intelligence';
+      nav.querySelectorAll('.cr-subtab').forEach(x=>x.classList.toggle('active',x===btn));
+      existing.classList.toggle('is-hidden',intelligence);
+      pane.classList.toggle('is-hidden',!intelligence);
+    });
+  }
+  function sync(){
+    const t=activeTab();
+    if(t==='overall'||t==='compare-empty')overall();else set('',false);
+    if(t==='overall')setTimeout(mountComprehensiveTabs,180);
+  }
   document.addEventListener('click',e=>{
     const tab=e.target?.closest?.('.report-tab');
     if(tab&&(tab.dataset.tab==='overall'||tab.dataset.tab==='compare-empty'))prepare(tab.dataset.tab);
@@ -55,6 +89,7 @@
     if(e.target?.matches?.('[id^="fc2-flock-"]')||e.target?.matches?.('#fc2-week'))setTimeout(sync,50);
   });
   const rootObserver=new MutationObserver(()=>{
+    if(activeTab()==='overall')setTimeout(mountComprehensiveTabs,80);
     if(activeTab()==='overall'||activeTab()==='compare-empty')setTimeout(sync,50);
   });
   function start(){const root=$('#root');if(root)rootObserver.observe(root,{childList:true,subtree:true});sync()}

@@ -29,8 +29,19 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
   const R=BROILER_OFFICIAL_STANDARDS_V1,A=R.weeklyAges,M=R.managementProfile;
   const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
   const rec=(a,age)=>Array.isArray(a)?a.find(r=>n(r?.[0])===n(age))||null:null;
+  /* A broiler measurement belongs to a weekly evaluation point when it is
+     within +/-1 day of the catalogue age. This is intentionally centralized
+     here so every broiler report/PI consumer uses the same age mapping. */
+  const ageWindow=Object.freeze(A.reduce((out,standardAge,i)=>{out[standardAge]=Object.freeze({min:standardAge-1,max:standardAge+1,week:i+1});return out},{}));
+  function resolveEvaluationAge(age){
+    const a=n(age);if(a===null)return null;
+    let best=null,bestDistance=Infinity;
+    for(const standardAge of A){const w=ageWindow[standardAge];if(a>=w.min&&a<=w.max){const d=Math.abs(a-standardAge);if(d<bestDistance){best=standardAge;bestDistance=d}}}
+    return best;
+  }
+  function resolveEvaluationWeek(age){const a=resolveEvaluationAge(age);return a===null?null:A.indexOf(a)+1}
   function target(strain,age,metric){
-    const s=R.strains?.[strain],a=n(age);if(!s||!A.includes(a))return null;
+    const s=R.strains?.[strain],requestedAge=n(age),a=resolveEvaluationAge(requestedAge);if(!s||a===null)return null;
     const i=A.indexOf(a),o=rec(s.records,a),m=rec(s.managementRecords,a),iw=n(s.initialWeight);
     const w=n(o?.[1])??n(m?.[1]),cf=n(o?.[2])??n(m?.[2]);
     const prevAge=i>0?A[i-1]:null,po=prevAge===null?null:rec(s.records,prevAge),pm=prevAge===null?null:rec(s.managementRecords,prevAge);
@@ -39,7 +50,7 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
     const weeklyFcr=feed!==null&&prevFeed!==null&&gain!==null&&gain>0?(feed-prevFeed)/gain:null,adg=gain!==null?gain/7:null,feedDay=feed!==null&&prevFeed!==null?(feed-prevFeed)/7:null,mi=A.indexOf(a);
     const managementMetric=k=>mi>=0?(M?.[k]?.[mi]??null):null;
     const officialWeight=n(o?.[1])!==null,officialCf=n(o?.[2])!==null,previousOfficial=prevAge===null||(n(po?.[1])!==null&&n(po?.[2])!==null),officialDerived=(officialWeight&&officialCf&&previousOfficial);
-    const ret=(value,targetType,sourceType,label)=>value===null?null:{value,targetType,sourceType,sourceLabel:label};
+    const ret=(value,targetType,sourceType,label)=>value===null?null:{value,targetType,sourceType,sourceLabel:label,standardAgeDays:a,requestedAgeDays:requestedAge,evaluationWeek:i+1,windowMinDays:ageWindow[a].min,windowMaxDays:ageWindow[a].max};
     const officialLabel=s.sourceLabel||'استاندارد رسمی breeder';const mgmtLabel=M?.sourceLabel||'استاندارد مدیریتی کاننیکال';
     if(metric==='weight')return ret(w,officialWeight?'official-direct':'management-fallback',officialWeight?s.sourceType:M.sourceType,officialWeight?officialLabel:mgmtLabel);
     if(metric==='cumulativeFcr')return ret(cf,officialCf?'official-direct':'management-fallback',officialCf?s.sourceType:M.sourceType,officialCf?officialLabel:mgmtLabel);
@@ -52,7 +63,7 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
     return null;
   }
   function get(strain){const s=R.strains?.[strain];if(!s)return null;return {...s,records:A.map(age=>{const o=rec(s.records,age),m=rec(s.managementRecords,age);return [age,o?.[1]??m?.[1]??null,o?.[2]??m?.[2]??null]})};}
-  g.BROILER_OFFICIAL_STANDARDS_V1=R;g.getBroilerOfficialStandard=get;g.broilerCanonicalMetricTarget=target;
+  g.BROILER_OFFICIAL_STANDARDS_V1=R;g.getBroilerOfficialStandard=get;g.broilerCanonicalMetricTarget=target;g.resolveBroilerEvaluationAge=resolveEvaluationAge;g.resolveBroilerEvaluationWeek=resolveEvaluationWeek;g.BROILER_STANDARD_AGE_WINDOW=ageWindow;
 })(typeof window!=='undefined'?window:globalThis);
 
 /* Runtime quarantine: standard-data.js is a shared legacy catalog for the

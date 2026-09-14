@@ -1,9 +1,15 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V3.1
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V3.2
    Read-only interpretation layer.
    ALL displayed reference comparisons use the canonical target set produced by
    the weekly/comprehensive report model for the same evaluation record.
    No external standards lookup, target calculation, KPI recalculation,
    Supabase access or network access.
+
+   V3.2 adds a strict week-over-week interpretation layer. Every KPI is
+   evaluated against its own weekly canonical target AND against the immediately
+   preceding valid weekly record. The trend answers two separate questions:
+   1) Is the KPI closer to or farther from its weekly reference?
+   2) Is the target-relative performance improving, worsening or stable?
 */
 (function(global){'use strict';
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
@@ -39,11 +45,44 @@ const lower=new Set(['fcr','cumulativeFcr','mortality','cv','wfr']);
 const gap=(a,t,m)=>{a=n(a);t=n(t);if(a===null||t===null||t===0)return null;return lower.has(m)?(t-a)/Math.abs(t):(a-t)/Math.abs(t)};
 function target(r,m,ch){return ch==='o'?canonicalTarget(r,m):first(r,defs[m].m)}
 function state(m,a,t){a=n(a);t=n(t);const g=gap(a,t,m);const rs=g===null?'unavailable':g>0.03?'better':g>=-0.03?'on_target':'below_target';const status=g===null?'unavailable':g>0.07?'excellent':g>0.03?'good':g>=-0.03?'good':g>=-0.07?'watch':'critical';return{status,relativeStatus:rs,current:a,actual:a,target:t,deviation:a===null||t===null||t===0?null:(a-t)/Math.abs(t)*100,gap:g,gapPercent:g===null?null:g*100,direction:lower.has(m)?'lower':'higher',targetAuthority:t===null?null:'canonical-weekly-report'}}
-function trend(rows,m,ch){const p=[];for(const r of rows){const a=first(r,defs[m].a),t=target(r,m,ch),g=gap(a,t,m);if(g!==null)p.push({a,t,g})}if(p.length<2)return{available:false,direction:'insufficient',pointsUsed:p.length};const cur=p.at(-1),prev=p.at(-2),base=p[Math.max(0,p.length-3)],delta=(cur.g-base.g)*100;return{available:true,direction:Math.abs(delta)<=0.5?'stable':delta>0?'improving':'worsening',trajectoryDirection:Math.abs(delta)<=0.5?'stable':delta>0?'improving':'worsening',deltaPercent:delta,deltaPp:delta,changePp:(cur.g-prev.g)*100,currentGapPercent:cur.g*100,previousGapPercent:prev.g*100,pointsUsed:Math.min(3,p.length)}}
-function relationship(s,ch){const o=[],w=s.weight[ch],f=s.fcr[ch],c=s.cumulativeFcr[ch],a=s.adg[ch],m=s.mortality[ch],cv=s.cv[ch],u=s.u10[ch];if(w&&f){if(w.relativeStatus==='below_target'&&f.relativeStatus==='below_target')o.push(['high','افت همزمان رشد و کارایی','وزن و FCR هر دو نسبت به هدف همان ارزیابی هفتگی نامطلوب‌اند؛ خوراک، آب، سلامت و محیط بررسی شوند.','growth_efficiency_down']);if(w.relativeStatus==='better'&&f.relativeStatus==='below_target')o.push(['watch','رشد بالاتر با کارایی خوراک ضعیف‌تر','وزن نسبت به هدف ارزیابی هفتگی مطلوب است اما FCR نسبت به هدف نامطلوب است.','growth_efficiency_tradeoff']);if(w.relativeStatus==='below_target'&&['better','on_target'].includes(f.relativeStatus))o.push(['watch','وزن عقب‌تر با کارایی فعلاً مناسب','رشد نسبت به هدف ارزیابی هفتگی عقب است ولی FCR فعلاً نسبت به هدف نامطلوب نیست؛ ADG، خوراک، آب، محیط و سلامت بررسی شوند.','growth_low_fcr_ok']);if(w.relativeStatus==='better'&&f.relativeStatus==='better')o.push(['positive','رشد و کارایی متوازن','وزن و FCR هر دو نسبت به هدف همان ارزیابی هفتگی مطلوب‌اند.','balanced_growth'])}if(w?.relativeStatus==='below_target'&&a?.trend?.direction==='improving')o.push(['watch','مسیر جبران رشد','وزن فعلی زیر هدف ارزیابی هفتگی است اما فاصله هدف‌محور ADG در حال بهبود است.','recovery']);if(cv?.relativeStatus==='below_target'&&u?.relativeStatus==='below_target')o.push(['high','پراکندگی وزن نامطلوب','CV و یکنواختی هر دو نسبت به اهداف ثبت‌شده در ارزیابی هفتگی نامطلوب‌اند.','uniformity_deterioration']);if(m?.relativeStatus==='below_target'&&f?.relativeStatus==='below_target')o.push(['high','افت همزمان بقا و کارایی','تلفات و FCR هر دو نسبت به اهداف ارزیابی هفتگی نامطلوب‌اند؛ بررسی سلامت و مدیریت ضروری است.','survival_efficiency_down']);if(c?.relativeStatus==='below_target')o.push(['watch','فاصله تجمعی از هدف','FCR تجمعی نسبت به هدف ثبت‌شده برای همان ارزیابی هفتگی نامطلوب است؛ سابقه دوره‌های قبلی نیز بررسی شود.','cumulative_efficiency_gap']);return o}
-function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999));const l=rs.at(-1);if(!l)return{version:'BROILER-PI-V3.1',ready:false,insights:[],missing:[]};const s={};for(const[m,d]of Object.entries(defs)){const a=first(l,d.a);s[m]={official:state(m,a,target(l,m,'o')),management:state(m,a,target(l,m,'m')),rawChange:rs.length>1&&a!==null&&first(rs.at(-2),d.a)!==null?a-first(rs.at(-2),d.a):null};s[m].official.trend=trend(rs,m,'o');s[m].management.trend=trend(rs,m,'m')}
+function trend(rows,m,ch){
+  const p=[];
+  for(const r of rows){const a=first(r,defs[m].a),t=target(r,m,ch),g=gap(a,t,m);if(g!==null)p.push({a,t,g})}
+  if(p.length<2)return{available:false,direction:'insufficient',movement:'insufficient',performanceDirection:'insufficient',pointsUsed:p.length};
+  const cur=p.at(-1),prev=p.at(-2);
+  const delta=(cur.g-prev.g)*100;
+  const curDistance=Math.abs(cur.g)*100;
+  const prevDistance=Math.abs(prev.g)*100;
+  const distanceDelta=curDistance-prevDistance;
+  const eps=0.5;
+  const performanceDirection=Math.abs(delta)<=eps?'stable':delta>0?'improving':'worsening';
+  const movement=Math.abs(distanceDelta)<=eps?'stable':distanceDelta<0?'closer':'farther';
+  return{
+    available:true,
+    direction:performanceDirection,
+    performanceDirection,
+    movement,
+    closerToTarget:movement==='closer',
+    fartherFromTarget:movement==='farther',
+    stableDistance:movement==='stable',
+    deltaPercent:delta,
+    gapChangePercent:delta,
+    currentGapPercent:cur.g*100,
+    previousGapPercent:prev.g*100,
+    currentDistancePercent:curDistance,
+    previousDistancePercent:prevDistance,
+    distanceDeltaPercent:distanceDelta,
+    currentActual:cur.a,
+    previousActual:prev.a,
+    currentTarget:cur.t,
+    previousTarget:prev.t,
+    pointsUsed:2
+  }
+}
+function relationship(s,ch){const o=[],w=s.weight[ch],f=s.fcr[ch],c=s.cumulativeFcr[ch],a=s.adg[ch],m=s.mortality[ch],cv=s.cv[ch],u=s.u10[ch];if(w&&f){if(w.relativeStatus==='below_target'&&f.relativeStatus==='below_target')o.push(['high','افت همزمان رشد و کارایی','وزن و FCR هر دو نسبت به هدف همان ارزیابی هفتگی نامطلوب‌اند؛ خوراک، آب، سلامت و محیط بررسی شوند.','growth_efficiency_down']);if(w.relativeStatus==='better'&&f.relativeStatus==='below_target')o.push(['watch','رشد بالاتر با کارایی خوراک ضعیف‌تر','وزن نسبت به هدف ارزیابی هفتگی مطلوب است اما FCR نسبت به هدف نامطلوب است.','growth_efficiency_tradeoff']);if(w.relativeStatus==='below_target'&&['better','on_target'].includes(f.relativeStatus))o.push(['watch','وزن عقب‌تر با کارایی فعلاً مناسب','رشد نسبت به هدف ارزیابی هفتگی عقب است ولی FCR فعلاً نسبت به هدف نامطلوب نیست؛ ADG، خوراک، آب، محیط و سلامت بررسی شوند.','growth_low_fcr_ok']);if(w.relativeStatus==='better'&&f.relativeStatus==='better')o.push(['positive','رشد و کارایی متوازن','وزن و FCR هر دو نسبت به هدف همان ارزیابی هفتگی مطلوب‌اند.','balanced_growth'])}if(w?.relativeStatus==='below_target'&&a?.trend?.performanceDirection==='improving')o.push(['watch','مسیر جبران رشد','وزن فعلی زیر هدف ارزیابی هفتگی است اما فاصله هدف‌محور ADG در مقایسه با هفته قبل در حال بهبود است.','recovery']);if(cv?.relativeStatus==='below_target'&&u?.relativeStatus==='below_target')o.push(['high','پراکندگی وزن نامطلوب','CV و یکنواختی هر دو نسبت به اهداف ثبت‌شده در ارزیابی هفتگی نامطلوب‌اند.','uniformity_deterioration']);if(m?.relativeStatus==='below_target'&&f?.relativeStatus==='below_target')o.push(['high','افت همزمان بقا و کارایی','تلفات و FCR هر دو نسبت به اهداف ارزیابی هفتگی نامطلوب‌اند؛ بررسی سلامت و مدیریت ضروری است.','survival_efficiency_down']);if(c?.relativeStatus==='below_target')o.push(['watch','فاصله تجمعی از هدف','FCR تجمعی نسبت به هدف ثبت‌شده برای همان ارزیابی هفتگی نامطلوب است؛ سابقه دوره‌های قبلی نیز بررسی شود.','cumulative_efficiency_gap']);return o}
+function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999));const l=rs.at(-1);if(!l)return{version:'BROILER-PI-V3.2',ready:false,insights:[],missing:[]};const s={};for(const[m,d]of Object.entries(defs)){const a=first(l,d.a);s[m]={official:state(m,a,target(l,m,'o')),management:state(m,a,target(l,m,'m')),rawChange:rs.length>1&&a!==null&&first(rs.at(-2),d.a)!==null?a-first(rs.at(-2),d.a):null};s[m].official.trend=trend(rs,m,'o');s[m].management.trend=trend(rs,m,'m')}
 Object.assign(s,{weightState:s.weight.official,fcrState:s.fcr.official,cumFcrState:s.cumulativeFcr.official,adgState:s.adg.official,mortalityState:s.mortality.official,cvState:s.cv.official,u10State:s.u10.official,u15State:s.u15.official,weightTrend:s.weight.official.trend,adgTrend:s.adg.official.trend,fcrTrend:s.fcr.official.trend,cvTrend:s.cv.official.trend});
 const missing=[];for(const[m,d]of Object.entries(defs)){if(first(l,d.a)===null)missing.push(m);else if(target(l,m,'o')===null)missing.push(m+'_target')}
-const oi=relationship(s,'official').map(x=>({severity:x[0],title:x[1],text:x[2],code:x[3],channel:'official'}));const mi=relationship(s,'management').map(x=>({severity:x[0],title:x[1],text:x[2],code:x[3],channel:'management'}));const epef=first(l,['epef','EPEF','pef']);const epefInfo=epef===null?{status:'unavailable',text:'EPEF در مدل canonical موجود نیست.'}:{status:'context_only',text:'EPEF بدون target معتبر سن/سویه فقط به‌صورت contextual تفسیر می‌شود.'};let below=0,available=0;for(const m of Object.keys(defs)){if(s[m].official.target!==null)available++;if(s[m].official.relativeStatus==='below_target')below++}return Object.freeze({version:'BROILER-PI-V3.1',ready:true,readOnly:true,source:'canonical weekly/comprehensive model',targetAuthority:'canonical-weekly-report',age:first(l,['age','age_days']),week:first(l,['week','week_number','production_week']),states:Object.freeze(s),targets:Object.freeze(Object.fromEntries(Object.keys(defs).map(m=>[m,s[m].official.target]))),weightState:s.weightState,fcrState:s.fcrState,cumFcrState:s.cumFcrState,adgState:s.adgState,mortalityState:s.mortalityState,cvState:s.cvState,u10State:s.u10State,u15State:s.u15State,weightTrend:s.weightTrend,adgTrend:s.adgTrend,fcrTrend:s.fcrTrend,cvTrend:s.cvTrend,insights:Object.freeze(oi.slice(0,8)),managementInsights:Object.freeze(mi.slice(0,8)),status:available===0?'unavailable':below>=3?'critical':below?'watch':'good',epef,epefInfo,missing:Object.freeze(missing),coverage:Object.freeze({records:rs.length,latestDate:l.evaluationDate||l.evaluation_date||null,officialTargetedMetrics:available}),validation:Object.freeze({valid:true,issues:[]})})}
-global.AdineBroilerPerformanceIntelligenceV2=Object.freeze({version:'BROILER-PI-V3.1',build});
+const oi=relationship(s,'official').map(x=>({severity:x[0],title:x[1],text:x[2],code:x[3],channel:'official'}));const mi=relationship(s,'management').map(x=>({severity:x[0],title:x[1],text:x[2],code:x[3],channel:'management'}));const epef=first(l,['epef','EPEF','pef']);const epefInfo=epef===null?{status:'unavailable',text:'EPEF در مدل canonical موجود نیست.'}:{status:'context_only',text:'EPEF بدون target معتبر سن/سویه فقط به‌صورت contextual تفسیر می‌شود.'};let below=0,available=0;for(const m of Object.keys(defs)){if(s[m].official.target!==null)available++;if(s[m].official.relativeStatus==='below_target')below++}return Object.freeze({version:'BROILER-PI-V3.2',ready:true,readOnly:true,source:'canonical weekly/comprehensive model',targetAuthority:'canonical-weekly-report',age:first(l,['age','age_days']),week:first(l,['week','week_number','production_week']),states:Object.freeze(s),targets:Object.freeze(Object.fromEntries(Object.keys(defs).map(m=>[m,s[m].official.target]))),weightState:s.weightState,fcrState:s.fcrState,cumFcrState:s.cumFcrState,adgState:s.adgState,mortalityState:s.mortalityState,cvState:s.cvState,u10State:s.u10State,u15State:s.u15State,weightTrend:s.weightTrend,adgTrend:s.adgTrend,fcrTrend:s.fcrTrend,cvTrend:s.cvTrend,insights:Object.freeze(oi.slice(0,8)),managementInsights:Object.freeze(mi.slice(0,8)),status:available===0?'unavailable':below>=3?'critical':below?'watch':'good',epef,epefInfo,missing:Object.freeze(missing),coverage:Object.freeze({records:rs.length,latestDate:l.evaluationDate||l.evaluation_date||null,officialTargetedMetrics:available}),validation:Object.freeze({valid:true,issues:[]})})}
+global.AdineBroilerPerformanceIntelligenceV2=Object.freeze({version:'BROILER-PI-V3.2',build});
 })(typeof window!=='undefined'?window:globalThis);

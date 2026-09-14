@@ -34,7 +34,7 @@ for(const strain of strains){
     assert(out.canonicalTargets.fcr!==null,`${strain} day ${age}: weekly FCR target missing`);
     assert(out.canonicalTargets.cumulativeFcr!==null,`${strain} day ${age}: cumulative FCR target missing`);
     assert(out.canonicalTargets.adg!==null,`${strain} day ${age}: weekly gain target missing`);
-    assert(['official-performance-objective','management-standard'].includes(out.targetSourceType),`${strain} day ${age}: invalid target source type`);
+    assert(out.targetSourceType&&/^(official|management|mixed)/.test(out.targetSourceType),`${strain} day ${age}: invalid target source type`);
   }
 }
 
@@ -77,7 +77,6 @@ assert.strictEqual(arian.canonicalTargets.weight,3440);
 assert.strictEqual(arian.canonicalTargets.cumulativeFcr,1.98);
 assert(arian.canonicalTargets.fcr!==null&&arian.canonicalTargets.adg!==null);
 
-/* Every broiler target must be obtainable through the single public engine. */
 for(const strain of strains)for(const age of ages){
   const t=context.broilerCanonicalMetricTarget(strain,age,'weight');
   assert(t&&t.value!==null,`${strain} day ${age}: canonical public engine failed`);

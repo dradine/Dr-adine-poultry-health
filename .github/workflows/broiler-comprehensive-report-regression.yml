@@ -4,12 +4,19 @@ on:
     branches: [ main, feat/broiler-comprehensive-report-v1 ]
   pull_request:
     paths:
-      - 'broiler-comprehensive-report-engine-v1.js'
-      - 'broiler-comprehensive-report-ui-v1.js'
-      - 'broiler-comprehensive-report-v1.css'
       - 'reports.html'
-      - 'tests/broiler-comprehensive-report-v1.test.js'
+      - 'broiler-comprehensive-report-engine-v2.js'
+      - 'broiler-comprehensive-report-ui-v2-2.js'
+      - 'broiler-comprehensive-performance-tabs-v1.js'
+      - 'broiler-canonical-metric-standards-v1.js'
+      - 'broiler-official-standards-v1.js'
+      - 'broiler-report-engine.js'
+      - 'broiler-performance-intelligence-source-v1.js'
+      - 'broiler-performance-intelligence-engine-v2.js'
+      - 'broiler-performance-intelligence-report-v1.js'
       - 'tests/broiler-comprehensive-report-shell-v1.test.js'
+      - 'tests/reports-architecture.test.js'
+      - 'tests/broiler-canonical-metric-standards-v1.test.js'
 jobs:
   regression:
     runs-on: ubuntu-latest
@@ -20,9 +27,17 @@ jobs:
           node-version: 20
       - name: Syntax check
         run: |
-          node --check broiler-comprehensive-report-engine-v1.js
-          node --check broiler-comprehensive-report-ui-v1.js
-      - name: Engine regression
-        run: node tests/broiler-comprehensive-report-v1.test.js
-      - name: Shell and red-line regression
+          node --check broiler-comprehensive-report-engine-v2.js
+          node --check broiler-comprehensive-report-ui-v2-2.js
+          node --check broiler-comprehensive-performance-tabs-v1.js
+          node --check broiler-canonical-metric-standards-v1.js
+          node --check broiler-report-engine.js
+          node --check broiler-performance-intelligence-source-v1.js
+          node --check broiler-performance-intelligence-engine-v2.js
+          node --check broiler-performance-intelligence-report-v1.js
+      - name: Canonical metric standards regression
+        run: node tests/broiler-canonical-metric-standards-v1.test.js
+      - name: Reports architecture regression
+        run: node tests/reports-architecture.test.js
+      - name: Comprehensive shell regression
         run: node tests/broiler-comprehensive-report-shell-v1.test.js

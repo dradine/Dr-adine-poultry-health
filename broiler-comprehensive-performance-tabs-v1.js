@@ -1,7 +1,8 @@
-/* ADINE — Comprehensive report two-tab controller V4
+/* ADINE — Comprehensive report two-tab controller V5
    Owns only the landing/selection state for the comprehensive report.
-   V4 makes the landing persistent until the user explicitly selects one of
-   its two analysis cards, preventing legacy/async renderers from replacing it. */
+   V5 keeps the landing as the selector and opens the real comprehensive
+   analysis in-place; it does NOT reload reports.html into the legacy weekly
+   default state. */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 let landingActive=false;
@@ -42,7 +43,18 @@ function selectMain(){
   landingActive=false;
   global.__adineComprehensiveLandingActive=false;
   const id=getId();
-  location.href='reports.html?flockId='+encodeURIComponent(id)+'&reportMode=comprehensive&view=analysis';
+  if(!id){root()?.replaceChildren(Object.assign(document.createElement('section'),{className:'section',innerHTML:'<div class="error">شناسه گله انتخاب‌شده پیدا نشد.</div>'}));return}
+  /* Keep the same page alive. A full navigation resets reports.js activeTab
+     to weekly, which was the cause of the previous bug. */
+  try{
+    const p=new URLSearchParams(location.search);
+    p.set('flockId',id);p.set('reportMode','comprehensive');p.set('view','analysis');
+    history.replaceState(history.state,'',location.pathname+'?'+p.toString());
+  }catch(_){ }
+  syncParentTab();
+  /* The V2.2 comprehensive UI already owns the actual report renderer.
+     Its public hook is the existing adine:report-ready event. */
+  setTimeout(()=>window.dispatchEvent(new Event('adine:report-ready')),0);
 }
 async function intelligence(){
   const r=root();if(!r)return;
@@ -92,5 +104,5 @@ const rootObserver=new MutationObserver(()=>{
 });
 function start(){const r=root();if(r)rootObserver.observe(r,{childList:true,subtree:true});setTimeout(enforceLanding,300)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
-global.AdineComprehensivePerformanceTabs={landing,intelligence,syncParentTab};
+global.AdineComprehensivePerformanceTabs={landing,intelligence,syncParentTab,selectMain};
 })(window);

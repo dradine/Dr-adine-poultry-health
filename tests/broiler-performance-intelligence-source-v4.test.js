@@ -1,12 +1,12 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const code=fs.readFileSync('broiler-performance-intelligence-source-v1.js','utf8');
-const sandbox={console,ADINE_STANDARDS_RESOLVER_VERSION:'STANDARDS-RESOLVER-V2',resolvePoultryStandard:({productionType,genetics,strain,ageDays})=>({weight:1017,fcr:1.31,weightSource:'official',weightSourceLabel:'استاندارد رسمی',fcrSource:'official',fcrSourceLabel:'استاندارد رسمی',confidence:'official'})};
+const sandbox={console,ADINE_STANDARDS_RESOLVER_VERSION:'STANDARDS-RESOLVER-V3',resolvePoultryStandard:({productionType,genetics,strain,ageDays})=>({weight:1017,fcr:1.31,weightSource:'official',weightSourceLabel:'استاندارد رسمی',fcrSource:'official',fcrSourceLabel:'استاندارد رسمی',confidence:'official'})};
 vm.createContext(sandbox);vm.runInContext(code,sandbox);const S=sandbox.AdineBroilerPerformanceIntelligenceSourceV1;
-assert(S&&S.version==='BROILER-PI-SOURCE-V4');
+assert(S&&S.version==='BROILER-PI-SOURCE-V6');
 const rows=[{id:'r1',age_days:35,standard_weight:1024,standardWeeklyFcr:1.32,weight:980,fcr:1.34}];
 const out=S.enrich({production_type:'broiler',genetics:'Ross',strain:'Ross 308 AP'},rows)[0];
-assert.strictEqual(out.canonicalTargets.weight,1017,'PI must use the weekly resolver target, not stale weekly_records.standard_weight');
-assert.strictEqual(out.canonicalTargets.fcr,1.32,'Canonical weekly FCR record must remain authoritative when present');
+assert.strictEqual(out.canonicalTargets.weight,1017,'PI must use the canonical resolver target, not stale weekly_records.standard_weight');
+assert.strictEqual(out.canonicalTargets.fcr,1.32,'Canonical weekly target remains authoritative when explicitly supplied');
 assert.strictEqual(out.targetAuthority,'canonical-weekly-report');
-assert.strictEqual(out.targetResolver,'weekly-evaluation-resolver');
-console.log('BROILER PERFORMANCE INTELLIGENCE SOURCE V4 TESTS: PASS');
+assert.strictEqual(out.targetResolver,'broiler-canonical-registry-v2');
+console.log('BROILER PERFORMANCE INTELLIGENCE SOURCE V6 TESTS: PASS');

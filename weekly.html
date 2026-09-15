@@ -24,36 +24,39 @@ const dailyTab=document.getElementById('dailyTab'),weeklyTab=document.getElement
 function showPanel(p){const d=p==='daily';dailyTab.classList.toggle('active',d);weeklyTab.classList.toggle('active',!d);dailyTab.setAttribute('aria-selected',String(d));weeklyTab.setAttribute('aria-selected',String(!d));dailyPanel.classList.toggle('active',d);weeklyPanel.classList.toggle('active',!d);dailyPanel.hidden=!d;weeklyPanel.hidden=d;window.scrollTo({top:0,behavior:'smooth'});}
 dailyTab.onclick=()=>showPanel('daily');weeklyTab.onclick=()=>showPanel('weekly');
 function faDigits(v){return String(v??'').replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);}
+function isoFromDayStatus(doc){const t=doc.getElementById('dayStatus')?.textContent||'';const m=t.match(/\|\s*(\d{4}-\d{2}-\d{2})/);return m?m[1]:'';}
 function setupDailyDate(frame,doc){
   try{
     if(!doc||!doc.body)return;
+    const ds=frame.contentWindow.AdineDateSystem;if(!ds)return;
     const status=doc.getElementById('dayStatus');
     const query=new URLSearchParams(frame.contentWindow.location.search);
-    const iso=query.get('date');
-    const ds=frame.contentWindow.AdineDateSystem;
-    const jalali=iso&&ds?.isoToJalali?ds.isoToJalali(iso):'';
+    let iso=query.get('date')||isoFromDayStatus(doc)||'';
+    const jalali=iso&&ds.isoToJalali?ds.isoToJalali(iso):'';
     if(!doc.getElementById('dailyDateGroup')){
       const group=doc.createElement('div');group.id='dailyDateGroup';group.className='group';group.style.minWidth='210px';
-      group.innerHTML='<label for="dailyDate">تاریخ ثبت پایش</label><input id="dailyDate" class="jalali-input" type="text" inputmode="none" autocomplete="off" placeholder="۱۴۰۵/۰۶/۲۴" readonly><small>تاریخ به تقویم شمسی و با اعداد فارسی ثبت می‌شود.</small>';
+      group.innerHTML='<label for="dailyDate">تاریخ ثبت پایش</label><input id="dailyDate" class="jalali-input" type="text" inputmode="none" autocomplete="off" placeholder="۱۴۰۵/۰۶/۲۴" readonly><small>همان تقویم شمسی مشترک سامانه استفاده می‌شود.</small>';
       const anchor=doc.getElementById('daySwitch');
       if(anchor&&anchor.parentNode){const grid=doc.createElement('div');grid.className='form-grid';grid.style.marginBottom='14px';grid.appendChild(group);anchor.parentNode.insertBefore(grid,anchor.nextSibling);}
       const input=doc.getElementById('dailyDate');
       input.addEventListener('change',()=>{
-        const value=input.value||'';
-        const next=frame.contentWindow.AdineDateSystem?.jalaliToISO?.(value);
-        if(!next)return;
+        const value=input.value||'';const next=ds.jalaliToISO?.(value);if(!next)return;
         const p=new URLSearchParams(frame.contentWindow.location.search);p.set('date',next);p.delete('day');frame.contentWindow.location.search=p.toString();
       });
     }
     const input=doc.getElementById('dailyDate');if(input&&jalali)input.value=faDigits(jalali);
     if(status&&jalali){const txt=status.textContent||'';const m=txt.match(/روز\s*([۰-۹0-9]+)/);if(m)status.textContent='روز '+faDigits(m[1])+' | '+faDigits(jalali);}
-    const flockInfo=doc.getElementById('flockInfo');if(flockInfo&&ds?.isoToJalali){[...flockInfo.querySelectorAll('.info')].forEach(card=>{const label=card.querySelector('label'),b=card.querySelector('b');if(label&&b&&label.textContent.trim()==='تاریخ ورود'&&/^\d{4}-\d{2}-\d{2}$/.test(b.textContent.trim())){const j=ds.isoToJalali(b.textContent.trim());if(j)b.textContent=faDigits(j);}});}
+    const flockInfo=doc.getElementById('flockInfo');if(flockInfo&&ds.isoToJalali){[...flockInfo.querySelectorAll('.info')].forEach(card=>{const label=card.querySelector('label'),b=card.querySelector('b');if(label&&b&&label.textContent.trim()==='تاریخ ورود'){const raw=b.textContent.trim();if(/^\d{4}-\d{2}-\d{2}$/.test(raw)){const j=ds.isoToJalali(raw);if(j)b.textContent=faDigits(j)}}});}
   }catch(e){console.warn('Daily Persian date setup skipped',e)}
+}
+function loadDailyCalendar(frame,doc){
+  const existing=doc.getElementById('daily-date-system-loader');if(existing)return;
+  const dateScript=doc.createElement('script');dateScript.id='daily-date-system-loader';dateScript.src='date-system.js';dateScript.onload=()=>{const cal=doc.createElement('script');cal.id='daily-shared-calendar-loader';cal.src='shared-jalali-calendar-v1.js';cal.onload=()=>setupDailyDate(frame,doc);doc.head.appendChild(cal);};doc.head.appendChild(dateScript);
 }
 function setupDailyAccordion(frame){try{const doc=frame.contentDocument;if(!doc||!doc.body)return;const form=doc.getElementById('dailyForm');if(!form)return;
   if(!doc.getElementById('daily-accordion-style')){const s=doc.createElement('style');s.id='daily-accordion-style';s.textContent='.daily-accordion-head{display:flex!important;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;background:#f8fafc;border:1px solid #e5eaf0;border-radius:12px;padding:13px 15px!important;margin:16px 0 0!important;border-bottom:1px solid #e5eaf0!important;transition:.15s ease}.daily-accordion-head:hover{background:#f1f5f9}.daily-accordion-head[aria-expanded="true"]{background:#f1f5f9;border-color:#d6dee8}.daily-accordion-icon{width:28px;height:28px;min-width:28px;border-radius:50%;background:#fff;border:1px solid #d7dde5;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;color:#1d3557}.daily-accordion-icon::before{content:"+"}.daily-accordion-head[aria-expanded="true"] .daily-accordion-icon::before{content:"−"}.daily-accordion-panel{overflow:hidden;padding-top:12px}.daily-accordion-panel[hidden]{display:none!important}';doc.head.appendChild(s)}
   if(form.dataset.accordionReady!=='1'){form.dataset.accordionReady='1';const headings=[...form.querySelectorAll('.sub')].filter(h=>/^\s*[۱-۷1-7][)）]/.test(h.textContent));headings.forEach((heading,index)=>{heading.textContent=heading.textContent.replace(/^\s*[۱-۷1-7][)）]\s*/,'');heading.classList.add('daily-accordion-head');heading.setAttribute('role','button');heading.setAttribute('tabindex','0');heading.setAttribute('aria-expanded',index===0?'true':'false');const icon=doc.createElement('span');icon.className='daily-accordion-icon';icon.setAttribute('aria-hidden','true');heading.appendChild(icon);const panel=doc.createElement('div');panel.className='daily-accordion-panel';panel.hidden=index!==0;panel.id='dailyAccordionPanel'+(index+1);heading.setAttribute('aria-controls',panel.id);let next=heading.nextSibling;while(next){const candidate=next.nextSibling;if(next.nodeType===1&&next.classList&&next.classList.contains('sub'))break;panel.appendChild(next);next=candidate;}heading.parentNode.insertBefore(panel,heading.nextSibling);const toggle=()=>{const open=heading.getAttribute('aria-expanded')==='true';heading.setAttribute('aria-expanded',String(!open));panel.hidden=open;};heading.addEventListener('click',toggle);heading.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});});}
-  const cal=doc.createElement('script');cal.src='shared-jalali-calendar-v1.js';cal.async=false;cal.onload=()=>setupDailyDate(frame,doc);doc.head.appendChild(cal);setupDailyDate(frame,doc);
+  loadDailyCalendar(frame,doc);setupDailyDate(frame,doc);
 }catch(e){console.warn('Daily accordion setup skipped',e)}}
 document.getElementById('dailyFrame').addEventListener('load',function(){try{const n=this.contentDocument.getElementById('bottomNavigation');if(n)n.style.display='none';this.contentDocument.body.style.paddingBottom='0';}catch(e){}setupDailyAccordion(this);});
 document.getElementById('weeklyFrame').addEventListener('load',function(){try{const n=this.contentDocument.getElementById('bottomNavigation');if(n)n.style.display='none';this.contentDocument.body.style.paddingBottom='0';}catch(e){}});

@@ -47,9 +47,26 @@
   function cumulativeMortality(age, doaOverride, mortalityOverride){
     const doa=age===1?(n(doaOverride)||0):(records.find(r=>Number(r.age_days)===1)?.doa_count||0);
     let total=Number(doa)||0;
-    records.filter(r=>Number(r.age_days)>1&&Number(r.age_days)<=age).forEach(r=>{total+=n(r.mortality_count)||0});
-    if(age>1 && currentRecord && Number(currentRecord.age_days)===age) total += (n(mortalityOverride)||0)-(n(currentRecord.mortality_count)||0);
-    return total;
+    records.filter(r=>Number(r.age_days)>=1&&Number(r.age_days)<=age).forEach(r=>{total+=n(r.mortality_count)||0});
+    if(currentRecord && Number(currentRecord.age_days)===age) total-=(n(currentRecord.mortality_count)||0);
+    total+=n(mortalityOverride)||0;
+    return Math.max(0,total);
+  }
+  function cumulativeCulls(age, cullOverride){
+    let total=0;
+    records.filter(r=>Number(r.age_days)>=1&&Number(r.age_days)<=age).forEach(r=>{total+=n(r.cull_count)||0});
+    if(currentRecord && Number(currentRecord.age_days)===age) total-=(n(currentRecord.cull_count)||0);
+    total+=n(cullOverride)||0;
+    return Math.max(0,total);
+  }
+  function ensureSurvivalField(){
+    if($('survivalCount'))return;
+    const anchor=$('cumMortalityPercent')?.closest('.group');
+    if(!anchor||!anchor.parentElement)return;
+    const group=document.createElement('div');
+    group.className='group';
+    group.innerHTML='<label>زنده‌مانی (تعداد)</label><input id="survivalCount" class="readonly" readonly>';
+    anchor.parentElement.insertBefore(group,anchor.parentElement.children[anchor.parentElement.children.length-1]||null);
   }
   function populateFlock(){
     const box=$('flockInfo');
@@ -77,6 +94,7 @@
   }
   function lighting(a){return S.common?.firstWeekLighting?.['day'+a]||{light:a===1?23:20,dark:a===1?1:4}}
   function fillAuto(){
+    ensureSurvivalField();
     const a=age(),l=lighting(a);set('lightHours',l.light);set('darkHours',l.dark);
     set('initialCount',initialCount());set('initialWeight',initialWeight());
     const st=standards(),target=st.dayWeightG?.[a];
@@ -90,6 +108,7 @@
     const mort=n(val('mortalityCount'))||0;const pop=base||initialCount();set('mortalityPercent',pop?((mort/pop)*100).toFixed(3):'');
     const cum=cumulativeMortality(a,doa,mort);set('cumMortalityCount',cum);set('cumMortalityPercent',initialCount()?((cum/initialCount())*100).toFixed(3):'');
     const cull=n(val('cullCount'))||0;set('cullPercent',pop?((cull/pop)*100).toFixed(3):'');
+    const cumCull=cumulativeCulls(a,cull);set('survivalCount',initialCount()!=null?Math.max(0,initialCount()-cum-cumCull):'');
     const f=n(val('feedQuantity')),w=n(val('waterQuantity'));set('waterFeedRatio',f>0&&w!=null?(w/f).toFixed(2):'');
   }
   function loadForm(r){

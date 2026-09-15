@@ -25,57 +25,11 @@ function addCss(){if(document.getElementById('shared-jalali-css'))return;const s
 function draw(v,y,m,sel){const d=pop.querySelector('.sjc-days');pop.querySelector('.sjc-title').textContent=fa(M[m-1]+' '+y);d.innerHTML='';for(let i=0;i<offset(y,m);i++)d.insertAdjacentHTML('beforeend','<i></i>');const t=today();for(let x=1;x<=days(y,m);x++){const b=document.createElement('button');b.type='button';b.textContent=fa(x);if(sel&&sel[0]===y&&sel[1]===m&&sel[2]===x)b.classList.add('sel');if(t&&t[0]===y&&t[1]===m&&t[2]===x)b.classList.add('today');b.onclick=()=>{const j=[y,m,x];if(!iso(j))return;v.value=fa(`${y}/${pad(m)}/${pad(x)}`);v.dispatchEvent(new Event('input',{bubbles:true}));v.dispatchEvent(new Event('change',{bubbles:true}));close()};d.appendChild(b)}}
 function open(v){close();addCss();active=v;const cur=parse(v.value)||today();let y=cur[0],m=cur[1],sel=parse(v.value);pop=document.createElement('div');pop.className='sjc';pop.innerHTML='<div class="sjc-head"><button type="button" data-prev>‹</button><div class="sjc-title"></div><button type="button" data-next>›</button></div><div class="sjc-week">'+W.map(x=>`<span>${x}</span>`).join('')+'</div><div class="sjc-days"></div><div class="sjc-foot"><button type="button" data-today>امروز</button><button type="button" data-clear>پاک کردن</button></div>';document.body.appendChild(pop);draw(v,y,m,sel);pop.querySelector('[data-prev]').onclick=()=>{m--;if(m<1){m=12;y--}draw(v,y,m,sel)};pop.querySelector('[data-next]').onclick=()=>{m++;if(m>12){m=1;y++}draw(v,y,m,sel)};pop.querySelector('[data-today]').onclick=()=>{const t=today();if(t){v.value=fa(`${t[0]}/${pad(t[1])}/${pad(t[2])}`);v.dispatchEvent(new Event('change',{bubbles:true}))}close()};pop.querySelector('[data-clear]').onclick=()=>{v.value='';v.dispatchEvent(new Event('change',{bubbles:true}));close()};const r=v.getBoundingClientRect(),w=Math.min(278,innerWidth-20);pop.style.width=w+'px';pop.style.left=Math.max(10,Math.min(r.left,innerWidth-w-10))+'px';pop.style.top=Math.max(10,Math.min(r.bottom+6,innerHeight-330))+'px'}
 function targets(){return document.querySelectorAll('#placementDate,#productionStartDate,#evaluationDate,#eventDate,.jalali-input')}
-function toPersianJalaliDate(raw){
-  const s=String(raw??'').trim().replace(/[۰-۹]/g,d=>String(F.indexOf(d))).replace(/[،,]/g,'/').replace(/\s+/g,'');
-  let j='';
-  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const x=DS()?.isoToJalali(s);if(x)j=x;}
-  else {const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m&&Number(m[3])>=1900){const x=DS()?.gregorianToJalali(Number(m[3]),Number(m[2]),Number(m[1]));if(x)j=x.join('/');}}
-  if(!j)return '';
-  const p=j.split('/').map(Number);if(p.length!==3||p.some(x=>!Number.isFinite(x)))return '';
-  return fa(`${p[2]}، ${p[1]}، ${p[0]}`);
-}
-function currentDailyISO(){
-  try{const p=new URLSearchParams(location.search);const d=p.get('date');if(/^\d{4}-\d{2}-\d{2}$/.test(d||''))return d;}catch(e){}
-  const status=document.getElementById('dayStatus');
-  const text=status?.textContent||'';const m=text.match(/\|\s*([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{4})/);
-  if(m){const j=[Number(norm(m[3])),Number(norm(m[2])),Number(norm(m[1]))];const x=iso(j);if(x)return x;}
-  const g=text.match(/\|\s*(\d{4}-\d{2}-\d{2})/);if(g)return g[1];
-  return '';
-}
-function ensureDailyDatePicker(){
-  const status=document.getElementById('dayStatus');
-  const daySwitch=document.getElementById('daySwitch');
-  if(!status||!daySwitch)return;
-  let group=document.getElementById('dailyCalendarGroup');
-  if(!group){
-    group=document.createElement('div');group.id='dailyCalendarGroup';group.className='group';group.style.cssText='margin:10px 0 12px;max-width:280px';
-    group.innerHTML='<label for="dailyCalendarInput">تاریخ پایش</label><input id="dailyCalendarInput" class="jalali-input" type="text" inputmode="none" autocomplete="off" readonly><small>انتخاب تاریخ با تقویم شمسی؛ مبنای روز پایش همان تاریخ پایه گله است.</small>';
-    daySwitch.parentNode.insertBefore(group,daySwitch);
-  }
-  const input=group.querySelector('#dailyCalendarInput');
-  if(!input)return;
-  const sync=()=>{const d=currentDailyISO();const j=d?DS()?.isoToJalali(d):'';input.value=j?fa(j):''};
-  if(input.dataset.dailyCalendarWired!=='1'){
-    input.dataset.dailyCalendarWired='1';
-    input.addEventListener('change',()=>{const j=parse(input.value);const d=j?iso(j):'';if(!d)return;const p=new URLSearchParams(location.search);p.set('date',d);p.delete('day');location.search=p.toString()});
-  }
-  sync();
-}
-function removeRedundantDailyDate(){
-  const group=document.getElementById('dailyDateGroup');
-  if(group)group.remove();
-  const input=document.getElementById('dailyDate');
-  if(input)input.remove();
-}
-function normalizeDailyDates(){
-  if(!document.getElementById('dayStatus')&&!document.getElementById('flockInfo'))return;
-  removeRedundantDailyDate();
-  ensureDailyDatePicker();
-  const status=document.getElementById('dayStatus');
-  if(status){const text=status.textContent||'';const m=text.match(/^(روز\s*[۰-۹0-9]+)\s*\|\s*(.+)$/);if(m){const d=toPersianJalaliDate(m[2]);if(d)status.textContent=fa(m[1])+' | '+d;}}
-  const box=document.getElementById('flockInfo');
-  if(box){box.querySelectorAll('.info').forEach(card=>{const label=card.querySelector('label'),value=card.querySelector('b');if(label&&value&&label.textContent.trim()==='تاریخ ورود'){const d=toPersianJalaliDate(value.textContent);if(d)value.textContent=d;}});}
-}
-function setup(){if(!DS())return;addCss();normalizeDailyDates();targets().forEach(v=>{if(v.dataset.sjc==='1')return;v.dataset.sjc='1';v.classList.add('sjc-input');v.setAttribute('readonly','readonly');v.setAttribute('autocomplete','off');v.setAttribute('inputmode','none');v.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open(v)},true);v.addEventListener('focus',e=>{e.preventDefault();e.stopPropagation()},true)});}
+function toPersianJalaliDate(raw){const s=String(raw??'').trim().replace(/[۰-۹]/g,d=>String(F.indexOf(d))).replace(/[،,]/g,'/').replace(/\s+/g,'');let j='';if(/^\d{4}-\d{2}-\d{2}$/.test(s)){const x=DS()?.isoToJalali(s);if(x)j=x;}else{const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m&&Number(m[3])>=1900){const x=DS()?.gregorianToJalali(Number(m[3]),Number(m[2]),Number(m[1]));if(x)j=x.join('/');}}if(!j)return '';const p=j.split('/').map(Number);if(p.length!==3||p.some(x=>!Number.isFinite(x)))return '';return fa(`${p[2]}، ${p[1]}، ${p[0]}`)}
+function currentDailyISO(){try{const p=new URLSearchParams(location.search);const d=p.get('date');if(/^\d{4}-\d{2}-\d{2}$/.test(d||''))return d}catch(e){}const status=document.getElementById('dayStatus');const text=status?.textContent||'';const m=text.match(/\|\s*([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{4})/);if(m){const j=[Number(norm(m[3])),Number(norm(m[2])),Number(norm(m[1]))];const x=iso(j);if(x)return x}const g=text.match(/\|\s*(\d{4}-\d{2}-\d{2})/);if(g)return g[1];return ''}
+function ensureDailyDatePicker(){const status=document.getElementById('dayStatus');const daySwitch=document.getElementById('daySwitch');if(!status||!daySwitch)return;let group=document.getElementById('dailyCalendarGroup');if(!group){group=document.createElement('div');group.id='dailyCalendarGroup';group.className='group';group.style.cssText='margin:10px 0 12px;max-width:280px';group.innerHTML='<label for="dailyCalendarInput">تاریخ پایش</label><input id="dailyCalendarInput" class="jalali-input" type="text" inputmode="none" autocomplete="off" readonly><small>انتخاب تاریخ با تقویم شمسی؛ مبنای روز پایش همان تاریخ پایه گله است.</small>';daySwitch.parentNode.insertBefore(group,daySwitch)}const input=group.querySelector('#dailyCalendarInput');if(!input)return;const sync=()=>{const d=currentDailyISO();const j=d?DS()?.isoToJalali(d):'';input.value=j?fa(j):''};if(input.dataset.dailyCalendarWired!=='1'){input.dataset.dailyCalendarWired='1';input.addEventListener('change',()=>{const j=parse(input.value);const d=j?iso(j):'';if(!d)return;const p=new URLSearchParams(location.search);p.set('date',d);p.delete('day');location.search=p.toString()})}sync()}
+function removeRedundantDailyDate(){const ids=['dailyDateGroup','dailyDate','dailyRecordDate'];ids.forEach(id=>{const el=document.getElementById(id);if(el)el.remove()});document.querySelectorAll('label').forEach(label=>{if(label.textContent.trim()==='تاریخ پایش روزانه'){const group=label.closest('.group,.form-grid');if(group)group.remove()}})}
+function normalizeDailyDates(){if(!document.getElementById('dayStatus')&&!document.getElementById('flockInfo'))return;removeRedundantDailyDate();ensureDailyDatePicker();const status=document.getElementById('dayStatus');if(status){const text=status.textContent||'';const m=text.match(/^(روز\s*[۰-۹0-9]+)\s*\|\s*(.+)$/);if(m){const d=toPersianJalaliDate(m[2]);if(d)status.textContent=fa(m[1])+' | '+d}}const box=document.getElementById('flockInfo');if(box){box.querySelectorAll('.info').forEach(card=>{const label=card.querySelector('label'),value=card.querySelector('b');if(label&&value&&label.textContent.trim()==='تاریخ ورود'){const d=toPersianJalaliDate(value.textContent);if(d)value.textContent=d}})}}
+function setup(){if(!DS())return;addCss();normalizeDailyDates();targets().forEach(v=>{if(v.dataset.sjc==='1')return;v.dataset.sjc='1';v.classList.add('sjc-input');v.setAttribute('readonly','readonly');v.setAttribute('autocomplete','off');v.setAttribute('inputmode','none');v.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open(v)},true);v.addEventListener('focus',e=>{e.preventDefault();e.stopPropagation()},true)})}
 document.addEventListener('click',e=>{if(pop&&!pop.contains(e.target)&&e.target!==active)close()},true);window.addEventListener('resize',close);window.addEventListener('scroll',close,true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();new MutationObserver(setup).observe(document.documentElement,{childList:true,subtree:true});
 })();

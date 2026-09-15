@@ -34,8 +34,15 @@ function toPersianJalaliDate(raw){
   const p=j.split('/').map(Number);if(p.length!==3||p.some(x=>!Number.isFinite(x)))return '';
   return fa(`${p[2]}، ${p[1]}، ${p[0]}`);
 }
+function removeRedundantDailyDate(){
+  const group=document.getElementById('dailyDateGroup');
+  if(group)group.remove();
+  const input=document.getElementById('dailyDate');
+  if(input)input.remove();
+}
 function normalizeDailyDates(){
   if(!document.getElementById('dayStatus')&&!document.getElementById('flockInfo'))return;
+  removeRedundantDailyDate();
   const status=document.getElementById('dayStatus');
   if(status){const text=status.textContent||'';const m=text.match(/^(روز\s*[۰-۹0-9]+)\s*\|\s*(.+)$/);if(m){const d=toPersianJalaliDate(m[2]);if(d)status.textContent=fa(m[1])+' | '+d;}}
   const box=document.getElementById('flockInfo');

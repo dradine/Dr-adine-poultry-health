@@ -46,13 +46,19 @@ function ensureDailyDatePicker(){
   const status=document.getElementById('dayStatus');
   const daySwitch=document.getElementById('daySwitch');
   if(!status||!daySwitch)return;
-  if(document.getElementById('dailyCalendarGroup'))return;
-  const group=document.createElement('div');group.id='dailyCalendarGroup';group.className='group';group.style.cssText='margin:10px 0 12px;max-width:280px';
-  group.innerHTML='<label for="dailyCalendarInput">تاریخ پایش</label><input id="dailyCalendarInput" class="jalali-input" type="text" inputmode="none" autocomplete="off" readonly><small>انتخاب تاریخ با تقویم شمسی؛ مبنای روز پایش همان تاریخ پایه گله است.</small>';
-  daySwitch.parentNode.insertBefore(group,daySwitch);
+  let group=document.getElementById('dailyCalendarGroup');
+  if(!group){
+    group=document.createElement('div');group.id='dailyCalendarGroup';group.className='group';group.style.cssText='margin:10px 0 12px;max-width:280px';
+    group.innerHTML='<label for="dailyCalendarInput">تاریخ پایش</label><input id="dailyCalendarInput" class="jalali-input" type="text" inputmode="none" autocomplete="off" readonly><small>انتخاب تاریخ با تقویم شمسی؛ مبنای روز پایش همان تاریخ پایه گله است.</small>';
+    daySwitch.parentNode.insertBefore(group,daySwitch);
+  }
   const input=group.querySelector('#dailyCalendarInput');
+  if(!input)return;
   const sync=()=>{const d=currentDailyISO();const j=d?DS()?.isoToJalali(d):'';input.value=j?fa(j):''};
-  input.addEventListener('change',()=>{const j=parse(input.value);const d=j?iso(j):'';if(!d)return;const p=new URLSearchParams(location.search);p.set('date',d);p.delete('day');location.search=p.toString()});
+  if(input.dataset.dailyCalendarWired!=='1'){
+    input.dataset.dailyCalendarWired='1';
+    input.addEventListener('change',()=>{const j=parse(input.value);const d=j?iso(j):'';if(!d)return;const p=new URLSearchParams(location.search);p.set('date',d);p.delete('day');location.search=p.toString()});
+  }
   sync();
 }
 function removeRedundantDailyDate(){

@@ -34,6 +34,26 @@ function toPersianJalaliDate(raw){
   const p=j.split('/').map(Number);if(p.length!==3||p.some(x=>!Number.isFinite(x)))return '';
   return fa(`${p[2]}، ${p[1]}، ${p[0]}`);
 }
+function currentDailyISO(){
+  try{const p=new URLSearchParams(location.search);const d=p.get('date');if(/^\d{4}-\d{2}-\d{2}$/.test(d||''))return d;}catch(e){}
+  const status=document.getElementById('dayStatus');
+  const text=status?.textContent||'';const m=text.match(/\|\s*([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{4})/);
+  if(m){const j=[Number(norm(m[3])),Number(norm(m[2])),Number(norm(m[1]))];const x=iso(j);if(x)return x;}
+  return '';
+}
+function ensureDailyDatePicker(){
+  const status=document.getElementById('dayStatus');
+  const daySwitch=document.getElementById('daySwitch');
+  if(!status||!daySwitch)return;
+  if(document.getElementById('dailyCalendarGroup'))return;
+  const group=document.createElement('div');group.id='dailyCalendarGroup';group.className='group';group.style.cssText='margin:10px 0 12px;max-width:280px';
+  group.innerHTML='<label for="dailyCalendarInput">تاریخ پایش</label><input id="dailyCalendarInput" class="jalali-input" type="text" inputmode="none" autocomplete="off" readonly><small>انتخاب تاریخ با تقویم شمسی؛ مبنای روز پایش همان تاریخ پایه گله است.</small>';
+  daySwitch.parentNode.insertBefore(group,daySwitch);
+  const input=group.querySelector('#dailyCalendarInput');
+  const sync=()=>{const d=currentDailyISO();const j=d?DS()?.isoToJalali(d):'';input.value=j?fa(j.replace(/\//g,'/')):''};
+  input.addEventListener('change',()=>{const j=parse(input.value);const d=j?iso(j):'';if(!d)return;const p=new URLSearchParams(location.search);p.set('date',d);p.delete('day');location.search=p.toString()});
+  sync();
+}
 function removeRedundantDailyDate(){
   const group=document.getElementById('dailyDateGroup');
   if(group)group.remove();
@@ -43,6 +63,7 @@ function removeRedundantDailyDate(){
 function normalizeDailyDates(){
   if(!document.getElementById('dayStatus')&&!document.getElementById('flockInfo'))return;
   removeRedundantDailyDate();
+  ensureDailyDatePicker();
   const status=document.getElementById('dayStatus');
   if(status){const text=status.textContent||'';const m=text.match(/^(روز\s*[۰-۹0-9]+)\s*\|\s*(.+)$/);if(m){const d=toPersianJalaliDate(m[2]);if(d)status.textContent=fa(m[1])+' | '+d;}}
   const box=document.getElementById('flockInfo');

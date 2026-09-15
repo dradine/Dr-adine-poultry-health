@@ -29,11 +29,23 @@
     if(!$('survivalCount')){const g=document.createElement('div');g.className='group';g.innerHTML='<label>زنده‌مانی (تعداد)</label><input id="survivalCount" class="readonly" readonly>';grid.appendChild(g)}
     if(!$('survivalPercent')){const g=document.createElement('div');g.className='group';g.innerHTML='<label>زنده‌مانی (%)</label><input id="survivalPercent" class="readonly" readonly>';grid.appendChild(g)}
   }
+  function toggleDayOneOnly(){
+    const show=age()===1;
+    const headings=[...document.querySelectorAll('.sub')].filter(el=>/^۶\)/.test(el.textContent.trim())||/^۷\)/.test(el.textContent.trim()));
+    headings.forEach(head=>{
+      head.style.display=show?'':'none';
+      let node=head.nextElementSibling;
+      while(node&&!node.classList.contains('sub')){
+        node.style.display=show?'':'none';
+        node=node.nextElementSibling;
+      }
+    });
+  }
   function populateFlock(){const box=$('flockInfo');box.innerHTML=`<div class="info"><label>نام گله</label><b>${esc(flock?.flock_name||'—')}</b></div><div class="info"><label>گله مادر / تأمین‌کننده</label><b>${esc(flock?.maternal_flock_name||flock?.source||'—')}</b></div><div class="info"><label>سن گله مادر</label><b>${flock?.maternal_flock_age_weeks!=null?fmt(flock.maternal_flock_age_weeks)+' هفته':'—'}</b></div><div class="info"><label>سویه</label><b>${esc(flock?.strain||flock?.genetics||'—')}</b></div><div class="info"><label>تاریخ ورود</label><b>${esc(flock?.placement_date||'—')}</b></div><div class="info"><label>وزن اولیه جوجه</label><b>${initialWeight()!=null?fmt(initialWeight())+' گرم':'—'}</b></div><div class="info"><label>تعداد اولیه جوجه</label><b>${initialCount()!=null?fmt(initialCount()):'—'}</b></div>`;box.classList.remove('hidden');$('flockLoading').classList.add('hidden')}
   function makeDayButtons(){const box=$('daySwitch');box.innerHTML='';for(let d=1;d<=7;d++){const b=document.createElement('button');b.type='button';b.className='day-btn'+(d===age()?' active':'');b.textContent='روز '+d;b.onclick=()=>{const p=new URLSearchParams(location.search);p.set('day',d);location.search=p.toString()};box.appendChild(b)}const p=document.createElement('div');p.className='day-btn';p.textContent='روز '+age();p.style.marginInlineStart='auto';if(age()<=7)p.style.display='none';box.appendChild(p)}
   function age(){return Number(selectedDate?calcAge(selectedDate,flock?.placement_date):null)||Number(new URLSearchParams(location.search).get('day'))||1}
   function chooseDate(){const p=new URLSearchParams(location.search),requested=p.get('date');if(requested){selectedDate=requested;return}const d=Number(p.get('day'));if(d&&flock?.placement_date){const x=new Date(flock.placement_date+'T00:00:00');x.setDate(x.getDate()+d-1);selectedDate=x.toISOString().slice(0,10);return}selectedDate=isoToday();const a=calcAge(selectedDate,flock?.placement_date);if(a&&a>0&&a<=7)return;selectedDate=flock?.placement_date||isoToday()}
-  function setPhase(){const a=age();$('dayStatus').textContent='روز '+a+' | '+(selectedDate||'');$('phaseBadge').textContent=a<=7?'هفته اول — پایش کامل':'بعد از روز ۷ — فقط دان و آب';$('dailyRoot').classList.toggle('post7',a>7);makeDayButtons()}
+  function setPhase(){const a=age();$('dayStatus').textContent='روز '+a+' | '+(selectedDate||'');$('phaseBadge').textContent=a<=7?'هفته اول — پایش کامل':'بعد از روز ۷ — فقط دان و آب';$('dailyRoot').classList.toggle('post7',a>7);makeDayButtons();toggleDayOneOnly()}
   function lighting(a){return S.common?.firstWeekLighting?.['day'+a]||{light:a===1?23:20,dark:a===1?1:4}}
   function fillAuto(){
     ensureSurvivalFields();

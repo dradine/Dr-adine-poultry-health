@@ -1,0 +1,36 @@
+name: Daily Standards V2 Test
+
+on:
+  push:
+    paths:
+      - 'broiler-daily-standards-v1.js'
+      - 'broiler-daily-monitoring-v1.js'
+      - 'tests/broiler-daily-standards-v2.test.js'
+      - '.github/workflows/daily-standards-v2-test.yml'
+  pull_request:
+    paths:
+      - 'broiler-daily-standards-v1.js'
+      - 'broiler-daily-monitoring-v1.js'
+      - 'tests/broiler-daily-standards-v2.test.js'
+      - '.github/workflows/daily-standards-v2-test.yml'
+
+jobs:
+  daily-standards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/broiler-daily-standards-v2.test.js
+      - name: Static isolation guard
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const weekly=fs.readFileSync('weekly-core.html','utf8');
+          const daily=fs.readFileSync('broiler-daily-monitoring-v1.js','utf8');
+          if(!daily.includes('broiler_daily_monitoring')) throw new Error('daily storage reference missing');
+          if(daily.includes('BROILER_OFFICIAL_STANDARDS_V1')) throw new Error('daily module must not depend on canonical weekly standards');
+          if(weekly.includes('ADINE_BROILER_DAILY_STANDARDS_V1')) throw new Error('weekly core must remain isolated from daily standards');
+          console.log('PASS: isolation guard');
+          NODE

@@ -10,9 +10,11 @@ on:
       - 'broiler-performance-intelligence-source-v1.js'
       - 'broiler-performance-intelligence-source-v9-3.js'
       - 'broiler-performance-intelligence-source-runtime-v1.js'
+      - 'broiler-performance-intelligence-runtime-bootstrap-v1.js'
       - 'broiler-performance-intelligence-engine-v2.js'
       - 'broiler-performance-intelligence-report-v1.js'
       - 'broiler-comprehensive-performance-tabs-v1.js'
+      - 'broiler-pi-controller-v22.js'
       - 'standard-data.js'
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
@@ -31,9 +33,11 @@ on:
       - 'broiler-performance-intelligence-source-v1.js'
       - 'broiler-performance-intelligence-source-v9-3.js'
       - 'broiler-performance-intelligence-source-runtime-v1.js'
+      - 'broiler-performance-intelligence-runtime-bootstrap-v1.js'
       - 'broiler-performance-intelligence-engine-v2.js'
       - 'broiler-performance-intelligence-report-v1.js'
       - 'broiler-comprehensive-performance-tabs-v1.js'
+      - 'broiler-pi-controller-v22.js'
       - 'standard-data.js'
       - 'standards-resolver-core-v1.js'
       - 'reports.html'
@@ -60,9 +64,11 @@ jobs:
           node --check broiler-performance-intelligence-source-v1.js
           node --check broiler-performance-intelligence-source-v9-3.js
           node --check broiler-performance-intelligence-source-runtime-v1.js
+          node --check broiler-performance-intelligence-runtime-bootstrap-v1.js
           node --check broiler-performance-intelligence-engine-v2.js
           node --check broiler-performance-intelligence-report-v1.js
           node --check broiler-comprehensive-performance-tabs-v1.js
+          node --check broiler-pi-controller-v22.js
           node --check standards-resolver-core-v1.js
           node --check standard-data.js
           node --check broiler-comprehensive-report-engine-v2.js

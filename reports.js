@@ -17,15 +17,27 @@
   function metric(label,value,ref,state='neutral'){return `<div class="metric ${stateClass(state)}"><div class="metric-label">${esc(label)}</div><div class="metric-value">${value}</div>${ref?`<div class="metric-ref">${ref}</div>`:''}</div>`}
   function sourceText(r){return r?.weightSourceLabel?`مرجع رسمی: ${esc(r.weightSourceLabel)}`:'مرجع رسمی برای این سویه/سن در دسترس نیست'}
 
+  function ensureWeeklySelector(){
+    const slot=$('weeklyWeekSelectorSlot');
+    if(!slot||!model?.rows?.length)return;
+    slot.innerHTML=`<section class="report-card report-toolbar weekly-report-toolbar"><div class="toolbar-left"><b>هفته گزارش:</b><select id="week" aria-label="هفته گزارش"></select></div><span class="scope-badge">${esc(model.label)} — ${fmt(model.rows.length,0)} هفته</span></section>`;
+    const s=$('week');
+    s.innerHTML=model.rows.map((r,i)=>`<option value="${i}">هفته ${fmt(r.week,0)} — ${fmt(r.age,0)} روز</option>`).join('');
+    const wanted=Number(new URLSearchParams(location.search).get('week'));
+    if(Number.isInteger(wanted)&&wanted>0){const idx=model.rows.findIndex(r=>r.week===wanted);if(idx>=0)s.value=String(idx)}
+  }
+  function clearWeeklySelector(){const slot=$('weeklyWeekSelectorSlot');if(slot)slot.innerHTML=''}
+  function selectedRow(){const i=Number($('week')?.value||0);return model?.rows?.[i]||null}
+
   function weeklyView(){
-    const i=Number($('week')?.value||0),r=model.rows[i];
+    const r=selectedRow();
     if(!r)return `<div class="empty">برای این گله هنوز ثبت هفتگی وجود ندارد.</div>`;
     const gain=r.weeklyWeightGain===null?'—':fmt(r.weeklyWeightGain);
     const cumulativeGain=r.cumulativeWeightGain===null?'—':fmt(r.cumulativeWeightGain);
     const gainTarget=r.standardWeeklyWeightGain===null?'—':fmt(r.standardWeeklyWeightGain);
     const fcrTarget=r.standardWeeklyFcr===null?'—':fmt(r.standardWeeklyFcr,3);
     const standardFcr=r.standardCumulativeFcr===null?'—':fmt(r.standardCumulativeFcr,3);
-    return `<div class="report-toolbar weekly-report-toolbar"><div class="toolbar-left"><b>هفته گزارش:</b><select id="week" aria-label="هفته گزارش"></select></div><span class="scope-badge">${esc(model.label)} — ${fmt(model.rows.length,0)} هفته</span></div><section class="section"><div class="section-title"><div><div class="eyebrow">گزارش هفتگی</div><h2>هفته ${fmt(r.week,0)} — سن ${fmt(r.age,0)} روز</h2></div><span class="scope-badge">${esc(model.label)}</span></div><div class="metrics">
+    return `<section class="section"><div class="section-title"><div><div class="eyebrow">گزارش هفتگی</div><h2>هفته ${fmt(r.week,0)} — سن ${fmt(r.age,0)} روز</h2></div><span class="scope-badge">${esc(model.label)}</span></div><div class="metrics">
       ${metric('میانگین وزن',fmt(r.weight)+' گرم',`استاندارد رسمی: ${fmt(r.standardWeight)} گرم`,stateClass(r.weightStatus))}
       ${metric('افزایش وزن هفتگی',gain+' گرم',`استاندارد رسمی هفتگی: ${gainTarget} گرم`,r.weeklyWeightGain===null?'neutral':direction(r.weeklyWeightGain,r.standardWeeklyWeightGain))}
       ${metric('افزایش وزن تجمعی',cumulativeGain+' گرم',`استاندارد رسمی تجمعی: ${r.standardCumulativeWeightGain===null?'—':fmt(r.standardCumulativeWeightGain)} گرم`)}
@@ -54,14 +66,17 @@
 
   function render(){
     destroyCharts();
-    if(activeTab==='overall')return;
+    if(activeTab!=='weekly')clearWeeklySelector();
     const root=$('root');
     if(!model?.ready){root.innerHTML=`<section class="section"><div class="empty">${model?.label?`موتور گزارش ${esc(model.label)} هنوز نصب نشده است.`:'نوع پرورش نامعتبر است.'}</div></section>`;return}
-    if(activeTab==='weekly')root.innerHTML=weeklyView();else root.innerHTML=compareView();
+    if(activeTab==='overall')return;
+    if(activeTab==='weekly'){
+      if(!$('week'))ensureWeeklySelector();
+      root.innerHTML=weeklyView();
+    }else root.innerHTML=compareView();
     requestAnimationFrame(drawCharts)
   }
   function drawCharts(){if(!model?.rows?.length)return;const labels=model.rows.map(r=>'هفته '+fmt(r.week,0));if(activeTab==='overall'){chart('weightTrend',labels,[{label:'وزن واقعی',data:model.rows.map(r=>r.weight)},{label:'استاندارد رسمی',data:model.rows.map(r=>r.standardWeight)}]);chart('fcrTrend',labels,[{label:'FCR هفتگی واقعی',data:model.rows.map(r=>r.fcr)},{label:'استاندارد رسمی هفتگی',data:model.rows.map(r=>r.standardWeeklyFcr)}]);chart('cumFcrTrend',labels,[{label:'FCR تجمعی واقعی',data:model.rows.map(r=>r.cumulativeFcr)},{label:'استاندارد رسمی تجمعی',data:model.rows.map(r=>r.standardCumulativeFcr)}]);chart('qualityTrend',labels,[{label:'CV',data:model.rows.map(r=>r.cv)},{label:'یکنواختی ±10',data:model.rows.map(r=>r.uniformity10)}])}}
-  function populateWeeks(){const s=$('week');if(!s||!model?.rows)return;s.innerHTML=model.rows.map((r,i)=>`<option value="${i}">هفته ${fmt(r.week,0)} — ${fmt(r.age,0)} روز</option>`).join('');const wanted=Number(new URLSearchParams(location.search).get('week'));if(Number.isInteger(wanted)&&wanted>0){const idx=model.rows.findIndex(r=>r.week===wanted);if(idx>=0)s.value=String(idx)}}
-  async function init(){try{await AdineReportRouter.requireUser();const id=AdineReportRouter.currentFlockId();if(!id)throw new Error('برای گزارش، شناسه گله انتخاب‌شده موجود نیست. از ثبت هفتگی وارد گزارش شوید.');flock=await AdineReportRouter.getFlock(id);rows=await AdineReportRouter.getWeeklyRecords(id);model=AdineReportRouter.buildModel(flock,rows);$('identity').innerHTML=`<div class="identity-item"><small>گله</small><strong>${esc(flock.flock_name||flock.flock_code)}</strong></div><div class="identity-item"><small>نوع پرورش</small><strong>${esc(model.label)}</strong></div><div class="identity-item"><small>ژنتیک</small><strong>${esc(flock.genetics)}</strong></div><div class="identity-item"><small>سویه</small><strong>${esc(flock.strain)}</strong></div><div class="identity-item"><small>وضعیت</small><strong>${esc(flock.status||'—')}</strong></div>`;if(model.ready){render();populateWeeks();render()}else render()}catch(e){console.error(e);$('root').innerHTML=`<section class="section"><div class="error">${esc(e?.message||'خطا در بارگذاری گزارش')}<br><button class="report-btn secondary" type="button" onclick="location.href='weekly.html'">بازگشت به ثبت هفتگی</button></div></section>`}}
-  document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.report-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.report-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeTab=b.dataset.tab;render()}));document.addEventListener('change',e=>{if(e.target?.id==='week'&&activeTab==='weekly')render()});$('back').addEventListener('click',()=>location.href='weekly.html'+(flock?.id?`?flockId=${encodeURIComponent(flock.id)}`:''));$('print').addEventListener('click',()=>window.print());init()});
+  async function init(){try{await AdineReportRouter.requireUser();const id=AdineReportRouter.currentFlockId();if(!id)throw new Error('برای گزارش، شناسه گله انتخاب‌شده موجود نیست. از ثبت هفتگی وارد گزارش شوید.');flock=await AdineReportRouter.getFlock(id);rows=await AdineReportRouter.getWeeklyRecords(id);model=AdineReportRouter.buildModel(flock,rows);$('identity').innerHTML=`<div class="identity-item"><small>گله</small><strong>${esc(flock.flock_name||flock.flock_code)}</strong></div><div class="identity-item"><small>نوع پرورش</small><strong>${esc(model.label)}</strong></div><div class="identity-item"><small>ژنتیک</small><strong>${esc(flock.genetics)}</strong></div><div class="identity-item"><small>سویه</small><strong>${esc(flock.strain)}</strong></div><div class="identity-item"><small>وضعیت</small><strong>${esc(flock.status||'—')}</strong></div>`;if(model.ready){ensureWeeklySelector();render()}else render()}catch(e){console.error(e);clearWeeklySelector();$('root').innerHTML=`<section class="section"><div class="error">${esc(e?.message||'خطا در بارگذاری گزارش')}<br><button class="report-btn secondary" type="button" onclick="location.href='weekly.html'">بازگشت به ثبت هفتگی</button></div></section>`}}
+  document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.report-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.report-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeTab=b.dataset.tab;if(activeTab==='weekly')ensureWeeklySelector();render()}));document.addEventListener('change',e=>{if(e.target?.id==='week'&&activeTab==='weekly')render()});$('back').addEventListener('click',()=>location.href='weekly.html'+(flock?.id?`?flockId=${encodeURIComponent(flock.id)}`:''));$('print').addEventListener('click',()=>window.print());init()});
 })();

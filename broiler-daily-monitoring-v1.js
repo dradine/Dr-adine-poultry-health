@@ -12,142 +12,51 @@
   const val=id=>$(id)?.value??'';
   const set=(id,v)=>{if($(id))$(id).value=v??''};
   function isoToday(){return new Date().toISOString().slice(0,10)}
-  function selectedFlockId(){
-    try{if(typeof getCurrentSelection==='function'){const s=getCurrentSelection()||{};if(s.flockId)return String(s.flockId)}}catch(e){}
-    try{const p=new URLSearchParams(location.search);return p.get('flock_id')||p.get('flockId')||''}catch(e){return ''}
-  }
-  function calcAge(date,placement){
-    if(!date||!placement)return null;
-    const a=new Date(placement+'T00:00:00'),b=new Date(date+'T00:00:00');
-    const d=Math.round((b-a)/86400000)+1;
-    return Number.isFinite(d)&&d>0?d:null;
-  }
-  function strainKey(){
-    const raw=String(flock?.strain||flock?.genetics||'').trim().toLowerCase();
-    if(raw.includes('ross')&&raw.includes('308')&&raw.includes('ff'))return 'Ross 308 FF';
-    if(raw.includes('ross')&&raw.includes('308'))return 'Ross 308';
-    if(raw.includes('cobb')&&raw.includes('500'))return 'Cobb 500';
-    if(raw.includes('arbor'))return 'Arbor Acres';
-    if(raw.includes('indian')&&raw.includes('river'))return 'Indian River';
-    if(raw.includes('hubbard')&&raw.includes('efficiency'))return 'Hubbard Efficiency Plus';
-    if(raw.includes('hubbard'))return 'Hubbard';
-    return 'default';
-  }
+  function selectedFlockId(){try{if(typeof getCurrentSelection==='function'){const s=getCurrentSelection()||{};if(s.flockId)return String(s.flockId)}}catch(e){}try{const p=new URLSearchParams(location.search);return p.get('flock_id')||p.get('flockId')||''}catch(e){return ''}}
+  function calcAge(date,placement){if(!date||!placement)return null;const a=new Date(placement+'T00:00:00'),b=new Date(date+'T00:00:00');const d=Math.round((b-a)/86400000)+1;return Number.isFinite(d)&&d>0?d:null}
+  function strainKey(){const raw=String(flock?.strain||flock?.genetics||'').trim().toLowerCase();if(raw.includes('ross')&&raw.includes('308')&&raw.includes('ff'))return 'Ross 308 FF';if(raw.includes('ross')&&raw.includes('308'))return 'Ross 308';if(raw.includes('cobb')&&raw.includes('500'))return 'Cobb 500';if(raw.includes('arbor'))return 'Arbor Acres';if(raw.includes('indian')&&raw.includes('river'))return 'Indian River';if(raw.includes('hubbard')&&raw.includes('efficiency'))return 'Hubbard Efficiency Plus';if(raw.includes('hubbard'))return 'Hubbard';return 'default'}
   function standards(){return S.strains?.[strainKey()]||S.strains?.default||{}}
   function initialCount(){return n(flock?.initial_bird_count)}
   function initialWeight(){return n(flock?.initial_average_weight_g)}
-  function effectivePopulationBeforeDay(age){
-    const base=initialCount();
-    if(!base)return null;
-    const prior=records.filter(r=>Number(r.age_days)<Number(age)).sort((a,b)=>a.age_days-b.age_days);
-    let pop=base;
-    prior.forEach(r=>{pop-=n(r.doa_count)||0;pop-=n(r.mortality_count)||0;pop-=n(r.cull_count)||0});
-    return Math.max(0,pop);
-  }
-  function cumulativeMortality(age, doaOverride, mortalityOverride){
-    const doa=age===1?(n(doaOverride)||0):(records.find(r=>Number(r.age_days)===1)?.doa_count||0);
-    let total=Number(doa)||0;
-    records.filter(r=>Number(r.age_days)>=1&&Number(r.age_days)<=age).forEach(r=>{total+=n(r.mortality_count)||0});
-    if(currentRecord && Number(currentRecord.age_days)===age) total-=(n(currentRecord.mortality_count)||0);
-    total+=n(mortalityOverride)||0;
-    return Math.max(0,total);
-  }
-  function cumulativeCulls(age, cullOverride){
-    let total=0;
-    records.filter(r=>Number(r.age_days)>=1&&Number(r.age_days)<=age).forEach(r=>{total+=n(r.cull_count)||0});
-    if(currentRecord && Number(currentRecord.age_days)===age) total-=(n(currentRecord.cull_count)||0);
-    total+=n(cullOverride)||0;
-    return Math.max(0,total);
-  }
-  function ensureSurvivalField(){
-    if($('survivalCount'))return;
+  function effectivePopulationBeforeDay(age){const base=initialCount();if(!base)return null;const prior=records.filter(r=>Number(r.age_days)<Number(age)).sort((a,b)=>a.age_days-b.age_days);let pop=base;prior.forEach(r=>{pop-=n(r.doa_count)||0;pop-=n(r.mortality_count)||0;pop-=n(r.cull_count)||0});return Math.max(0,pop)}
+  function cumulativeMortality(age,doaOverride,mortalityOverride){const doa=age===1?(n(doaOverride)||0):(records.find(r=>Number(r.age_days)===1)?.doa_count||0);let total=Number(doa)||0;records.filter(r=>Number(r.age_days)>=1&&Number(r.age_days)<=age).forEach(r=>{total+=n(r.mortality_count)||0});if(currentRecord&&Number(currentRecord.age_days)===age)total-=n(currentRecord.mortality_count)||0;total+=n(mortalityOverride)||0;return Math.max(0,total)}
+  function cumulativeCulls(age,cullOverride){let total=0;records.filter(r=>Number(r.age_days)>=1&&Number(r.age_days)<=age).forEach(r=>{total+=n(r.cull_count)||0});if(currentRecord&&Number(currentRecord.age_days)===age)total-=n(currentRecord.cull_count)||0;total+=n(cullOverride)||0;return Math.max(0,total)}
+  function ensureSurvivalFields(){
+    if($('survivalCount')&&$('survivalPercent'))return;
     const anchor=$('cumMortalityPercent')?.closest('.group');
     if(!anchor||!anchor.parentElement)return;
-    const group=document.createElement('div');
-    group.className='group';
-    group.innerHTML='<label>زنده‌مانی (تعداد)</label><input id="survivalCount" class="readonly" readonly>';
-    anchor.parentElement.insertBefore(group,anchor.parentElement.children[anchor.parentElement.children.length-1]||null);
+    const grid=anchor.parentElement;
+    if(!$('survivalCount')){const g=document.createElement('div');g.className='group';g.innerHTML='<label>زنده‌مانی (تعداد)</label><input id="survivalCount" class="readonly" readonly>';grid.appendChild(g)}
+    if(!$('survivalPercent')){const g=document.createElement('div');g.className='group';g.innerHTML='<label>زنده‌مانی (%)</label><input id="survivalPercent" class="readonly" readonly>';grid.appendChild(g)}
   }
-  function populateFlock(){
-    const box=$('flockInfo');
-    box.innerHTML=`<div class="info"><label>نام گله</label><b>${esc(flock?.flock_name||'—')}</b></div><div class="info"><label>گله مادر / تأمین‌کننده</label><b>${esc(flock?.maternal_flock_name||flock?.source||'—')}</b></div><div class="info"><label>سن گله مادر</label><b>${flock?.maternal_flock_age_weeks!=null?fmt(flock.maternal_flock_age_weeks)+' هفته':'—'}</b></div><div class="info"><label>سویه</label><b>${esc(flock?.strain||flock?.genetics||'—')}</b></div><div class="info"><label>تاریخ ورود</label><b>${esc(flock?.placement_date||'—')}</b></div><div class="info"><label>وزن اولیه جوجه</label><b>${initialWeight()!=null?fmt(initialWeight())+' گرم':'—'}</b></div><div class="info"><label>تعداد اولیه جوجه</label><b>${initialCount()!=null?fmt(initialCount()):'—'}</b></div>`;
-    box.classList.remove('hidden'); $('flockLoading').classList.add('hidden');
-  }
-  function makeDayButtons(){
-    const box=$('daySwitch');box.innerHTML='';
-    for(let d=1;d<=7;d++){const b=document.createElement('button');b.type='button';b.className='day-btn'+(d===age()?' active':'');b.textContent='روز '+d;b.onclick=()=>{const p=new URLSearchParams(location.search);p.set('day',d);location.search=p.toString()};box.appendChild(b)}
-    const p=document.createElement('div');p.className='day-btn';p.textContent='روز '+age();p.style.marginInlineStart='auto';if(age()<=7)p.style.display='none';box.appendChild(p);
-  }
+  function populateFlock(){const box=$('flockInfo');box.innerHTML=`<div class="info"><label>نام گله</label><b>${esc(flock?.flock_name||'—')}</b></div><div class="info"><label>گله مادر / تأمین‌کننده</label><b>${esc(flock?.maternal_flock_name||flock?.source||'—')}</b></div><div class="info"><label>سن گله مادر</label><b>${flock?.maternal_flock_age_weeks!=null?fmt(flock.maternal_flock_age_weeks)+' هفته':'—'}</b></div><div class="info"><label>سویه</label><b>${esc(flock?.strain||flock?.genetics||'—')}</b></div><div class="info"><label>تاریخ ورود</label><b>${esc(flock?.placement_date||'—')}</b></div><div class="info"><label>وزن اولیه جوجه</label><b>${initialWeight()!=null?fmt(initialWeight())+' گرم':'—'}</b></div><div class="info"><label>تعداد اولیه جوجه</label><b>${initialCount()!=null?fmt(initialCount()):'—'}</b></div>`;box.classList.remove('hidden');$('flockLoading').classList.add('hidden')}
+  function makeDayButtons(){const box=$('daySwitch');box.innerHTML='';for(let d=1;d<=7;d++){const b=document.createElement('button');b.type='button';b.className='day-btn'+(d===age()?' active':'');b.textContent='روز '+d;b.onclick=()=>{const p=new URLSearchParams(location.search);p.set('day',d);location.search=p.toString()};box.appendChild(b)}const p=document.createElement('div');p.className='day-btn';p.textContent='روز '+age();p.style.marginInlineStart='auto';if(age()<=7)p.style.display='none';box.appendChild(p)}
   function age(){return Number(selectedDate?calcAge(selectedDate,flock?.placement_date):null)||Number(new URLSearchParams(location.search).get('day'))||1}
-  function chooseDate(){
-    const p=new URLSearchParams(location.search);const requested=p.get('date');
-    if(requested){selectedDate=requested;return}
-    const d=Number(p.get('day'));
-    if(d&&flock?.placement_date){const x=new Date(flock.placement_date+'T00:00:00');x.setDate(x.getDate()+d-1);selectedDate=x.toISOString().slice(0,10);return}
-    selectedDate=isoToday();
-    const a=calcAge(selectedDate,flock?.placement_date);if(a&&a>0&&a<=7)return;
-    selectedDate=flock?.placement_date||isoToday();
-  }
-  function setPhase(){
-    const a=age();$('dayStatus').textContent='روز '+a+' | '+(selectedDate||'');$('phaseBadge').textContent=a<=7?'هفته اول — پایش کامل':'بعد از روز ۷ — فقط دان و آب';
-    $('dailyRoot').classList.toggle('post7',a>7);makeDayButtons();
-  }
+  function chooseDate(){const p=new URLSearchParams(location.search),requested=p.get('date');if(requested){selectedDate=requested;return}const d=Number(p.get('day'));if(d&&flock?.placement_date){const x=new Date(flock.placement_date+'T00:00:00');x.setDate(x.getDate()+d-1);selectedDate=x.toISOString().slice(0,10);return}selectedDate=isoToday();const a=calcAge(selectedDate,flock?.placement_date);if(a&&a>0&&a<=7)return;selectedDate=flock?.placement_date||isoToday()}
+  function setPhase(){const a=age();$('dayStatus').textContent='روز '+a+' | '+(selectedDate||'');$('phaseBadge').textContent=a<=7?'هفته اول — پایش کامل':'بعد از روز ۷ — فقط دان و آب';$('dailyRoot').classList.toggle('post7',a>7);makeDayButtons()}
   function lighting(a){return S.common?.firstWeekLighting?.['day'+a]||{light:a===1?23:20,dark:a===1?1:4}}
   function fillAuto(){
-    ensureSurvivalField();
-    const a=age(),l=lighting(a);set('lightHours',l.light);set('darkHours',l.dark);
-    set('initialCount',initialCount());set('initialWeight',initialWeight());
-    const st=standards(),target=st.dayWeightG?.[a];
-    if(target!=null)set('weightTarget',fmt(target)+' گرم | مرجع رسمی/سویه‌ای');
-    else if(initialWeight()!=null&&a===7&&st.day7Multiplier)set('weightTarget',fmt(initialWeight()*st.day7Multiplier.target)+' گرم | هدف روز ۷');
-    else set('weightTarget','—');
-    const base=effectivePopulationBeforeDay(a);
-    const doa=a===1?(n(val('doaCount'))||0):(records.find(r=>Number(r.age_days)===1)?.doa_count||0);
-    set('doaCount',doa);
-    set('doaPercent',initialCount()?((doa/initialCount())*100).toFixed(3):'');
-    const mort=n(val('mortalityCount'))||0;const pop=base||initialCount();set('mortalityPercent',pop?((mort/pop)*100).toFixed(3):'');
+    ensureSurvivalFields();
+    const a=age(),l=lighting(a);set('lightHours',l.light);set('darkHours',l.dark);set('initialCount',initialCount());set('initialWeight',initialWeight());
+    const st=standards(),target=st.dayWeightG?.[a];if(target!=null)set('weightTarget',fmt(target)+' گرم | مرجع رسمی/سویه‌ای');else if(initialWeight()!=null&&a===7&&st.day7Multiplier)set('weightTarget',fmt(initialWeight()*st.day7Multiplier.target)+' گرم | هدف روز ۷');else set('weightTarget','—');
+    const base=effectivePopulationBeforeDay(a),doa=a===1?(n(val('doaCount'))||0):(records.find(r=>Number(r.age_days)===1)?.doa_count||0);set('doaCount',doa);set('doaPercent',initialCount()?((doa/initialCount())*100).toFixed(3):'');
+    const mort=n(val('mortalityCount'))||0,pop=base||initialCount();set('mortalityPercent',pop?((mort/pop)*100).toFixed(3):'');
     const cum=cumulativeMortality(a,doa,mort);set('cumMortalityCount',cum);set('cumMortalityPercent',initialCount()?((cum/initialCount())*100).toFixed(3):'');
-    const cull=n(val('cullCount'))||0;set('cullPercent',pop?((cull/pop)*100).toFixed(3):'');
-    const cumCull=cumulativeCulls(a,cull);set('survivalCount',initialCount()!=null?Math.max(0,initialCount()-cum-cumCull):'');
+    const cull=n(val('cullCount'))||0;set('cullPercent',pop?((cull/pop)*100).toFixed(3):'');const cumCull=cumulativeCulls(a,cull);const survival=initialCount()!=null?Math.max(0,initialCount()-cum-cumCull):null;set('survivalCount',survival);set('survivalPercent',initialCount()?((survival/initialCount())*100).toFixed(3):'');
     const f=n(val('feedQuantity')),w=n(val('waterQuantity'));set('waterFeedRatio',f>0&&w!=null?(w/f).toFixed(2):'');
   }
-  function loadForm(r){
-    const map={doaCount:'doa_count',mortalityCount:'mortality_count',cullCount:'cull_count',cullReason:'cull_reason',feedForm:'feed_form',feedQuantity:'feed_quantity_kg',waterQuantity:'water_quantity_l',outsideTemp:'outside_temperature_c',houseTemp:'house_temperature_c',minTemp:'minimum_temperature_c',maxTemp:'maximum_temperature_c',litterTemp:'litter_temperature_c',humidity:'humidity_percent',lightLux:'light_intensity_lux',airQuality:'air_quality_status',ammonia:'ammonia_ppm',co2:'co2_ppm',litterQuality:'litter_quality_status',bodyWeight:'body_weight_g',bodyWeightSample:'body_weight_sample_count',crop2:'crop_fill_2h_percent',crop4:'crop_fill_4h_percent',crop8:'crop_fill_8h_percent',crop12:'crop_fill_12h_percent',crop24:'crop_fill_24h_percent',chickObservation:'chick_quality_observation',notes:'notes'};
-    Object.keys(map).forEach(id=>set(id,r?.[map[id]]??''));fillAuto();
-  }
-  async function loadFlock(){
-    const id=selectedFlockId();if(!id){$('flockLoading').textContent='گله‌ای در انتخاب جاری سامانه پیدا نشد. ابتدا از بخش گله‌ها یک گله را انتخاب کنید.';return}
-    const access=await checkUserAccess();if(!access?.authenticated){location.href='login.html';return} user=access.user;
-    const {data,error}=await supabaseClient.from('flocks').select('id,farm_id,house_id,flock_name,production_type,genetics,strain,placement_date,initial_bird_count,initial_average_weight_g,source,status,maternal_flock_name,maternal_flock_age_weeks').eq('id',id).maybeSingle();
-    if(error||!data){$('flockLoading').textContent='اطلاعات گله فعال دریافت نشد.';console.error(error);return}
-    flock=data;chooseDate();setPhase();populateFlock();await loadRecords();await loadCurrent();fillAuto();checkAlerts();
-  }
+  function loadForm(r){const map={doaCount:'doa_count',mortalityCount:'mortality_count',cullCount:'cull_count',cullReason:'cull_reason',feedForm:'feed_form',feedQuantity:'feed_quantity_kg',waterQuantity:'water_quantity_l',outsideTemp:'outside_temperature_c',houseTemp:'house_temperature_c',minTemp:'minimum_temperature_c',maxTemp:'maximum_temperature_c',litterTemp:'litter_temperature_c',humidity:'humidity_percent',lightLux:'light_intensity_lux',airQuality:'air_quality_status',ammonia:'ammonia_ppm',co2:'co2_ppm',litterQuality:'litter_quality_status',bodyWeight:'body_weight_g',bodyWeightSample:'body_weight_sample_count',crop2:'crop_fill_2h_percent',crop4:'crop_fill_4h_percent',crop8:'crop_fill_8h_percent',crop12:'crop_fill_12h_percent',crop24:'crop_fill_24h_percent',chickObservation:'chick_quality_observation',notes:'notes'};Object.keys(map).forEach(id=>set(id,r?.[map[id]]??''));fillAuto()}
+  async function loadFlock(){const id=selectedFlockId();if(!id){$('flockLoading').textContent='گله‌ای در انتخاب جاری سامانه پیدا نشد. ابتدا از بخش گله‌ها یک گله را انتخاب کنید.';return}const access=await checkUserAccess();if(!access?.authenticated){location.href='login.html';return}user=access.user;const {data,error}=await supabaseClient.from('flocks').select('id,farm_id,house_id,flock_name,production_type,genetics,strain,placement_date,initial_bird_count,initial_average_weight_g,source,status,maternal_flock_name,maternal_flock_age_weeks').eq('id',id).maybeSingle();if(error||!data){$('flockLoading').textContent='اطلاعات گله فعال دریافت نشد.';console.error(error);return}flock=data;chooseDate();setPhase();populateFlock();await loadRecords();await loadCurrent();fillAuto();checkAlerts()}
   async function loadRecords(){if(!flock)return;const r=await supabaseClient.from('broiler_daily_monitoring').select('*').eq('flock_id',flock.id).order('age_days',{ascending:true});if(!r.error)records=r.data||[];renderHistory()}
   async function loadCurrent(){currentRecord=records.find(r=>String(r.record_date)===String(selectedDate))||records.find(r=>Number(r.age_days)===age())||null;loadForm(currentRecord)}
-  function checkAlerts(){
-    const a=age(),box=$('alertBox'),messages=[];
-    const ratio=n(val('waterFeedRatio'));if(ratio!=null&&S.common?.waterFeedRatio){if(ratio<S.common.waterFeedRatio.min||ratio>S.common.waterFeedRatio.max)messages.push('نسبت آب به دان خارج از محدوده مرجع مدیریتی است؛ ابتدا دما، کیفیت آب، نشتی، فشار خطوط، دسترسی به دان و وضعیت سلامت را بررسی کنید.');}
-    if(a<=7){const h=n(val('humidity'));if(h!=null){const r=a<=3?S.common.humidity.day1to3:S.common.humidity.day4to7;if(h<r[0]||h>r[1])messages.push('رطوبت نسبی خارج از بازه مرجع مرحله بروودینگ است؛ تفسیر دما باید همراه با RH و رفتار جوجه انجام شود.');}
-      const crop=[['2 ساعت','crop2',2],['4 ساعت','crop4',4],['8 ساعت','crop8',8],['12 ساعت','crop12',12],['24 ساعت','crop24',24]];crop.forEach(x=>{const v=n(val(x[1])),t=S.common?.cropFill?.[x[2]];if(v!=null&&t&&v<t.min)messages.push('پر بودن چینه‌دان در '+x[0]+' پایین‌تر از حداقل مرجع است؛ دسترسی آب و دان، دما، نور و رفتار جوجه بررسی شود.');});
-    }
-    if(messages.length){box.className='alert-box show warn';box.innerHTML=messages.map(x=>'• '+esc(x)).join('<br>')}else{box.className='alert-box show ok';box.textContent='فعلاً هشدار خودکار بر اساس داده‌های ثبت‌شده فعال نیست.'}
-  }
-  async function save(e){
-    e.preventDefault();if(!flock||!user)return;
-    const a=age(),doaCount=n(val('doaCount'))||0,payload={flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id||null,owner_id:user.id,record_date:selectedDate,age_days:a,doa_count:doaCount,doa_percent:n(val('doaPercent')),mortality_count:a<=7?(n(val('mortalityCount'))||0):0,mortality_percent:n(val('mortalityPercent')),cumulative_mortality_count:a<=7?n(val('cumMortalityCount')):null,cumulative_mortality_percent:a<=7?n(val('cumMortalityPercent')):null,cull_count:a<=7?(n(val('cullCount'))||0):0,cull_percent:a<=7?n(val('cullPercent')):null,cull_reason:a<=7?val('cullReason'):null,feed_form:a<=7?val('feedForm'):null,feed_quantity_kg:n(val('feedQuantity')),water_quantity_l:n(val('waterQuantity')),water_feed_ratio:n(val('waterFeedRatio')),outside_temperature_c:a<=7?n(val('outsideTemp')):null,house_temperature_c:a<=7?n(val('houseTemp')):null,minimum_temperature_c:a<=7?n(val('minTemp')):null,maximum_temperature_c:a<=7?n(val('maxTemp')):null,litter_temperature_c:a<=7?n(val('litterTemp')):null,humidity_percent:a<=7?n(val('humidity')):null,light_hours:a<=7?n(val('lightHours')):null,dark_hours:a<=7?n(val('darkHours')):null,light_intensity_lux:a<=7?n(val('lightLux')):null,body_weight_g:a<=7?n(val('bodyWeight')):null,body_weight_sample_count:a<=7?n(val('bodyWeightSample')):null,crop_fill_2h_percent:a<=7?n(val('crop2')):null,crop_fill_4h_percent:a<=7?n(val('crop4')):null,crop_fill_8h_percent:a<=7?n(val('crop8')):null,crop_fill_12h_percent:a<=7?n(val('crop12')):null,crop_fill_24h_percent:a<=7?n(val('crop24')):null,air_quality_status:a<=7?val('airQuality'):null,ammonia_ppm:a<=7?n(val('ammonia')):null,co2_ppm:a<=7?n(val('co2')):null,litter_quality_status:a<=7?val('litterQuality'):null,chick_quality_observation:a<=7?val('chickObservation'):null,notes:val('notes')};
-    if(!payload.record_date||!a){alert('تاریخ/سن گله برای ذخیره مشخص نیست.');return}
-    $('saveBtn').disabled=true;$('saveBtn').textContent='در حال ذخیره...';
-    const {error}=await supabaseClient.from('broiler_daily_monitoring').upsert(payload,{onConflict:'flock_id,record_date'});
-    $('saveBtn').disabled=false;$('saveBtn').textContent='ذخیره پایش روزانه';
-    if(error){console.error(error);alert('ذخیره پایش روزانه انجام نشد:\n'+error.message);return}
-    await loadRecords();await loadCurrent();checkAlerts();alert('پایش روزانه با موفقیت ذخیره شد.');
-  }
-  function renderHistory(){
-    const box=$('history');if(!records.length){box.innerHTML='<div class="muted">هنوز رکورد روزانه‌ای برای این گله ثبت نشده است.</div>';return}
-    box.innerHTML='<table><thead><tr><th>روز</th><th>تاریخ</th><th>دان (kg)</th><th>آب (L)</th><th>آب/دان</th><th>تلفات</th><th>حذف</th><th>وزن</th></tr></thead><tbody>'+records.map(r=>`<tr><td>${fmt(r.age_days)}</td><td>${esc(r.record_date)}</td><td>${fmt(r.feed_quantity_kg)}</td><td>${fmt(r.water_quantity_l)}</td><td>${fmt(r.water_feed_ratio)}</td><td>${fmt(r.mortality_count)}</td><td>${fmt(r.cull_count)}</td><td>${r.body_weight_g!=null?fmt(r.body_weight_g):'—'}</td></tr>`).join('')+'</tbody></table>';
-  }
+  function checkAlerts(){const a=age(),box=$('alertBox'),messages=[];const ratio=n(val('waterFeedRatio'));if(ratio!=null&&S.common?.waterFeedRatio){if(ratio<S.common.waterFeedRatio.min||ratio>S.common.waterFeedRatio.max)messages.push('نسبت آب به دان خارج از محدوده مرجع مدیریتی است؛ ابتدا دما، کیفیت آب، نشتی، فشار خطوط، دسترسی به دان و وضعیت سلامت را بررسی کنید.')}if(a<=7){const h=n(val('humidity'));if(h!=null){const r=a<=3?S.common.humidity.day1to3:S.common.humidity.day4to7;if(h<r[0]||h>r[1])messages.push('رطوبت نسبی خارج از بازه مرجع مرحله بروودینگ است؛ تفسیر دما باید همراه با RH و رفتار جوجه انجام شود.')}const crop=[['2 ساعت','crop2',2],['4 ساعت','crop4',4],['8 ساعت','crop8',8],['12 ساعت','crop12',12],['24 ساعت','crop24',24]];crop.forEach(x=>{const v=n(val(x[1])),t=S.common?.cropFill?.[x[2]];if(v!=null&&t&&v<t.min)messages.push('پر بودن چینه‌دان در '+x[0]+' پایین‌تر از حداقل مرجع است؛ دسترسی آب و دان، دما، نور و رفتار جوجه بررسی شود.')})}if(messages.length){box.className='alert-box show warn';box.innerHTML=messages.map(x=>'• '+esc(x)).join('<br>')}else{box.className='alert-box show ok';box.textContent='فعلاً هشدار خودکار بر اساس داده‌های ثبت‌شده فعال نیست.'}}
+  async function save(e){e.preventDefault();if(!flock||!user)return;const a=age(),doaCount=n(val('doaCount'))||0,payload={flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id||null,owner_id:user.id,record_date:selectedDate,age_days:a,doa_count:doaCount,doa_percent:n(val('doaPercent')),mortality_count:a<=7?(n(val('mortalityCount'))||0):0,mortality_percent:n(val('mortalityPercent')),cumulative_mortality_count:a<=7?n(val('cumMortalityCount')):null,cumulative_mortality_percent:a<=7?n(val('cumMortalityPercent')):null,cull_count:a<=7?(n(val('cullCount'))||0):0,cull_percent:a<=7?n(val('cullPercent')):null,cull_reason:a<=7?val('cullReason'):null,feed_form:a<=7?val('feedForm'):null,feed_quantity_kg:n(val('feedQuantity')),water_quantity_l:n(val('waterQuantity')),water_feed_ratio:n(val('waterFeedRatio')),outside_temperature_c:a<=7?n(val('outsideTemp')):null,house_temperature_c:a<=7?n(val('houseTemp')):null,minimum_temperature_c:a<=7?n(val('minTemp')):null,maximum_temperature_c:a<=7?n(val('maxTemp')):null,litter_temperature_c:a<=7?n(val('litterTemp')):null,humidity_percent:a<=7?n(val('humidity')):null,light_hours:a<=7?n(val('lightHours')):null,dark_hours:a<=7?n(val('darkHours')):null,light_intensity_lux:a<=7?n(val('lightLux')):null,body_weight_g:a<=7?n(val('bodyWeight')):null,body_weight_sample_count:a<=7?n(val('bodyWeightSample')):null,crop_fill_2h_percent:a<=7?n(val('crop2')):null,crop_fill_4h_percent:a<=7?n(val('crop4')):null,crop_fill_8h_percent:a<=7?n(val('crop8')):null,crop_fill_12h_percent:a<=7?n(val('crop12')):null,crop_fill_24h_percent:a<=7?n(val('crop24')):null,air_quality_status:a<=7?val('airQuality'):null,ammonia_ppm:a<=7?n(val('ammonia')):null,co2_ppm:a<=7?n(val('co2')):null,litter_quality_status:a<=7?val('litterQuality'):null,chick_quality_observation:a<=7?val('chickObservation'):null,notes:val('notes')};if(!payload.record_date||!a){alert('تاریخ/سن گله برای ذخیره مشخص نیست.');return}$('saveBtn').disabled=true;$('saveBtn').textContent='در حال ذخیره...';const {error}=await supabaseClient.from('broiler_daily_monitoring').upsert(payload,{onConflict:'flock_id,record_date'});$('saveBtn').disabled=false;$('saveBtn').textContent='ذخیره پایش روزانه';if(error){console.error(error);alert('ذخیره پایش روزانه انجام نشد:\n'+error.message);return}await loadRecords();await loadCurrent();checkAlerts();alert('پایش روزانه با موفقیت ذخیره شد.')}
+  function renderHistory(){const box=$('history');if(!records.length){box.innerHTML='<div class="muted">هنوز رکورد روزانه‌ای برای این گله ثبت نشده است.</div>';return}box.innerHTML='<table><thead><tr><th>روز</th><th>تاریخ</th><th>دان (kg)</th><th>آب (L)</th><th>آب/دان</th><th>تلفات</th><th>حذف</th><th>وزن</th></tr></thead><tbody>'+records.map(r=>`<tr><td>${fmt(r.age_days)}</td><td>${esc(r.record_date)}</td><td>${fmt(r.feed_quantity_kg)}</td><td>${fmt(r.water_quantity_l)}</td><td>${fmt(r.water_feed_ratio)}</td><td>${fmt(r.mortality_count)}</td><td>${fmt(r.cull_count)}</td><td>${r.body_weight_g!=null?fmt(r.body_weight_g):'—'}</td></tr>`).join('')+'</tbody></table>'}
   function init(){
-    $('dailyForm').addEventListener('submit',save);$('reloadBtn').onclick=()=>loadFlock();['doaCount','mortalityCount','cullCount','feedQuantity','waterQuantity'].forEach(id=>$(id)?.addEventListener('input',()=>{fillAuto();checkAlerts()}));['humidity','crop2','crop4','crop8','crop12','crop24'].forEach(id=>$(id)?.addEventListener('input',checkAlerts));loadFlock();
+    $('dailyForm').addEventListener('submit',save);$('reloadBtn').onclick=()=>loadFlock();
+    ['doaCount','mortalityCount','cullCount','feedQuantity','waterQuantity'].forEach(id=>$(id)?.addEventListener('input',()=>{fillAuto();checkAlerts()}));
+    ['humidity','crop2','crop4','crop8','crop12','crop24'].forEach(id=>$(id)?.addEventListener('input',checkAlerts));
+    loadFlock();
   }
   document.addEventListener('DOMContentLoaded',init);
 })();

@@ -39,6 +39,7 @@ function currentDailyISO(){
   const status=document.getElementById('dayStatus');
   const text=status?.textContent||'';const m=text.match(/\|\s*([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{1,2})[،\/,\-]([۰-۹0-9]{4})/);
   if(m){const j=[Number(norm(m[3])),Number(norm(m[2])),Number(norm(m[1]))];const x=iso(j);if(x)return x;}
+  const g=text.match(/\|\s*(\d{4}-\d{2}-\d{2})/);if(g)return g[1];
   return '';
 }
 function ensureDailyDatePicker(){
@@ -50,7 +51,7 @@ function ensureDailyDatePicker(){
   group.innerHTML='<label for="dailyCalendarInput">تاریخ پایش</label><input id="dailyCalendarInput" class="jalali-input" type="text" inputmode="none" autocomplete="off" readonly><small>انتخاب تاریخ با تقویم شمسی؛ مبنای روز پایش همان تاریخ پایه گله است.</small>';
   daySwitch.parentNode.insertBefore(group,daySwitch);
   const input=group.querySelector('#dailyCalendarInput');
-  const sync=()=>{const d=currentDailyISO();const j=d?DS()?.isoToJalali(d):'';input.value=j?fa(j.replace(/\//g,'/')):''};
+  const sync=()=>{const d=currentDailyISO();const j=d?DS()?.isoToJalali(d):'';input.value=j?fa(j):''};
   input.addEventListener('change',()=>{const j=parse(input.value);const d=j?iso(j):'';if(!d)return;const p=new URLSearchParams(location.search);p.set('date',d);p.delete('day');location.search=p.toString()});
   sync();
 }
@@ -69,6 +70,6 @@ function normalizeDailyDates(){
   const box=document.getElementById('flockInfo');
   if(box){box.querySelectorAll('.info').forEach(card=>{const label=card.querySelector('label'),value=card.querySelector('b');if(label&&value&&label.textContent.trim()==='تاریخ ورود'){const d=toPersianJalaliDate(value.textContent);if(d)value.textContent=d;}});}
 }
-function setup(){if(!DS())return;addCss();targets().forEach(v=>{if(v.dataset.sjc==='1')return;v.dataset.sjc='1';v.classList.add('sjc-input');v.setAttribute('readonly','readonly');v.setAttribute('autocomplete','off');v.setAttribute('inputmode','none');v.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open(v)},true);v.addEventListener('focus',e=>{e.preventDefault();e.stopPropagation()},true)});normalizeDailyDates()}
+function setup(){if(!DS())return;addCss();normalizeDailyDates();targets().forEach(v=>{if(v.dataset.sjc==='1')return;v.dataset.sjc='1';v.classList.add('sjc-input');v.setAttribute('readonly','readonly');v.setAttribute('autocomplete','off');v.setAttribute('inputmode','none');v.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open(v)},true);v.addEventListener('focus',e=>{e.preventDefault();e.stopPropagation()},true)});}
 document.addEventListener('click',e=>{if(pop&&!pop.contains(e.target)&&e.target!==active)close()},true);window.addEventListener('resize',close);window.addEventListener('scroll',close,true);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup);else setup();new MutationObserver(setup).observe(document.documentElement,{childList:true,subtree:true});
 })();

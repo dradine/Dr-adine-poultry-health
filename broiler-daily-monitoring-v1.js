@@ -29,23 +29,38 @@
     if(!$('survivalCount')){const g=document.createElement('div');g.className='group';g.innerHTML='<label>زنده‌مانی (تعداد)</label><input id="survivalCount" class="readonly" readonly>';grid.appendChild(g)}
     if(!$('survivalPercent')){const g=document.createElement('div');g.className='group';g.innerHTML='<label>زنده‌مانی (%)</label><input id="survivalPercent" class="readonly" readonly>';grid.appendChild(g)}
   }
-  function toggleDayOneOnly(){
-    const show=age()===1;
-    const headings=[...document.querySelectorAll('.sub')].filter(el=>/^۶\)/.test(el.textContent.trim())||/^۷\)/.test(el.textContent.trim()));
-    headings.forEach(head=>{
-      head.style.display=show?'':'none';
-      let node=head.nextElementSibling;
-      while(node&&!node.classList.contains('sub')){
-        node.style.display=show?'':'none';
-        node=node.nextElementSibling;
+  function applyDayOneOnlyVisibility(){
+    const root=$('dailyRoot');if(!root)return;
+    root.classList.toggle('daily-day1-active',age()===1);
+    const styleId='daily-day1-only-style';
+    if(!$(styleId)){
+      const s=document.createElement('style');s.id=styleId;s.textContent='.daily-day2plus-hide{display:none!important}';document.head.appendChild(s);
+    }
+    const selectors=['#crop2','#crop4','#crop8','#crop12','#crop24','#chickObservation'];
+    selectors.forEach(id=>{
+      const el=$(id);if(!el)return;
+      let node=el.closest('.form-grid,.group');
+      if(id==='chickObservation')node=el.closest('.form-grid')||node;
+      if(node)node.classList.toggle('daily-day2plus-hide',age()!==1);
+    });
+    const headings=[...document.querySelectorAll('.sub')];
+    headings.forEach(h=>{
+      const t=h.textContent.replace(/[+−]/g,'').trim();
+      if(t.includes('پر بودن چینه‌دان')||t.includes('مشاهده کیفیت جوجه و مشاهدات مرغدار')){
+        h.classList.toggle('daily-day2plus-hide',age()!==1);
+        const panel=h.nextElementSibling;
+        if(panel&&panel.classList.contains('daily-accordion-panel'))panel.classList.toggle('daily-day2plus-hide',age()!==1);
       }
+    });
+    document.querySelectorAll('.daily-accordion-panel').forEach(panel=>{
+      if(panel.querySelector('#crop2,#crop4,#crop8,#crop12,#crop24,#chickObservation'))panel.classList.toggle('daily-day2plus-hide',age()!==1);
     });
   }
   function populateFlock(){const box=$('flockInfo');box.innerHTML=`<div class="info"><label>نام گله</label><b>${esc(flock?.flock_name||'—')}</b></div><div class="info"><label>گله مادر / تأمین‌کننده</label><b>${esc(flock?.maternal_flock_name||flock?.source||'—')}</b></div><div class="info"><label>سن گله مادر</label><b>${flock?.maternal_flock_age_weeks!=null?fmt(flock.maternal_flock_age_weeks)+' هفته':'—'}</b></div><div class="info"><label>سویه</label><b>${esc(flock?.strain||flock?.genetics||'—')}</b></div><div class="info"><label>تاریخ ورود</label><b>${esc(flock?.placement_date||'—')}</b></div><div class="info"><label>وزن اولیه جوجه</label><b>${initialWeight()!=null?fmt(initialWeight())+' گرم':'—'}</b></div><div class="info"><label>تعداد اولیه جوجه</label><b>${initialCount()!=null?fmt(initialCount()):'—'}</b></div>`;box.classList.remove('hidden');$('flockLoading').classList.add('hidden')}
   function makeDayButtons(){const box=$('daySwitch');box.innerHTML='';for(let d=1;d<=7;d++){const b=document.createElement('button');b.type='button';b.className='day-btn'+(d===age()?' active':'');b.textContent='روز '+d;b.onclick=()=>{const p=new URLSearchParams(location.search);p.set('day',d);location.search=p.toString()};box.appendChild(b)}const p=document.createElement('div');p.className='day-btn';p.textContent='روز '+age();p.style.marginInlineStart='auto';if(age()<=7)p.style.display='none';box.appendChild(p)}
   function age(){return Number(selectedDate?calcAge(selectedDate,flock?.placement_date):null)||Number(new URLSearchParams(location.search).get('day'))||1}
   function chooseDate(){const p=new URLSearchParams(location.search),requested=p.get('date');if(requested){selectedDate=requested;return}const d=Number(p.get('day'));if(d&&flock?.placement_date){const x=new Date(flock.placement_date+'T00:00:00');x.setDate(x.getDate()+d-1);selectedDate=x.toISOString().slice(0,10);return}selectedDate=isoToday();const a=calcAge(selectedDate,flock?.placement_date);if(a&&a>0&&a<=7)return;selectedDate=flock?.placement_date||isoToday()}
-  function setPhase(){const a=age();$('dayStatus').textContent='روز '+a+' | '+(selectedDate||'');$('phaseBadge').textContent=a<=7?'هفته اول — پایش کامل':'بعد از روز ۷ — فقط دان و آب';$('dailyRoot').classList.toggle('post7',a>7);makeDayButtons();toggleDayOneOnly()}
+  function setPhase(){const a=age();$('dayStatus').textContent='روز '+a+' | '+(selectedDate||'');$('phaseBadge').textContent=a<=7?'هفته اول — پایش کامل':'بعد از روز ۷ — فقط دان و آب';$('dailyRoot').classList.toggle('post7',a>7);makeDayButtons();applyDayOneOnlyVisibility()}
   function lighting(a){return S.common?.firstWeekLighting?.['day'+a]||{light:a===1?23:20,dark:a===1?1:4}}
   function fillAuto(){
     ensureSurvivalFields();
@@ -56,6 +71,7 @@
     const cum=cumulativeMortality(a,doa,mort);set('cumMortalityCount',cum);set('cumMortalityPercent',initialCount()?((cum/initialCount())*100).toFixed(3):'');
     const cull=n(val('cullCount'))||0;set('cullPercent',pop?((cull/pop)*100).toFixed(3):'');const cumCull=cumulativeCulls(a,cull);const survival=initialCount()!=null?Math.max(0,initialCount()-cum-cumCull):null;set('survivalCount',survival);set('survivalPercent',initialCount()?((survival/initialCount())*100).toFixed(3):'');
     const f=n(val('feedQuantity')),w=n(val('waterQuantity'));set('waterFeedRatio',f>0&&w!=null?(w/f).toFixed(2):'');
+    applyDayOneOnlyVisibility();
   }
   function loadForm(r){const map={doaCount:'doa_count',mortalityCount:'mortality_count',cullCount:'cull_count',cullReason:'cull_reason',feedForm:'feed_form',feedQuantity:'feed_quantity_kg',waterQuantity:'water_quantity_l',outsideTemp:'outside_temperature_c',houseTemp:'house_temperature_c',minTemp:'minimum_temperature_c',maxTemp:'maximum_temperature_c',litterTemp:'litter_temperature_c',humidity:'humidity_percent',lightLux:'light_intensity_lux',airQuality:'air_quality_status',ammonia:'ammonia_ppm',co2:'co2_ppm',litterQuality:'litter_quality_status',bodyWeight:'body_weight_g',bodyWeightSample:'body_weight_sample_count',crop2:'crop_fill_2h_percent',crop4:'crop_fill_4h_percent',crop8:'crop_fill_8h_percent',crop12:'crop_fill_12h_percent',crop24:'crop_fill_24h_percent',chickObservation:'chick_quality_observation',notes:'notes'};Object.keys(map).forEach(id=>set(id,r?.[map[id]]??''));fillAuto()}
   async function loadFlock(){const id=selectedFlockId();if(!id){$('flockLoading').textContent='گله‌ای در انتخاب جاری سامانه پیدا نشد. ابتدا از بخش گله‌ها یک گله را انتخاب کنید.';return}const access=await checkUserAccess();if(!access?.authenticated){location.href='login.html';return}user=access.user;const {data,error}=await supabaseClient.from('flocks').select('id,farm_id,house_id,flock_name,production_type,genetics,strain,placement_date,initial_bird_count,initial_average_weight_g,source,status,maternal_flock_name,maternal_flock_age_weeks').eq('id',id).maybeSingle();if(error||!data){$('flockLoading').textContent='اطلاعات گله فعال دریافت نشد.';console.error(error);return}flock=data;chooseDate();setPhase();populateFlock();await loadRecords();await loadCurrent();fillAuto();checkAlerts()}

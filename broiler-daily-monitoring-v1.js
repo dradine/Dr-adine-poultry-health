@@ -60,3 +60,11 @@ function renderHistory(){const box=$('history');if(!records.length){box.innerHTM
 function bind(){document.getElementById('dailyForm').addEventListener('submit',e=>{e.preventDefault();saveRecord()});['mortalityCount','cullCount','feedQuantity','waterQuantity'].forEach(id=>$(id)?.addEventListener('input',()=>{fillAuto();checkAlerts()}));$('reloadBtn')?.addEventListener('click',()=>location.reload());loadFlock()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
+(function loadDailyAlertEngine(){
+  if(window.ADINE_BROILER_DAILY_ALERT_ENGINE_V1)return;
+  const s=document.createElement('script');
+  s.src='broiler-daily-alert-engine-v1.js?v=20260916-alert-v1';
+  s.async=true;
+  s.onerror=()=>console.warn('Daily alert engine could not be loaded');
+  document.head.appendChild(s);
+})();

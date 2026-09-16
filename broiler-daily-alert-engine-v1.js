@@ -6,7 +6,7 @@
 'use strict';
 if(window.ADINE_BROILER_DAILY_ALERT_ENGINE_V1)return;
 const S=window.ADINE_BROILER_DAILY_STANDARDS_V1||{};
-const state={records:[],flockId:null};
+const state={records:[],flockId:null,loadedAge:null,loading:false};
 const $=id=>document.getElementById(id);
 const num=v=>{const x=Number(String(v??'').replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,''));return Number.isFinite(x)?x:null};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -37,9 +37,14 @@ function check(){
  return out;
 }
 function render(out){const box=$('alertBox');if(!box)return;if(!out.length){box.className='alert-box';box.innerHTML='';return}out.sort((a,b)=>(a.level==='critical'?0:1)-(b.level==='critical'?0:1));const critical=out.some(x=>x.level==='critical');box.className='alert-box show warn';box.innerHTML='<div style="font-weight:900;margin-bottom:6px">'+(critical?'🔴 هشدارهای مهم پایش':'🟡 هشدارهای پایش')+'</div>'+out.map(x=>`<div style="margin:5px 0"><b>${esc(x.title)}</b><br>${esc(x.detail)}<br><small>منبع منطق: ${esc(x.source)}</small></div>`).join('')}
-async function loadRecords(){try{const s=typeof getCurrentSelection==='function'?getCurrentSelection()||{}:{};const id=s.flockId||new URLSearchParams(location.search).get('flock_id')||new URLSearchParams(location.search).get('flockId');if(!id||!window.supabaseClient)return;state.flockId=id;const q=await supabaseClient.from('broiler_daily_monitoring').select('age_days,feed_quantity_kg,water_quantity_l').eq('flock_id',id).order('age_days',{ascending:true});if(!q.error)state.records=q.data||[]}catch(e){console.warn('daily alert history load failed',e)}}
-async function evaluate(){await loadRecords();render(check())}
-window.ADINE_BROILER_DAILY_ALERT_ENGINE_V1={version:'2026-09-16.v1',evaluate};
-function bind(){['feedQuantity','waterQuantity','houseTemp','minTemp','maxTemp','humidity','bodyWeight','doaCount','mortalityCount','crop2','crop4','crop8','crop12','crop24','ammonia','co2','airQuality','litterQuality'].forEach(id=>$(id)?.addEventListener('input',evaluate));setInterval(evaluate,1500);evaluate()}
+async function loadRecords(force=false){try{const s=typeof getCurrentSelection==='function'?getCurrentSelection()||{}:{};const id=s.flockId||new URLSearchParams(location.search).get('flock_id')||new URLSearchParams(location.search).get('flockId');const a=age();if(!id||!window.supabaseClient)return;if(!force&&state.flockId===id&&state.loadedAge===a)return;if(state.loading)return;state.loading=true;state.flockId=id;const q=await supabaseClient.from('broiler_daily_monitoring').select('age_days,feed_quantity_kg,water_quantity_l').eq('flock_id',id).order('age_days',{ascending:true});if(!q.error){state.records=q.data||[];state.loadedAge=a}state.loading=false}catch(e){state.loading=false;console.warn('daily alert history load failed',e)}}
+async function evaluate(forceHistory=false){await loadRecords(forceHistory);render(check())}
+window.ADINE_BROILER_DAILY_ALERT_ENGINE_V1={version:'2026-09-16.v2',evaluate};
+function bind(){
+ ['feedQuantity','waterQuantity','houseTemp','minTemp','maxTemp','humidity','bodyWeight','doaCount','mortalityCount','crop2','crop4','crop8','crop12','crop24','ammonia','co2','airQuality','litterQuality'].forEach(id=>$(id)?.addEventListener('input',()=>evaluate(false)));
+ const ds=$('dayStatus');
+ if(ds&&window.MutationObserver){new MutationObserver(()=>evaluate(true)).observe(ds,{childList:true,characterData:true,subtree:true})}
+ evaluate(true);
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();

@@ -1,0 +1,8 @@
+/* ADINE — WEEKLY REPORT SUBTABS V1 */
+.weekly-report-subtabs-shell{padding:9px;margin-bottom:14px}
+.weekly-report-subtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.weekly-report-subtabs .report-tab{width:100%;box-sizing:border-box}
+.weekly-daily-placeholder{margin-top:10px}
+.weekly-daily-placeholder .empty{padding:42px 20px}
+@media(max-width:600px){.weekly-report-subtabs .report-tab{font-size:9px;padding:11px 3px}}
+@media print{.weekly-report-subtabs-shell{display:none!important}}

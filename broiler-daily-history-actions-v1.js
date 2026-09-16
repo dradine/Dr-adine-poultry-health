@@ -15,3 +15,10 @@ function decorate(){const box=$(HISTORY_ID);if(!box)return false;const table=box
 async function init(){addStyles();await ensureDateSystem();let tries=0;const tick=()=>{decorate();if(++tries>=40)clearInterval(timer)};const timer=setInterval(tick,250);tick();const box=$(HISTORY_ID);if(box)new MutationObserver(()=>decorate()).observe(box,{childList:true,subtree:true})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
+(function(){
+'use strict';
+if(window.__ADINE_DAILY_ENHANCEMENT_LOADER__)return;
+window.__ADINE_DAILY_ENHANCEMENT_LOADER__=true;
+function load(){if(!document.getElementById('dailyForm'))return;const s=document.createElement('script');s.src='broiler-daily-monitoring-enhancements-v1.js?v=20260916.1';s.async=false;document.head.appendChild(s)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+})();

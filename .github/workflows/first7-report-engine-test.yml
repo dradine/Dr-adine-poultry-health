@@ -1,0 +1,17 @@
+name: First 7 Day Report Engine Test
+on:
+  push:
+    paths:
+      - 'broiler-daily-first7-report-engine-v1.js'
+      - 'broiler-daily-standards-v1.js'
+      - 'tests/broiler-first7-report-engine-v1.test.js'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/broiler-first7-report-engine-v1.test.js

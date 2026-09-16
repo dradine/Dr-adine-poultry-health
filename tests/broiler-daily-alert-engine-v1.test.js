@@ -1,0 +1,15 @@
+const fs=require('fs');
+const vm=require('vm');
+const standards={window:{}};
+vm.runInNewContext(fs.readFileSync('broiler-daily-standards-v1.js','utf8'),standards);
+if(!standards.window.ADINE_BROILER_DAILY_STANDARDS_V1)throw new Error('standards object missing');
+const alert=fs.readFileSync('broiler-daily-alert-engine-v1.js','utf8');
+new vm.Script(alert);
+const required=['FEED_DROP_WARNING','FEED_DROP_CRITICAL','WATER_DROP_WARNING','WATER_DROP_CRITICAL','WATER_FEED_RATIO_WARNING','TEMP_WARNING','RH_WARNING','CROP_2_WARNING','WEIGHT_WARNING','DOA_WARNING','MORTALITY_WARNING','NH3_WARNING','CO2_CRITICAL','COMBO_FEED_WATER_DROP','COMBO_FEED_WEIGHT'];
+for(const code of required)if(!alert.includes(code))throw new Error('missing alert code: '+code);
+if(!alert.includes('Missing data'))throw new Error('missing-data safety contract missing');
+if(!alert.includes('broiler_daily_monitoring'))throw new Error('daily history source missing');
+if(alert.includes('BROILER_OFFICIAL_STANDARDS_V1'))throw new Error('alert engine must not depend on weekly canonical standards');
+const weekly=fs.readFileSync('weekly-core.html','utf8');
+if(weekly.includes('ADINE_BROILER_DAILY_ALERT_ENGINE_V1'))throw new Error('weekly core contaminated by daily alert engine');
+console.log('PASS: daily alert engine syntax, alert families, daily-storage dependency and weekly isolation');

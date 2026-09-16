@@ -17,8 +17,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 (function(){
 'use strict';
-if(window.__ADINE_DAILY_ENHANCEMENT_LOADER__)return;
-window.__ADINE_DAILY_ENHANCEMENT_LOADER__=true;
-function load(){if(!document.getElementById('dailyForm'))return;const s=document.createElement('script');s.src='broiler-daily-monitoring-enhancements-v1.js?v=20260916.1';s.async=false;document.head.appendChild(s)}
+if(window.__ADINE_DAILY_ENHANCEMENT_LOADER_V2__)return;
+window.__ADINE_DAILY_ENHANCEMENT_LOADER_V2__=true;
+function load(){const run=()=>{if(!document.getElementById('dailyForm'))return;const old=document.getElementById('adine-daily-enhancements-script');if(old)old.remove();const s=document.createElement('script');s.id='adine-daily-enhancements-script';s.src='broiler-daily-monitoring-enhancements-v1.js?v=20260916.2';s.async=false;document.head.appendChild(s)};if(document.getElementById('dailyForm'))run();else{let n=0;const t=setInterval(()=>{if(document.getElementById('dailyForm')||++n>50){clearInterval(t);run()}},100)}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
 })();

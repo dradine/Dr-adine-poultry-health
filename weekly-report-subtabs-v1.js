@@ -16,7 +16,7 @@
     const shell=document.createElement('section');
     shell.id=ID;
     shell.className='weekly-report-subtabs-shell report-card';
-    shell.innerHTML='<nav class="weekly-report-subtabs" aria-label="زیرگزارش‌های گزارش هفتگی"><button type="button" class="report-tab weekly-subtab active" data-weekly-subtab="daily">گزارش روزانه — هفت روز اول</button><button type="button" class="report-tab weekly-subtab" data-weekly-subtab="weekly">گزارش هفتگی</button></nav><section id="weeklyDailyPlaceholder" class="weekly-daily-placeholder" aria-live="polite"><div class="empty">گزارش روزانه — هفت روز اول</div></section>';
+    shell.innerHTML='<nav class="weekly-report-subtabs" aria-label="زیرگزارش‌های گزارش هفتگی"><button type="button" class="report-tab weekly-subtab active" data-weekly-subtab="daily">گزارش روزانه — هفت روز اول</button><button type="button" class="report-tab weekly-subtab" data-weekly-subtab="weekly">گزارش هفتگی</button></nav><section id="weeklyDailyPlaceholder" class="weekly-daily-placeholder" aria-live="polite"></section>';
     top.insertAdjacentElement('afterend',shell);
     bind(shell);
     setMode('daily');

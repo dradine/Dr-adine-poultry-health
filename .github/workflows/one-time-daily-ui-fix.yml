@@ -1,0 +1,40 @@
+name: One-time daily UI cache fix
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch daily runtime path and cache versions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('weekly.html')
+          s=p.read_text(encoding='utf-8')
+          old='daily-core.html?v=20260915-daily-day1fix'
+          new='daily-core.html?v=20260916-daily-ui-v3'
+          if old not in s:
+              raise SystemExit('weekly.html cache-bust anchor not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+
+          p=Path('daily-core.html')
+          s=p.read_text(encoding='utf-8')
+          old='<script src="broiler-daily-history-actions-v1.js"></script>'
+          new='<script src="broiler-daily-history-actions-v1.js?v=20260916.3"></script>\n<script src="broiler-daily-monitoring-enhancements-v1.js?v=20260916.3"></script>'
+          if old not in s:
+              raise SystemExit('daily-core history script anchor not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add weekly.html daily-core.html
+          git diff --cached --check
+          git commit -m "Fix daily monitoring UI runtime path and cache bust [skip ci]"
+          git push

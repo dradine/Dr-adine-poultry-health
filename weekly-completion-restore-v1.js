@@ -1,6 +1,7 @@
-/* ADINE weekly completion compatibility wrapper v1
-   Keeps the exact 977a08 implementation intact and adds only a
-   defensive current-flock loader for weekly.html. */
+/* ADINE weekly completion compatibility wrapper v2
+   Keeps the exact weekly implementation intact and loads daily-only
+   enhancements into the daily iframe without touching weekly-core.
+*/
 (function(){'use strict';
   var ORIGINAL='weekly-completion-restore-v1-original.js?v=977a08';
   var s=document.createElement('script');
@@ -51,9 +52,32 @@
     if(typeof loadHistory==='function'){try{await loadHistory()}catch(e){console.warn('Weekly history after rescue:',e)}}
     return true;
   }
+  function loadDailyEnhancement(){
+    var frame=document.getElementById('dailyFrame');
+    if(!frame)return false;
+    try{
+      var doc=frame.contentDocument||frame.contentWindow.document;
+      if(!doc||!doc.head)return false;
+      if(doc.getElementById('adineDailyEnhancementLoader'))return true;
+      var js=doc.createElement('script');
+      js.id='adineDailyEnhancementLoader';
+      js.src='broiler-daily-monitoring-enhancements-v1.js?v=20260916-daily-consumption-v5';
+      js.async=false;
+      doc.head.appendChild(js);
+      return true;
+    }catch(e){console.warn('Daily enhancement injection:',e);return false}
+  }
+  function startDailyEnhancement(){
+    var frame=document.getElementById('dailyFrame');
+    if(!frame)return;
+    frame.addEventListener('load',function(){loadDailyEnhancement();setTimeout(loadDailyEnhancement,250);setTimeout(loadDailyEnhancement,1000)},{once:false});
+    var tries=0;
+    var t=setInterval(function(){tries++;if(loadDailyEnhancement()||tries>=30)clearInterval(t)},500);
+  }
   function start(){
     var tries=0;
     var t=setInterval(function(){tries++;rescue().then(function(ok){if(ok||tries>=24)clearInterval(t)}).catch(function(e){console.warn('Weekly flock rescue:',e);if(tries>=24)clearInterval(t)})},500);
+    startDailyEnhancement();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

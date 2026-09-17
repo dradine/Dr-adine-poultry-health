@@ -1,12 +1,12 @@
-/* ADINE — DAILY MONITORING ENHANCEMENTS V4
+/* ADINE — DAILY MONITORING ENHANCEMENTS V5
    UI additions + derived daily consumption.
-   Average live population is an internal calculation only.
-   Does not alter weekly engines/calculations.
+   Terminology only: weight target label is descriptive and scientific.
+   Official/management standards are not modified.
 */
 (function(){
 'use strict';
-if(window.__ADINE_DAILY_ENHANCEMENTS_V4)return;
-window.__ADINE_DAILY_ENHANCEMENTS_V4=true;
+if(window.__ADINE_DAILY_ENHANCEMENTS_V5)return;
+window.__ADINE_DAILY_ENHANCEMENTS_V5=true;
 const $=id=>document.getElementById(id);
 const n=v=>{if(v==null||v==='')return null;const x=Number(String(v).replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,''));return Number.isFinite(x)?x:null};
 const set=(id,v)=>{const e=$(id);if(e)e.value=v==null?'':v};
@@ -17,6 +17,7 @@ function inject(){if(!$('dailyForm'))return false;
  const feed=$('feedQuantity')?.closest('.group')?.parentElement;
  if(feed){addGroup(feed,'feedPerBird','مصرف دان هر پرنده','گرم',true);addGroup(feed,'waterPerBird','مصرف آب هر پرنده','میلی‌لیتر',true)}
  const oldAvg=$('avgLivePopulation');if(oldAvg){const g=oldAvg.closest('.group');if(g)g.remove()}
+ const wt=$('weightTarget');if(wt){const label=wt.closest('.group')?.querySelector('label');if(label)label.textContent='وزن هدف روزانه'}
  return true}
 function selectedFlockId(){
  try{const s=typeof getCurrentSelection==='function'?getCurrentSelection()||{}:{};if(s.flockId)return String(s.flockId);if(s.flock_id)return String(s.flock_id)}catch(e){}
@@ -49,7 +50,7 @@ async function preview(){
  return true;
 }
 async function persistBridge(){
- const ctx=await context();if(!ctx)return;const rows=ctx.rows;const target=rows.find(r=>Number(r.age_days)===ctx.day);if(!target?.id)return;
+ const ctx=await context();if(!ctx)return;const target=ctx.rows.find(r=>Number(r.age_days)===ctx.day);if(!target?.id)return;
  const avg=averageLive(ctx);if(!(avg>0))return;const feed=n(target.feed_quantity_kg),water=n(target.water_quantity_l);
  const payload={vent_temperature_c:n($('ventTemperature')?.value),feed_per_bird_g:feed!=null?Number(((feed*1000)/avg).toFixed(4)):null,water_per_bird_ml:water!=null?Number(((water*1000)/avg).toFixed(4)):null};
  await supabaseClient.from('broiler_daily_monitoring').update(payload).eq('id',target.id);

@@ -15,3 +15,15 @@ function decorate(){const box=$(HISTORY_ID);if(!box)return false;const table=box
 async function init(){addStyles();await ensureDateSystem();let tries=0;const tick=()=>{decorate();if(++tries>=40)clearInterval(timer)};const timer=setInterval(tick,250);tick();const box=$(HISTORY_ID);if(box)new MutationObserver(()=>decorate()).observe(box,{childList:true,subtree:true})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
+
+/* ADINE — load the isolated daily derived-metrics helper after the native daily engine. */
+(function(){
+'use strict';
+const id='adine-daily-derived-metrics-loader';
+if(document.getElementById(id)||window.__ADINE_DAILY_ENHANCEMENTS_V4)return;
+const s=document.createElement('script');
+s.id=id;
+s.src='broiler-daily-monitoring-enhancements-v1.js?v=20260917.2';
+s.async=false;
+(document.head||document.documentElement).appendChild(s);
+})();

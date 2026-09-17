@@ -29,7 +29,7 @@ async function context(){
  if(!window.supabaseClient)return null;const id=selectedFlockId();if(!id)return null;const day=selectedDay();
  const [f,r]=await Promise.all([
   supabaseClient.from('flocks').select('initial_bird_count').eq('id',id).maybeSingle(),
-  supabaseClient.from('broiler_daily_monitoring').select('age_days,record_date,doa_count,mortality_count,cull_count').eq('flock_id',id).order('age_days',{ascending:true})
+  supabaseClient.from('broiler_daily_monitoring').select('id,age_days,record_date,doa_count,mortality_count,cull_count,feed_quantity_kg,water_quantity_l').eq('flock_id',id).order('age_days',{ascending:true})
  ]);
  if(f.error||r.error||!f.data)return null;return {id,day,initial:n(f.data.initial_bird_count),rows:r.data||[]};
 }

@@ -26,16 +26,20 @@ function scoreBand(v,good,warn,bad,dir){v=N(v);if(v==null)return null;var s;if(d
 function scoreDetails(m,d){
  var prev=m.days.filter(function(x){return x.age<d.age}).slice(-1)[0]||null,parts=[],reasons=[];
  function add(key,label,weight,value,detail){value=N(value);if(value!=null&&isFinite(value))parts.push({key:key,label:label,weight:weight,score:clamp01(value),detail:detail||''});}
- function common(path){
-   var o=m&&m.std?m.std:null;
-   for(var i=0;i<path.length;i++){if(o==null)return null;o=o[path[i]];}
-   return o;
- }
- var tempBands=common(['common','broodingTemperatureC','default']);
- var rhBands=common(['common','humidity','default']);
- var ratioRef=common(['common','waterFeedRatio']);
- var airRef=common(['common','airQuality'])||{};
- var ventRef=common(['common','chickVentTemperatureC'])||{min:39.4,max:40.5};
+ /*
+  * IMPORTANT: m.std is the strain-specific object (dayWeightG, chickWeightG, ...),
+  * not the complete standards registry. The common daily-management references
+  * therefore come from ADINE_BROILER_DAILY_STANDARDS_V1.common.
+  * This is the root fix for the previous null-score condition.
+  */
+ var registry=window.ADINE_BROILER_DAILY_STANDARDS_V1||{};
+ var common=registry.common||{};
+ var strain=m&&m.std?m.std:{};
+ var tempBands=common.broodingTemperatureC&&common.broodingTemperatureC.default;
+ var rhBands=common.humidity&&common.humidity.default;
+ var ratioRef=common.waterFeedRatio||null;
+ var airRef=common.airQuality||{};
+ var ventRef=common.chickVentTemperatureC||{min:39.4,max:40.5};
 
  add('weight','وزن نسبت به مرجع',20,d.dev==null?null:scoreBand(Math.abs(d.dev),5,10,15,'low'),
    d.dev==null?'مرجع موجود نیست':(d.dev>=0?'بالا ':'پایین ')+F(Math.abs(d.dev),1)+'٪ از مرجع');
@@ -43,9 +47,9 @@ function scoreDetails(m,d){
  var gain=d.gain!=null?N(d.gain):null;
  if(gain==null&&d.age===1&&m.initW!=null&&d.bw!=null)gain=N(d.bw)-N(m.initW);
  var gainRef=null;
- if(d.target!=null&&m.std&&m.std.dayWeightG){
-   if(d.age===1&&m.std.chickWeightG!=null)gainRef=N(d.target)-N(m.std.chickWeightG);
-   else if(d.age>1&&m.std.dayWeightG[d.age-1]!=null)gainRef=N(d.target)-N(m.std.dayWeightG[d.age-1]);
+ if(d.target!=null&&strain.dayWeightG){
+   if(d.age===1&&strain.chickWeightG!=null)gainRef=N(d.target)-N(strain.chickWeightG);
+   else if(d.age>1&&strain.dayWeightG[d.age-1]!=null)gainRef=N(d.target)-N(strain.dayWeightG[d.age-1]);
  }
  var attain=gain!=null&&gainRef!=null&&gainRef>0?gain/gainRef*100:null;
  add('gain','افزایش وزن روزانه',10,attain==null?null:scoreBand(attain,100,85,70,'high'),
@@ -80,11 +84,16 @@ function scoreDetails(m,d){
    d.co2==null?'':F(d.co2,0)+' ppm');
 
  add('litterTemp','دمای بستر',3,d.litterTemp==null?null:scoreBand(Math.abs(d.litterTemp-(d.temp==null?d.litterTemp:d.temp)),2,4,7,'low'),
-   d.litterTemp==null?'':'اختلاف با دمای سالن '+F(Math.abs(d.litterTemp-(d.temp||d.litterTemp)),1)+' °C');
+   d.litterTemp==null?'':'اختلاف با دمای سالن '+F(Math.abs(d.litterTemp-(d.temp==null?d.litterTemp:d.temp)),1)+' °C');
 
  var rr=ratioRef;
- add('ratio','آب : دان',7,d.ratio==null?null:(rr&&d.ratio>=N(rr.min)&&d.ratio<=N(rr.max)?1:rr?scoreBand(Math.max(N(rr.min)-d.ratio,0,d.ratio-N(rr.max)),0,.25,.5,'low'):null),
-   d.ratio==null?'':F(d.ratio,2)+' L/kg');
+ var ratioScore=null;
+ if(d.ratio!=null&&rr){
+   var rmin=N(rr.min),rmax=N(rr.max);
+   ratioScore=rmin!=null&&rmax!=null&&d.ratio>=rmin&&d.ratio<=rmax?1:
+     rmin!=null&&rmax!=null?scoreBand(Math.max(rmin-d.ratio,0,d.ratio-rmax),0,.25,.5,'low'):null;
+ }
+ add('ratio','آب : دان',7,ratioScore,d.ratio==null?'':F(d.ratio,2)+' L/kg');
 
  var fd=prev&&prev.feed!=null&&d.feed!=null?delta(prev.feed,d.feed):null;
  var wd=prev&&prev.water!=null&&d.water!=null?delta(prev.water,d.water):null;
@@ -100,7 +109,12 @@ function scoreDetails(m,d){
  }
  if(d.age===1){
    var cv=[],ct=[2,4,8,12,24],fallback=[75,80,80,85,95];
-   ct.forEach(function(h,i){var v=h===2?d.crop2:h===4?d.crop4:h===8?d.crop8:h===12?d.crop12:d.crop24;var cfg=common(['common','cropFill',h]);var t=cfg&&N(cfg.min)!=null?N(cfg.min):fallback[i];if(v!=null)cv.push(scoreBand(v,t,t-10,t-20,'high'));});
+   ct.forEach(function(h,i){
+     var v=h===2?d.crop2:h===4?d.crop4:h===8?d.crop8:h===12?d.crop12:d.crop24;
+     var cfg=common.cropFill&&common.cropFill[h];
+     var t=cfg&&N(cfg.min)!=null?N(cfg.min):fallback[i];
+     if(v!=null)cv.push(scoreBand(v,t,t-10,t-20,'high'));
+   });
    if(cv.length)add('crop','شروع تغذیه / پر بودن چینه‌دان',6,cv.reduce(function(a,b){return a+b},0)/cv.length,'میانگین نقاط ثبت‌شده');
  }
 
@@ -118,15 +132,16 @@ function scoreDetails(m,d){
  var weighted=parts.reduce(function(s,x){return s+x.score*x.weight},0);
  var scoreValue=totalW>0?Math.round(weighted/totalW*100):null;
 
- // Fail-safe: an alert-bearing day must never render as a blank score.
- // Only observed values are used; no score is invented when there is genuinely no usable data.
  if(scoreValue==null){
    var fallbackParts=[];
    if(d.dev!=null)fallbackParts.push(scoreBand(Math.abs(d.dev),5,10,15,'low'));
    if(d.ammonia!=null)fallbackParts.push(scoreBand(d.ammonia,10,15,20,'low'));
    if(d.co2!=null)fallbackParts.push(scoreBand(d.co2,3000,4000,5000,'low'));
    if(d.cumMortPct!=null)fallbackParts.push(scoreBand(d.cumMortPct,.50,.75,1,'low'));
-   if(d.ratio!=null&&rr)fallbackParts.push(d.ratio>=N(rr.min)&&d.ratio<=N(rr.max)?1:scoreBand(Math.max(N(rr.min)-d.ratio,0,d.ratio-N(rr.max)),0,.25,.5,'low'));
+   if(d.ratio!=null&&rr){
+     var fm=N(rr.min),fx=N(rr.max);
+     if(fm!=null&&fx!=null)fallbackParts.push(d.ratio>=fm&&d.ratio<=fx?1:scoreBand(Math.max(fm-d.ratio,0,d.ratio-fx),0,.25,.5,'low'));
+   }
    fallbackParts=fallbackParts.filter(function(v){return v!=null&&isFinite(v)});
    if(fallbackParts.length)scoreValue=Math.round(fallbackParts.reduce(function(a,b){return a+b},0)/fallbackParts.length*100);
  }

@@ -61,27 +61,6 @@ function scoreDetails(m,d){
  add('dayMort','تلفات روز',5,d.mortPct==null?null:scoreBand(d.mortPct,.10,.25,.50,'low'),
    d.mortPct==null?'':F(d.mortPct,2)+'٪ از جمعیت ابتدای روز');
 
- function interpolate(a0,a1,v0,v1,x){return a1===a0?v0:v0+(v1-v0)*(x-a0)/(a1-a0);}
- function rhAdjustedTemperature(ageValue,rhValue){
-   if(!tempRHRef||!tempRHRef.temperatureC||!tempRHRef.ageDays||!tempRHRef.humidityPercent)return null;
-   var ages=tempRHRef.ageDays.map(Number),rhs=tempRHRef.humidityPercent.map(Number);
-   var a=N(ageValue),r=N(rhValue);if(a==null||r==null)return null;
-   var minA=ages[0],maxA=ages[ages.length-1],minR=rhs[0],maxR=rhs[rhs.length-1];
-   if(a<minA||a>maxA)return null;
-   var usedR=Math.max(minR,Math.min(maxR,r));
-   var loR=rhs[0],hiR=rhs[rhs.length-1];
-   for(var ri=0;ri<rhs.length-1;ri++){if(usedR>=rhs[ri]&&usedR<=rhs[ri+1]){loR=rhs[ri];hiR=rhs[ri+1];break;}}
-   function byRH(h){
-     var t=tempRHRef.temperatureC[String(h)]||tempRHRef.temperatureC[h];if(!t)return null;
-     var loA=ages[0],hiA=ages[ages.length-1];
-     for(var ai=0;ai<ages.length-1;ai++){if(a>=ages[ai]&&a<=ages[ai+1]){loA=ages[ai];hiA=ages[ai+1];break;}}
-     var v0=N(t[String(loA)]),v1=N(t[String(hiA)]);
-     return v0==null||v1==null?null:interpolate(loA,hiA,v0,v1,a);
-   }
-   var tLo=byRH(loR),tHi=byRH(hiR);if(tLo==null||tHi==null)return null;
-   return {target:interpolate(loR,hiR,tLo,tHi,usedR),usedRH:usedR,observedRH:r,clampedRH:r<minR||r>maxR};
- }
- var tempDynamic=rhAdjustedTemperature(d.age,d.rh);
  var tr=tempBands&&tempBands[d.age]!=null?tempBands[d.age]:null;
  var tempScore=null,tempDetail='';
  if(d.temp!=null&&tempDynamic){
@@ -93,8 +72,6 @@ function scoreDetails(m,d){
    var tempDistFallback=Math.max(tr[0]-d.temp,0,d.temp-tr[1]);
    tempScore=scoreBand(tempDistFallback,0,.8,2,'low');
    tempDetail='مرجع پایه '+F(tr[0],1)+'–'+F(tr[1],1)+' °C · RH ثبت نشده';
- }else if(d.temp!=null){
-   tempDetail='مرجع دمای وابسته به RH در دسترس نیست';
  }
  add('temp','دمای سالن',5,tempScore,d.temp==null?'':tempDetail);
 
@@ -277,6 +254,24 @@ function compareMetric(label,current,previous,unit,dec){
  current=N(current);previous=N(previous);if(current==null||previous==null)return '<div class="row"><span>'+esc(label)+'</span><b>—</b></div>';
  var ch=current-previous,pct=previous===0?null:ch/Math.abs(previous)*100;
  return '<div class="row"><span>'+esc(label)+'</span><b dir="ltr" style="text-align:right;display:block">'+F(previous,dec)+' → '+F(current,dec)+' '+esc(unit||'')+'<small class="cmpdelta" dir="ltr"> '+signed(ch,dec,unit)+(pct==null?'':' · '+signed(pct,1,'%'))+'</small></b></div>';
+}
+function rhAdjustedTemperature(ageValue,rhValue){
+ var cfg=window.ADINE_BROILER_DAILY_STANDARDS_V1&&window.ADINE_BROILER_DAILY_STANDARDS_V1.common&&window.ADINE_BROILER_DAILY_STANDARDS_V1.common.broodingTemperatureRH;
+ if(!cfg||!cfg.temperatureC||!cfg.ageDays||!cfg.humidityPercent)return null;
+ var ages=cfg.ageDays.map(Number),rhs=cfg.humidityPercent.map(Number),a=N(ageValue),r=N(rhValue);
+ if(a==null||r==null||a<ages[0]||a>ages[ages.length-1])return null;
+ var usedR=Math.max(rhs[0],Math.min(rhs[rhs.length-1],r)),loR=rhs[0],hiR=rhs[rhs.length-1];
+ for(var i=0;i<rhs.length-1;i++){if(usedR>=rhs[i]&&usedR<=rhs[i+1]){loR=rhs[i];hiR=rhs[i+1];break;}}
+ function ageTemp(h){
+  var t=cfg.temperatureC[String(h)]||cfg.temperatureC[h];if(!t)return null;
+  var loA=ages[0],hiA=ages[ages.length-1];
+  for(var j=0;j<ages.length-1;j++){if(a>=ages[j]&&a<=ages[j+1]){loA=ages[j];hiA=ages[j+1];break;}}
+  var v0=N(t[String(loA)]),v1=N(t[String(hiA)]);
+  return v0==null||v1==null?null:v0+(v1-v0)*(a-loA)/(hiA-loA);
+ }
+ var t0=ageTemp(loR),t1=ageTemp(hiR);
+ if(t0==null||t1==null)return null;
+ return {target:t0+(t1-t0)*(usedR-loR)/(hiR-loR||1),usedRH:usedR,observedRH:r,clampedRH:r<rhs[0]||r>rhs[rhs.length-1]};
 }
 function render(){
  var root=$('root');if(!root||!model)return;var rows=model.days.filter(function(d){return d.age<=age}),d=rows[rows.length-1],prev=rows.length>1?rows[rows.length-2]:null;if(!d)return;

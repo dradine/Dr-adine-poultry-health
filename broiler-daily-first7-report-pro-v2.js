@@ -138,7 +138,7 @@ function render(){
  h+=metric('دان / پرنده',d.feedPerBird==null?'—':F(d.feedPerBird,2)+' گرم','بر اساس جمعیت زنده ابتدای روز');
  h+=metric('آب / پرنده',d.waterPerBird==null?'—':F(d.waterPerBird,2)+' ml','بر اساس جمعیت زنده ابتدای روز');
  h+=metric('آب : دان',d.ratio==null?'—':F(d.ratio,2)+' L/kg','مرجع مدیریتی موجود'+(researchWaterFeedReference(d.age)!=null?' · مرجع پژوهشی روز '+d.age+': '+F(researchWaterFeedReference(d.age),2)+' L/kg':''));
- h+=metric('تلفات روز',F(d.mort,0)+' قطعه','تجمعی: '+P(d.cumMortPct,2),d.mort>0?'warn':'good');
+ var mortalityDayClass='';var mortalityDayNote='خط پایه · روز اول';if(d.age>1&&prev&&d.mort!=null&&prev.mort!=null){if(d.mort<prev.mort){mortalityDayClass='good';mortalityDayNote='↓ '+F(prev.mort-d.mort,0)+' قطعه نسبت به روز قبل'}else if(d.mort>prev.mort){mortalityDayClass='bad';mortalityDayNote='↑ '+F(d.mort-prev.mort,0)+' قطعه نسبت به روز قبل'}else{mortalityDayClass='warn';mortalityDayNote='بدون تغییر نسبت به روز قبل'}}h+=metric('تلفات روز',F(d.mort,0)+' قطعه',mortalityDayNote+' · تجمعی: '+P(d.cumMortPct,2),mortalityDayClass);
  h+=metric('تلفات تجمعی',F(d.cumMort,0)+' قطعه','('+P(d.cumMortPct,2)+')',d.cumMortPct==null?'':d.cumMortPct<=1?'good':'bad');h+=metric('دمای ونت',d.vent==null?'—':F(d.vent,1)+' °C','روز ۱–۲: ۳۹٫۴–۴۰٫۵°C',d.vent==null?'':d.vent>=39.4&&d.vent<=40.5?'good':'warn');
  h+=metric('زنده‌مانی',d.live==null?'—':F(d.live,0)+' قطعه','');
  h+=metric('دما',d.temp==null?'—':F(d.temp,1)+' °C',d.minTemp!=null&&d.maxTemp!=null?'حداقل '+F(d.minTemp,1)+' · حداکثر '+F(d.maxTemp,1):'حداقل/حداکثر ثبت نشده');

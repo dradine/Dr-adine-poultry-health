@@ -19,14 +19,33 @@ function band(m){
  if(t===null)return '<div class="pi-empty">وزن مرجع علمی سویه در این سن در دسترس نیست.</div>';
  const domainMin=t*.82,domainMax=t*1.18,range=domainMax-domainMin||1;
  const xOf=w=>Math.max(1,Math.min(99,(w-domainMin)/range*100));
- const pts=ws.map((w,i)=>'<button type="button" class="pi-weight-point" data-weight-point="'+i+'" data-weight="'+w.toFixed(1)+'" style="left:'+xOf(w).toFixed(2)+'%" aria-label="نمونه وزن '+fmt(w,0)+' گرم"><span>'+fmt(w,0)+'</span></button>').join('');
- const p10=t*.85,p15=t*.85,p110=t*1.10,p115=t*1.15;
+ // همه مشاهدات باید روی نمودار باقی بمانند. برای جلوگیری از پوشاندن نقاط هم‌وزن،
+ // نقاط به‌صورت swarm/stacked strip با الگوریتم قطعی در چند ردیف عمودی چیده می‌شوند.
+ const ordered=ws.map((w,i)=>({w,i,x:xOf(w)})).sort((a,z)=>a.x-z.x||a.i-z.i);
+ const levels=[];
+ const minGap=2.15;
+ ordered.forEach(p=>{
+   let level=0;
+   while(levels[level]!==undefined && p.x-levels[level]<minGap) level++;
+   levels[level]=p.x;
+   p.level=level;
+ });
+ const maxLevel=ordered.length?Math.max(...ordered.map(p=>p.level)):0;
+ const pts=ordered.map(p=>{
+   const top=18+p.level*14;
+   const bandName=p.w>=t*.90&&p.w<=t*1.10?'داخل ±۱۰٪':p.w>=t*.85&&p.w<=t*1.15?'بین ±۱۰ تا ±۱۵٪':'خارج ±۱۵٪';
+   return '<button type="button" class="pi-weight-point '+(p.w>=t*.90&&p.w<=t*1.10?'point-safe':p.w>=t*.85&&p.w<=t*1.15?'point-mid':'point-out')+'" data-weight-point="'+p.i+'" data-weight="'+p.w.toFixed(1)+'" data-weight-index="'+p.i+'" data-weight-band="'+esc(bandName)+'" style="left:'+p.x.toFixed(2)+'%;top:'+top+'px" aria-label="نمونه '+(p.i+1)+' از '+ws.length+'، وزن '+fmt(p.w,0)+' گرم">'+
+   '<span>'+fmt(p.w,0)+'</span></button>';
+ }).join('');
+ const visualHeight=Math.max(92,Math.min(360,44+(maxLevel+1)*14));
+ const p15=t*.85,p110=t*1.10,p115=t*1.15;
  return '<div class="pi-weight-health-visual">'+
- '<div class="pi-weight-axis"><span class="pi-weight-tick tick-low">'+fmt(t*.82,0)+'</span><span class="pi-weight-tick tick-15l">'+fmt(p15,0)+'</span><span class="pi-weight-tick tick-10l">'+fmt(t*.90,0)+'</span><span class="pi-weight-tick tick-target">'+fmt(t,0)+'</span><span class="pi-weight-tick tick-10h">'+fmt(t*1.10,0)+'</span><span class="pi-weight-tick tick-15h">'+fmt(t*1.15,0)+'</span><span class="pi-weight-tick tick-high">'+fmt(t*1.18,0)+'</span>'+
+ '<div class="pi-weight-summary"><b>هر نقطه = یک نمونه واقعی</b><span>'+fmt(ws.length,0)+' نمونه در آخرین ارزیابی</span></div>'+
+ '<div class="pi-weight-axis" style="--pi-weight-height:'+visualHeight+'px"><span class="pi-weight-tick tick-low">'+fmt(t*.82,0)+'</span><span class="pi-weight-tick tick-15l">'+fmt(p15,0)+'</span><span class="pi-weight-tick tick-10l">'+fmt(t*.90,0)+'</span><span class="pi-weight-tick tick-target">'+fmt(t,0)+'</span><span class="pi-weight-tick tick-10h">'+fmt(p110,0)+'</span><span class="pi-weight-tick tick-15h">'+fmt(p115,0)+'</span><span class="pi-weight-tick tick-high">'+fmt(t*1.18,0)+'</span>'+
  '<div class="pi-weight-track"><div class="pi-weight-zone zone-out-low"></div><div class="pi-weight-zone zone-mid-low"></div><div class="pi-weight-zone zone-safe"></div><div class="pi-weight-zone zone-mid-high"></div><div class="pi-weight-zone zone-out-high"></div><div class="pi-weight-target"></div>'+pts+'</div>'+
  '<div class="pi-weight-legend"><span><i class="safe"></i>داخل ±۱۰٪</span><span><i class="mid"></i>بین ±۱۰ تا ±۱۵٪</span><span><i class="out"></i>خارج ±۱۵٪</span><span><i class="target"></i>وزن مرجع علمی</span></div></div>'+
  '<div class="pi-band-grid"><button data-band="10"><b>داخل ±۱۰٪</b><strong>'+fmt(b.within10,0)+' ('+pct(b.within10Percent)+')</strong></button><button data-band="mid"><b>بین ±۱۰ تا ±۱۵٪</b><strong>'+fmt(b.between10and15,0)+' ('+pct(b.between10and15Percent)+')</strong></button><button data-band="15"><b>خارج ±۱۵٪</b><strong>'+fmt(b.outside15,0)+' ('+pct(b.outside15Percent)+')</strong></button></div>'+
- '<div class="pi-weight-selected" id="piWeightSelected" aria-live="polite">برای مشاهده وزن دقیق هر نمونه، روی نقطه آن کلیک کنید.</div>'+
+ '<div class="pi-weight-selected" id="piWeightSelected" aria-live="polite">برای مشاهده جزئیات هر نمونه، روی نقطه آن کلیک کنید.</div>'+
  '<div class="pi-band-note" id="piBandNote">نمونه: '+fmt(b.sampleCount,0)+' قطعه • میانگین: '+fmt(d?.mean,0)+' گرم • CV نمونه: '+pct(d?.cv)+' • دامنه: '+fmt(d?.min,0)+' تا '+fmt(d?.max,0)+' گرم</div></div>';
 }
 function radarPoint(v,angle){const x=120+Math.sin(angle)*v*.97,y=120-Math.cos(angle)*v*.97;return [x.toFixed(1),y.toFixed(1)].join(',')}

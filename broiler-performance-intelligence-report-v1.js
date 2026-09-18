@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V5.8 */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V5.9 */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -41,8 +41,7 @@ function band(m){
  const p15=t*.85,p110=t*1.10,p115=t*1.15;
  return '<div class="pi-weight-health-visual">'+
  '<div class="pi-weight-summary"><b>هر نقطه = یک نمونه واقعی</b><span>'+fmt(ws.length,0)+' نمونه در آخرین ارزیابی</span></div>'+
- '<div class="pi-weight-axis" style="--pi-weight-height:'+visualHeight+'px"><span class="pi-weight-tick tick-low">'+fmt(t*.82,0)+'</span><span class="pi-weight-tick tick-15l">'+fmt(p15,0)+'</span><span class="pi-weight-tick tick-10l">'+fmt(t*.90,0)+'</span><span class="pi-weight-tick tick-target">'+fmt(t,0)+'</span><span class="pi-weight-tick tick-10h">'+fmt(p110,0)+'</span><span class="pi-weight-tick tick-15h">'+fmt(p115,0)+'</span><span class="pi-weight-tick tick-high">'+fmt(t*1.18,0)+'</span>'+
- '<div class="pi-weight-track"><div class="pi-weight-zone zone-out-low"><b>خارج ±۱۵٪</b><span>'+fmt(b.outside15,0)+'</span></div><div class="pi-weight-zone zone-mid-low"><b>۱۰–۱۵٪</b><span>'+fmt(b.between10and15,0)+'</span></div><div class="pi-weight-zone zone-safe"><b>داخل ±۱۰٪</b><span>'+fmt(b.within10,0)+'</span></div><div class="pi-weight-zone zone-mid-high"><b>۱۰–۱۵٪</b><span>'+fmt(b.between10and15,0)+'</span></div><div class="pi-weight-zone zone-out-high"><b>خارج ±۱۵٪</b><span>'+fmt(b.outside15,0)+'</span></div><div class="pi-weight-boundary b15l"></div><div class="pi-weight-boundary b10l"></div><div class="pi-weight-boundary b10h"></div><div class="pi-weight-boundary b15h"></div><div class="pi-weight-target"></div>'+pts+'</div>'+
+ '<div class="pi-weight-axis" style="--pi-weight-height:'+visualHeight+'px"><div class="pi-weight-track"><div class="pi-weight-zone zone-out-low"></div><div class="pi-weight-zone zone-mid-low"></div><div class="pi-weight-zone zone-safe"></div><div class="pi-weight-zone zone-mid-high"></div><div class="pi-weight-zone zone-out-high"></div><div class="pi-weight-boundary b15l"></div><div class="pi-weight-boundary b10l"></div><div class="pi-weight-boundary b10h"></div><div class="pi-weight-boundary b15h"></div><div class="pi-weight-target"></div>'+pts+'</div>'+
  '<div class="pi-weight-legend"><span><i class="safe"></i>داخل ±۱۰٪</span><span><i class="mid"></i>بین ±۱۰ تا ±۱۵٪</span><span><i class="out"></i>خارج ±۱۵٪</span><span><i class="target"></i>وزن مرجع علمی</span></div></div>'+
  '<div class="pi-band-grid"><button data-band="10"><b>داخل ±۱۰٪</b><strong>'+fmt(b.within10,0)+' ('+pct(b.within10Percent)+')</strong></button><button data-band="mid"><b>بین ±۱۰ تا ±۱۵٪</b><strong>'+fmt(b.between10and15,0)+' ('+pct(b.between10and15Percent)+')</strong></button><button data-band="15"><b>خارج ±۱۵٪</b><strong>'+fmt(b.outside15,0)+' ('+pct(b.outside15Percent)+')</strong></button></div>'+
  '<div class="pi-weight-selected" id="piWeightSelected" aria-live="polite">برای مشاهده جزئیات هر نمونه، روی نقطه آن کلیک کنید.</div>'+

@@ -6,8 +6,8 @@
    required metric/week. Derived metrics are calculated here.
 */
 const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
-  productionType:"broiler",version:"BROILER-CANONICAL-STANDARDS-V4",weeklyAges:[7,14,21,28,35,42,49,56],
-  managementProfile:Object.freeze({sourceType:"management-standard",sourceYear:2026,sourceLabel:"استاندارد مدیریتی کاننیکال گوشتی آدینه — شاخص‌های عملیاتی و CV/یکنواختی بر پایه منابع مدیریتی مستند",mortality:[1,1.2,1.5,1.8,2.2,2.6,3,3.5],cv:[8,8,8,8,8,8,8,8],u10:[79,79,79,79,79,79,79,79],u15:[94,94,94,94,94,94,94,94],wfr:[1.8,1.8,1.8,1.8,1.8,1.8,1.8,1.8]}),
+  productionType:"broiler",version:"BROILER-CANONICAL-STANDARDS-V4.1",weeklyAges:[7,14,21,28,35,42,49,56],
+  managementProfile:Object.freeze({sourceType:"management-standard",sourceYear:2026,sourceLabel:"استاندارد مدیریتی گوشتی آدینه — شاخص‌های عملیاتی و CV/یکنواختی بر پایه منابع مدیریتی مستند",epefReference:505,epefGood:450,epefAcceptable:430,epefWatch:400,mortality:[1,1.2,1.5,1.8,2.2,2.6,3,3.5],cv:[8,8,8,8,8,8,8,8],u10:[79,79,79,79,79,79,79,79],u15:[94,94,94,94,94,94,94,94],wfr:[1.8,1.8,1.8,1.8,1.8,1.8,1.8,1.8]}),
   managementFallbackMethod:"STRAIN-SPECIFIC-DOCUMENTED-DERIVATION-OR-CROSS-CATALOG-MEDIAN-V4",
   strains:{
     "Ross 308":{producer:"Aviagen",family:"Ross",variant:"As-Hatched",initialWeight:44,sourceYear:2022,sourceType:"official-performance-objective",sourceLabel:"Ross 308 / Ross 308 FF Broiler Performance Objectives 2022",sourceUrl:"https://aviagen.com/assets/Tech_Center/Ross_Broiler/RossxRoss308-BroilerPerformanceObjectives2022-EN.pdf",records:[[7,213,.780],[14,533,1.005],[21,1012,1.142],[28,1616,1.269],[35,2296,1.399],[42,2998,1.531],[49,3681,1.663],[56,4318,1.793]]},
@@ -59,7 +59,7 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
     if(metric==='feed')return ret(feedDay,officialDerived?'official-derived':'management-derived',officialDerived?'official-derived-from-breeder-objectives':'management-derived',officialDerived?officialLabel:mgmtLabel);
     if(['mortality','cv','u10','u15','wfr'].includes(metric)){const key={mortality:'mortality',cv:'cv',u10:'u10',u15:'u15',wfr:'wfr'}[metric],v=managementMetric(key);return ret(v,'management','management-standard',mgmtLabel)}
     if(metric==='water'){const v=feedDay!==null&&managementMetric('wfr')!==null?feedDay*managementMetric('wfr'):null;return ret(v,'management-derived','management-derived-from-feed-and-water-ratio',mgmtLabel)}
-    if(metric==='epef'){const mort=managementMetric('mortality'),v=w!==null&&cf!==null&&mort!==null?((100-mort)*w)/(a*cf):null;return ret(v,'mixed-derived','mixed-official-management',mgmtLabel)}
+    if(metric==='epef'){const v=Number.isFinite(Number(M.epefReference))?Number(M.epefReference):505;return ret(v,'industry-benchmark','industry-benchmark',`مرجع عملکرد صنعتی EPEF — ${v}`)}
     return null;
   }
   function get(strain){const s=R.strains?.[strain];if(!s)return null;return {...s,records:A.map(age=>{const o=rec(s.records,age),m=rec(s.managementRecords,age);return [age,o?.[1]??m?.[1]??null,o?.[2]??m?.[2]??null]})};}

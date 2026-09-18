@@ -54,6 +54,15 @@
     shell.querySelectorAll('[data-weekly-subtab]').forEach(b=>
       b.classList.toggle('active',b.dataset.weeklySubtab===mode)
     );
+    const weekSlot=$('weeklyWeekSelectorSlot');
+    if(weekSlot){
+      if(mode==='daily'){
+        weekSlot.style.display='none';
+        weekSlot.innerHTML='';
+      }else{
+        weekSlot.style.display='';
+      }
+    }
   }
 
   function rerenderWeekly(){

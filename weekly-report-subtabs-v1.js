@@ -7,6 +7,40 @@
   'use strict';
   const ID='weekly-report-subtabs-v1';
   const $=id=>document.getElementById(id);
+  let dailyMode=false;
+  let dailyObserver=null;
+  let dailyRepairQueued=false;
+
+  function stopDailyGuard(){
+    dailyMode=false;
+    if(dailyObserver){dailyObserver.disconnect();dailyObserver=null}
+    dailyRepairQueued=false;
+    window.__ADINE_FIRST7_DAILY_MODE=false;
+  }
+
+  function queueDailyRepair(){
+    if(!dailyMode||dailyRepairQueued)return;
+    dailyRepairQueued=true;
+    requestAnimationFrame(async()=>{
+      dailyRepairQueued=false;
+      if(!dailyMode)return;
+      const root=$('root');
+      if(!root)return;
+      if(root.getAttribute('data-report-view')==='first7-daily-pro-v2')return;
+      await window.ADINE_BROILER_FIRST7_REPORT_PRO_V2?.show?.();
+    });
+  }
+
+  function startDailyGuard(){
+    dailyMode=true;
+    window.__ADINE_FIRST7_DAILY_MODE=true;
+    if(dailyObserver)dailyObserver.disconnect();
+    const root=$('root');
+    if(!root)return;
+    dailyObserver=new MutationObserver(()=>queueDailyRepair());
+    dailyObserver.observe(root,{childList:true,subtree:true});
+    queueDailyRepair();
+  }
 
   function asset(src){
     return new Promise(resolve=>{
@@ -96,8 +130,11 @@
       if(mode==='daily'){
         setMode('daily');
         await loadDaily();
-        window.ADINE_BROILER_FIRST7_REPORT_PRO_V2?.show?.();
+        startDailyGuard();
+        await window.ADINE_BROILER_FIRST7_REPORT_PRO_V2?.show?.();
+        queueDailyRepair();
       }else{
+        stopDailyGuard();
         setMode('weekly');
         rerenderWeekly();
       }
@@ -109,8 +146,13 @@
       if(btn.dataset.weeklySubtabsBound==='3')return;
       btn.dataset.weeklySubtabsBound='3';
       btn.addEventListener('click',()=>requestAnimationFrame(()=>{
-        if(btn.dataset.tab==='weekly')setMode('weekly');
-        else shell.style.display='none';
+        if(btn.dataset.tab==='weekly'){
+          stopDailyGuard();
+          setMode('weekly');
+        }else{
+          stopDailyGuard();
+          shell.style.display='none';
+        }
       }));
     });
   }

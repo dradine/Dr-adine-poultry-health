@@ -48,6 +48,24 @@ function severity(d){
  if((d.dev!=null&&d.dev<=-5)||(d.ammonia!=null&&d.ammonia>=10)||(d.co2!=null&&d.co2>=3000)||(d.cumMortPct!=null&&d.cumMortPct>=.75))return'warn';
  return'';
 }
+function waterFeedChart(rows){
+ var vals=rows.map(function(d){return N(d.ratio)}).filter(function(v){return v!=null});
+ if(!vals.length)return '<div class="note">داده کافی برای رسم آب:دان وجود ندارد.</div>';
+ var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);if(mn===mx){mn-=.1;mx+=.1}
+ var pad=(mx-mn)*.2;mn-=pad;mx+=pad;
+ var W=600,H=175,L=35,R=10,T=10,B=25,iw=W-L-R,ih=H-T-B,x=function(i){return L+i/Math.max(rows.length-1,1)*iw},y=function(v){return T+(mx-v)/(mx-mn)*ih};
+ var path='',pts='';rows.forEach(function(d,i){var v=N(d.ratio);if(v==null)return;path+=(path?'L':'M')+' '+x(i)+' '+y(v)+' ';var label='روز '+d.age+' · آب:دان: '+F(v,2)+' L/kg';pts+='<g data-chart-point="1" data-tip="'+esc(label)+'"><title>'+esc(label)+'</title><circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" class="pt"/><circle cx="'+x(i)+'" cy="'+y(v)+'" r="11" class="chart-hit"/></g>'});
+ var labs=rows.map(function(d,i){return '<text x="'+x(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#68736d">روز '+d.age+'</text>'}).join('');
+ return '<div class="chartname">نسبت آب به دان <span class="muted">L/kg</span></div><div class="chart-tooltip"></div><svg viewBox="0 0 '+W+' '+H+'"><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'"/><line class="axis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"/><path class="pline" d="'+path+'"/>'+pts+labs+'</svg>';
+}
+function mortalityChart(rows){
+ var vals=rows.map(function(d){return N(d.cumMortPct)}).filter(function(v){return v!=null});
+ if(!vals.length)return '<div class="note">داده کافی برای رسم تلفات تجمعی وجود ندارد.</div>';
+ var mn=0,mx=Math.max(1,Math.max.apply(null,vals)*1.2),W=600,H=175,L=35,R=10,T=10,B=25,iw=W-L-R,ih=H-T-B,x=function(i){return L+i/Math.max(rows.length-1,1)*iw},y=function(v){return T+(mx-v)/mx*ih};
+ var path='',pts='';rows.forEach(function(d,i){var v=N(d.cumMortPct);if(v==null)return;path+=(path?'L':'M')+' '+x(i)+' '+y(v)+' ';var label='روز '+d.age+' · تلفات تجمعی: '+F(d.cumMort,0)+' قطعه · '+F(v,2)+'٪';pts+='<g data-chart-point="1" data-tip="'+esc(label)+'"><title>'+esc(label)+'</title><circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" class="pt"/><circle cx="'+x(i)+'" cy="'+y(v)+'" r="11" class="chart-hit"/></g>'});
+ var refY=y(1),labs=rows.map(function(d,i){return '<text x="'+x(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#68736d">روز '+d.age+'</text>'}).join('');
+ return '<div class="chartname">تلفات تجمعی <span class="muted">قطعه + درصد</span></div><div class="chart-tooltip"></div><svg viewBox="0 0 '+W+' '+H+'"><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'"/><line class="axis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"/><line class="pref" x1="'+L+'" y1="'+refY+'" x2="'+(W-R)+'" y2="'+refY+'"/><text x="'+(W-R-4)+'" y="'+(refY-5)+'" text-anchor="end" font-size="9" fill="#68736d">سقف ۷ روزه Cobb ≤۱٪</text><path class="pline" d="'+path+'"/>'+pts+labs+'</svg><p class="note">خط‌چین فقط معیار رسمی پایان روز ۷ است و استاندارد روزانه محسوب نمی‌شود.</p>';
+}
 function chart(rows,key,refKey,name,unit){
  var vals=rows.map(function(d){return N(d[key])}).filter(function(v){return v!=null});if(!vals.length)return '<div class="note">داده کافی برای رسم این نمودار وجود ندارد.</div>';
  var refs=refKey?rows.map(function(d){return N(d[refKey])}).filter(function(v){return v!=null}):[],all=vals.concat(refs),mn=Math.min.apply(null,all),mx=Math.max.apply(null,all);if(mn===mx){mn--;mx++}var pad=(mx-mn)*.15;mn-=pad;mx+=pad;
@@ -80,7 +98,8 @@ function render(){
  h+=metric('دان / پرنده',d.feedPerBird==null?'—':F(d.feedPerBird,2)+' گرم','بر اساس جمعیت زنده ابتدای روز');
  h+=metric('آب / پرنده',d.waterPerBird==null?'—':F(d.waterPerBird,2)+' ml','بر اساس جمعیت زنده ابتدای روز');
  h+=metric('آب : دان',d.ratio==null?'—':F(d.ratio,2)+' L/kg','مرجع مدیریتی موجود');
- h+=metric('تلفات روز',F(d.mort,0)+' قطعه','تجمعی: '+P(d.cumMortPct,2),d.mort>0?'warn':'good');h+=metric('دمای ونت',d.vent==null?'—':F(d.vent,1)+' °C','روز ۱–۲: ۳۹٫۴–۴۰٫۵°C',d.vent==null?'':d.vent>=39.4&&d.vent<=40.5?'good':'warn');
+ h+=metric('تلفات روز',F(d.mort,0)+' قطعه','تجمعی: '+P(d.cumMortPct,2),d.mort>0?'warn':'good');
+ h+=metric('تلفات تجمعی',F(d.cumMort,0)+' قطعه','('+P(d.cumMortPct,2)+')',d.cumMortPct==null?'':d.cumMortPct<=1?'good':'bad');h+=metric('دمای ونت',d.vent==null?'—':F(d.vent,1)+' °C','روز ۱–۲: ۳۹٫۴–۴۰٫۵°C',d.vent==null?'':d.vent>=39.4&&d.vent<=40.5?'good':'warn');
  h+=metric('زنده‌مانی',d.live==null?'—':F(d.live,0)+' قطعه','');
  h+=metric('دما',d.temp==null?'—':F(d.temp,1)+' °C',d.minTemp!=null&&d.maxTemp!=null?'حداقل '+F(d.minTemp,1)+' · حداکثر '+F(d.maxTemp,1):'حداقل/حداکثر ثبت نشده');
  h+=metric('RH',d.rh==null?'—':F(d.rh,1)+'٪','رطوبت نسبی');
@@ -98,10 +117,9 @@ function render(){
  else h+='<div class="p2card"><h3>روز ۱ — خط پایه</h3><p class="note">روز اول مبنای مقایسه است. از روز دوم، تغییر نسبت به روز قبل و فاصله از مرجع همان سن همزمان بررسی می‌شوند.</p></div>';
  h+='<div class="p2card"><div class="p2title"><h3>روندها تا روز '+d.age+'</h3><span class="muted">فقط روزهای ۱ تا '+d.age+'</span></div><div class="p2charts">';
  h+='<div class="p2chart">'+chart(rows,'bw','target','وزن واقعی و مرجع','g')+'</div>';
- h+='<div class="p2chart">'+chart(rows,'feedPerBird',null,'دان سرانه','g')+'</div>';
- h+='<div class="p2chart">'+chart(rows,'waterPerBird',null,'آب سرانه','ml')+'</div>';
- h+='<div class="p2chart">'+chart(rows,'cumMortPct',null,'تلفات تجمعی','٪')+'</div>';
- h+='</div><p class="note">نقطه قرمز ضربان‌دار = هشدار فعال برای همان روز؛ نقطه زرد = نیازمند پایش. نمودارها همیشه فقط تا روز انتخاب‌شده رسم می‌شوند.</p></div>';
+ h+='<div class="p2chart">'+waterFeedChart(rows)+'</div>';
+ h+='<div class="p2chart">'+mortalityChart(rows)+'</div>';
+ h+='</div><p class="note">نمودارهای روند فقط شاخص‌هایی را نگه می‌دارند که برای تصمیم‌گیری روزانه کاربرد بیشتری دارند: وزن واقعی در برابر مرجع، نسبت آب به دان، و تلفات تجمعی. سرانه دان و آب در کارت‌ها باقی می‌مانند و فعلاً نمودار مستقل ندارند.</p></div>';
  if(d.age===1){h+='<div class="p2card"><div class="p2title"><h3>پایش شروع گله</h3><span class="muted">فقط روز اول</span></div><div class="p2grid">';
  h+=metric('دمای ونت',d.vent==null?'—':F(d.vent,1)+' °C','روز ۱–۲: ۳۹٫۴–۴۰٫۵°C');
  h+=metric('Crop Fill 2h',d.crop2==null?'—':P(d.crop2,1),'هدف ۷۵٪');h+=metric('Crop Fill 4h',d.crop4==null?'—':P(d.crop4,1),'هدف ۸۰٪');h+=metric('Crop Fill 8h',d.crop8==null?'—':P(d.crop8,1),'هدف >۸۰٪');h+=metric('Crop Fill 12h',d.crop12==null?'—':P(d.crop12,1),'هدف >۸۵٪');h+=metric('Crop Fill 24h',d.crop24==null?'—':P(d.crop24,1),'هدف >۹۵٪');h+='</div></div>';}

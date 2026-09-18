@@ -40,6 +40,7 @@ function scoreDetails(m,d){
  var ratioRef=common.waterFeedRatio||null;
  var airRef=common.airQuality||{};
  var ventRef=common.chickVentTemperatureC||{min:39.4,max:40.5};
+ var tempRHRef=common.broodingTemperatureRH||null;
 
  add('weight','وزن نسبت به مرجع',20,d.dev==null?null:scoreBand(Math.abs(d.dev),5,10,15,'low'),
    d.dev==null?'مرجع موجود نیست':(d.dev>=0?'بالا ':'پایین ')+F(Math.abs(d.dev),1)+'٪ از مرجع');
@@ -60,13 +61,42 @@ function scoreDetails(m,d){
  add('dayMort','تلفات روز',5,d.mortPct==null?null:scoreBand(d.mortPct,.10,.25,.50,'low'),
    d.mortPct==null?'':F(d.mortPct,2)+'٪ از جمعیت ابتدای روز');
 
- var tr=tempBands&&tempBands[d.age]!=null?tempBands[d.age]:null;
- var tempScore=null;
- if(d.temp!=null&&tr&&tr.length>=2){
-   var tempDist=Math.max(tr[0]-d.temp,0,d.temp-tr[1]);
-   tempScore=scoreBand(tempDist,0,.8,2,'low');
+ function interpolate(a0,a1,v0,v1,x){return a1===a0?v0:v0+(v1-v0)*(x-a0)/(a1-a0);}
+ function rhAdjustedTemperature(ageValue,rhValue){
+   if(!tempRHRef||!tempRHRef.temperatureC||!tempRHRef.ageDays||!tempRHRef.humidityPercent)return null;
+   var ages=tempRHRef.ageDays.map(Number),rhs=tempRHRef.humidityPercent.map(Number);
+   var a=N(ageValue),r=N(rhValue);if(a==null||r==null)return null;
+   var minA=ages[0],maxA=ages[ages.length-1],minR=rhs[0],maxR=rhs[rhs.length-1];
+   if(a<minA||a>maxA)return null;
+   var usedR=Math.max(minR,Math.min(maxR,r));
+   var loR=rhs[0],hiR=rhs[rhs.length-1];
+   for(var ri=0;ri<rhs.length-1;ri++){if(usedR>=rhs[ri]&&usedR<=rhs[ri+1]){loR=rhs[ri];hiR=rhs[ri+1];break;}}
+   function byRH(h){
+     var t=tempRHRef.temperatureC[String(h)]||tempRHRef.temperatureC[h];if(!t)return null;
+     var loA=ages[0],hiA=ages[ages.length-1];
+     for(var ai=0;ai<ages.length-1;ai++){if(a>=ages[ai]&&a<=ages[ai+1]){loA=ages[ai];hiA=ages[ai+1];break;}}
+     var v0=N(t[String(loA)]),v1=N(t[String(hiA)]);
+     return v0==null||v1==null?null:interpolate(loA,hiA,v0,v1,a);
+   }
+   var tLo=byRH(loR),tHi=byRH(hiR);if(tLo==null||tHi==null)return null;
+   return {target:interpolate(loR,hiR,tLo,tHi,usedR),usedRH:usedR,observedRH:r,clampedRH:r<minR||r>maxR};
  }
- add('temp','دمای سالن',5,tempScore,d.temp==null?'':tr?'محدوده '+F(tr[0],1)+'–'+F(tr[1],1)+' °C':'مرجع مدیریت روزانه موجود نیست');
+ var tempDynamic=rhAdjustedTemperature(d.age,d.rh);
+ var tr=tempBands&&tempBands[d.age]!=null?tempBands[d.age]:null;
+ var tempScore=null,tempDetail='';
+ if(d.temp!=null&&tempDynamic){
+   var tempDist=Math.abs(d.temp-tempDynamic.target);
+   tempScore=scoreBand(tempDist,0,.8,2,'low');
+   tempDetail='مرجع وابسته به RH: '+F(tempDynamic.target,1)+' °C در RH '+F(tempDynamic.usedRH,0)+'٪';
+   if(tempDynamic.clampedRH)tempDetail+=' · RH خارج از بازه جدول ۴۰–۷۰٪؛ نزدیک‌ترین نقطه جدول استفاده شد';
+ }else if(d.temp!=null&&tr&&tr.length>=2){
+   var tempDistFallback=Math.max(tr[0]-d.temp,0,d.temp-tr[1]);
+   tempScore=scoreBand(tempDistFallback,0,.8,2,'low');
+   tempDetail='مرجع پایه '+F(tr[0],1)+'–'+F(tr[1],1)+' °C · RH ثبت نشده';
+ }else if(d.temp!=null){
+   tempDetail='مرجع دمای وابسته به RH در دسترس نیست';
+ }
+ add('temp','دمای سالن',5,tempScore,d.temp==null?'':tempDetail);
 
  var rh=rhBands&&rhBands[d.age]!=null?rhBands[d.age]:null;
  var rhScore=null;
@@ -265,7 +295,10 @@ function render(){
  var mortalityDayClass='';var mortalityDayNote='خط پایه · روز اول';if(d.age>1&&prev&&d.mort!=null&&prev.mort!=null){if(d.mort<prev.mort){mortalityDayClass='good';mortalityDayNote='↓ '+F(prev.mort-d.mort,0)+' قطعه نسبت به روز قبل'}else if(d.mort>prev.mort){mortalityDayClass='bad';mortalityDayNote='↑ '+F(d.mort-prev.mort,0)+' قطعه نسبت به روز قبل'}else{mortalityDayClass='warn';mortalityDayNote='بدون تغییر نسبت به روز قبل'}}h+=metric('تلفات روز',F(d.mort,0)+' قطعه',mortalityDayNote+' · تجمعی: '+P(d.cumMortPct,2),mortalityDayClass);
  h+=metric('تلفات تجمعی',F(d.cumMort,0)+' قطعه','('+P(d.cumMortPct,2)+')',d.cumMortPct==null?'':d.cumMortPct<=1?'good':'bad');h+=metric('دمای ونت',d.vent==null?'—':F(d.vent,1)+' °C','روز ۱–۲: ۳۹٫۴–۴۰٫۵°C',d.vent==null?'':d.vent>=39.4&&d.vent<=40.5?'good':'warn');
  h+=metric('زنده‌مانی',d.live==null?'—':F(d.live,0)+' قطعه','');
- h+=metric('دما',d.temp==null?'—':F(d.temp,1)+' °C',d.minTemp!=null&&d.maxTemp!=null?'حداقل '+F(d.minTemp,1)+' · حداکثر '+F(d.maxTemp,1):'حداقل/حداکثر ثبت نشده');
+ var tempCardRef=tempDynamic?'مرجع وابسته به RH: '+F(tempDynamic.target,1)+' °C · RH '+F(tempDynamic.usedRH,0)+'٪':(d.minTemp!=null&&d.maxTemp!=null?'حداقل '+F(d.minTemp,1)+' · حداکثر '+F(d.maxTemp,1):'مرجع دما با RH ثبت‌شده در دسترس نیست');
+ var tempCardClass='';
+ if(d.temp!=null&&tempDynamic){var tempCardDist=Math.abs(d.temp-tempDynamic.target);tempCardClass=tempCardDist<=.8?'good':tempCardDist<=2?'warn':'bad';}
+ h+=metric('دما',d.temp==null?'—':F(d.temp,1)+' °C',tempCardRef,tempCardClass);
  h+=metric('RH',d.rh==null?'—':F(d.rh,1)+'٪','رطوبت نسبی');
  h+=metric('دمای بستر',d.litterTemp==null?'—':F(d.litterTemp,1)+' °C','');
  h+=metric('شدت نور',d.light==null?'—':F(d.light,0)+' lux','');

@@ -83,8 +83,9 @@ function scoreDetails(m,d){
  add('co2','CO₂',4,d.co2==null?null:scoreBand(d.co2,co2Action==null?3000:co2Action,co2Action==null?4000:co2Action+1000,co2Action==null?5000:co2Action+2000,'low'),
    d.co2==null?'':F(d.co2,0)+' ppm');
 
- add('litterTemp','دمای بستر',3,d.litterTemp==null?null:scoreBand(Math.abs(d.litterTemp-(d.temp==null?d.litterTemp:d.temp)),2,4,7,'low'),
-   d.litterTemp==null?'':'اختلاف با دمای سالن '+F(Math.abs(d.litterTemp-(d.temp==null?d.litterTemp:d.temp)),1)+' °C');
+ /* Litter temperature remains observational here; without a validated
+    age/RH/placement-specific target it is not scored against house-air temperature. */
+
 
  var rr=ratioRef;
  var ratioScore=null;
@@ -95,11 +96,14 @@ function scoreDetails(m,d){
  }
  add('ratio','آب : دان',7,ratioScore,d.ratio==null?'':F(d.ratio,2)+' L/kg');
 
- var fd=prev&&prev.feed!=null&&d.feed!=null?delta(prev.feed,d.feed):null;
- var wd=prev&&prev.water!=null&&d.water!=null?delta(prev.water,d.water):null;
- add('feedTrend','تغییر دان',4,fd==null?null:(fd>=-10?1:fd>=-20?.75:fd>=-30?.4:0),
+ /* Consumption trend is a drop-detection signal, not a "higher is better" score.
+    Use per-bird intake rather than total house consumption so mortality/population
+    changes do not create a false trend. */
+ var fd=prev&&prev.feedPerBird!=null&&d.feedPerBird!=null?delta(prev.feedPerBird,d.feedPerBird):null;
+ var wd=prev&&prev.waterPerBird!=null&&d.waterPerBird!=null?delta(prev.waterPerBird,d.waterPerBird):null;
+ add('feedTrend','تغییر دان سرانه',4,fd==null?null:(fd>=-10?1:fd>=-20?.75:fd>=-30?.4:0),
    fd==null?'روز مبنا/داده ناکافی':(fd>=0?'+':'')+F(fd,0)+'٪');
- add('waterTrend','تغییر آب',4,wd==null?null:(wd>=-10?1:wd>=-20?.75:wd>=-30?.4:0),
+ add('waterTrend','تغییر آب سرانه',4,wd==null?null:(wd>=-10?1:wd>=-20?.75:wd>=-30?.4:0),
    wd==null?'روز مبنا/داده ناکافی':(wd>=0?'+':'')+F(wd,0)+'٪');
 
  if(d.age<=2){
@@ -118,10 +122,14 @@ function scoreDetails(m,d){
    if(cv.length)add('crop','شروع تغذیه / پر بودن چینه‌دان',6,cv.reduce(function(a,b){return a+b},0)/cv.length,'میانگین نقاط ثبت‌شده');
  }
 
- var devTrend=prev&&d.dev!=null&&prev.dev!=null?d.dev-prev.dev:null;
+ /*
+  * Weight trend is based on DISTANCE FROM THE REFERENCE, not signed deviation.
+  * Example: -3.9% -> +0.5% is an improvement because |deviation| decreases.
+  */
+ var devTrend=prev&&d.dev!=null&&prev.dev!=null?Math.abs(d.dev)-Math.abs(prev.dev):null;
  var gainTrend=prev&&d.gain!=null&&prev.gain!=null?d.gain-prev.gain:null;
  add('weightTrend','روند فاصله وزن',4,devTrend==null?null:(devTrend<=0?1:devTrend<=2?.8:devTrend<=5?.5:0),
-   devTrend==null?'داده روند کافی نیست':(devTrend<=0?'بهبود/ثبات ':'بدتر شدن ')+F(Math.abs(devTrend),1)+' واحد درصد');
+   devTrend==null?'داده روند کافی نیست':(devTrend<0?'بهبود ':'بدتر شدن ')+F(Math.abs(devTrend),1)+' واحد درصد'+(devTrend===0?' · ثبات':''));
  add('gainTrend','روند افزایش وزن',3,gainTrend==null?null:(gainTrend>=0?1:gainTrend>=-2?.8:gainTrend>=-5?.5:0),
    gainTrend==null?'داده روند کافی نیست':(gainTrend>=0?'بهبود/ثبات ':'کاهش ')+F(Math.abs(gainTrend),1)+' گرم');
 
@@ -281,7 +289,8 @@ function render(){
  h+=compareMetric('آب : دان',d.ratio,prev.ratio,'L/kg',2);
  h+='</div><div>';
  h+='<div class="row"><span>فاصله وزن از مرجع</span><b>'+(d.dev==null?'—':signed(d.dev,1,'٪')+(prev.dev==null?'':' · روز قبل '+signed(prev.dev,1,'٪')))+'</b></div>';
- h+='<div class="row"><span>تغییر فاصله از مرجع</span><b>'+(d.dev!=null&&prev.dev!=null?signed(d.dev-prev.dev,1,' واحد درصد'):'—')+'</b></div>';
+ var gapDelta=d.dev!=null&&prev.dev!=null?Math.abs(d.dev)-Math.abs(prev.dev):null;
+ h+='<div class="row"><span>تغییر فاصله از مرجع</span><b>'+(gapDelta==null?'—':(gapDelta<0?'بهبود ':gapDelta>0?'بدتر شدن ':'ثبات ')+F(Math.abs(gapDelta),1)+' واحد درصد')+'</b></div>';
  h+=compareMetric('تلفات روز',d.mort,prev.mort,'قطعه',0);
  h+=compareMetric('تلفات تجمعی',d.cumMort,prev.cumMort,'قطعه',0);
  h+=compareMetric('زنده‌مانی',d.live,prev.live,'قطعه',0);

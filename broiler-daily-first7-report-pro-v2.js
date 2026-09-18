@@ -133,7 +133,7 @@ function render(){
  h+=metric('CO₂',d.co2==null?'—':F(d.co2,0)+' ppm','آستانه اقدام: ۳۰۰۰ ppm',d.co2==null?'':d.co2<3000?'good':d.co2<5000?'warn':'bad');
  h+=metric('کیفیت هوا',d.air||'ثبت نشده','','');h+=metric('کیفیت بستر',d.litter||'ثبت نشده','','');
  h+=metric('نمونه وزن',d.bodySample==null?'—':F(d.bodySample,0)+' قطعه','','');
- h+=metric('Crop Fill 24h',d.crop24==null?'—':P(d.crop24,1),'هدف ثبت‌شده ۹۵٪',d.crop24==null?'':d.crop24>=95?'good':'warn');
+ if(d.age===1)h+=metric('Crop Fill 24h',d.crop24==null?'—':P(d.crop24,1),'هدف ثبت‌شده ۹۵٪',d.crop24==null?'':d.crop24>=95?'good':'warn');
  h+='</div></div>';
  if(prev){h+='<div class="p2card"><div class="p2title"><h3>مقایسه روز '+d.age+' با روز '+prev.age+'</h3><span class="muted">تغییر واقعی و درصدی</span></div><div class="compare"><div>';
  [['وزن',delta(prev.bw,d.bw),d.gain],['دان',delta(prev.feed,d.feed),null],['آب',delta(prev.water,d.water),null],['آب:دان',delta(prev.ratio,d.ratio),null]].forEach(function(x){h+='<div class="row"><span>'+x[0]+'</span><b>'+(x[2]!=null?(x[2]>=0?'+':'')+F(x[2],1)+' g · ':'')+(x[1]==null?'—':(x[1]>=0?'+':'')+F(x[1],1)+'٪')+'</b></div>'});

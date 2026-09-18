@@ -4,7 +4,7 @@
 */
 (function(){
 'use strict';
-if(window.ADINE_BROILER_FIRST7_REPORT_PRO_V2)return;
+/* Always refresh this isolated renderer when the loader requests a new cache-busted version. */
 
 var $=function(id){return document.getElementById(id)};
 var esc=function(v){return String(v==null?'—':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
@@ -126,7 +126,7 @@ function render(){
  h+='<div class="p2card"><div class="p2title"><h3>اتفاقات و تفسیر روز '+d.age+'</h3><span class="muted">'+al.length+' سیگنال</span></div>';
  if(al.length)al.forEach(function(a){h+='<div class="p2alert '+a[0]+'"><i class="dot"></i><b>'+esc(a[1])+'</b><span>'+esc(a[2])+'</span></div>'});else h+='<p class="note">بر اساس داده‌های موجود، سیگنال قابل توجهی برای این روز شناسایی نشد.</p>';
  h+='</div><div class="p2card"><div class="note">این لایه فقط گزارش روزانه هفت روز اول را نمایش می‌دهد. منبع داده، موتور محاسبات و استانداردها همان منابع موجود پروژه هستند؛ هیچ استاندارد رسمی یا مدیریتی جدیدی در این UI تعریف نشده است.</div></div></div>';
- root.innerHTML=h;root.querySelectorAll('[data-p2age]').forEach(function(b){b.onclick=function(){age=Number(b.getAttribute('data-p2age'));render()}});root.querySelectorAll('.p2chart').forEach(function(box){var tip=box.querySelector('.chart-tooltip');box.querySelectorAll('[data-chart-point]').forEach(function(pt){var show=function(ev){if(!tip)return;tip.textContent=pt.getAttribute('data-tip')||'';tip.style.display='block';var r=box.getBoundingClientRect(),xv=ev.clientX-r.left+8,yv=ev.clientY-r.top+8;tip.style.left=Math.max(6,Math.min(xv,r.width-170))+'px';tip.style.top=Math.max(6,Math.min(yv,145))+'px'};pt.addEventListener('mouseenter',show);pt.addEventListener('mousemove',show);pt.addEventListener('mouseleave',function(){if(tip)tip.style.display='none'});pt.addEventListener('click',show)})});
+ root.setAttribute('data-report-view','first7-daily-pro-v2');root.innerHTML=h;root.querySelectorAll('[data-p2age]').forEach(function(b){b.onclick=function(){age=Number(b.getAttribute('data-p2age'));render()}});root.querySelectorAll('.p2chart').forEach(function(box){var tip=box.querySelector('.chart-tooltip');box.querySelectorAll('[data-chart-point]').forEach(function(pt){var show=function(ev){if(!tip)return;tip.textContent=pt.getAttribute('data-tip')||'';tip.style.display='block';var r=box.getBoundingClientRect(),xv=ev.clientX-r.left+8,yv=ev.clientY-r.top+8;tip.style.left=Math.max(6,Math.min(xv,r.width-170))+'px';tip.style.top=Math.max(6,Math.min(yv,145))+'px'};pt.addEventListener('mouseenter',show);pt.addEventListener('mousemove',show);pt.addEventListener('mouseleave',function(){if(tip)tip.style.display='none'});pt.addEventListener('click',show)})});
 }
 async function show(){
  if(busy)return;var root=$('root');if(!root)return;busy=true;

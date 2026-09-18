@@ -10,36 +10,110 @@
   function chart(id,type,labels,datasets,opts={}){const el=$(id);if(!el||!global.Chart)return;charts.push(new Chart(el,{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',rtl:true,labels:{font:{family:'Tahoma',size:10},usePointStyle:true}},tooltip:{rtl:true,bodyFont:{family:'Tahoma'},titleFont:{family:'Tahoma'}}},scales:{x:{grid:{display:false},ticks:{font:{family:'Tahoma',size:9}}},y:{beginAtZero:opts.zero!==false,ticks:{font:{family:'Tahoma',size:9}},title:opts.yTitle?{display:true,text:opts.yTitle,font:{family:'Tahoma',size:9}}:{display:false}}}}}))}
   function renderWeightBandChart(m){
     const el=$('cr2WeightBand'),note=$('cr2WeightBandNote');
-    const w=Array.isArray(m.sampleWeights)?m.sampleWeights:[];
-    const b=m.sampleBand;
+    const candidates=[
+      m?.sampleWeights,
+      m?.last?.weights,
+      m?.last?.sample_weights,
+      m?.last?.sampleWeights,
+      m?.last?.raw?.weights,
+      m?.last?.raw?.sample_weights,
+      m?.last?.raw?.sampleWeights,
+      m?.last?.raw?.weight_samples,
+      m?.last?.raw?.sampleWeights,
+      m?.last?.raw?.production_metrics?.weights,
+      m?.last?.raw?.production_metrics?.sample_weights,
+      m?.last?.raw?.production_metrics?.sampleWeights
+    ];
+    let w=[];
+    for(const candidate of candidates){
+      let value=candidate;
+      if(typeof value==='string'){try{value=JSON.parse(value)}catch(_){value=null}}
+      if(value&&typeof value==='object'&&!Array.isArray(value))value=value.weights||value.values||value.samples||null;
+      if(Array.isArray(value)){
+        const out=value.map(n).filter(x=>x!==null&&x>0);
+        if(out.length){w=out;break}
+      }
+    }
+    const b=m?.sampleBand||null;
+    const target=b?.referenceWeight??m?.last?.standardWeight??null;
+    const band10=b?.bands?.[0]||null,band15=b?.bands?.[1]||null;
+    const counts=b?{
+      within10:b.within10,within10Percent:b.within10Percent,
+      between10and15:b.between10and15,between10and15Percent:b.between10and15Percent,
+      outside15:b.outside15,outside15Percent:b.outside15Percent
+    }:null;
+    const bandText=(name,count,percent,range)=>name+' · '+fmt(count,0)+' قطعه · '+pct(percent,1)+(range? ' · '+fmt(range.lower,0)+' تا '+fmt(range.upper,0)+' گرم':'');
     if(note){
-      if(!w.length) note.textContent='وزن‌های نمونه در داده آخرین ارزیابی در دسترس نیست؛ خودِ رکورد گزارش باید آرایه وزن‌های نمونه را داشته باشد.';
-      else if(!b) note.textContent='وزن نمونه ثبت شده است، اما مرجع رسمی وزن برای سن/سویه آخرین ارزیابی در دسترس نیست؛ بنابراین محدوده ±۱۰٪ و ±۱۵٪ ساخته نشد.';
-      else note.textContent=`مرجع: ${fmt(b.referenceWeight,0)} گرم · نمونه: ${fmt(b.sampleCount,0)} قطعه · داخل ±۱۰٪: ${fmt(b.within10,0)} (${pct(b.within10Percent,1)}) · بین ۱۰ تا ۱۵٪: ${fmt(b.between10and15,0)} (${pct(b.between10and15Percent,1)}) · خارج ±۱۵٪: ${fmt(b.outside15,0)} (${pct(b.outside15Percent,1)})`;
+      if(!w.length) note.textContent='وزن نمونه‌ای برای آخرین ارزیابی در داده گزارش در دسترس نیست.';
+      else if(!b||target===null) note.textContent='وزن نمونه ثبت شده است، اما وزن هدف رسمی سویه برای ساخت محدوده در دسترس نیست.';
+      else note.textContent='وزن هدف رسمی سویه: '+fmt(target,0)+' گرم · نمونه: '+fmt(w.length,0)+' قطعه · داخل ±۱۰٪: '+fmt(counts.within10,0)+' ('+pct(counts.within10Percent,1)+') · بین ±۱۰٪ و ±۱۵٪: '+fmt(counts.between10and15,0)+' ('+pct(counts.between10and15Percent,1)+') · خارج ±۱۵٪: '+fmt(counts.outside15,0)+' ('+pct(counts.outside15Percent,1)+')';
     }
-    if(!el||!global.Chart||!w.length)return;
-    const target=b?.referenceWeight??null;
-    const vals=w.slice();
-    const min=Math.min(...vals,target??Infinity),max=Math.max(...vals,target??-Infinity);
-    const span=Math.max(1,max-min),pad=span*.08;
-    const jitter=(i)=>0.45+((i%7)-3)*0.045;
-    const in10=x=>b&&x>=b.bands[0].lower&&x<=b.bands[0].upper;
-    const in15=x=>b&&x>=b.bands[1].lower&&x<=b.bands[1].upper;
-    const groups=[{label:'داخل ±۱۰٪',data:[],color:'rgba(31,112,82,0.78)'},{label:'بین ±۱۰٪ و ±۱۵٪',data:[],color:'rgba(180,105,45,0.82)'},{label:'خارج ±۱۵٪',data:[],color:'rgba(183,78,78,0.82)'}];
-    vals.forEach((x,i)=>{const g=in10(x)?0:(in15(x)?1:2);groups[g].data.push({x,y:jitter(i)})});
-    const datasets=groups.map(g=>({type:'scatter',label:g.label,data:g.data,pointRadius:5,pointHoverRadius:7,backgroundColor:g.color,borderColor:g.color}));
-    if(target!==null){
-      datasets.push({type:'line',label:'وزن هدف رسمی',data:[{x:target,y:0},{x:target,y:1}],borderColor:'rgba(34,79,68,0.95)',borderWidth:2,pointRadius:0,borderDash:[5,4]});
-    }
+    if(!el||!global.Chart||!w.length||!b||target===null)return;
+
+    const min=Math.min(...w,target),max=Math.max(...w,target),span=Math.max(1,max-min),pad=Math.max(span*.08,target*.025);
+    const jitter=(i)=>0.5+((i%9)-4)*0.035;
+    const in10=x=>x>=band10.lower&&x<=band10.upper;
+    const in15=x=>x>=band15.lower&&x<=band15.upper;
+    const groups=[
+      {label:'داخل ±۱۰٪',data:[],pointStyle:'circle'},
+      {label:'بین ±۱۰٪ و ±۱۵٪',data:[],pointStyle:'circle'},
+      {label:'خارج ±۱۵٪',data:[],pointStyle:'circle'}
+    ];
+    w.forEach((x,i)=>{const g=in10(x)?0:(in15(x)?1:2);groups[g].data.push({x,y:jitter(i),weight:x})});
+
+    const datasets=groups.map(g=>({
+      type:'line',label:g.label,data:g.data,showLine:false,pointRadius:5,pointHoverRadius:8,
+      pointStyle:g.pointStyle,borderWidth:0
+    }));
+    datasets.push({
+      type:'line',label:'وزن هدف رسمی سویه',data:[{x:target,y:0},{x:target,y:1}],
+      borderWidth:2,pointRadius:0,borderDash:[6,4],showLine:true
+    });
+
     const plugin={id:'cr2WeightBandOverlay',afterDraw(chart){
-      if(target===null||!b)return;
+      if(!b||target===null)return;
       const xs=chart.scales.x,ys=chart.scales.y,ctx=chart.ctx,x0=xs.getPixelForValue(target),yc=ys.getPixelForValue(.5);
-      const radii=[b.bands[0].upper-target,b.bands[1].upper-target].map(v=>Math.abs(xs.getPixelForValue(target+v)-x0));
+      const r10=Math.abs(xs.getPixelForValue(band10.upper)-x0);
+      const r15=Math.abs(xs.getPixelForValue(band15.upper)-x0);
       ctx.save();
-      [0,1].forEach(i=>{ctx.beginPath();ctx.arc(x0,yc,Math.max(18,Math.min(radii[i],Math.min(chart.chartArea.width*.46,chart.chartArea.height*.43))),0,Math.PI*2);ctx.strokeStyle=i===0?'rgba(31,112,82,.55)':'rgba(180,105,45,.55)';ctx.lineWidth=2;ctx.setLineDash(i===0?[4,3]:[7,5]);ctx.stroke()});
+      ctx.beginPath();ctx.arc(x0,yc,Math.max(18,Math.min(r15,chart.chartArea.width*.46,chart.chartArea.height*.43)),0,Math.PI*2);ctx.setLineDash([8,5]);ctx.lineWidth=2;ctx.strokeStyle='rgba(180,105,45,.58)';ctx.stroke();
+      ctx.beginPath();ctx.arc(x0,yc,Math.max(12,Math.min(r10,chart.chartArea.width*.46,chart.chartArea.height*.43)),0,Math.PI*2);ctx.setLineDash([4,3]);ctx.lineWidth=2;ctx.strokeStyle='rgba(31,112,82,.62)';ctx.stroke();
       ctx.restore();
+    },afterEvent(chart,args){
+      const e=args.event;if(!e)return;
+      const xs=chart.scales.x;if(!xs)return;
+      const x=xs.getValueForPixel(e.x);
+      const d=Math.abs(x-target);
+      const r10=Math.abs(band10.upper-target),r15=Math.abs(band15.upper-target);
+      if(e.type==='mousemove'||e.type==='click'){
+        if(d<=r10 && note) note.textContent='محدوده داخل ±۱۰٪ · '+bandText('±۱۰٪',counts.within10,counts.within10Percent,band10)+' · وزن هدف رسمی: '+fmt(target,0)+' گرم';
+        else if(d<=r15 && note) note.textContent='محدوده بین ±۱۰٪ و ±۱۵٪ · '+bandText('۱۰–۱۵٪',counts.between10and15,counts.between10and15Percent,{lower:band15.lower,upper:band15.upper})+' · وزن هدف رسمی: '+fmt(target,0)+' گرم';
+        else if(note&&e.type==='click') note.textContent='خارج ±۱۵٪ · '+bandText('خارج ±۱۵٪',counts.outside15,counts.outside15Percent,{lower:Math.min(...w),upper:Math.max(...w)})+' · وزن هدف رسمی: '+fmt(target,0)+' گرم';
+      }
     }};
-    const c=new Chart(el,{type:'scatter',data:{datasets},plugins:[plugin],options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:true},plugins:{legend:{position:'top',rtl:true,labels:{font:{family:'Tahoma',size:9},usePointStyle:true}},tooltip:{rtl:true,bodyFont:{family:'Tahoma'},titleFont:{family:'Tahoma'},callbacks:{label:c=>`وزن: ${fmt(c.parsed.x,0)} گرم`}}},scales:{x:{type:'linear',min:min-pad,max:max+pad,title:{display:true,text:'وزن نمونه (گرم)',font:{family:'Tahoma',size:9}},ticks:{font:{family:'Tahoma',size:9}}},y:{min:0,max:1,display:false,grid:{display:false}}}}});
+    const c=new Chart(el,{type:'line',data:{datasets},plugins:[plugin],options:{
+      responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:true},
+      plugins:{
+        legend:{position:'top',rtl:true,labels:{font:{family:'Tahoma',size:9},usePointStyle:true}},
+        tooltip:{rtl:true,bodyFont:{family:'Tahoma'},titleFont:{family:'Tahoma'},callbacks:{
+          label:c=>{
+            if(c.datasetIndex<3)return 'وزن: '+fmt(c.parsed.x,0)+' گرم';
+            return 'وزن هدف رسمی سویه: '+fmt(target,0)+' گرم';
+          },
+          afterBody:c=>{
+            if(!c.length||c[0].datasetIndex>=3)return '';
+            const x=c[0].parsed.x;
+            if(in10(x))return 'داخل ±۱۰٪ · '+fmt(counts.within10,0)+' قطعه · '+pct(counts.within10Percent,1);
+            if(in15(x))return 'بین ±۱۰٪ و ±۱۵٪ · '+fmt(counts.between10and15,0)+' قطعه · '+pct(counts.between10and15Percent,1);
+            return 'خارج ±۱۵٪ · '+fmt(counts.outside15,0)+' قطعه · '+pct(counts.outside15Percent,1);
+          }
+        }}
+      },
+      scales:{
+        x:{type:'linear',min:min-pad,max:max+pad,title:{display:true,text:'وزن نمونه (گرم)',font:{family:'Tahoma',size:9}},ticks:{font:{family:'Tahoma',size:9}}},
+        y:{min:0,max:1,display:false,grid:{display:false}}
+      }
+    }});
     charts.push(c);
   }
   function card(title,value,sub,kind='neutral'){return `<article class="cr2-card ${kind}"><div class="cr2-card-label">${esc(title)}</div><div class="cr2-card-value">${value}</div><div class="cr2-card-sub">${sub||' '}</div></article>`}

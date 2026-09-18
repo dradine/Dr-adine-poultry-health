@@ -14,7 +14,7 @@
    - These values are intentionally isolated from the canonical weekly engine.
 */
 window.ADINE_BROILER_DAILY_STANDARDS_V1 = Object.freeze({
-  version: "2026-09-17.v4",
+  version: "2026-09-18.v5",
   scope: "daily-monitoring-only",
   sourcePolicy: "official-first-management-same-breeder-second-evidence-third",
   derivationPolicy: {
@@ -51,6 +51,22 @@ window.ADINE_BROILER_DAILY_STANDARDS_V1 = Object.freeze({
       sourceType: "management-reference", priority: 2,
       source: "Breeder brooding guidance cross-reference: Hubbard broiler brooding poster + Aviagen environmental guidance",
       rationale: "Exact set-points vary with RH, air speed, housing and chick behaviour. The daily band is therefore used as a management reference, not as a universal biological constant."
+    },
+    broodingTemperatureRH: {
+      sourceType: "official-breeder-guidance",
+      priority: 1,
+      source: "Indian River Broiler Management Handbook 2025, Table 2.5",
+      sourceUrl: "https://aviagen.com/assets/Tech_Center/LIR_Broiler/Aviagen-IR-Broiler-Handbook-EN.pdf",
+      method: "bilinear-interpolation-age-and-RH-between-published-Aviagen-points",
+      humidityPercent: [40,50,60,70],
+      ageDays: [0,3,6,9],
+      temperatureC: {
+        40: {0:36.0,3:33.7,6:32.5,9:31.3},
+        50: {0:33.2,3:31.2,6:29.9,9:28.6},
+        60: {0:30.8,3:28.9,6:27.7,9:26.7},
+        70: {0:29.2,3:27.3,6:26.0,9:25.0}
+      },
+      rationale: "Aviagen states that apparent temperature depends on dry-bulb temperature and RH and provides dry-bulb temperatures for equivalent thermal conditions at RH 40, 50, 60 and 70%. For the isolated first-7 daily report, values for days 1–7 are interpolated only between these published Aviagen points; they are not relabelled as separate official daily breeder targets."
     },
     humidity: {
       default: { 1:[45,55], 2:[45,55], 3:[45,55], 4:[50,60], 5:[50,60], 6:[50,60], 7:[50,60] },

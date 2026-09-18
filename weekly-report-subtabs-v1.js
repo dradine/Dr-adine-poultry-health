@@ -24,7 +24,7 @@
     if(!window.ADINE_BROILER_FIRST7_REPORT_ENGINE_V1)
       await asset('broiler-daily-first7-report-engine-v1.js?v=20260918.1');
     if(!window.ADINE_BROILER_FIRST7_DAYVIEW_V1)
-      await asset('broiler-daily-first7-dayview-v1.js?v=20260916.1');
+      await asset('broiler-daily-first7-dayview-v1.js?v=20260918.3');
   }
 
   function ensureShell(){

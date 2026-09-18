@@ -1,4 +1,4 @@
-/* ADINE — WEEKLY REPORT SUBTABS V3
+/* ADINE — WEEKLY REPORT SUBTABS V4
    Weekly report remains the canonical report renderer.
    Daily first-7 is an isolated sub-view and MUST NOT participate in the
    global .report-tab event system used by reports.js and other report modules.
@@ -101,9 +101,19 @@
     return shell;
   }
 
+  function syncShellVisibility(){
+    const shell=$(ID);
+    if(!shell)return;
+    const weekly=document.querySelector('.report-tabs [data-tab="weekly"].active');
+    shell.hidden=!weekly;
+    shell.setAttribute('aria-hidden',weekly?'false':'true');
+  }
+
   function setMode(mode){
     const shell=ensureShell();
     if(!shell)return;
+    shell.hidden=false;
+    shell.setAttribute('aria-hidden','false');
     shell.style.display='block';
     shell.querySelectorAll('[data-weekly-subtab]').forEach(b=>
       b.classList.toggle('active',b.dataset.weeklySubtab===mode)
@@ -186,14 +196,26 @@
 
   function bindTopTabs(shell){
     document.querySelectorAll('.report-tab[data-tab]').forEach(btn=>{
-      if(btn.dataset.weeklySubtabsBound==='3')return;
-      btn.dataset.weeklySubtabsBound='3';
+      if(btn.dataset.weeklySubtabsBound==='4')return;
+      btn.dataset.weeklySubtabsBound='4';
+      // Hide the weekly-only subtab shell immediately when entering Overall or Comparison.
+      // This runs in capture phase and does not touch reports.js or any report renderer.
+      btn.addEventListener('click',()=>{
+        const isWeekly=btn.dataset.tab==='weekly';
+        if(!isWeekly){
+          stopDailyGuard();
+          shell.hidden=true;
+          shell.setAttribute('aria-hidden','true');
+        }
+      },true);
       btn.addEventListener('click',()=>requestAnimationFrame(()=>{
         if(btn.dataset.tab==='weekly'){
           stopDailyGuard();
           setMode('weekly');
         }else{
           stopDailyGuard();
+          shell.hidden=true;
+          shell.setAttribute('aria-hidden','true');
           shell.style.display='none';
         }
       }));
@@ -205,9 +227,28 @@
     if(!shell)return setTimeout(start,100);
     bind(shell);
     bindTopTabs(shell);
+    // Defensive synchronization: the two subtabs belong exclusively to Weekly.
+    syncShellVisibility();
     const weekly=document.querySelector('.report-tabs [data-tab="weekly"]');
     if(weekly?.classList.contains('active'))setMode('weekly');
-    else shell.style.display='none';
+    else{
+      shell.hidden=true;
+      shell.setAttribute('aria-hidden','true');
+      shell.style.display='none';
+    }
+    const tabs=document.querySelector('.report-tabs');
+    if(tabs){
+      const observer=new MutationObserver(()=>{
+        const isWeekly=tabs.querySelector('[data-tab="weekly"].active');
+        if(!isWeekly){
+          stopDailyGuard();
+          shell.hidden=true;
+          shell.setAttribute('aria-hidden','true');
+          shell.style.display='none';
+        }
+      });
+      observer.observe(tabs,{subtree:true,attributes:true,attributeFilter:['class']});
+    }
   }
 
   if(document.readyState==='loading')

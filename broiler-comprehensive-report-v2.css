@@ -26,3 +26,21 @@
 .cr2-table-status.good{background:#f0f8f3;color:#2d7658;border-color:#cfe5d9}
 .cr2-table-status.watch{background:#fff3df;color:#9a5a12;border-color:#ead8bb}
 .cr2-table-status.critical{background:#fde8e8;color:#a8322d;border-color:#eccaca}
+
+/* Strong status colors: scoped to V2.4 and intentionally override generic report styles. */
+#root .cr2-card.excellent{background:#e8f7ee!important;border-color:#9fd0b4!important;color:#176d4d!important}
+#root .cr2-card.good{background:#f2faf5!important;border-color:#c3e2d0!important;color:#237454!important}
+#root .cr2-card.watch{background:#fff4df!important;border-color:#e4c48f!important;color:#996016!important}
+#root .cr2-card.critical{background:#fde9e9!important;border-color:#e4aaa7!important;color:#a8322d!important}
+#root .cr2-trend-card.excellent{background:#e8f7ee!important;border-color:#9fd0b4!important;color:#176d4d!important}
+#root .cr2-trend-card.good{background:#f2faf5!important;border-color:#c3e2d0!important;color:#237454!important}
+#root .cr2-trend-card.watch{background:#fff4df!important;border-color:#e4c48f!important;color:#996016!important}
+#root .cr2-trend-card.critical{background:#fde9e9!important;border-color:#e4aaa7!important;color:#a8322d!important}
+#root .cr2-table-value.excellent,#root .cr2-gap.excellent{background:#dff3e7!important;color:#176d4d!important}
+#root .cr2-table-value.good,#root .cr2-gap.good{background:#edf8f1!important;color:#237454!important}
+#root .cr2-table-value.watch,#root .cr2-gap.watch{background:#ffedcf!important;color:#996016!important}
+#root .cr2-table-value.critical,#root .cr2-gap.critical{background:#fbdada!important;color:#a8322d!important}
+#root .cr2-table-status.excellent{background:#dff3e7!important;color:#176d4d!important;border-color:#9fd0b4!important}
+#root .cr2-table-status.good{background:#edf8f1!important;color:#237454!important;border-color:#c3e2d0!important}
+#root .cr2-table-status.watch{background:#ffedcf!important;color:#996016!important;border-color:#e4c48f!important}
+#root .cr2-table-status.critical{background:#fbdada!important;color:#a8322d!important;border-color:#e4aaa7!important}

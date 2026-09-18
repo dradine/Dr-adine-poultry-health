@@ -103,9 +103,6 @@ function alerts(d,prev){
  var a=[];
  if(d.dev!=null&&d.dev<=-10)a.push(['bad','وزن','فاصله وزن از مرجع به محدوده جدی رسیده است.']);
  else if(d.dev!=null&&d.dev<=-5)a.push(['warn','وزن','وزن پایین‌تر از مرجع همان روز ثبت شده است.']);
- var wr=researchWaterFeedReference(d.age),ws=waterFeedStatus(d.ratio,wr);
- if(ws==='bad'){var wp=(N(d.ratio)-wr)/wr*100;a.push(['bad','آب:دان','نسبت '+F(d.ratio,2)+' است؛ '+(wp>=0?'بالاتر':'پایین‌تر')+' از مرجع پژوهشی روز '+d.age+' ('+F(wr,2)+' L/kg) به میزان '+F(Math.abs(wp),0)+'٪.'])}
- else if(ws==='warn'){var wp2=(N(d.ratio)-wr)/wr*100;a.push(['warn','آب:دان','نسبت '+F(d.ratio,2)+' است؛ '+(wp2>=0?'بالاتر':'پایین‌تر')+' از مرجع پژوهشی روز '+d.age+' ('+F(wr,2)+' L/kg) به میزان '+F(Math.abs(wp2),0)+'٪.'])}
  if(prev){var fd=delta(prev.feed,d.feed),wd=delta(prev.water,d.water);if(fd!=null&&fd<=-15)a.push([fd<=-30?'bad':'warn','دان','کاهش '+F(Math.abs(fd),0)+'٪ نسبت به روز قبل.']);if(wd!=null&&wd<=-15)a.push([wd<=-30?'bad':'warn','آب','کاهش '+F(Math.abs(wd),0)+'٪ نسبت به روز قبل.']);if(fd!=null&&wd!=null&&fd<=-15&&wd<=-15)a.push(['bad','آب و دان','افت همزمان؛ دسترسی آب/دان، محیط و سلامت بررسی شود.'])}
  if(d.ammonia!=null&&d.ammonia>=10)a.push([d.ammonia>=20?'bad':'warn','آمونیاک',F(d.ammonia,1)+' ppm.']);
  if(d.co2!=null&&d.co2>=3000)a.push([d.co2>=5000?'bad':'warn','CO₂',F(d.co2,0)+' ppm.']);
@@ -124,7 +121,7 @@ function render(){
  h+=metric('افزایش وزن',d.gain==null?'—':(d.gain>=0?'+':'')+F(d.gain,1)+' گرم',d.growthPct==null?'':(d.growthPct>=0?'+':'')+F(d.growthPct,1)+'٪ نسبت به روز قبل');
  h+=metric('دان / پرنده',d.feedPerBird==null?'—':F(d.feedPerBird,2)+' گرم','بر اساس جمعیت زنده ابتدای روز');
  h+=metric('آب / پرنده',d.waterPerBird==null?'—':F(d.waterPerBird,2)+' ml','بر اساس جمعیت زنده ابتدای روز');
- h+=metric('آب : دان',d.ratio==null?'—':F(d.ratio,2)+' L/kg','مرجع مدیریتی موجود');
+ h+=metric('آب : دان',d.ratio==null?'—':F(d.ratio,2)+' L/kg','مرجع مدیریتی موجود'+(researchWaterFeedReference(d.age)!=null?' · مرجع پژوهشی روز '+d.age+': '+F(researchWaterFeedReference(d.age),2)+' L/kg':''));
  h+=metric('تلفات روز',F(d.mort,0)+' قطعه','تجمعی: '+P(d.cumMortPct,2),d.mort>0?'warn':'good');
  h+=metric('تلفات تجمعی',F(d.cumMort,0)+' قطعه','('+P(d.cumMortPct,2)+')',d.cumMortPct==null?'':d.cumMortPct<=1?'good':'bad');h+=metric('دمای ونت',d.vent==null?'—':F(d.vent,1)+' °C','روز ۱–۲: ۳۹٫۴–۴۰٫۵°C',d.vent==null?'':d.vent>=39.4&&d.vent<=40.5?'good':'warn');
  h+=metric('زنده‌مانی',d.live==null?'—':F(d.live,0)+' قطعه','');

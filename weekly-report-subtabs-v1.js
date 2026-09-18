@@ -10,11 +10,13 @@
   let dailyMode=false;
   let dailyObserver=null;
   let dailyRepairQueued=false;
+  let dailyRepairTimer=null;
 
   function stopDailyGuard(){
     dailyMode=false;
     if(dailyObserver){dailyObserver.disconnect();dailyObserver=null}
     dailyRepairQueued=false;
+    if(dailyRepairTimer){clearInterval(dailyRepairTimer);dailyRepairTimer=null}
     window.__ADINE_FIRST7_DAILY_MODE=false;
   }
 
@@ -31,6 +33,23 @@
     });
   }
 
+  function startDailyRepairLoop(){
+    if(dailyRepairTimer)clearInterval(dailyRepairTimer);
+    dailyRepairTimer=setInterval(async()=>{
+      if(!dailyMode){clearInterval(dailyRepairTimer);dailyRepairTimer=null;return}
+      const root=$('root');
+      if(!root)return;
+      if(root.getAttribute('data-report-view')==='first7-daily-pro-v2'){
+        clearInterval(dailyRepairTimer);dailyRepairTimer=null;return;
+      }
+      // reports.js initializes asynchronously. If its weekly render lands while
+      // the isolated first-7 renderer is busy, the MutationObserver can fire
+      // during that busy window and be consumed. This second guard retries after
+      // the renderer is free, without modifying reports.js or the weekly engine.
+      await window.ADINE_BROILER_FIRST7_REPORT_PRO_V2?.show?.();
+    },100);
+  }
+
   function startDailyGuard(){
     dailyMode=true;
     window.__ADINE_FIRST7_DAILY_MODE=true;
@@ -40,6 +59,7 @@
     dailyObserver=new MutationObserver(()=>queueDailyRepair());
     dailyObserver.observe(root,{childList:true,subtree:true});
     queueDailyRepair();
+    startDailyRepairLoop();
   }
 
   function asset(src){

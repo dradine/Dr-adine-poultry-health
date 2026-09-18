@@ -25,36 +25,115 @@ function clamp01(x){return Math.max(0,Math.min(1,x));}
 function scoreBand(v,good,warn,bad,dir){v=N(v);if(v==null)return null;var s;if(dir==='low'){if(v<=good)s=1;else if(v<=warn)s=1-(v-good)/(warn-good)*.35;else if(v<=bad)s=.65-(v-warn)/(bad-warn)*.65;else s=0;}else{if(v>=good)s=1;else if(v>=warn)s=.65+(v-warn)/(good-warn)*.35;else if(v>=bad)s=(v-bad)/(warn-bad)*.65;else s=0;}return clamp01(s);}
 function scoreDetails(m,d){
  var prev=m.days.filter(function(x){return x.age<d.age}).slice(-1)[0]||null,parts=[],reasons=[];
- function add(key,label,weight,value,detail){if(value!=null)parts.push({key:key,label:label,weight:weight,score:clamp01(value),detail:detail||''});}
- add('weight','وزن نسبت به مرجع',20,d.dev==null?null:scoreBand(Math.abs(d.dev),5,10,15,'low'),d.dev==null?'مرجع موجود نیست':(d.dev>=0?'بالا ':'پایین ')+F(Math.abs(d.dev),1)+'٪ از مرجع');
- var gain=d.gain!=null?N(d.gain):null;if(gain==null&&d.age===1&&m.initW!=null&&d.bw!=null)gain=d.bw-N(m.initW);
- var gainRef=null;if(d.target!=null&&m.std&&m.std.dayWeightG){if(d.age===1&&m.std.chickWeightG!=null)gainRef=N(d.target)-N(m.std.chickWeightG);else if(d.age>1&&m.std.dayWeightG[d.age-1]!=null)gainRef=N(d.target)-N(m.std.dayWeightG[d.age-1]);}
+ function add(key,label,weight,value,detail){value=N(value);if(value!=null&&isFinite(value))parts.push({key:key,label:label,weight:weight,score:clamp01(value),detail:detail||''});}
+ function common(path){
+   var o=m&&m.std?m.std:null;
+   for(var i=0;i<path.length;i++){if(o==null)return null;o=o[path[i]];}
+   return o;
+ }
+ var tempBands=common(['common','broodingTemperatureC','default']);
+ var rhBands=common(['common','humidity','default']);
+ var ratioRef=common(['common','waterFeedRatio']);
+ var airRef=common(['common','airQuality'])||{};
+ var ventRef=common(['common','chickVentTemperatureC'])||{min:39.4,max:40.5};
+
+ add('weight','وزن نسبت به مرجع',20,d.dev==null?null:scoreBand(Math.abs(d.dev),5,10,15,'low'),
+   d.dev==null?'مرجع موجود نیست':(d.dev>=0?'بالا ':'پایین ')+F(Math.abs(d.dev),1)+'٪ از مرجع');
+
+ var gain=d.gain!=null?N(d.gain):null;
+ if(gain==null&&d.age===1&&m.initW!=null&&d.bw!=null)gain=N(d.bw)-N(m.initW);
+ var gainRef=null;
+ if(d.target!=null&&m.std&&m.std.dayWeightG){
+   if(d.age===1&&m.std.chickWeightG!=null)gainRef=N(d.target)-N(m.std.chickWeightG);
+   else if(d.age>1&&m.std.dayWeightG[d.age-1]!=null)gainRef=N(d.target)-N(m.std.dayWeightG[d.age-1]);
+ }
  var attain=gain!=null&&gainRef!=null&&gainRef>0?gain/gainRef*100:null;
- add('gain','افزایش وزن روزانه',10,attain==null?null:scoreBand(attain,100,85,70,'high'),attain==null?'مرجع موجود نیست':'تحقق '+F(attain,0)+'٪ از مرجع');
- add('mort','تلفات تجمعی',10,d.cumMortPct==null?null:scoreBand(d.cumMortPct,.50,.75,1,'low'),d.cumMortPct==null?'':F(d.cumMortPct,2)+'٪');
- add('dayMort','تلفات روز',5,d.mortPct==null?null:scoreBand(d.mortPct,.10,.25,.50,'low'),d.mortPct==null?'':F(d.mortPct,2)+'٪ از جمعیت ابتدای روز');
- var tr=m.std&&m.std.common&&m.std.common.broodingTemperatureC&&m.std.common.broodingTemperatureC.default?m.std.common.broodingTemperatureC.default[d.age]:null;
- add('temp','دمای سالن',5,d.temp==null?null:(tr?scoreBand(Math.max(tr[0]-d.temp,0,d.temp-tr[1]),0,.8,2,'low'):null),tr?'محدوده '+F(tr[0],1)+'–'+F(tr[1],1)+' °C':'');
- var rh=m.std&&m.std.common&&m.std.common.humidity&&m.std.common.humidity.default?m.std.common.humidity.default[d.age]:null;
- add('rh','رطوبت نسبی',4,d.rh==null?null:(rh?(d.rh>=rh[0]&&d.rh<=rh[1]?1:scoreBand(Math.min(Math.abs(d.rh-rh[0]),Math.abs(d.rh-rh[1])),0,5,10,'low')):null),rh?'محدوده '+F(rh[0],0)+'–'+F(rh[1],0)+'٪':'');
- add('nh3','آمونیاک',4,d.ammonia==null?null:scoreBand(d.ammonia,10,15,20,'low'),d.ammonia==null?'':F(d.ammonia,1)+' ppm');
- add('co2','CO₂',4,d.co2==null?null:scoreBand(d.co2,3000,4000,5000,'low'),d.co2==null?'':F(d.co2,0)+' ppm');
- add('litterTemp','دمای بستر',3,d.litterTemp==null?null:scoreBand(Math.abs(d.litterTemp-(d.temp==null?d.litterTemp:d.temp)),2,4,7,'low'),d.litterTemp==null?'':'اختلاف با دمای سالن '+F(Math.abs(d.litterTemp-(d.temp||d.litterTemp)),1)+' °C');
- var rr=m.std&&m.std.common&&m.std.common.waterFeedRatio?m.std.common.waterFeedRatio:null;
- add('ratio','آب : دان',7,d.ratio==null?null:(rr&&d.ratio>=rr.min&&d.ratio<=rr.max?1:rr?scoreBand(Math.max(rr.min-d.ratio,0,d.ratio-rr.max),0,.25,.5,'low'):null),d.ratio==null?'':F(d.ratio,2)+' L/kg');
- var fd=prev&&prev.feed!=null&&d.feed!=null?delta(prev.feed,d.feed):null,wd=prev&&prev.water!=null&&d.water!=null?delta(prev.water,d.water):null;
- add('feedTrend','تغییر دان',4,fd==null?null:(fd>=-10?1:fd>=-20?.75:fd>=-30?.4:0),fd==null?'روز مبنا/داده ناکافی':(fd>=0?'+':'')+F(fd,0)+'٪');
- add('waterTrend','تغییر آب',4,wd==null?null:(wd>=-10?1:wd>=-20?.75:wd>=-30?.4:0),wd==null?'روز مبنا/داده ناکافی':(wd>=0?'+':'')+F(wd,0)+'٪');
- if(d.age<=2)add('vent','دمای ونت',4,d.vent==null?null:(d.vent>=39.4&&d.vent<=40.5?1:scoreBand(Math.min(Math.abs(d.vent-39.4),Math.abs(d.vent-40.5)),0,.5,1.5,'low')),d.vent==null?'':F(d.vent,1)+' °C');
- if(d.age===1){var cv=[d.crop2,d.crop4,d.crop8,d.crop12,d.crop24].map(function(v,i){var t=[75,80,80,85,95][i];return v==null?null:scoreBand(v,t,t-10,t-20,'high')}).filter(function(x){return x!=null});if(cv.length)add('crop','شروع تغذیه / پر بودن چینه‌دان',6,cv.reduce(function(a,b){return a+b},0)/cv.length,'میانگین نقاط ثبت‌شده');}
- var devTrend=prev&&d.dev!=null&&prev.dev!=null?d.dev-prev.dev:null,gainTrend=prev&&d.gain!=null&&prev.gain!=null?d.gain-prev.gain:null;
- add('weightTrend','روند فاصله وزن',4,devTrend==null?null:(devTrend<=0?1:devTrend<=2?.8:devTrend<=5?.5:0),devTrend==null?'داده روند کافی نیست':(devTrend<=0?'بهبود/ثبات':'بدتر شدن')+' '+F(Math.abs(devTrend),1)+' واحد درصد');
- add('gainTrend','روند افزایش وزن',3,gainTrend==null?null:(gainTrend>=0?1:gainTrend>=-2?.8:gainTrend>=-5?.5:0),gainTrend==null?'داده روند کافی نیست':(gainTrend>=0?'بهبود/ثبات':'کاهش')+' '+F(Math.abs(gainTrend),1)+' گرم');
+ add('gain','افزایش وزن روزانه',10,attain==null?null:scoreBand(attain,100,85,70,'high'),
+   attain==null?'مرجع موجود نیست':'تحقق '+F(attain,0)+'٪ از مرجع');
+
+ add('mort','تلفات تجمعی',10,d.cumMortPct==null?null:scoreBand(d.cumMortPct,.50,.75,1,'low'),
+   d.cumMortPct==null?'':F(d.cumMortPct,2)+'٪');
+ add('dayMort','تلفات روز',5,d.mortPct==null?null:scoreBand(d.mortPct,.10,.25,.50,'low'),
+   d.mortPct==null?'':F(d.mortPct,2)+'٪ از جمعیت ابتدای روز');
+
+ var tr=tempBands&&tempBands[d.age]!=null?tempBands[d.age]:null;
+ var tempScore=null;
+ if(d.temp!=null&&tr&&tr.length>=2){
+   var tempDist=Math.max(tr[0]-d.temp,0,d.temp-tr[1]);
+   tempScore=scoreBand(tempDist,0,.8,2,'low');
+ }
+ add('temp','دمای سالن',5,tempScore,d.temp==null?'':tr?'محدوده '+F(tr[0],1)+'–'+F(tr[1],1)+' °C':'مرجع مدیریت روزانه موجود نیست');
+
+ var rh=rhBands&&rhBands[d.age]!=null?rhBands[d.age]:null;
+ var rhScore=null;
+ if(d.rh!=null&&rh&&rh.length>=2){
+   var rhDist=d.rh<rh[0]?rh[0]-d.rh:d.rh>rh[1]?d.rh-rh[1]:0;
+   rhScore=scoreBand(rhDist,0,5,10,'low');
+ }
+ add('rh','رطوبت نسبی',4,rhScore,rh?'محدوده '+F(rh[0],0)+'–'+F(rh[1],0)+'٪':'مرجع مدیریت روزانه موجود نیست');
+
+ var nh3Action=N(airRef.ammoniaAction),nh3Critical=N(airRef.ammoniaCritical);
+ add('nh3','آمونیاک',4,d.ammonia==null?null:scoreBand(d.ammonia,nh3Action==null?10:nh3Action,nh3Action==null?15:nh3Action+5,nh3Critical==null?20:nh3Critical,'low'),
+   d.ammonia==null?'':F(d.ammonia,1)+' ppm');
+ var co2Action=N(airRef.co2Action);
+ add('co2','CO₂',4,d.co2==null?null:scoreBand(d.co2,co2Action==null?3000:co2Action,co2Action==null?4000:co2Action+1000,co2Action==null?5000:co2Action+2000,'low'),
+   d.co2==null?'':F(d.co2,0)+' ppm');
+
+ add('litterTemp','دمای بستر',3,d.litterTemp==null?null:scoreBand(Math.abs(d.litterTemp-(d.temp==null?d.litterTemp:d.temp)),2,4,7,'low'),
+   d.litterTemp==null?'':'اختلاف با دمای سالن '+F(Math.abs(d.litterTemp-(d.temp||d.litterTemp)),1)+' °C');
+
+ var rr=ratioRef;
+ add('ratio','آب : دان',7,d.ratio==null?null:(rr&&d.ratio>=N(rr.min)&&d.ratio<=N(rr.max)?1:rr?scoreBand(Math.max(N(rr.min)-d.ratio,0,d.ratio-N(rr.max)),0,.25,.5,'low'):null),
+   d.ratio==null?'':F(d.ratio,2)+' L/kg');
+
+ var fd=prev&&prev.feed!=null&&d.feed!=null?delta(prev.feed,d.feed):null;
+ var wd=prev&&prev.water!=null&&d.water!=null?delta(prev.water,d.water):null;
+ add('feedTrend','تغییر دان',4,fd==null?null:(fd>=-10?1:fd>=-20?.75:fd>=-30?.4:0),
+   fd==null?'روز مبنا/داده ناکافی':(fd>=0?'+':'')+F(fd,0)+'٪');
+ add('waterTrend','تغییر آب',4,wd==null?null:(wd>=-10?1:wd>=-20?.75:wd>=-30?.4:0),
+   wd==null?'روز مبنا/داده ناکافی':(wd>=0?'+':'')+F(wd,0)+'٪');
+
+ if(d.age<=2){
+   var vmin=N(ventRef.min)==null?39.4:N(ventRef.min),vmax=N(ventRef.max)==null?40.5:N(ventRef.max);
+   var vd=d.vent==null?null:Math.max(vmin-d.vent,0,d.vent-vmax);
+   add('vent','دمای ونت',4,d.vent==null?null:scoreBand(vd,0,.5,1.5,'low'),d.vent==null?'':F(d.vent,1)+' °C');
+ }
+ if(d.age===1){
+   var cv=[],ct=[2,4,8,12,24],fallback=[75,80,80,85,95];
+   ct.forEach(function(h,i){var v=h===2?d.crop2:h===4?d.crop4:h===8?d.crop8:h===12?d.crop12:d.crop24;var cfg=common(['common','cropFill',h]);var t=cfg&&N(cfg.min)!=null?N(cfg.min):fallback[i];if(v!=null)cv.push(scoreBand(v,t,t-10,t-20,'high'));});
+   if(cv.length)add('crop','شروع تغذیه / پر بودن چینه‌دان',6,cv.reduce(function(a,b){return a+b},0)/cv.length,'میانگین نقاط ثبت‌شده');
+ }
+
+ var devTrend=prev&&d.dev!=null&&prev.dev!=null?d.dev-prev.dev:null;
+ var gainTrend=prev&&d.gain!=null&&prev.gain!=null?d.gain-prev.gain:null;
+ add('weightTrend','روند فاصله وزن',4,devTrend==null?null:(devTrend<=0?1:devTrend<=2?.8:devTrend<=5?.5:0),
+   devTrend==null?'داده روند کافی نیست':(devTrend<=0?'بهبود/ثبات ':'بدتر شدن ')+F(Math.abs(devTrend),1)+' واحد درصد');
+ add('gainTrend','روند افزایش وزن',3,gainTrend==null?null:(gainTrend>=0?1:gainTrend>=-2?.8:gainTrend>=-5?.5:0),
+   gainTrend==null?'داده روند کافی نیست':(gainTrend>=0?'بهبود/ثبات ':'کاهش ')+F(Math.abs(gainTrend),1)+' گرم');
+
  var combo=fd==null&&wd==null?null:fd!=null&&wd!=null?(fd>=-10&&wd>=-10?1:fd<=-30&&wd<=-30?0:.5):(fd!=null?(fd>=-10?1:fd<=-30?0:.5):(wd>=-10?1:wd<=-30?0:.5));
  add('consTrend','روند مصرف',3,combo,combo==null?'داده روند کافی نیست':'ترکیب تغییر آب و دان');
- var totalW=parts.reduce(function(s,x){return s+x.weight},0),score=totalW?Math.round(parts.reduce(function(s,x){return s+x.score*x.weight},0)/totalW*100):null,coverage=totalW,confidence=coverage>=85?'بالا':coverage>=65?'متوسط':'محدود';
+
+ var totalW=parts.reduce(function(s,x){return s+x.weight},0);
+ var weighted=parts.reduce(function(s,x){return s+x.score*x.weight},0);
+ var scoreValue=totalW>0?Math.round(weighted/totalW*100):null;
+
+ // Fail-safe: an alert-bearing day must never render as a blank score.
+ // Only observed values are used; no score is invented when there is genuinely no usable data.
+ if(scoreValue==null){
+   var fallbackParts=[];
+   if(d.dev!=null)fallbackParts.push(scoreBand(Math.abs(d.dev),5,10,15,'low'));
+   if(d.ammonia!=null)fallbackParts.push(scoreBand(d.ammonia,10,15,20,'low'));
+   if(d.co2!=null)fallbackParts.push(scoreBand(d.co2,3000,4000,5000,'low'));
+   if(d.cumMortPct!=null)fallbackParts.push(scoreBand(d.cumMortPct,.50,.75,1,'low'));
+   if(d.ratio!=null&&rr)fallbackParts.push(d.ratio>=N(rr.min)&&d.ratio<=N(rr.max)?1:scoreBand(Math.max(N(rr.min)-d.ratio,0,d.ratio-N(rr.max)),0,.25,.5,'low'));
+   fallbackParts=fallbackParts.filter(function(v){return v!=null&&isFinite(v)});
+   if(fallbackParts.length)scoreValue=Math.round(fallbackParts.reduce(function(a,b){return a+b},0)/fallbackParts.length*100);
+ }
+ var coverage=totalW;
+ var confidence=coverage>=85?'بالا':coverage>=65?'متوسط':coverage>=40?'محدود':'داده محدود';
  parts.slice().sort(function(a,b){return a.score-b.score}).slice(0,3).forEach(function(x){if(x.score<.75)reasons.push(x.label+(x.detail?' · '+x.detail:''));});
- return {score:score,confidence:confidence,coverage:Math.round(coverage),parts:parts,reasons:reasons.slice(0,3),gain:gain,gainRef:gainRef,attain:attain};
+ return {score:scoreValue,confidence:confidence,coverage:Math.round(coverage),parts:parts,reasons:reasons.slice(0,3),gain:gain,gainRef:gainRef,attain:attain};
 }
 function score(m,d){return scoreDetails(m,d).score;}
 function severity(d){

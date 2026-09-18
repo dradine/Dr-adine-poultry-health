@@ -48,15 +48,39 @@ function severity(d){
  if((d.dev!=null&&d.dev<=-5)||(d.ammonia!=null&&d.ammonia>=10)||(d.co2!=null&&d.co2>=3000)||(d.cumMortPct!=null&&d.cumMortPct>=.75))return'warn';
  return'';
 }
+function researchWaterFeedReference(age){
+ age=N(age);if(age==null||age<1||age>7)return null;
+ var feed=.37+3.546*age;
+ var water=9.73+6.142*age;
+ return water/feed;
+}
+function waterFeedStatus(actual,ref){
+ actual=N(actual);ref=N(ref);if(actual==null||ref==null)return '';
+ var pct=(actual-ref)/ref*100;
+ if(Math.abs(pct)>=25)return 'bad';
+ if(Math.abs(pct)>=15)return 'warn';
+ return '';
+}
 function waterFeedChart(rows){
  var vals=rows.map(function(d){return N(d.ratio)}).filter(function(v){return v!=null});
+ var refs=rows.map(function(d){return researchWaterFeedReference(d.age)}).filter(function(v){return v!=null});
  if(!vals.length)return '<div class="note">داده کافی برای رسم آب:دان وجود ندارد.</div>';
- var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);if(mn===mx){mn-=.1;mx+=.1}
+ var all=vals.concat(refs),mn=Math.min.apply(null,all),mx=Math.max.apply(null,all);if(mn===mx){mn-=.1;mx+=.1}
  var pad=(mx-mn)*.2;mn-=pad;mx+=pad;
  var W=600,H=175,L=35,R=10,T=10,B=25,iw=W-L-R,ih=H-T-B,x=function(i){return L+i/Math.max(rows.length-1,1)*iw},y=function(v){return T+(mx-v)/(mx-mn)*ih};
- var path='',pts='';rows.forEach(function(d,i){var v=N(d.ratio);if(v==null)return;path+=(path?'L':'M')+' '+x(i)+' '+y(v)+' ';var label='روز '+d.age+' · آب:دان: '+F(v,2)+' L/kg';pts+='<g data-chart-point="1" data-tip="'+esc(label)+'"><title>'+esc(label)+'</title><circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" class="pt"/><circle cx="'+x(i)+'" cy="'+y(v)+'" r="11" class="chart-hit"/></g>'});
+ var path='',rpath='',pts='';
+ rows.forEach(function(d,i){
+   var v=N(d.ratio),q=researchWaterFeedReference(d.age);
+   if(v!=null)path+=(path?'L':'M')+' '+x(i)+' '+y(v)+' ';
+   if(q!=null)rpath+=(rpath?'L':'M')+' '+x(i)+' '+y(q)+' ';
+   if(v==null)return;
+   var st=waterFeedStatus(v,q),cl=st==='bad'?'ptb':st==='warn'?'ptw':'pt';
+   var diff=q==null?null:(v-q)/q*100;
+   var label='روز '+d.age+' · آب:دان: '+F(v,2)+' L/kg · مرجع پژوهشی: '+F(q,2)+' L/kg'+(diff==null?'':' · اختلاف '+(diff>=0?'+':'')+F(diff,0)+'٪');
+   pts+='<g data-chart-point="1" data-tip="'+esc(label)+'"><title>'+esc(label)+'</title><circle cx="'+x(i)+'" cy="'+y(v)+'" r="4" class="'+cl+'"/>'+(st==='bad'?'<circle cx="'+x(i)+'" cy="'+y(v)+'" r="5" class="ring"/>':'')+'<circle cx="'+x(i)+'" cy="'+y(v)+'" r="11" class="chart-hit"/></g>';
+ });
  var labs=rows.map(function(d,i){return '<text x="'+x(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="9" fill="#68736d">روز '+d.age+'</text>'}).join('');
- return '<div class="chartname">نسبت آب به دان <span class="muted">L/kg</span></div><div class="chart-tooltip"></div><svg viewBox="0 0 '+W+' '+H+'"><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'"/><line class="axis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"/><path class="pline" d="'+path+'"/>'+pts+labs+'</svg>';
+ return '<div class="chartname">نسبت آب به دان <span class="muted">L/kg</span></div><div class="chart-tooltip"></div><svg viewBox="0 '+W+' '+H+'"><line class="axis" x1="'+L+'" y1="'+T+'" x2="'+L+'" y2="'+(H-B)+'"/><line class="axis" x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'"/><path class="pref" d="'+rpath+'"/><path class="pline" d="'+path+'"/>'+pts+labs+'</svg><p class="note">خط‌چین: مرجع پژوهشی روزانه بر پایه معادلات مصرف روزانه آب و دان جوجه‌های گوشتی در مطالعه Journal of Applied Poultry Research (روزهای ۱ تا ۷). این خط استاندارد رسمی یا استاندارد مدیریتی سویه نیست.</p>';
 }
 function mortalityChart(rows){
  var vals=rows.map(function(d){return N(d.cumMortPct)}).filter(function(v){return v!=null});
@@ -79,6 +103,9 @@ function alerts(d,prev){
  var a=[];
  if(d.dev!=null&&d.dev<=-10)a.push(['bad','وزن','فاصله وزن از مرجع به محدوده جدی رسیده است.']);
  else if(d.dev!=null&&d.dev<=-5)a.push(['warn','وزن','وزن پایین‌تر از مرجع همان روز ثبت شده است.']);
+ var wr=researchWaterFeedReference(d.age),ws=waterFeedStatus(d.ratio,wr);
+ if(ws==='bad'){var wp=(N(d.ratio)-wr)/wr*100;a.push(['bad','آب:دان','نسبت '+F(d.ratio,2)+' است؛ '+(wp>=0?'بالاتر':'پایین‌تر')+' از مرجع پژوهشی روز '+d.age+' ('+F(wr,2)+' L/kg) به میزان '+F(Math.abs(wp),0)+'٪.'])}
+ else if(ws==='warn'){var wp2=(N(d.ratio)-wr)/wr*100;a.push(['warn','آب:دان','نسبت '+F(d.ratio,2)+' است؛ '+(wp2>=0?'بالاتر':'پایین‌تر')+' از مرجع پژوهشی روز '+d.age+' ('+F(wr,2)+' L/kg) به میزان '+F(Math.abs(wp2),0)+'٪.'])}
  if(prev){var fd=delta(prev.feed,d.feed),wd=delta(prev.water,d.water);if(fd!=null&&fd<=-15)a.push([fd<=-30?'bad':'warn','دان','کاهش '+F(Math.abs(fd),0)+'٪ نسبت به روز قبل.']);if(wd!=null&&wd<=-15)a.push([wd<=-30?'bad':'warn','آب','کاهش '+F(Math.abs(wd),0)+'٪ نسبت به روز قبل.']);if(fd!=null&&wd!=null&&fd<=-15&&wd<=-15)a.push(['bad','آب و دان','افت همزمان؛ دسترسی آب/دان، محیط و سلامت بررسی شود.'])}
  if(d.ammonia!=null&&d.ammonia>=10)a.push([d.ammonia>=20?'bad':'warn','آمونیاک',F(d.ammonia,1)+' ppm.']);
  if(d.co2!=null&&d.co2>=3000)a.push([d.co2>=5000?'bad':'warn','CO₂',F(d.co2,0)+' ppm.']);

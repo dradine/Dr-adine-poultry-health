@@ -30,12 +30,9 @@
 .pi-weight-summary b{color:#244b41;font-size:10px}
 .pi-weight-axis{position:relative;padding:28px 8px 8px}
 .pi-weight-track{position:relative;height:var(--pi-weight-height,92px);min-height:92px;border-radius:14px;border:1px solid #dfe8e3;overflow:hidden;background:#f8faf9}
-.pi-weight-zone{position:absolute;top:0;bottom:0}
-.pi-weight-zone.zone-out-low{left:0;width:14.285%;background:#fff0ee}
-.pi-weight-zone.zone-mid-low{left:14.285%;width:14.285%;background:#fff6e5}
-.pi-weight-zone.zone-safe{left:28.57%;width:42.86%;background:#eaf6ef}
-.pi-weight-zone.zone-mid-high{left:71.43%;width:14.285%;background:#fff6e5}
-.pi-weight-zone.zone-out-high{left:85.715%;width:14.285%;background:#fff0ee}
+.pi-weight-zone{display:none}
+.pi-weight-boundary{position:absolute;top:0;bottom:0;width:1px;border-left:1px dashed #cfd9d4;z-index:2;pointer-events:none}
+.pi-weight-boundary.b15l{left:14.285%}.pi-weight-boundary.b10l{left:28.57%}.pi-weight-boundary.b10h{left:71.43%}.pi-weight-boundary.b15h{left:85.715%}
 .pi-weight-target{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#315c50;z-index:2}
 .pi-weight-tick{position:absolute;top:5px;transform:translateX(-50%);font-size:8px;color:#71807a;white-space:nowrap}
 .tick-low{left:0}.tick-15l{left:14.285%}.tick-10l{left:28.57%}.tick-target{left:50%;font-weight:900;color:#315c50}.tick-10h{left:71.43%}.tick-15h{left:85.715%}.tick-high{left:100%}

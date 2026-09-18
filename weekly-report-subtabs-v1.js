@@ -26,7 +26,7 @@
     // The renderer is presentation-only and may already exist from an earlier
     // script load. Always reload it here so the daily score fixes are actually
     // executed; weekly report remains untouched.
-    await asset('broiler-daily-first7-report-pro-v2.js?v=20260918.21');
+    await asset('broiler-daily-first7-report-pro-v2.js?v=20260918.22');
   }
 
   function ensureShell(){

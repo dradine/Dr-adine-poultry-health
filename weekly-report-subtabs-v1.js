@@ -20,13 +20,13 @@
 
   async function loadDaily(){
     if(!window.ADINE_BROILER_DAILY_STANDARDS_V1)
-      await asset('broiler-daily-standards-v1.js?v=20260916.3');
+      await asset('broiler-daily-standards-v1.js?v=20260918.5');
     if(!window.ADINE_BROILER_FIRST7_REPORT_ENGINE_V1)
       await asset('broiler-daily-first7-report-engine-v1.js?v=20260918.1');
     // The renderer is presentation-only and may already exist from an earlier
     // script load. Always reload it here so the daily score fixes are actually
     // executed; weekly report remains untouched.
-    await asset('broiler-daily-first7-report-pro-v2.js?v=20260918.22');
+    await asset('broiler-daily-first7-report-pro-v2.js?v=20260918.23');
   }
 
   function ensureShell(){

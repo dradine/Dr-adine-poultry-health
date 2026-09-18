@@ -109,6 +109,28 @@ function alerts(d,prev){
  if(d.cumMortPct!=null&&d.cumMortPct>=.75)a.push([d.cumMortPct>=1?'bad':'warn','تلفات تجمعی',P(d.cumMortPct,2)+' تا روز '+d.age+'.']);
  return a;
 }
+function dailyGainFor(d,prev,m){
+ var v=d&&d.gain!=null?N(d.gain):null;
+ if(v!=null)return v;
+ if(!d||d.bw==null)return null;
+ if(d.age===1&&m&&m.initW!=null)return N(d.bw)-N(m.initW);
+ if(d.age>1&&prev&&prev.bw!=null)return N(d.bw)-N(prev.bw);
+ return null;
+}
+function dailyGainReferenceFor(d,m){
+ if(!d||d.target==null||!m||!m.std||!m.std.dayWeightG)return null;
+ if(d.age===1&&m.std.chickWeightG!=null)return N(d.target)-N(m.std.chickWeightG);
+ if(d.age>1&&m.std.dayWeightG[d.age-1]!=null)return N(d.target)-N(m.std.dayWeightG[d.age-1]);
+ return null;
+}
+function signed(v,dec,unit){
+ v=N(v);if(v==null)return '—';return (v>=0?'+':'')+F(v,dec)+(unit||'');
+}
+function compareMetric(label,current,previous,unit,dec){
+ current=N(current);previous=N(previous);if(current==null||previous==null)return '<div class="row"><span>'+esc(label)+'</span><b>—</b></div>';
+ var ch=current-previous,pct=previous===0?null:ch/Math.abs(previous)*100;
+ return '<div class="row"><span>'+esc(label)+'</span><b>'+F(previous,dec)+' → '+F(current,dec)+' '+esc(unit||'')+'<small class="cmpdelta"> '+signed(ch,dec,unit)+(pct==null?'':' · '+signed(pct,1,'%'))+'</small></b></div>';
+}
 function render(){
  var root=$('root');if(!root||!model)return;var rows=model.days.filter(function(d){return d.age<=age}),d=rows[rows.length-1],prev=rows.length>1?rows[rows.length-2]:null;if(!d)return;
  var sc=score(model,d),al=alerts(d,prev),h='<div class="f7pro2">';
@@ -118,7 +140,7 @@ function render(){
  h+='<div class="p2card"><div class="p2title"><h3>وضعیت روز '+d.age+'</h3><span class="muted">استانداردهای موجود همان سیستم</span></div><div class="p2grid">';
  h+=metric('وزن',F(d.bw,1)+' گرم',d.target!=null?'مرجع: '+F(d.target,1)+' گرم':'مرجع ندارد',d.dev==null?'':Math.abs(d.dev)<=5?'good':Math.abs(d.dev)<=10?'warn':'bad');
  h+=metric('انحراف وزن',P(d.dev,1),'فاصله از مرجع همان روز',d.dev==null?'':Math.abs(d.dev)<=5?'good':Math.abs(d.dev)<=10?'warn':'bad');
- var dailyGain=d.gain!=null?d.gain:(d.age===1&&d.bw!=null&&model.initW!=null?d.bw-model.initW:(d.age>1&&d.bw!=null&&prev&&prev.bw!=null?d.bw-prev.bw:null));var prevTarget=(d.age>1&&model.std&&model.std.dayWeightG)?model.std.dayWeightG[d.age-1]:null;var gainRef=d.target!=null?(d.age===1&&model.std&&model.std.chickWeightG!=null?d.target-model.std.chickWeightG:(prevTarget!=null?d.target-prevTarget:null)):null;var gainRefText=gainRef!=null?'مرجع مشتق‌شده از وزن مرجع روزانه: '+(gainRef>=0?'+':'')+F(gainRef,1)+' گرم':'مرجع افزایش وزن روزانه موجود نیست';var gainClass='';if(dailyGain!=null&&gainRef!=null){var gainRatio=dailyGain/gainRef;if(gainRef<=0){gainClass=dailyGain>=gainRef?'good':'bad'}else if(gainRatio>=1){gainClass='good'}else if(gainRatio>=0.85){gainClass='warn'}else if(gainRatio>=0.70){gainClass='caution'}else{gainClass='bad'}}h+=metric('افزایش وزن',dailyGain==null?'—':(dailyGain>=0?'+':'')+F(dailyGain,1)+' گرم',dailyGain==null?gainRefText:(gainRefText+(d.age===1?' · مبنا: وزن اولیه جوجه':' · نسبت به روز قبل')),gainClass);
+ var dailyGain=dailyGainFor(d,prev,model);var gainRef=dailyGainReferenceFor(d,model);var gainRefText=gainRef!=null?'مرجع مشتق‌شده از وزن مرجع روزانه: '+(gainRef>=0?'+':'')+F(gainRef,1)+' گرم':'مرجع افزایش وزن روزانه موجود نیست';var gainClass='';if(dailyGain!=null&&gainRef!=null){var gainRatio=dailyGain/gainRef;if(gainRef<=0){gainClass=dailyGain>=gainRef?'good':'bad'}else if(gainRatio>=1){gainClass='good'}else if(gainRatio>=0.85){gainClass='warn'}else if(gainRatio>=0.70){gainClass='caution'}else{gainClass='bad'}}h+=metric('افزایش وزن',dailyGain==null?'—':(dailyGain>=0?'+':'')+F(dailyGain,1)+' گرم',dailyGain==null?gainRefText:(gainRefText+(d.age===1?' · مبنا: وزن اولیه جوجه':' · نسبت به روز قبل')),gainClass);
  h+=metric('دان / پرنده',d.feedPerBird==null?'—':F(d.feedPerBird,2)+' گرم','بر اساس جمعیت زنده ابتدای روز');
  h+=metric('آب / پرنده',d.waterPerBird==null?'—':F(d.waterPerBird,2)+' ml','بر اساس جمعیت زنده ابتدای روز');
  h+=metric('آب : دان',d.ratio==null?'—':F(d.ratio,2)+' L/kg','مرجع مدیریتی موجود'+(researchWaterFeedReference(d.age)!=null?' · مرجع پژوهشی روز '+d.age+': '+F(researchWaterFeedReference(d.age),2)+' L/kg':''));
@@ -135,10 +157,29 @@ function render(){
  h+=metric('نمونه وزن',d.bodySample==null?'—':F(d.bodySample,0)+' قطعه','','');
  if(d.age===1)h+=metric('Crop Fill 24h',d.crop24==null?'—':P(d.crop24,1),'هدف ثبت‌شده ۹۵٪',d.crop24==null?'':d.crop24>=95?'good':'warn');
  h+='</div></div>';
- if(prev){h+='<div class="p2card"><div class="p2title"><h3>مقایسه روز '+d.age+' با روز '+prev.age+'</h3><span class="muted">تغییر واقعی و درصدی</span></div><div class="compare"><div>';
- [['وزن',delta(prev.bw,d.bw),d.gain],['دان',delta(prev.feed,d.feed),null],['آب',delta(prev.water,d.water),null],['آب:دان',delta(prev.ratio,d.ratio),null]].forEach(function(x){h+='<div class="row"><span>'+x[0]+'</span><b>'+(x[2]!=null?(x[2]>=0?'+':'')+F(x[2],1)+' g · ':'')+(x[1]==null?'—':(x[1]>=0?'+':'')+F(x[1],1)+'٪')+'</b></div>'});
- h+='</div><div><div class="row"><span>فاصله از مرجع</span><b>'+(prev.dev!=null&&d.dev!=null?(d.dev-prev.dev>=0?'+':'')+F(d.dev-prev.dev,1)+' واحد٪':'—')+'</b></div><div class="row"><span>تلفات روز</span><b>'+F(d.mort,0)+'</b></div><div class="row"><span>تلفات تجمعی</span><b>'+P(d.cumMortPct,2)+'</b></div><div class="row"><span>زنده‌مانی</span><b>'+(prev.live!=null&&d.live!=null?F(d.live-prev.live,0):'—')+'</b></div></div></div></div>'}
- else h+='<div class="p2card"><h3>روز ۱ — خط پایه</h3><p class="note">روز اول مبنای مقایسه است. از روز دوم، تغییر نسبت به روز قبل و فاصله از مرجع همان سن همزمان بررسی می‌شوند.</p></div>';
+ if(prev){
+ var gainToday=dailyGainFor(d,prev,model),gainRefToday=dailyGainReferenceFor(d,model);
+ var gainAttain=(gainToday!=null&&gainRefToday!=null&&gainRefToday>0)?gainToday/gainRefToday*100:null;
+ var gainRefLabel=gainRefToday==null?'مرجع افزایش وزن روزانه در استاندارد موجود نیست':'مرجع افزایش وزن این روز: '+signed(gainRefToday,1,' گرم');
+ var gainStatus=gainAttain==null?'':gainAttain>=100?'good':gainAttain>=85?'warn':gainAttain>=70?'caution':'bad';
+ h+='<div class="p2card"><div class="p2title"><h3>تغییرات روز '+d.age+' نسبت به روز '+prev.age+'</h3><span class="muted">مقایسه واقعی · بدون قضاوت از روی درصد تغییر به‌تنهایی</span></div>';
+ h+='<div class="compare"><div>';
+ h+='<div class="compareFocus '+gainStatus+'"><small>افزایش وزن روزانه</small><strong>'+(gainToday==null?'—':signed(gainToday,1,' گرم'))+'</strong><span>'+(gainRefToday==null?'مرجع موجود نیست':signed(gainRefToday,1,' گرم')+' مرجع · '+F(gainAttain,0)+'٪ تحقق مرجع')+'</span></div>';
+ h+=compareMetric('وزن',d.bw,prev.bw,'گرم',1);
+ h+=compareMetric('دان / پرنده',d.feed,prev.feed,'گرم',2);
+ h+=compareMetric('آب / پرنده',d.water,prev.water,'ml',2);
+ h+=compareMetric('آب : دان',d.ratio,prev.ratio,'L/kg',2);
+ h+='</div><div>';
+ h+='<div class="row"><span>فاصله وزن از مرجع</span><b>'+(d.dev==null?'—':signed(d.dev,1,'٪')+(prev.dev==null?'':' · روز قبل '+signed(prev.dev,1,'٪')))+'</b></div>';
+ h+='<div class="row"><span>تغییر فاصله از مرجع</span><b>'+(d.dev!=null&&prev.dev!=null?signed(d.dev-prev.dev,1,' واحد درصد'):'—')+'</b></div>';
+ h+=compareMetric('تلفات روز',d.mort,prev.mort,'قطعه',0);
+ h+=compareMetric('تلفات تجمعی',d.cumMort,prev.cumMort,'قطعه',0);
+ h+=compareMetric('زنده‌مانی',d.live,prev.live,'قطعه',0);
+ h+='</div></div>';
+ h+='<div class="compareEnv"><div class="chartname">پارامترهای محیطی · فقط تغییر مشاهده‌شده</div>';
+ h+=compareMetric('دما',d.temp,prev.temp,'°C',1);h+=compareMetric('RH',d.rh,prev.rh,'٪',1);h+=compareMetric('دمای بستر',d.litterTemp,prev.litterTemp,'°C',1);h+=compareMetric('آمونیاک',d.ammonia,prev.ammonia,'ppm',1);h+=compareMetric('CO₂',d.co2,prev.co2,'ppm',0);
+ h+='</div><p class="note">تفسیر رشد بر اساس افزایش وزن واقعی در برابر مرجع همان روز انجام می‌شود. تغییرات دان، آب و آب:دان به‌صورت توصیفی نمایش داده می‌شوند و به‌تنهایی «خوب/بد» تلقی نمی‌شوند؛ چون این شاخص‌ها تحت‌تأثیر سن، دما، جیره، کیفیت آب و شرایط مدیریتی هستند. منابع پژوهشی نیز تغییرات آب/دان را وابسته به شرایط محیطی و تغذیه‌ای گزارش کرده‌اند. citeturn0search5turn0search9</p></div>';
+} else h+='<div class="p2card"><h3>روز ۱ — خط پایه</h3><p class="note">روز اول خط پایه است و مقایسه روزبه‌روز از روز دوم آغاز می‌شود. افزایش وزن روز اول در بخش وضعیت روز بر اساس وزن اولیه جوجه تفسیر می‌شود.</p></div>';
  h+='<div class="p2card"><div class="p2title"><h3>روندها تا روز '+d.age+'</h3><span class="muted">فقط روزهای ۱ تا '+d.age+'</span></div><div class="p2charts">';
  h+='<div class="p2chart">'+chart(rows,'bw','target','وزن واقعی و مرجع','g')+'</div>';
  h+='<div class="p2chart">'+waterFeedChart(rows)+'</div>';

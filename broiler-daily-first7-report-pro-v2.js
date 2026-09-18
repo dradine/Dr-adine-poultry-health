@@ -40,7 +40,7 @@ function scoreDetails(m,d){
  var ratioRef=common.waterFeedRatio||null;
  var airRef=common.airQuality||{};
  var ventRef=common.chickVentTemperatureC||{min:39.4,max:40.5};
- var tempRHRef=common.broodingTemperatureRH||null;
+ var tempDynamic=rhAdjustedTemperature(d.age,d.rh);
 
  add('weight','وزن نسبت به مرجع',20,d.dev==null?null:scoreBand(Math.abs(d.dev),5,10,15,'low'),
    d.dev==null?'مرجع موجود نیست':(d.dev>=0?'بالا ':'پایین ')+F(Math.abs(d.dev),1)+'٪ از مرجع');
@@ -274,7 +274,7 @@ function rhAdjustedTemperature(ageValue,rhValue){
  return {target:t0+(t1-t0)*(usedR-loR)/(hiR-loR||1),usedRH:usedR,observedRH:r,clampedRH:r<rhs[0]||r>rhs[rhs.length-1]};
 }
 function render(){
- var root=$('root');if(!root||!model)return;var rows=model.days.filter(function(d){return d.age<=age}),d=rows[rows.length-1],prev=rows.length>1?rows[rows.length-2]:null;if(!d)return;
+ var root=$('root');if(!root||!model)return;var rows=model.days.filter(function(d){return d.age<=age}),d=rows[rows.length-1],prev=rows.length>1?rows[rows.length-2]:null;if(!d)return;var tempDynamic=rhAdjustedTemperature(d.age,d.rh);
  var sc=score(model,d),al=alerts(d,prev),h='<div class="f7pro2">';
  h+='<div class="p2card"><div class="p2head"><div><div class="muted">گزارش مستقل پایش روزانه · هفت روز اول</div><h2>تحلیل روز '+d.age+'</h2><div class="muted">'+esc(model.strainKey||'سویه')+' · منبع: پایش روزانه گله</div></div><div class="muted">تا روز '+d.age+'</div></div><div class="p2days">';
  [1,2,3,4,5,6,7].forEach(function(x){var q=model.days.find(function(z){return z.age===x});h+='<button class="p2day '+(x===d.age?'active ':'')+(!q?'missing':'')+'" data-p2age="'+x+'"><strong>روز '+x+'</strong><small>'+(q?(q.bw==null?'بدون وزن':F(q.bw,0)+' g'):'بدون داده')+'</small></button>'});h+='</div></div>';

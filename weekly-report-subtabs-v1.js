@@ -63,11 +63,11 @@
   }
 
   function asset(src){
-    return new Promise(resolve=>{
+    return new Promise((resolve,reject)=>{
       const s=document.createElement('script');
       s.src=src;
-      s.onload=resolve;
-      s.onerror=resolve;
+      s.onload=()=>resolve();
+      s.onerror=()=>reject(new Error('بارگذاری فایل گزارش روزانه ناموفق بود: '+src));
       document.body.appendChild(s);
     });
   }
@@ -136,29 +136,52 @@
     }
   }
 
-  function bind(shell){
-    if(shell.dataset.bound==='1')return;
-    shell.dataset.bound='1';
+  async function runDaily(shell){
+    setMode('daily');
+    const root=$('root');
+    if(root){
+      root.setAttribute('data-report-view','first7-daily-requested');
+      root.innerHTML='';
+    }
+    try{
+      await loadDaily();
+      if(!window.ADINE_BROILER_FIRST7_REPORT_PRO_V2?.show)
+        throw new Error('رندرر گزارش روزانه هفت روز اول در صفحه موجود نیست.');
+      startDailyGuard();
+      await window.ADINE_BROILER_FIRST7_REPORT_PRO_V2.show();
+      queueDailyRepair();
+    }catch(err){
+      console.error('[ADINE FIRST7 DAILY]',err);
+      stopDailyGuard();
+      if(root){
+        root.setAttribute('data-report-view','first7-daily-error');
+        root.innerHTML='<section class="section"><div class="error">خطا در بارگذاری گزارش روزانه هفت روز اول: '+String(err?.message||err)+'</div></section>';
+      }
+    }
+  }
 
-    shell.addEventListener('click',async e=>{
-      const b=e.target.closest('[data-weekly-subtab]');
+  function bind(shell){
+    if(shell.dataset.bound==='capture-v4')return;
+    shell.dataset.bound='capture-v4';
+
+    // Capture at document level. This deliberately takes ownership of ONLY the
+    // two weekly subtabs before any other bubble/capture listener can route the
+    // click into the canonical weekly renderer.
+    document.addEventListener('click',async e=>{
+      const b=e.target?.closest?.('#weekly-report-subtabs-v1 [data-weekly-subtab]');
       if(!b)return;
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
 
       const mode=b.dataset.weeklySubtab;
       if(mode==='daily'){
-        setMode('daily');
-        await loadDaily();
-        startDailyGuard();
-        await window.ADINE_BROILER_FIRST7_REPORT_PRO_V2?.show?.();
-        queueDailyRepair();
-      }else{
+        await runDaily(shell);
+      }else if(mode==='weekly'){
         stopDailyGuard();
         setMode('weekly');
         rerenderWeekly();
       }
-    });
+    },true);
   }
 
   function bindTopTabs(shell){

@@ -59,3 +59,23 @@
 .pi-weight-track{overflow:visible}
 .pi-weight-point{z-index:20}
 .pi-weight-point span{z-index:30;pointer-events:none}
+
+/* V5.10 — unified nested weight capsules: ±15 contains ±10 */
+.pi-weight-zone.zone-15{
+  left:14.285%;width:71.43%;top:8px;bottom:8px;
+  border:1.5px solid rgba(199,141,67,.42);
+  border-radius:999px;
+  background:rgba(199,141,67,.035);
+  z-index:1;
+  box-shadow:inset 0 0 22px rgba(199,141,67,.025);
+}
+.pi-weight-zone.zone-10{
+  left:28.57%;width:42.86%;top:13px;bottom:13px;
+  border:1.5px solid rgba(75,146,122,.48);
+  border-radius:999px;
+  background:rgba(75,146,122,.045);
+  z-index:2;
+  box-shadow:inset 0 0 22px rgba(75,146,122,.035);
+}
+.pi-weight-zone.zone-15 b,.pi-weight-zone.zone-15 span,
+.pi-weight-zone.zone-10 b,.pi-weight-zone.zone-10 span{display:none}

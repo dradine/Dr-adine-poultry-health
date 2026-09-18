@@ -118,7 +118,7 @@ function dailyGainReferenceFor(d,m){
  return null;
 }
 function signed(v,dec,unit){
- v=N(v);if(v==null)return '—';return (v>=0?'+':'')+F(v,dec)+(unit||'');
+ v=N(v);if(v==null)return '—';return (v>=0?'مثبت ':'منفی ')+F(Math.abs(v),dec)+(unit||'');
 }
 function compareMetric(label,current,previous,unit,dec){
  current=N(current);previous=N(previous);if(current==null||previous==null)return '<div class="row"><span>'+esc(label)+'</span><b>—</b></div>';

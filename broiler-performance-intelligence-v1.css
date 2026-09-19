@@ -226,3 +226,6 @@
 .pi-chart-forecast{fill:none;stroke-width:2;stroke-dasharray:5 4;opacity:.7;vector-effect:non-scaling-stroke}
 .pi-smart-gap-chart .pi-chart-x-label{font-size:7.5px}
 @media (max-width:520px){.pi-smart-gap-chart{min-height:112px}.pi-chart-y-label{font-size:7px}.pi-chart-x-label{font-size:7px}}
+
+.pi-chart-reference-line{fill:none;stroke:#65736e;stroke-width:1.8;stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.85}
+.pi-chart-main-line{fill:none;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}

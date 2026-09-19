@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.0 — MULTIVARIATE SCIENTIFIC */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.1 — MULTIVARIATE SCIENTIFIC */
 (function(global){'use strict';
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const first=(r,ks)=>{for(const k of ks){const x=n(r?.[k]);if(x!==null)return x}return null};
@@ -37,7 +37,24 @@ function referenceMeta(r,m,strain){
 }
 function gap(a,t,m){a=n(a);t=n(t);if(a===null||t===null||t===0)return null;return lower.has(m)?(t-a)/Math.abs(t):(a-t)/Math.abs(t)}
 function state(a,t,m){const g=gap(a,t,m);if(g===null)return{status:'unavailable',current:n(a),target:n(t),gap:null,gapPercent:null,deviation:null,direction:lower.has(m)?'lower':'higher'};if(m==='epef'){const x=n(a);let status='critical';if(x>=505)status='excellent';else if(x>=450)status='good';else if(x>=430)status='on_target';else if(x>=400)status='watch';return{status,current:x,target:n(t),gap:g,gapPercent:g*100,deviation:(x-n(t))/Math.abs(n(t))*100,direction:'higher',thresholds:{excellent:505,good:450,on_target:430,watch:400}}}const p=g*100;return{status:p>7?'excellent':p>3?'good':p>=-3?'on_target':p>=-7?'watch':'critical',current:n(a),target:n(t),gap:g,gapPercent:p,deviation:(n(a)-n(t))/Math.abs(n(t))*100,direction:lower.has(m)?'lower':'higher'}}
-function trend(rows,m,strain){const usable=rows.map(r=>({r,g:gap(actual(r,m),target(r,m),m),reference:referenceMeta(r,m,strain)})).filter(x=>x.g!==null);if(usable.length<2)return{available:false,direction:'insufficient',movement:'insufficient',pointsUsed:usable.length,reference:usable.at(-1)?.reference||null};const z=usable.slice(-Math.min(5,usable.length)),a=z.at(-1).g*100,b=z.at(-2).g*100,d=a-b,da=Math.abs(a)-Math.abs(b);const performanceDirection=Math.abs(d)<.5?'stable':d>0?'improving':'worsening';let movement='stable';if(Math.abs(da)>=.5){if(a>=0&&b>=0)movement=d>0?'better_farther':'closer';else if(a<=0&&b<=0)movement=d>0?'closer':'worse_farther';else movement=a>0?'crossed_to_better':'crossed_to_worse';}return{available:true,pointsUsed:z.length,direction:performanceDirection,performanceDirection,movement,currentGapPercent:a,previousGapPercent:b,distanceDeltaPercent:da,performanceGapDeltaPercent:d,reference:z.at(-1).reference}}
+function trend(rows,m,strain){
+ const usable=rows.map(r=>({r,g:gap(actual(r,m),target(r,m),m),reference:referenceMeta(r,m,strain)})).filter(x=>x.g!==null);
+ if(usable.length<2)return{available:false,direction:'insufficient',movement:'insufficient',pointsUsed:usable.length,reference:usable.at(-1)?.reference||null};
+ const z=usable.slice(-Math.min(5,usable.length)), vals=z.map(x=>x.g*100);
+ const reg=robustRegression(vals);
+ const a=vals.at(-1),b=vals.at(-2),d=a-b,da=Math.abs(a)-Math.abs(b);
+ const noise=reg?.residualMad??0;
+ const slopeThreshold=Math.max(.5,noise);
+ const slope=reg?.slope??d;
+ const performanceDirection=Math.abs(slope)<slopeThreshold?'stable':slope>0?'improving':'worsening';
+ let movement='stable';
+ if(Math.abs(da)>=.5){
+   if(a>=0&&b>=0)movement=d>0?'better_farther':'closer';
+   else if(a<=0&&b<=0)movement=d>0?'closer':'worse_farther';
+   else movement=a>0?'crossed_to_better':'crossed_to_worse';
+ }
+ return{available:true,pointsUsed:z.length,direction:performanceDirection,performanceDirection,movement,currentGapPercent:a,previousGapPercent:b,distanceDeltaPercent:da,performanceGapDeltaPercent:d,slopePerEvaluation:slope,slopeThresholdPercent:slopeThreshold,residualMadPercent:noise,reference:z.at(-1).reference};
+}
 function weights(r){const c=[r?.weights,r?.sample_weights,r?.sampleWeights,r?.weight_samples,r?.raw?.weights,r?.raw?.sample_weights,r?.raw?.sampleWeights,r?.raw?.weight_samples,r?.production_metrics?.weights,r?.raw?.production_metrics?.weights];for(let v of c){if(typeof v==='string'){try{v=JSON.parse(v)}catch(_){v=null}}if(v&&typeof v==='object'&&!Array.isArray(v))v=v.weights||v.values||v.samples;if(Array.isArray(v)){const o=v.map(n).filter(x=>x!==null&&x>0);if(o.length)return o}}return[]}
 function band(r,w){const t=target(r,'weight');if(t===null||!w.length)return null;const c10=w.filter(x=>x>=t*.9&&x<=t*1.1).length,c15=w.filter(x=>x>=t*.85&&x<=t*1.15).length;return{referenceWeight:t,sampleCount:w.length,within10:c10,between10and15:Math.max(0,c15-c10),outside15:Math.max(0,w.length-c15),within10Percent:c10*100/w.length,between10and15Percent:Math.max(0,c15-c10)*100/w.length,outside15Percent:Math.max(0,w.length-c15)*100/w.length}}
 function distribution(w,t){if(!w.length)return null;const s=[...w].sort((a,b)=>a-b),mean=w.reduce((a,b)=>a+b,0)/w.length,sd=Math.sqrt(w.reduce((a,b)=>a+(b-mean)**2,0)/w.length),q=p=>{const i=(s.length-1)*p,b=Math.floor(i),f=i-b;return s[b]+(s[b+1]-s[b]||0)*f};return{mean,sd,cv:mean?sd/mean*100:null,min:s[0],max:s.at(-1),median:q(.5),p10:q(.1),p90:q(.9),centerGapPercent:t?(mean-t)/t*100:null}}

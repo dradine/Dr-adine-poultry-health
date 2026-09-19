@@ -60,101 +60,53 @@ function radarValue(s){const g=n(s?.gapPercent),status=s?.status;if(g===null)ret
 function metricName(k){return{weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15',epef:'EPEF',feed:'خوراک',water:'آب',wfr:'آب/خوراک'}[k]||k}
 function sparkline(model,key){
  const raw=model.series?.[key]||[],
-       a=raw.map((x,i)=>({...x,_i:i,actual:n(x.actual),target:n(x.target)})).filter(x=>x.actual!==null&&x.target!==null),
+       a=raw.map((x,i)=>({...x,_i:i,gap:n(x.gapPercent)})).filter(x=>x.gap!==null),
        state=model.states?.[key]||{},
        t=state.trend||{},
-       f=state.forecast||{},
-       lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(key);
+       tr=state.trajectory||{},
+       f=state.forecast||{};
  if(!a.length)return '<div class="pi-spark-empty">داده روند و مرجع سنی کافی نیست</div>';
-
- const w=360,h=184,px=34,pr=82,pt=18,pb=72;
+ const w=360,h=184,px=34,pr=82,pt=22,pb=72;
  const projected=f.available?n(f.projectedGapPercent):null;
- const values=[];
- a.forEach(p=>{values.push(p.actual,p.target)});
- if(projected!==null){
-   const last=a.at(-1), projectedActual=lowerIsBetter?last.target*(1-projected/100):last.target*(1+projected/100);
-   if(Number.isFinite(projectedActual))values.push(projectedActual);
- }
- let lo=Math.min(...values),hi=Math.max(...values);
- const span=Math.max(1,hi-lo),pad=Math.max(span*.08,Math.abs((hi+lo)/2)*.015||1);
+ const vals=a.map(p=>p.gap).concat(projected!==null?[projected]:[]);
+ let lo=Math.min(...vals),hi=Math.max(...vals);
+ const span=Math.max(2,hi-lo),pad=Math.max(span*.16,1.5);
  lo-=pad;hi+=pad;
- const den=Math.max(1,hi-lo);
- const x=i=>px+((i+1)/Math.max(1,a.length))*(w-px-pr);
- const y=v=>pt+(hi-v)/den*(h-pt-pb);
-
- const niceStep=(range)=>{
-   const raw=Math.max(range/6,1e-9),pow=Math.pow(10,Math.floor(Math.log10(raw))),q=raw/pow;
-   return (q<=1?1:q<=2?2:q<=5?5:10)*pow;
- };
+ const den=Math.max(1,hi-lo),x=i=>px+((i+1)/Math.max(1,a.length))*(w-px-pr),y=v=>pt+(hi-v)/den*(h-pt-pb);
+ const niceStep=range=>{const raw=Math.max(range/5,1e-9),pow=Math.pow(10,Math.floor(Math.log10(raw))),q=raw/pow;return(q<=1?1:q<=2?2:q<=5?5:10)*pow};
  const step=niceStep(hi-lo),axisMin=Math.floor(lo/step)*step,axisMax=Math.ceil(hi/step)*step;
- let axisVals=[];
- for(let v=axisMin;v<=axisMax+step*.25;v+=step)axisVals.push(v);
- if(axisVals.length>7){
-   const stride=Math.ceil((axisVals.length-1)/6);
-   axisVals=axisVals.filter((_,i)=>i===0||i===axisVals.length-1||i%stride===0);
- }
+ let axisVals=[];for(let v=axisMin;v<=axisMax+step*.25;v+=step)axisVals.push(v);
+ if(axisVals.length>7){const stride=Math.ceil((axisVals.length-1)/6);axisVals=axisVals.filter((_,i)=>i===0||i===axisVals.length-1||i%stride===0)}
  if(axisVals.length>7)axisVals=axisVals.slice(0,7);
-
- const directionColor=d=>d==='improving'?'#1f8a63':d==='worsening'?'#c3473e':d==='stable'?'#7b8782':'#9aa6a1';
- const pointColor=p=>{
-   const gap=lowerIsBetter?(p.target-p.actual)/Math.abs(p.target):(p.actual-p.target)/Math.abs(p.target);
-   return gap>0?'#1f8a63':gap<0?'#c3473e':'#7b8782';
- };
- const lineColor=directionColor(t.direction);
- const unit=key==='weight'||key==='adg'?' گرم':key==='fcr'||key==='cumulativeFcr'?'':'٪';
- const digits=key==='fcr'||key==='cumulativeFcr'?3:key==='mortality'||key==='cv'||key==='u10'||key==='u15'?1:0;
-
+ const directionColor=d=>d==='improving'?'#1f8a63':d==='worsening'?'#c3473e':'#7b8782';
+ const pointColor=g=>g>0?'#1f8a63':g<0?'#c3473e':'#7b8782';
  let grid='';
- axisVals.forEach(v=>{
-   const yy=y(v);
-   grid+='<line class="pi-chart-grid-line" x1="'+px+'" y1="'+yy.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+yy.toFixed(1)+'"></line>'+
-         '<text class="pi-chart-y-label" x="'+(px-9)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+fmt(v,digits)+unit+'</text>';
- });
-
- const xLabels=a.map((p,i)=>{
-   const label=p.age!==undefined&&p.age!==null?('روز '+fmt(p.age,0)):(p.week!==undefined&&p.week!==null?('هفته '+fmt(p.week,0)):(i+1));
-   return '<text class="pi-chart-x-label" x="'+x(i).toFixed(1)+'" y="'+(h-31)+'" text-anchor="middle">'+esc(label)+'</text>';
- }).join('');
-
- const actualPath=a.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(p.actual).toFixed(1)).join(' ');
- const targetPath=a.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(p.target).toFixed(1)).join(' ');
-
- const points=a.map((p,i)=>{
-   const c=pointColor(p),label=p.age!==undefined&&p.age!==null?'سن '+fmt(p.age,0)+' روز':(p.week!==undefined?'هفته '+fmt(p.week,0):'ارزیابی '+(i+1));
-   const d=lowerIsBetter?(p.target-p.actual)/Math.abs(p.target):(p.actual-p.target)/Math.abs(p.target);
-   const gapText=(d>0?'+':'')+fmt(d*100,1)+'٪';
-   return '<g class="pi-chart-point" tabindex="0"><circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.actual).toFixed(1)+'" r="5" fill="'+c+'" stroke="#fff" stroke-width="2"></circle><circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.actual).toFixed(1)+'" r="9" fill="transparent"><title>'+esc(label)+' — واقعی: '+fmt(p.actual,digits)+unit+'؛ مرجع: '+fmt(p.target,digits)+unit+'؛ فاصله عملکردی: '+gapText+'</title></circle></g>';
- }).join('');
-
- const last=a.at(-1);
- const currentGap=lowerIsBetter?(last.target-last.actual)/Math.abs(last.target):(last.actual-last.target)/Math.abs(last.target);
- const currentLabel=(currentGap>0?'+':'')+fmt(currentGap*100,1)+'٪';
- const forecast=projected!==null&&last?(()=>{
-   const projectedActual=lowerIsBetter?last.target*(1-projected/100):last.target*(1+projected/100);
-   if(!Number.isFinite(projectedActual))return '';
-   return '<line class="pi-chart-forecast" style="stroke:'+directionColor(f.direction)+'" x1="'+x(a.length-1).toFixed(1)+'" y1="'+y(last.actual).toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y(projectedActual).toFixed(1)+'"></line>';
- })() : '';
-
- return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V11.2" data-direction-mode="'+(lowerIsBetter?'lower-is-better':'higher-is-better')+'" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' و مقایسه با '+esc(last.reference?.label||state.official?.reference?.label||'استاندارد سنی')+'">'+
-   grid+
-   '<path class="pi-chart-reference-line" d="'+targetPath+'"></path>'+
-   '<path class="pi-chart-main-line" style="stroke:'+lineColor+'" d="'+actualPath+'"></path>'+
-   forecast+points+xLabels+
-   '<text class="pi-chart-zero-label" x="'+(w-pr)+'" y="11" text-anchor="end">فاصله از مرجع سنی: '+currentLabel+'</text>'+
-   '<text class="pi-chart-zero-label" x="'+px+'" y="'+(h-19)+'" text-anchor="start">— مرجع سنی</text>'+
-   '<text class="pi-chart-zero-label" x="'+(px+54)+'" y="'+(h-19)+'" text-anchor="start">● واقعی</text>'+
-   '</svg>';
+ axisVals.forEach(v=>{const yy=y(v);grid+='<line class="pi-chart-grid-line" x1="'+px+'" y1="'+yy.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+yy.toFixed(1)+'"></line><text class="pi-chart-y-label" x="'+(px-9)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+(v>0?'+':'')+fmt(v,1)+'٪</text>'});
+ const zeroY=y(0);
+ grid+='<line class="pi-chart-reference-line" x1="'+px+'" y1="'+zeroY.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+zeroY.toFixed(1)+'"></line>';
+ const xLabels=a.map((p,i)=>{const label=p.age!==undefined&&p.age!==null?('روز '+fmt(p.age,0)):(p.week!==undefined&&p.week!==null?('هفته '+fmt(p.week,0)):(i+1));return '<text class="pi-chart-x-label" x="'+x(i).toFixed(1)+'" y="'+(h-31)+'" text-anchor="middle">'+esc(label)+'</text>'}).join('');
+ const actualPath=a.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(p.gap).toFixed(1)).join(' ');
+ const points=a.map((p,i)=>{const c=pointColor(p.gap),label=p.age!==undefined&&p.age!==null?'سن '+fmt(p.age,0)+' روز':(p.week!==undefined?'هفته '+fmt(p.week,0):'ارزیابی '+(i+1));const gapText=(p.gap>0?'+':'')+fmt(p.gap,1)+'٪';return '<g class="pi-chart-point" tabindex="0"><circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.gap).toFixed(1)+'" r="5" fill="'+c+'" stroke="#fff" stroke-width="2"></circle><circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.gap).toFixed(1)+'" r="9" fill="transparent"><title>'+esc(label)+' — فاصله عملکردی: '+gapText+'؛ صفر = مرجع سنی همان ارزیابی</title></circle></g>'}).join('');
+ const last=a.at(-1),current=last?.gap??0,currentLabel=(current>0?'+':'')+fmt(current,1)+'٪';
+ const forecast=projected!==null&&last?'<line class="pi-chart-forecast" style="stroke:'+directionColor(f.direction)+'" x1="'+x(a.length-1).toFixed(1)+'" y1="'+y(last.gap).toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y(projected).toFixed(1)+'"></line>':'';
+ const relation=tr.relation==='converging'?'همگرایی':tr.relation==='diverging'?'دورشدن':tr.relation==='stable'?'ثبات مسیر':'—';
+ return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V11.3" data-direction-mode="normalized-performance-gap" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند نرمال‌شده '+esc(metricName(key))+' نسبت به استاندارد سنی">'+grid+'<path class="pi-chart-main-line" style="stroke:'+directionColor(t.direction)+'" d="'+actualPath+'"></path>'+forecast+points+xLabels+'<text class="pi-chart-zero-label" x="'+(w-pr)+'" y="12" text-anchor="end">فاصله فعلی: '+currentLabel+'</text><text class="pi-chart-zero-label" x="'+px+'" y="'+(h-19)+'" text-anchor="start">۰ = مرجع سنی</text><text class="pi-chart-zero-label" x="'+(px+82)+'" y="'+(h-19)+'" text-anchor="start">مثبت = بهتر</text><text class="pi-chart-zero-label" x="'+(px+165)+'" y="'+(h-19)+'" text-anchor="start">منفی = ضعیف‌تر</text><text class="pi-chart-zero-label" x="'+(w-pr)+'" y="'+(h-19)+'" text-anchor="end">'+esc(relation)+'</text></svg>';
 }
 function trajectoryLabel(x){
- return ({recovering:'بازیابی فاصله',deteriorating:'تضعیف مسیر',converging:'همگرایی با مرجع',diverging:'دورشدن از مرجع',stable:'پایدار',volatile:'پرنوسان',insufficient:'داده ناکافی'}[x]||'—');
+ return ({recovering:'بازیابی',deteriorating:'تضعیف',converging:'همگرایی',diverging:'دورشدن',stable:'پایدار',volatile:'پرنوسان',insufficient:'داده ناکافی'}[x]||'—');
 }
 function trendDashboard(m){
  const keys=['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15'];
- return '<div class="pi-trend-chart-grid">'+keys.map(k=>{
+ return '<div class="pi-smart-trend-legend"><span>۰ = استاندارد سنی همان ارزیابی</span><span>مثبت = بهتر از مرجع</span><span>منفی = ضعیف‌تر از مرجع</span><span>خط پیوسته = مسیر مشاهده‌شده</span><span>خط انتهایی = چشم‌انداز مشروط</span></div><div class="pi-trend-chart-grid">'+keys.map(k=>{
    const q=m.states?.[k]||{},t=q.trend||{},f=q.forecast||{},tr=q.trajectory||{},ser=m.series?.[k]||[],status=q.official?.status||'unavailable';
    const regime=trajectoryLabel(tr.regime);
    const confidence=tr.pointsUsed>=5?'بالا':tr.pointsUsed>=4?'متوسط':tr.pointsUsed>=3?'محدود':'کم';
-   return '<article class="pi-trend-chart-card pi-status-'+esc(status)+' '+trendClass(t.direction)+'"><div class="pi-chart-head"><b>'+esc(metricName(k))+'</b><span class="'+trendClass(t.direction)+'">'+trendIcon(t.direction)+' '+esc(t.direction==='improving'?'بهبود':t.direction==='worsening'?'افت':t.direction==='stable'?'پایدار':'داده ناکافی')+'</span></div>'+sparkline(m,k)+'<div class="pi-chart-foot"><span>'+fmt(ser.length,0)+' ارزیابی</span><span>رژیم: '+esc(regime)+'</span><span>شواهد: '+esc(confidence)+'</span></div><div class="pi-chart-reference"><b>چشم‌انداز مشروط:</b> '+esc(f?.available?(f.direction==='improving'?'فاصله در حال بهبود':f.direction==='worsening'?'فاصله در حال افت':'فاصله تقریباً ثابت'):'قابل محاسبه نیست')+' • <b>مبنای مقایسه:</b> '+esc(ser.at(-1)?.reference?.label||q?.official?.reference?.label||'استاندارد سنی معتبر')+'</div></article>';
+   const persistence=tr.persistenceLevel==='high'?'بالا':tr.persistenceLevel==='medium'?'متوسط':tr.persistenceLevel==='low'?'کم':'—';
+   const relation=tr.relation==='converging'?'همگرا':tr.relation==='diverging'?'واگرا':tr.relation==='stable'?'پایدار':'—';
+   const current=tr.currentGapPercent;
+   const gapText=current===null||current===undefined?'—':(current>0?'+':'')+fmt(current,1)+'٪';
+   const outlook=f?.available?(f.direction==='improving'?'بهبود مشروط':f.direction==='worsening'?'افت مشروط':'ثبات مشروط'):'قابل محاسبه نیست';
+   return '<article class="pi-trend-chart-card pi-status-'+esc(status)+' '+trendClass(t.direction)+'"><div class="pi-chart-head"><b>'+esc(metricName(k))+'</b><span class="'+trendClass(t.direction)+'">'+trendIcon(t.direction)+' '+esc(t.direction==='improving'?'بهبود':t.direction==='worsening'?'افت':t.direction==='stable'?'پایدار':'داده ناکافی')+'</span></div>'+sparkline(m,k)+'<div class="pi-chart-foot"><span>'+fmt(ser.length,0)+' ارزیابی</span><span>رژیم: '+esc(regime)+'</span><span>همگرایی: '+esc(relation)+'</span><span>تداوم: '+esc(persistence)+'</span><span>شواهد: '+esc(confidence)+'</span></div><div class="pi-chart-reference"><b>فاصله فعلی:</b> '+esc(gapText)+' • <b>چشم‌انداز:</b> '+esc(outlook)+' • <b>عدم‌قطعیت:</b> '+esc(f?.available?'±'+fmt(f.uncertaintyPercent,1)+' واحد درصد':'—')+' • <b>مرجع:</b> '+esc(ser.at(-1)?.reference?.label||q?.official?.reference?.label||'استاندارد سنی معتبر')+'</div></article>';
  }).join('')+'</div>';
 }
 function forecastText(f,kind){
@@ -165,10 +117,11 @@ function forecastText(f,kind){
 }
 function outlookCard(item,kind){
  if(!item)return '<div class="pi-outlook-empty">با داده فعلی، شواهد کافی برای تعیین این مورد وجود ندارد.</div>';
- const tr=item.trajectory||{},title=kind==='risk'?'ریسک محتمل در ارزیابی بعدی':'شاخص دارای ظرفیت بهبود';
- const regime=trajectoryLabel(tr.regime);
+ const tr=item.trajectory||{},title=kind==='risk'?'ریسک مسیر':'شاخص دارای ظرفیت بهبود';
+ const regime=trajectoryLabel(tr.regime),relation=tr.relation==='converging'?'همگرا':tr.relation==='diverging'?'واگرا':'پایدار';
  const reason=item.reason||'بر اساس مسیر مشاهده‌شده';
- return '<div class="pi-outlook-inner"><span>'+title+'</span><b>'+esc(item.label)+'</b><strong>'+esc(reason)+'</strong><small>رژیم روند: '+esc(regime)+' • مومنتوم: '+esc(tr.slopePerEvaluation>0?'مطلوب':tr.slopePerEvaluation<0?'نامطلوب':'خنثی')+' • شواهد: '+esc((tr.pointsUsed||0)+' ارزیابی اخیر')+'</small><p>'+esc(forecastText(item.forecast,kind))+'</p></div>';
+ const evidence=(tr.pointsUsed||0)+' ارزیابی • تداوم '+(tr.persistenceLevel==='high'?'بالا':tr.persistenceLevel==='medium'?'متوسط':'محدود')+' • نوسان '+(tr.stability==='stable'?'پایدار':tr.stability==='moderate'?'متوسط':'بالا');
+ return '<div class="pi-outlook-inner"><span>'+title+'</span><b>'+esc(item.label)+'</b><strong>'+esc(reason)+'</strong><small>رژیم: '+esc(regime)+' • رابطه با مرجع: '+esc(relation)+' • '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,kind))+'</p></div>';
 }
 function evidenceCard(x){
  return '<article class="pi-smart-insight '+esc(x.severity||'watch')+' pi-severity-'+esc(x.severity||'positive')+'"><div class="pi-insight-top"><span class="pi-badge">'+(x.severity==='high'?'مهم':x.severity==='watch'?'پایش':'مثبت')+'</span><b>'+esc(x.title)+'</b></div><p>'+esc(x.text)+'</p><small>شواهد: '+esc((x.evidence||[]).join(' • '))+'</small></article>';
@@ -208,5 +161,5 @@ section('تحلیل چندشاخصی','جمع‌بندی چندمحوری عمل
  })(),'adaptive')+section('منبع، اعتماد و محدودیت','استاندارد و داده از منبع استاندارد مشترک','<div class="pi-note"><b>منبع استاندارد:</b> '+esc(m.targetAuthority)+'<br><b>رکوردها:</b> '+fmt(m.coverage?.records,0)+' • <b>اهداف مرجع علمی:</b> '+fmt(m.coverage?.canonicalTargets,0)+' • <b>نمونه وزن:</b> '+fmt(m.coverage?.weightSamples,0)+' قطعه<br><br>هوش عملکرد هیچ استاندارد رسمی یا مدیریتی مستقلی تعریف نمی‌کند. مقادیر مرجع از منبع استاندارد مشترک دریافت می‌شوند و در نبود داده کافی، سیستم نتیجه‌گیری را محدود می‌کند.</div>')+'</div>';bind()}
 function bind(){document.querySelectorAll('.pi-accordion-head').forEach(b=>b.addEventListener('click',()=>{const e=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',String(!e));b.nextElementSibling.hidden=e;b.querySelector('i').textContent=e?'⌄':'⌃'}));document.querySelectorAll('[data-band]').forEach(b=>b.addEventListener('click',()=>{const x=global.__adinePerformanceIntelligenceModel.weightBand;if(!x)return;const k=b.dataset.band,n=k==='10'?['داخل ±۱۰٪',x.within10,x.within10Percent]:k==='mid'?['بین ±۱۰ تا ±۱۵٪',x.between10and15,x.between10and15Percent]:['خارج ±۱۵٪',x.outside15,x.outside15Percent],z=document.getElementById('piBandNote');if(z)z.textContent=n[0]+': '+fmt(n[1],0)+' قطعه • '+pct(n[2])+' از '+fmt(x.sampleCount,0)+' نمونه • مرجع: '+fmt(x.referenceWeight,0)+' گرم'}));
 document.querySelectorAll('[data-weight-point]').forEach(p=>p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();document.querySelectorAll('.pi-weight-point.selected').forEach(x=>x.classList.remove('selected'));p.classList.add('selected');const z=document.getElementById('piWeightSelected');const w=n(p.dataset.weight);if(z&&w!==null){const m=global.__adinePerformanceIntelligenceModel,b=m.weightBand,t=b?.referenceWeight,g=t?((w-t)/t*100):null;const pos=w>=t*0.9&&w<=t*1.1?'داخل ±۱۰٪':w>=t*0.85&&w<=t*1.15?'بین ±۱۰ تا ±۱۵٪':'خارج ±۱۵٪';z.innerHTML='<b>نمونه '+fmt((Number(p.dataset.weightIndex)||0)+1,0)+' از '+fmt(b.sampleCount,0)+' • '+fmt(w,0)+' گرم</b><span>فاصله از وزن مرجع: '+(g===null?'—':fmt(g,1)+'٪')+'</span><span>وضعیت محدوده: '+pos+'</span>'}}));}
-global.AdineBroilerPerformanceIntelligenceReport={version:'V11.2',render};
+global.AdineBroilerPerformanceIntelligenceReport={version:'V11.3',render};
 })(typeof window!=='undefined'?window:globalThis);

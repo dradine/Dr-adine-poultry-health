@@ -210,6 +210,8 @@ function trajectoryProfile(rows,m){
  else if(turningPoint==='recent_turning_point'&&turningDirection==='toward_worse')regime='deteriorating';
  else if(direction==='improving'&&current<0)regime='recovering';
  else if(direction==='worsening'&&current<0)regime='deteriorating';
+ else if(direction==='improving'&&current>=0)regime='converging';
+ else if(direction==='worsening'&&current>=0)regime='diverging';
  else if(relation==='converging')regime='converging';
  else if(relation==='diverging')regime='diverging';
 
@@ -241,7 +243,7 @@ function trajectoryProfile(rows,m){
        ?(pressure&&gapNarrowing?'در صورت تداوم مسیر فعلی، فاصله نامطلوب از مرجع می‌تواند کاهش یابد.':favorable?'در صورت تداوم مسیر، موقعیت مطلوب می‌تواند حفظ شود.':'در صورت تداوم مسیر، شاخص به سمت وضعیت مطلوب‌تر حرکت می‌کند.')
        :'در صورت تداوم الگوی فعلی، تغییر بزرگ و پایدار در جهت شاخص از شواهد فعلی قابل استنباط نیست.'
  };
- return{available:true,regime,direction,performanceDirection:direction,relation,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
+ return{available:true,regime,direction,performanceDirection:direction,relation,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),slopeThresholdPercent:Number(stepTol.toFixed(3)),residualMadPercent:Number(noise.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
 }
 function buildForecastSummary(rows,s){
  const labels={weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15'};

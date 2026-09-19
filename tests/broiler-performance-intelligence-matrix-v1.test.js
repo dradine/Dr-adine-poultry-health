@@ -73,6 +73,26 @@ assert.equal(recoveryModel.forecastSummary?.improve?.trajectory?.regime,'recover
 assert.ok(recoveryModel.states.weight.trajectory.gapSeries.length>=3);
 assert.ok(['high','medium','low'].includes(recoveryModel.states.weight.trajectory.persistenceLevel));
 assert.ok(['converging','diverging','stable'].includes(recoveryModel.states.weight.trajectory.relation));
+// Smart Trend V3.1 evidence calibration: 3 points limited, 4 medium, 5+ high.
+const ev3=R(35).slice(0,3), ev4=R(35).slice(0,4), ev5=R(35).slice(0,5);
+assert.equal(E.build({id:'ev3',strain:'Ross 308'},ev3).states.weight.trajectory.evidenceLevel,'limited');
+assert.equal(E.build({id:'ev4',strain:'Ross 308'},ev4).states.weight.trajectory.evidenceLevel,'medium');
+assert.equal(E.build({id:'ev5',strain:'Ross 308'},ev5).states.weight.trajectory.evidenceLevel,'high');
+
+// Three points must not produce high persistence or high volatility.
+const noisy3=R(35).slice(0,3);
+noisy3[0].weight=noisy3[0].canonicalTargets.weight*.90;
+noisy3[1].weight=noisy3[1].canonicalTargets.weight*1.06;
+noisy3[2].weight=noisy3[2].canonicalTargets.weight*.91;
+const noisy3Model=E.build({id:'noisy3',strain:'Ross 308'},noisy3);
+assert.notEqual(noisy3Model.states.weight.trajectory.persistenceLevel,'high');
+assert.notEqual(noisy3Model.states.weight.trajectory.stability,'high_volatility');
+
+// Lower-is-better semantics must remain positive when actual mortality/FCR is better than reference.
+assert.ok(semanticModel.states.fcr.trajectory.currentPosition==='better');
+assert.ok(semanticModel.states.mortality.trajectory.currentPosition==='better');
+assert.ok(E.build({id:'synth',strain:'Ross 308'},R(35)).trajectorySynthesis?.available);
+
 
 const deteriorating=R(35);
 const wg2=[-2,-3,-4,-5,-6,-7],fg2=[2,3,4,5,6,7];
@@ -80,7 +100,7 @@ deteriorating.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg2[i]/100);
 const riskModel=E.build({id:'risk-smart',strain:'Ross 308'},deteriorating);
 assert.ok(riskModel.forecastSummary?.risk);
 assert.ok(['weight','fcr'].includes(riskModel.forecastSummary.risk.key));
-assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3');
+assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.1');
 assert.ok(riskModel.states.weight.trajectory.currentGapPercent<0);
 assert.ok(Number.isFinite(riskModel.states.weight.trajectory.momentum));
 

@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.3 — MULTIVARIATE SCIENTIFIC */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.3 — MULTIVARIATE + SMART TREND V3.5 */
 (function(global){'use strict';
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const first=(r,ks)=>{for(const k of ks){const x=n(r?.[k]);if(x!==null)return x}return null};
@@ -67,7 +67,7 @@ function forecast(rows,m){
  if(!reg)return{available:false,reason:'حداقل ۳ ارزیابی معتبر لازم است'};
  const gapVals=vals.map(x=>x.gap*100),gapReg=robustRegression(gapVals),cur=gapVals.at(-1),next=gapReg?.nextGapPercent??cur,delta=next-cur;
  const slope=reg.slope??0,threshold=Math.max(lowerIsBetter?.001:.5,reg.residualMad??0),direction=Math.abs(slope)<threshold?'stable':slope>0?'improving':'worsening';
- return{available:true,pointsUsed:vals.length,slopePerEvaluation:slope,currentGapPercent:cur,projectedGapPercent:next,changePercent:delta,uncertaintyPercent:gapReg?.residualBand??null,direction,risk:direction==='worsening'?'watch':direction==='improving'?'improve':'stable',conditional:true,method:'robust-directional-trend + normalized-gap-forecast',lowerIsBetter};
+ return{available:true,pointsUsed:vals.length,slopePerEvaluation:slope,currentGapPercent:cur,projectedGapPercent:next,changePercent:delta,uncertaintyPercent:gapReg?.residualBand??null,direction,risk:direction==='worsening'?'watch':direction==='improving'?'improve':'stable',conditional:true,method:'raw-direction-aware + normalized-gap-forecast',lowerIsBetter};
 }
 function series(rows,m,strain){return rows.map((r,i)=>{const a=actual(r,m),t=target(r,m),g=gap(a,t,m);return{index:i,week:first(r,['week','week_number','production_week']),age:first(r,['age','age_days','ageDays']),actual:a,target:t,gapPercent:g===null?null:g*100,reference:referenceMeta(r,m,strain)}}).filter(x=>x.gapPercent!==null).slice(-8)}
 function adaptive(rows,m){const p=rows.map(r=>gap(actual(r,m),target(r,m),m)).filter(x=>x!==null).map(x=>x*100);if(p.length<4)return{available:false,reason:'برای خط پایه تطبیقی حداقل ۴ ارزیابی لازم است',pointsUsed:p.length,minimumEvaluations:4};const base=p.slice(0,-1),med=median(base),mad=median(base.map(x=>Math.abs(x-med)))||0,sigma=Math.max(.8,1.4826*mad),limit=Math.max(3,3*sigma),cur=p.at(-1),residual=cur-med;let ewma=base[0];const lambda=.3;for(let i=1;i<base.length;i++)ewma=lambda*base[i]+(1-lambda)*ewma;const ewmaNow=lambda*cur+(1-lambda)*ewma,ewmaAnomaly=Math.abs(ewmaNow-med)>2.5*sigma;let pos=0,neg=0;const k=.5*sigma;for(const v of p.slice(-Math.min(6,p.length))){const z=v-med;pos=Math.max(0,pos+z-k);neg=Math.min(0,neg+z+k)}const cusumLimit=Math.max(3*sigma,4),cusumAnomaly=Math.max(pos,Math.abs(neg))>cusumLimit;return{available:true,currentGapPercent:cur,baselineMedianPercent:med,mad,robustSigma:sigma,controlLimitPercent:limit,anomaly:Math.abs(residual)>limit,ewma,ewmaCurrent:ewmaNow,ewmaAnomaly,cusumPositive:pos,cusumNegative:neg,cusumLimit,cusumAnomaly,pointsUsed:base.length,minimumEvaluations:4,mode:p.length>=5?'stable-adaptive':'early-adaptive',method:'robust-baseline + EWMA + CUSUM'}}
@@ -177,25 +177,71 @@ function forecastMultivariate(s){
 }
 function trajectoryProfile(rows,m){
  const usable=rows.map(r=>({actual:actual(r,m),gap:gap(actual(r,m),target(r,m),m)})).filter(x=>x.actual!==null&&x.gap!==null);
- const vals=usable.slice(-5).map(x=>x.gap*100);
- if(vals.length<3)return{available:false,regime:'insufficient',direction:'insufficient',relation:'insufficient',persistence:0,persistenceLevel:'low',volatility:null,stability:'unknown',pointsUsed:vals.length,gapSeries:vals,evidenceLevel:vals.length>=3?'limited':'low'};
- const z=usable.slice(-5), lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(m), directional=z.map(x=>lowerIsBetter?-x.actual:x.actual), diffs=directional.slice(1).map((v,i)=>v-directional[i]);
- const reg=robustRegression(directional), slope=reg?.slope??(diffs.at(-1)||0), noise=reg?.residualMad??0;
- const stepTol=Math.max(lowerIsBetter?.001:.35,noise*.65), meaningful=diffs.filter(d=>Math.abs(d)>=stepTol), positive=meaningful.filter(d=>d>0).length,negative=meaningful.filter(d=>d<0).length;
- const persistence=meaningful.length?Math.max(positive,negative)/meaningful.length:.5,direction=positive>negative?'improving':negative>positive?'worsening':'stable';
+ const z=usable.slice(-5), vals=z.map(x=>x.gap*100);
+ if(vals.length<3)return{available:false,regime:'insufficient',direction:'insufficient',performanceDirection:'insufficient',relation:'insufficient',crossed:'not_crossed',currentPosition:'unknown',projectedPosition:'unknown',turningPoint:'none',turningDirection:'none',persistence:0,persistenceLevel:'low',volatility:null,stability:'unknown',pointsUsed:vals.length,gapSeries:vals,evidenceLevel:vals.length>=3?'limited':'low',conditionalOutlook:null,scenarios:[]};
+ const lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(m);
+ const directional=z.map(x=>lowerIsBetter?-x.actual:x.actual);
+ const diffs=directional.slice(1).map((v,i)=>v-directional[i]);
+ const reg=robustRegression(directional),gapReg=robustRegression(vals);
+ const slope=reg?.slope??(diffs.at(-1)||0),noise=reg?.residualMad??0;
+ const stepTol=Math.max(lowerIsBetter?.001:.35,noise*.65);
+ const meaningful=diffs.filter(d=>Math.abs(d)>=stepTol),positive=meaningful.filter(d=>d>0).length,negative=meaningful.filter(d=>d<0).length;
+ const persistence=meaningful.length?Math.max(positive,negative)/meaningful.length:.5;
+ const direction=positive>negative?'improving':negative>positive?'worsening':'stable';
  const reversals=diffs.slice(1).filter((d,i)=>Math.abs(d)>=stepTol&&Math.abs(diffs[i])>=stepTol&&Math.sign(d)!==Math.sign(diffs[i])).length;
- const volatility=median(diffs.map(Math.abs))??0,residualVolatility=noise,volatilityScore=volatility+residualVolatility*.8,highVolatility=z.length>=4&&(volatilityScore>=5||reversals>=2),moderateVolatility=volatilityScore>=3||reversals>=1;
- const current=vals.at(-1),previous=vals.at(-2),projected=reg?.nextGapPercent??current,absCurrent=Math.abs(current),absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
- const relation=Math.abs(absDelta)<=.6?'stable':absDelta<0?'converging':'diverging',crossed=current<0&&projected>=0?'crossed_to_better':current>0&&projected<=0?'crossed_to_worse':'not_crossed';
- const stabilityScore=Math.max(0,1-Math.min(1,volatilityScore/8)),persistenceLevel=z.length>=5&&persistence>=.8?'high':z.length>=4&&persistence>=.67?'medium':z.length>=3&&persistence>=.6?'limited':'low',stability=highVolatility?'high_volatility':moderateVolatility?'moderate':'stable';
- let regime='stable'; if(highVolatility)regime='volatile'; else if(crossed==='crossed_to_better')regime='recovering'; else if(crossed==='crossed_to_worse')regime='deteriorating'; else if(direction==='improving'&&current<0)regime='recovering'; else if(direction==='worsening'&&current<0)regime='deteriorating'; else if(relation==='converging')regime='converging'; else if(relation==='diverging')regime='diverging';
+ const volatility=median(diffs.map(Math.abs))??0,residualVolatility=noise,volatilityScore=volatility+residualVolatility*.8;
+ const highVolatility=z.length>=4&&(volatilityScore>=5||reversals>=2),moderateVolatility=volatilityScore>=3||reversals>=1;
+ const current=vals.at(-1),previous=vals.at(-2),projected=gapReg?.nextGapPercent??current;
+ const absCurrent=Math.abs(current),absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
+ const relation=Math.abs(absDelta)<=.6?'stable':absDelta<0?'converging':'diverging';
+ const crossed=current<0&&projected>=0?'crossed_to_better':current>0&&projected<=0?'crossed_to_worse':'not_crossed';
  const currentPosition=current>.6?'better':current<-.6?'weaker':'near_reference';
  const projectedPosition=projected>.6?'better':projected<-.6?'weaker':'near_reference';
  const turningPoint=diffs.length>=3&&Math.sign(diffs.at(-2))!==0&&Math.sign(diffs.at(-1))!==0&&Math.sign(diffs.at(-2))!==Math.sign(diffs.at(-1))?'recent_turning_point':'none';
  const turningDirection=turningPoint==='recent_turning_point'?(diffs.at(-1)>0?'toward_better':'toward_worse'):'none';
+ const stabilityScore=Math.max(0,1-Math.min(1,volatilityScore/8));
+ const persistenceLevel=z.length>=5&&persistence>=.8?'high':z.length>=4&&persistence>=.67?'medium':z.length>=3&&persistence>=.6?'limited':'low';
+ const stability=highVolatility?'high_volatility':moderateVolatility?'moderate':'stable';
  const forecastConfidence=z.length>=5&&stability==='stable'?'high':z.length>=4&&stability!=='high_volatility'?'medium':'limited';
  const outlookStrength=forecastConfidence==='high'&&persistenceLevel==='high'?'strong':forecastConfidence==='medium'?'moderate':'limited';
- return{available:true,regime,direction,performanceDirection:direction,relation,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:reg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals};
+ let regime='stable';
+ if(highVolatility)regime='volatile';
+ else if(turningPoint==='recent_turning_point'&&turningDirection==='toward_better')regime='recovering';
+ else if(turningPoint==='recent_turning_point'&&turningDirection==='toward_worse')regime='deteriorating';
+ else if(direction==='improving'&&current<0)regime='recovering';
+ else if(direction==='worsening'&&current<0)regime='deteriorating';
+ else if(relation==='converging')regime='converging';
+ else if(relation==='diverging')regime='diverging';
+
+ const pressure=current<-.6, favorable=current>.6, near=Math.abs(current)<=.6;
+ const gapNarrowing=absDelta<-.7, gapWidening=absDelta>.7;
+ const primaryScenario=direction==='worsening'
+   ?(pressure?'continued_pressure':favorable?'deterioration_watch':'negative_drift')
+   :direction==='improving'
+     ?(pressure&&gapNarrowing?'recovery_path':favorable?'positive_continuation':'improvement_watch')
+     :'stabilization';
+ const scenarios=[
+   {id:'continuation',label:'تداوم مسیر فعلی',eligible:direction!=='stable',basis:direction,conditional:true},
+   {id:'stabilization',label:'تثبیت نزدیک وضعیت فعلی',eligible:true,basis:'stable',conditional:true},
+   {id:'recovery',label:'چرخش و بازیابی',eligible:direction==='improving'&&pressure&&gapNarrowing||turningDirection==='toward_better',basis:'improving_or_turning',conditional:true},
+   {id:'deterioration',label:'تشدید افت',eligible:direction==='worsening'&&(!favorable||gapWidening)||turningDirection==='toward_worse',basis:'worsening_or_turning',conditional:true}
+ ];
+ const conditionalOutlook={
+   primaryScenario,
+   direction,
+   currentPosition,
+   projectedPosition,
+   referenceCrossing:crossed,
+   confidence:forecastConfidence,
+   strength:outlookStrength,
+   evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',
+   statement:direction==='worsening'
+     ?(pressure?'در صورت تداوم مسیر فعلی، فشار نامطلوب احتمالاً حفظ یا تشدید می‌شود.':favorable?'در صورت تداوم افت، مزیت فعلی نسبت به مرجع می‌تواند کاهش یابد.':'در صورت تداوم مسیر، شاخص در جهت نامطلوب حرکت خواهد کرد.')
+     :direction==='improving'
+       ?(pressure&&gapNarrowing?'در صورت تداوم مسیر فعلی، فاصله نامطلوب از مرجع می‌تواند کاهش یابد.':favorable?'در صورت تداوم مسیر، موقعیت مطلوب می‌تواند حفظ شود.':'در صورت تداوم مسیر، شاخص به سمت وضعیت مطلوب‌تر حرکت می‌کند.')
+       :'در صورت تداوم الگوی فعلی، تغییر بزرگ و پایدار در جهت شاخص از شواهد فعلی قابل استنباط نیست.'
+ };
+ return{available:true,regime,direction,performanceDirection:direction,relation,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
 }
 function buildForecastSummary(rows,s){
  const labels={weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15'};
@@ -205,21 +251,18 @@ function buildForecastSummary(rows,s){
    const f=s[key]?.forecast,t=s[key]?.trajectory,o=s[key]?.official;
    if(!f?.available||!t?.available||!o||o.status==='unavailable')return null;
    const current=n(t.currentGapPercent),projected=n(t.projectedGapPercent),unc=n(t.uncertaintyPercent);
-   const points=t.pointsUsed||0,persistence=t.persistence??0,volatility=t.volatility??99;
+   const points=t.pointsUsed||0,persistence=t.persistence??0;
    if(current===null||projected===null)return null;
-   const gapDelta=projected-current;
-   const distanceDelta=Math.abs(projected)-Math.abs(current);
-   const underPressure=current<-.6, aboveReference=current>.6, nearReference=Math.abs(current)<=.6;
+   const gapDelta=projected-current,distanceDelta=Math.abs(projected)-Math.abs(current);
+   const underPressure=current<-.6,aboveReference=current>.6,nearReference=Math.abs(current)<=.6;
    const gapNarrowing=distanceDelta<-.7,gapWidening=distanceDelta>.7;
    const actualImproving=t.direction==='improving',actualWorsening=t.direction==='worsening',stable=t.direction==='stable';
    const crossesNegative=current>=-.6&&projected<-.6;
    const crossesPositive=current<-.6&&projected>=-.6;
-   const highVol=t.stability==='high_volatility';
-   const moderateVol=t.stability==='moderate';
+   const highVol=t.stability==='high_volatility',moderateVol=t.stability==='moderate';
    const evidenceBase=points>=6?90:points===5?78:points===4?64:points===3?48:25;
    const persistenceScore=Math.round(Math.max(0,Math.min(1,persistence))*100);
-   const slopeMagnitude=Math.abs(Number(t.slopePerEvaluation)||0);
-   const slopeThreshold=Math.abs(Number(t.slopeThresholdPercent)||0);
+   const slopeMagnitude=Math.abs(Number(t.slopePerEvaluation)||0),slopeThreshold=Math.abs(Number(t.slopeThresholdPercent)||0);
    const slopeSignal=slopeThreshold>0?Math.min(1,slopeMagnitude/Math.max(slopeThreshold,0.001)):0;
    const slopeScore=Math.round(slopeSignal*100);
    const volatilityPenalty=highVol?22:moderateVol?10:0;
@@ -231,54 +274,49 @@ function buildForecastSummary(rows,s){
    const severityBase=Math.max(0,-current)*.45+Math.max(0,distanceDelta)*.25+(actualWorsening?12:0)+(crossesNegative?10:0);
    const recoveryBase=Math.max(0,-current)*.35+Math.max(0,-distanceDelta)*.30+(actualImproving?12:0)+(crossesPositive?8:0);
    let state='informational',signal='informational',reason='';
-   /*
-    * اینجا عمداً «اطلاعاتی» یک خروجی واقعی است، نه حالت خالی:
-    * سه ارزیابی می‌توانند مسیر را نشان دهند، اما شدت پیام باید تابع عمق شواهد باشد.
-    */
    if(actualWorsening){
      if(points>=5&&evidenceScore>=68&&(underPressure||gapWidening||crossesNegative)&&!highVol){
        state='confirmed_risk';signal='deterioration';
-       reason=underPressure&&gapWidening?'شاخص هم در ناحیه نامطلوب قرار دارد و هم مسیر آن فاصله از مرجع سنی را بیشتر می‌کند؛ این الگو در چند ارزیابی تداوم داشته است.':
-         underPressure?'شاخص پایین‌تر از مرجع سنی است و جهت واقعی آن در حال تضعیف است.':
-         gapWidening?'جهت واقعی شاخص نامطلوب است و فاصله عملکردی از مرجع نیز در حال افزایش است.':
-         crossesNegative?'مسیر مشروط شاخص در حال عبور به ناحیه نامطلوب زیر مرجع است.':
+       reason=underPressure&&gapWidening?'شاخص هم در ناحیه نامطلوب قرار دارد و هم فاصله آن از مرجع در حال افزایش است؛ تداوم جهت واقعی شاخص نیز این فشار را تأیید می‌کند.':
+         underPressure?'شاخص پایین‌تر از مرجع سنی قرار دارد و جهت ذاتی آن در حال بدترشدن است.':
+         gapWidening?'جهت ذاتی شاخص نامطلوب است و فاصله از مرجع نیز در حال افزایش است.':
+         crossesNegative?'مسیر شاخص در حال عبور از مرجع به سمت ناحیه نامطلوب است.':
          'تضعیف پایدار شاخص در چند ارزیابی مشاهده شده است.';
-     }else if(points>=3&&evidenceScore>=42&&(underPressure||gapWidening||crossesNegative)){
+     }else if(points>=3&&evidenceScore>=42&&(underPressure||gapWidening||crossesNegative||aboveReference)){
        state='early_warning';signal='deterioration';
-       reason=underPressure&&gapWidening?'هشدار زودهنگام: شاخص پایین‌تر از مرجع است و فاصله آن نیز در حال افزایش است.':
-         underPressure?'هشدار زودهنگام: شاخص پایین‌تر از مرجع است و جهت واقعی آن نامطلوب شده است.':
-         gapWidening?'هشدار زودهنگام: جهت واقعی شاخص نامطلوب است و فاصله از مرجع در حال افزایش است.':
-         crossesNegative?'هشدار زودهنگام: مسیر مشروط در حال نزدیک‌شدن به ناحیه نامطلوب زیر مرجع است.':
-         'هشدار زودهنگام بر اساس تضعیف مشاهده‌شده؛ ارزیابی بعدی برای تأیید اهمیت دارد.';
+       reason=underPressure&&gapWidening?'هشدار زودهنگام: شاخص پایین‌تر از مرجع است و فاصله نامطلوب نیز در حال افزایش است.':
+         underPressure?'هشدار زودهنگام: شاخص پایین‌تر از مرجع است و جهت ذاتی آن نامطلوب شده است.':
+         gapWidening?'هشدار زودهنگام: جهت ذاتی شاخص نامطلوب است و فاصله از مرجع در حال افزایش است.':
+         aboveReference?'هشدار زودهنگام: شاخص هنوز بالاتر از مرجع است، اما جهت ذاتی آن به سمت نامطلوب حرکت می‌کند.':
+         'هشدار زودهنگام بر اساس تضعیف مشاهده‌شده؛ ارزیابی بعدی برای تأیید اهمیت مسیر لازم است.';
      }else{
        state='informational_warning';signal='monitor';
-       reason=highVol?'تغییر نامطلوب دیده می‌شود اما نوسان بالا اجازه شدت‌دادن به هشدار را نمی‌دهد.':
-         aboveReference&&gapNarrowing?'شاخص در حال تضعیف است، اما هنوز بالاتر از مرجع قرار دارد و فاصله آن از مرجع نیز در حال کاهش است؛ فعلاً پایش مسیر مهم‌تر از اعلام ریسک است.':
-         'نشانه تضعیف وجود دارد، اما شواهد فعلی برای تبدیل آن به هشدار قوی کافی نیست.';
+       reason=highVol?'تغییر نامطلوب دیده می‌شود اما نوسان بالا شدت هشدار را محدود می‌کند.':'نشانه تضعیف وجود دارد، اما شواهد فعلی برای شدت‌بخشی به هشدار کافی نیست.';
      }
    }else if(actualImproving){
      if(points>=3&&evidenceScore>=42&&underPressure&&gapNarrowing&&!highVol){
        state='recovery_opportunity';signal='recovery';
-       reason='شاخص هنوز پایین‌تر از مرجع سنی است، اما مقدار واقعی آن در جهت مطلوب حرکت می‌کند و فاصله نامطلوب از مرجع در حال کاهش است؛ این یک فرصت بازیابی مشروط است، نه تضمین بهبود.';
+       reason='شاخص هنوز پایین‌تر از مرجع سنی است، اما مقدار واقعی آن در جهت مطلوب حرکت می‌کند و فاصله نامطلوب از مرجع در حال کاهش است؛ این یک مسیر بازیابی مشروط است، نه تضمین.';
      }else if(points>=3&&evidenceScore>=42){
        state='positive_momentum';signal='positive';
-       reason=aboveReference?'شاخص در جهت مطلوب حرکت می‌کند و همچنان بالاتر از مرجع قرار دارد؛ مسیر فعلی حمایتی است، اما این به‌معنای «بازیابی» نیست.':
-         nearReference?'شاخص در جهت مطلوب حرکت می‌کند و در حال نزدیک‌شدن یا حفظ موقعیت مناسب نسبت به مرجع است.':
-         'شاخص در جهت مطلوب حرکت می‌کند؛ برای تبدیل آن به ظرفیت بازیابی، کاهش پایدار فاصله نامطلوب نیز باید ادامه یابد.';
+       reason=aboveReference?'شاخص در جهت ذاتی مطلوب حرکت می‌کند و همچنان بالاتر از مرجع قرار دارد؛ این مومنتوم مثبت است، نه «بازیابی».':
+         nearReference?'شاخص در جهت ذاتی مطلوب حرکت می‌کند و موقعیت آن نزدیک مرجع است.':
+         'شاخص در جهت مطلوب حرکت می‌کند؛ برای بازیابی واقعی، کاهش پایدار فاصله نامطلوب نیز باید ادامه یابد.';
      }else{
        state='informational';signal='informational';
-       reason='جهت شاخص مطلوب است، اما عمق شواهد هنوز محدود است؛ مسیر فعلی به‌صورت مشروط مثبت تفسیر می‌شود.';
+       reason='جهت شاخص مطلوب است، اما عمق شواهد هنوز محدود است؛ مسیر فقط به‌صورت مشروط مثبت تفسیر می‌شود.';
      }
    }else{
      state='informational';signal='informational';
-     reason=stable?'شاخص در ارزیابی‌های اخیر مسیر تقریباً پایداری دارد؛ وضعیت فعلی و فاصله از مرجع باید در ارزیابی بعدی دوباره بررسی شود.':'الگوی حرکتی غالب به‌اندازه کافی مشخص نیست و فعلاً تفسیر اطلاعاتی مناسب‌تر است.';
+     reason=stable?'شاخص در ارزیابی‌های اخیر مسیر نسبتاً پایدار دارد؛ وضعیت فعلی و فاصله از مرجع باید در ارزیابی بعدی دوباره بررسی شود.':'الگوی حرکتی غالب به‌اندازه کافی مشخص نیست.';
    }
    const score=state==='confirmed_risk'?severityBase+evidenceScore*.35:state==='early_warning'?severityBase+evidenceScore*.25:state==='recovery_opportunity'?recoveryBase+evidenceScore*.25:state==='positive_momentum'?recoveryBase*.5+evidenceScore*.15:Math.abs(gapDelta);
    const semantic=current>.6?'بهتر از مرجع':current<-.6?'ضعیف‌تر از مرجع':'نزدیک به مرجع';
    const gapLabel=gapNarrowing?'کاهش فاصله از مرجع':gapWidening?'افزایش فاصله از مرجع':'فاصله نسبتاً پایدار';
    const directionLabel=actualImproving?'بهبود':actualWorsening?'تضعیف':'پایدار';
    const confidence=evidenceScore>=75?'قوی':evidenceScore>=55?'متوسط':evidenceScore>=40?'محدود':'کم';
-   return{key,label:labels[key],axis:axisOf[key],forecast:f,trajectory:t,currentMeaning:semantic,rawDirection:directionLabel,gapRelation:gapLabel,gapChangePercent:Number(gapDelta.toFixed(2)),distanceChangePercent:Number(distanceDelta.toFixed(2)),signal,state,reason,score,evidenceScore,confidence,corroboratingMetrics:axisKeys.filter(k=>s[k]?.trajectory?.direction===t.direction).map(k=>labels[k]),earlyWarningEligible:state==='early_warning'||state==='confirmed_risk'||state==='informational_warning',riskEligible:state==='confirmed_risk',recoveryEligible:state==='recovery_opportunity',capacityEligible:state==='recovery_opportunity',evidence:Math.min(1,evidenceScore/100),uncertaintyPercent:unc};
+   const scenario=t.conditionalOutlook||null;
+   return{key,label:labels[key],axis:axisOf[key],forecast:f,trajectory:t,currentMeaning:semantic,rawDirection:directionLabel,gapRelation:gapLabel,gapChangePercent:Number(gapDelta.toFixed(2)),distanceChangePercent:Number(distanceDelta.toFixed(2)),signal,state,reason,score,evidenceScore,confidence,corroboratingMetrics:axisKeys.filter(k=>s[k]?.trajectory?.direction===t.direction).map(k=>labels[k]),conditionalOutlook:scenario,scenarios:t.scenarios||[],earlyWarningEligible:state==='early_warning'||state==='confirmed_risk'||state==='informational_warning',riskEligible:state==='confirmed_risk',recoveryEligible:state==='recovery_opportunity',capacityEligible:state==='recovery_opportunity',evidence:Math.min(1,evidenceScore/100),uncertaintyPercent:unc};
  }).filter(Boolean);
  const risks=candidates.filter(x=>x.state==='confirmed_risk').sort((a,b)=>b.score-a.score);
  const warnings=candidates.filter(x=>x.state==='early_warning'||x.state==='informational_warning').sort((a,b)=>b.score-a.score);
@@ -286,15 +324,18 @@ function buildForecastSummary(rows,s){
  const informational=candidates.filter(x=>x.state==='informational').sort((a,b)=>Math.abs(b.currentMeaning==='ضعیف‌تر از مرجع'?1:0)-Math.abs(a.currentMeaning==='ضعیف‌تر از مرجع'?1:0));
  const risk=risks[0]||warnings[0]||null;
  const improve=improvements[0]||informational[0]||candidates[0]||null;
+ const scenarioCounts={continuation:0,stabilization:0,recovery:0,deterioration:0};
+ candidates.forEach(x=>(x.scenarios||[]).forEach(sc=>{if(sc.eligible&&scenarioCounts[sc.id]!==undefined)scenarioCounts[sc.id]++}));
  return{
-   version:'SMART-TREND-V3.4',
+   version:'SMART-TREND-V3.5',
    risk:risk?{...risk}:null,
    earlyWarning:warnings[0]?{...warnings[0]}:null,
    improve:improve?{...improve}:null,
    rankedRisks:risks.slice(0,5),rankedEarlyWarnings:warnings.slice(0,5),rankedImprovements:improvements.slice(0,5),
    rankedInformational:informational.slice(0,5),
-   method:'raw-direction + age-reference-distance + persistence + volatility + turning-point + evidence-tier + axis-corroboration + conditional-forecast',
-   note:'Smart Trend اکنون خروجی را در سطوح «ریسک تأییدشده، هشدار زودهنگام، ظرفیت بازیابی، مومنتوم مثبت و چشم‌انداز اطلاعاتی» طبقه‌بندی می‌کند؛ با سه ارزیابی نیز مسیر ارائه می‌شود اما شدت پیام تابع شواهد است. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
+   scenarioOverview:{counts:scenarioCounts,metricCount:candidates.length,dominantScenario:Object.entries(scenarioCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null},
+   method:'metric-direction-semantics + age-reference-position + raw-momentum + persistence + turning-point + volatility + conditional-scenarios + axis-corroboration + evidence-tier',
+   note:'Smart Trend V3.5 جهت ذاتی هر شاخص را مستقل تفسیر می‌کند: وزن/ADG/U10/U15/EPEF با افزایش بهتر؛ FCR/FCR تجمعی/تلفات/CV با کاهش بهتر. فاصله از مرجع و مسیر واقعی جداگانه محاسبه می‌شوند و چشم‌انداز فقط به‌صورت شرطی و متناسب با شواهد ارائه می‌شود. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
  };
 }
 function buildTrajectorySynthesis(s){

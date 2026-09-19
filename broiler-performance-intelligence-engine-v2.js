@@ -170,7 +170,7 @@ function forecastMultivariate(s){
 }
 function trajectoryProfile(rows,m){
  const vals=rows.map(r=>gap(actual(r,m),target(r,m),m)).filter(Number.isFinite).map(x=>x*100).slice(-5);
- if(vals.length<3)return{available:false,regime:'insufficient',direction:'insufficient',relation:'insufficient',persistence:0,persistenceLevel:'low',volatility:null,stability:'unknown',pointsUsed:vals.length,gapSeries:vals};
+ if(vals.length<3)return{available:false,regime:'insufficient',direction:'insufficient',relation:'insufficient',persistence:0,persistenceLevel:'low',volatility:null,stability:'unknown',pointsUsed:vals.length,gapSeries:vals,evidenceLevel:vals.length>=3?'limited':'low'};
  const diffs=vals.slice(1).map((v,i)=>v-vals[i]);
  const reg=robustRegression(vals);
  const slope=reg?.slope??(diffs.at(-1)||0);
@@ -181,28 +181,36 @@ function trajectoryProfile(rows,m){
  const negative=meaningful.filter(d=>d<0).length;
  const persistence=meaningful.length?Math.max(positive,negative)/meaningful.length:.5;
  const direction=positive>negative?'improving':negative>positive?'worsening':'stable';
+ const reversals=diffs.slice(1).filter((d,i)=>Math.abs(d)>=stepTol&&Math.abs(diffs[i])>=stepTol&&Math.sign(d)!==Math.sign(diffs[i])).length;
  const volatility=median(diffs.map(Math.abs))??0;
+ const residualVolatility=noise;
+ const volatilityScore=volatility+residualVolatility*.8;
+ const highVolatility=vals.length>=4&&(volatilityScore>=5||reversals>=2);
+ const moderateVolatility=volatilityScore>=3||reversals>=1;
  const current=vals.at(-1),previous=vals.at(-2),projected=reg?.nextGapPercent??current;
  const absCurrent=Math.abs(current),absProjected=Math.abs(projected);
  const absDelta=absProjected-absCurrent;
  const relation=Math.abs(absDelta)<=.6?'stable':absDelta<0?'converging':'diverging';
  const crossed=current<0&&projected>=0?'crossed_to_better':current>0&&projected<=0?'crossed_to_worse':'not_crossed';
- const stabilityScore=Math.max(0,1-Math.min(1,volatility/4));
- const persistenceLevel=persistence>=.75?'high':persistence>=.55?'medium':'low';
- const stability=volatility<=1.25?'stable':volatility<=3?'moderate':'high_volatility';
+ const stabilityScore=Math.max(0,1-Math.min(1,volatilityScore/8));
+ const persistenceLevel=vals.length>=5&&persistence>=.8?'high':vals.length>=4&&persistence>=.67?'medium':vals.length>=3&&persistence>=.6?'limited':'low';
+ const stability=highVolatility?'high_volatility':moderateVolatility?'moderate':'stable';
  let regime='stable';
- if(volatility>=4&&meaningful.length>=2)regime='volatile';
+ if(highVolatility)regime='volatile';
  else if(crossed==='crossed_to_better')regime='recovering';
  else if(crossed==='crossed_to_worse')regime='deteriorating';
  else if(direction==='improving'&&current<0)regime='recovering';
  else if(direction==='worsening'&&current<0)regime='deteriorating';
  else if(relation==='converging')regime='converging';
  else if(relation==='diverging')regime='diverging';
- const forecastConfidence=vals.length>=5&&stability!=='high_volatility'?'high':vals.length>=4?'medium':'limited';
+ const currentPosition=current>.6?'better':current<-.6?'weaker':'near_reference';
+ const forecastConfidence=vals.length>=5&&stability==='stable'?'high':vals.length>=4?'medium':'limited';
  return{
    available:true,regime,direction,performanceDirection:direction,relation,crossed,
+   currentPosition,
    persistence:Number(persistence.toFixed(2)),persistenceLevel,
-   volatility:Number(volatility.toFixed(2)),stability,stabilityScore:Number(stabilityScore.toFixed(2)),
+   volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,
+   stability,stabilityScore:Number(stabilityScore.toFixed(2)),
    slopePerEvaluation:Number(slope.toFixed(3)),
    momentum:Number((diffs.at(-1)??0).toFixed(3)),
    currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,
@@ -210,7 +218,8 @@ function trajectoryProfile(rows,m){
    projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),
    distanceDeltaPercent:Number(absDelta.toFixed(2)),
    pointsUsed:vals.length,uncertaintyPercent:reg?.residualBand??null,
-   forecastConfidence,gapSeries:vals
+   forecastConfidence,evidenceLevel:vals.length>=5?'high':vals.length>=4?'medium':'limited',
+   gapSeries:vals
  };
 }
 function buildForecastSummary(rows,s){
@@ -223,32 +232,49 @@ function buildForecastSummary(rows,s){
    const uncertaintyPenalty=Math.max(0,1-Math.min(1,unc/6));
    const worsening=projected<current-.7;
    const improving=projected>current+.7;
-   const underPressure=current<0;
-   const crossesNegative=current>=0&&projected<-.7;
-   const crossesPositive=current<0&&projected>=.7;
+   const underPressure=current<-.6;
+   const crossesNegative=current>=-.6&&projected<-.6;
+   const crossesPositive=current<-.6&&projected>=-.6;
    const earlyWarningEligible=points>=3&&worsening&&(underPressure||crossesNegative||persistence>=.67);
    const riskEligible=points>=4&&earlyWarningEligible&&t.persistenceLevel!=='low'&&t.stability!=='high_volatility';
    const earlyWarningScore=earlyWarningEligible?(Math.max(0,-projected)*.38+Math.max(0,current-projected)*.28+persistence*5*.18+uncertaintyPenalty*5*.16):0;
-   const riskScore=riskEligible?earlyWarningScore*(points>=5?1:0.78):0;
+   const riskScore=riskEligible?earlyWarningScore*(points>=5?1:.78):0;
    const headroom=Math.max(0,-current);
    const capacityEligible=points>=3&&improving&&headroom>.5&&persistence>=.55&&t.stability!=='high_volatility';
    const capacityScore=capacityEligible?(Math.min(headroom,20)*.45+Math.min(Math.max(0,projected-current),10)*.35+uncertaintyPenalty*10*.20):0;
-   return{key,label:labels[key],forecast:f,trajectory:t,earlyWarningEligible,riskEligible,earlyWarningScore,riskScore,capacityEligible,capacityScore,evidence:Math.min(1,points/5)};
+   const semantic=current>.6?'بهتر از مرجع':current<-.6?'ضعیف‌تر از مرجع':'نزدیک به مرجع';
+   return{key,label:labels[key],forecast:f,trajectory:t,currentMeaning:semantic,earlyWarningEligible,riskEligible,earlyWarningScore,riskScore,capacityEligible,capacityScore,evidence:Math.min(1,points/5)};
  }).filter(Boolean);
  const warnings=candidates.filter(x=>x.earlyWarningEligible).sort((a,b)=>b.earlyWarningScore-a.earlyWarningScore);
  const risks=candidates.filter(x=>x.riskEligible).sort((a,b)=>b.riskScore-a.riskScore);
  const improvements=candidates.filter(x=>x.capacityEligible).sort((a,b)=>b.capacityScore-a.capacityScore);
  const risk=risks[0]||null,earlyWarning=warnings[0]||null,improve=improvements[0]||null;
  return{
-   version:'SMART-TREND-V3',
-   risk:risk?{...risk,reason:risk.trajectory.relation==='diverging'?'فاصله از مرجع در حال افزایش است و شواهد تداوم کافی است':risk.trajectory.crossed==='crossed_to_worse'?'مسیر مشروط از مرجع به ناحیه نامطلوب عبور می‌کند':'تضعیف مسیر با شواهد روندی کافی ادامه دارد'}:null,
-   earlyWarning:earlyWarning?{...earlyWarning,reason:'هشدار زودهنگام مسیر؛ برای تصمیم‌گیری قطعی هنوز به ارزیابی بعدی نیاز است'}:null,
+   version:'SMART-TREND-V3.1',
+   risk:risk?{...risk,reason:risk.trajectory.relation==='diverging'?'فاصله عملکردی از مرجع سنی در حال افزایش است و تداوم مسیر کافی است':risk.trajectory.crossed==='crossed_to_worse'?'مسیر مشروط به سمت زیر مرجع عبور می‌کند':'تضعیف مسیر با شواهد روندی کافی ادامه دارد'}:null,
+   earlyWarning:earlyWarning?{...earlyWarning,reason:'هشدار زودهنگام مسیر؛ برای تأیید نیاز به ارزیابی بعدی و داده بیشتر است'}:null,
    improve:improve?{...improve,reason:improve.trajectory.regime==='recovering'?'فاصله نامطلوب در حال کاهش است و ظرفیت جبران دیده می‌شود':'فاصله نامطلوب با مومنتوم مطلوب در حال کاهش است'}:null,
    rankedRisks:risks.slice(0,5),rankedEarlyWarnings:warnings.slice(0,5),rankedImprovements:improvements.slice(0,5),
-   method:'normalized-gap + robust-momentum + persistence + convergence/divergence + volatility + conditional-forecast',
+   method:'normalized-gap + robust-momentum + persistence + convergence/divergence + calibrated-volatility + conditional-forecast',
    note:'Smart Trend مسیر زمانی هر شاخص را جداگانه تحلیل می‌کند؛ تحلیل چندشاخصی را تکرار نمی‌کند و چشم‌انداز آن شرطی است، نه پیش‌بینی قطعی.'
  };
 }
+function buildTrajectorySynthesis(s){
+ const keys=['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15'];
+ const usable=keys.map(k=>s[k]?.trajectory).filter(t=>t?.available&&t.pointsUsed>=3);
+ if(!usable.length)return{available:false,text:'برای جمع‌بندی مسیر، داده زمانی کافی وجود ندارد.',counts:{improving:0,worsening:0,stable:0}};
+ const counts={improving:usable.filter(t=>t.direction==='improving').length,worsening:usable.filter(t=>t.direction==='worsening').length,stable:usable.filter(t=>t.direction==='stable').length};
+ const dominant=Math.max(counts.improving,counts.worsening,counts.stable);
+ const direction=counts.improving===dominant?'improving':counts.worsening===dominant?'worsening':'stable';
+ const divergent=usable.filter(t=>t.relation==='diverging').length,converging=usable.filter(t=>t.relation==='converging').length;
+ const volatile=usable.filter(t=>t.stability==='high_volatility').length;
+ const text=direction==='improving'
+   ? 'مسیر شاخص‌های دارای داده کافی عمدتاً رو به بهبود است؛ با این حال هر شاخص باید جداگانه نسبت به مرجع سنی تفسیر شود.'
+   : direction==='worsening'
+   ? 'مسیر شاخص‌های دارای داده کافی عمدتاً رو به افت است؛ برای تأیید تداوم، ارزیابی بعدی و کنترل کیفیت ثبت‌ها اهمیت دارد.'
+   : 'مسیر شاخص‌های دارای داده کافی عمدتاً پایدار است و تغییر جهت غالبی مشاهده نمی‌شود.';
+ return{available:true,direction,counts,converging,diverging,volatile,pointsUsed:usable.length,text};
+}
 function patterns(s){const o=[],bad=x=>x?.status==='watch'||x?.status==='critical',good=x=>x?.status==='good'||x?.status==='excellent';if(bad(s.weight)&&bad(s.fcr))o.push({severity:'high',code:'growth_efficiency_down',title:'افت همزمان رشد و کارایی خوراک',text:'وزن و FCR هر دو نسبت به مرجع استاندارد مشترک نامطلوب‌اند؛ خوراک، آب، محیط و سلامت باید هم‌زمان بررسی شوند.'});if(good(s.weight)&&bad(s.fcr))o.push({severity:'watch',code:'growth_efficiency_tradeoff',title:'رشد مناسب با کارایی ضعیف‌تر',text:'وزن مناسب است اما FCR نامطلوب است؛ وزن به‌تنهایی عملکرد کامل را تأیید نمی‌کند.'});if(bad(s.weight)&&good(s.fcr))o.push({severity:'watch',code:'weight_low_fcr_ok',title:'وزن عقب‌تر با کارایی فعلاً مناسب',text:'فاصله وزن وجود دارد اما FCR فعلاً نامطلوب نیست؛ ADG، مصرف، زمان‌بندی رشد و یکنواختی بررسی شوند.'});if(bad(s.cv)&&bad(s.u10))o.push({severity:'high',code:'distribution_deterioration',title:'افت کیفیت توزیع وزن',text:'CV و یکنواختی ±۱۰٪ هم‌زمان نامطلوب‌اند؛ میانگین وزن به‌تنهایی کافی نیست.'});if(bad(s.mortality)&&bad(s.fcr))o.push({severity:'high',code:'survival_efficiency_down',title:'افت همزمان بقا و کارایی',text:'تلفات و FCR هر دو نامطلوب‌اند؛ روند زمانی و رخدادهای سلامت/مدیریت بررسی شوند.'});if(['worse_farther','crossed_to_worse'].includes(s.weight.trend?.movement)&&['worse_farther','crossed_to_worse'].includes(s.fcr.trend?.movement))o.push({severity:'high',code:'accelerating_gap',title:'دورشدن هم‌زمان از مرجع',text:'فاصله وزن و FCR از مرجع در ارزیابی‌های اخیر بیشتر شده است.'});if(s.weight.status==='watch'&&s.adg.trend?.direction==='improving')o.push({severity:'positive',code:'recovery_signal',title:'نشانه جبران رشد',text:'وزن هنوز پایین‌تر از مرجع است اما مسیر هدف‌محور افزایش وزن در حال بهبود است.'});return o}
-function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999)),last=rs.at(-1);if(!last)return{version:'BROILER-PI-V6.3',ready:false,readOnly:true,insights:[]};const strain=String(flock?.strain??flock?.flock_strain??flock?.genetics??flock?.genetic_line??flock?.breed??'').trim();const s={},seriesOut={};for(const m of Object.keys(defs)){const ref=referenceMeta(last,m,strain);s[m]={official:{...state(actual(last,m),target(last,m),m),reference:ref},trend:trend(rs,m,strain),forecast:forecast(rs,m),trajectory:trajectoryProfile(rs,m)};seriesOut[m]=series(rs,m,strain)}const w=weights(last),b=band(last,w),d=distribution(w,b?.referenceWeight??target(last,'weight')),ad={};for(const m of ['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15','epef'])ad[m]=adaptive(rs,m);const officialStates=Object.fromEntries(Object.keys(s).map(k=>[k,s[k].official])),p=patterns(officialStates),trendInsights=explainTrend(s),multivariate=multivariateAnalysis(rs,s),differential=differentialAnalysis(rs,s,multivariate),forecastSummary=buildForecastSummary(rs,s),multivariateForecast=forecastMultivariate(s),confidence=rs.length>=6?'high':rs.length>=4?'medium':rs.length>=3?'limited':'low',dataQuality={records:rs.length,minimumForTrend:3,minimumForAdaptive:4,minimumForForecast:3,weightSamples:w.length,completeCore:Object.keys(defs).filter(m=>actual(last,m)!==null&&target(last,m)!==null).length};return Object.freeze({version:'BROILER-PI-V6.3',ready:true,readOnly:true,source:'weekly_records → canonical broiler report model → intelligence',targetAuthority:'canonical-broiler-standards-engine',flockId:flock?.id||null,strain:flock?.strain||flock?.genetics||null,age:first(last,['age','age_days']),week:first(last,['week','week_number','production_week']),states:Object.freeze(s),series:Object.freeze(seriesOut),profile:Object.freeze({growth:s.weight.official,efficiency:s.fcr.official,survival:s.mortality.official,uniformity:s.u10.official}),weightBand:b,weightDistribution:d,sampleWeights:Object.freeze(w),adaptive:Object.freeze(ad),insights:Object.freeze(p),trendInsights:Object.freeze(trendInsights),multivariate:Object.freeze(multivariate.items||[]),multivariateAnalysis:Object.freeze(multivariate),differential:Object.freeze(differential),forecastSummary:Object.freeze(forecastSummary),multivariateForecast:Object.freeze(multivariateForecast),dataQuality:Object.freeze(dataQuality),coverage:Object.freeze({records:rs.length,weightSamples:w.length,canonicalTargets:Object.keys(defs).filter(m=>target(last,m)!==null).length}),inputFingerprint:inputFingerprint(flock,rs),analysisConfidence:multivariate.matrix?.analysisConfidence||'low',causalConfidence:multivariate.matrix?.causalConfidence||'low',scenarioMatrix:Object.freeze(multivariate.matrix||{}),confidence,status:p.some(x=>x.severity==='high')?'critical':p.some(x=>x.severity==='watch')?'watch':'good'})}
+function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999)),last=rs.at(-1);if(!last)return{version:'BROILER-PI-V6.3',ready:false,readOnly:true,insights:[]};const strain=String(flock?.strain??flock?.flock_strain??flock?.genetics??flock?.genetic_line??flock?.breed??'').trim();const s={},seriesOut={};for(const m of Object.keys(defs)){const ref=referenceMeta(last,m,strain);s[m]={official:{...state(actual(last,m),target(last,m),m),reference:ref},trend:trend(rs,m,strain),forecast:forecast(rs,m),trajectory:trajectoryProfile(rs,m)};seriesOut[m]=series(rs,m,strain)}const w=weights(last),b=band(last,w),d=distribution(w,b?.referenceWeight??target(last,'weight')),ad={};for(const m of ['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15','epef'])ad[m]=adaptive(rs,m);const officialStates=Object.fromEntries(Object.keys(s).map(k=>[k,s[k].official])),p=patterns(officialStates),trendInsights=explainTrend(s),multivariate=multivariateAnalysis(rs,s),differential=differentialAnalysis(rs,s,multivariate),forecastSummary=buildForecastSummary(rs,s),trajectorySynthesis=buildTrajectorySynthesis(s),multivariateForecast=forecastMultivariate(s),confidence=rs.length>=6?'high':rs.length>=4?'medium':rs.length>=3?'limited':'low',dataQuality={records:rs.length,minimumForTrend:3,minimumForAdaptive:4,minimumForForecast:3,weightSamples:w.length,completeCore:Object.keys(defs).filter(m=>actual(last,m)!==null&&target(last,m)!==null).length};return Object.freeze({version:'BROILER-PI-V6.3',ready:true,readOnly:true,source:'weekly_records → canonical broiler report model → intelligence',targetAuthority:'canonical-broiler-standards-engine',flockId:flock?.id||null,strain:flock?.strain||flock?.genetics||null,age:first(last,['age','age_days']),week:first(last,['week','week_number','production_week']),states:Object.freeze(s),series:Object.freeze(seriesOut),profile:Object.freeze({growth:s.weight.official,efficiency:s.fcr.official,survival:s.mortality.official,uniformity:s.u10.official}),weightBand:b,weightDistribution:d,sampleWeights:Object.freeze(w),adaptive:Object.freeze(ad),insights:Object.freeze(p),trendInsights:Object.freeze(trendInsights),multivariate:Object.freeze(multivariate.items||[]),multivariateAnalysis:Object.freeze(multivariate),differential:Object.freeze(differential),forecastSummary:Object.freeze(forecastSummary),trajectorySynthesis:Object.freeze(trajectorySynthesis),multivariateForecast:Object.freeze(multivariateForecast),dataQuality:Object.freeze(dataQuality),coverage:Object.freeze({records:rs.length,weightSamples:w.length,canonicalTargets:Object.keys(defs).filter(m=>target(last,m)!==null).length}),inputFingerprint:inputFingerprint(flock,rs),analysisConfidence:multivariate.matrix?.analysisConfidence||'low',causalConfidence:multivariate.matrix?.causalConfidence||'low',scenarioMatrix:Object.freeze(multivariate.matrix||{}),confidence,status:p.some(x=>x.severity==='high')?'critical':p.some(x=>x.severity==='watch')?'watch':'good'})}
 global.AdineBroilerPerformanceIntelligenceV2=Object.freeze({version:'BROILER-PI-V6.3',build});})(typeof window!=='undefined'?window:globalThis);

@@ -192,3 +192,12 @@
 .pi-outlook-risk:before{background:#b84b40;color:#fff!important;box-shadow:0 4px 10px rgba(184,75,64,.25)}
 .pi-outlook-improve:before{background:#2f8a61;color:#fff!important;box-shadow:0 4px 10px rgba(47,138,97,.24)}
 @media(max-width:600px){.pi-outlook-risk,.pi-outlook-improve{min-height:105px!important;padding:14px 15px 14px 43px!important}.pi-outlook-risk b,.pi-outlook-improve b{font-size:14px!important}}
+
+/* PI V10.3 — dedicated hooks to prevent cascade collisions */
+.pi-outlook-risk-v2{background:linear-gradient(135deg,#fff0ee,#ffd8d3)!important;border:2px solid #d47b72!important;border-inline-start:8px solid #b83f35!important;min-height:116px!important;padding:17px 18px 16px 50px!important;border-radius:17px!important;box-shadow:0 9px 28px rgba(184,63,53,.16)!important}
+.pi-outlook-improve-v2{background:linear-gradient(135deg,#e8f8ee,#c8ead7)!important;border:2px solid #67ae89!important;border-inline-start:8px solid #278557!important;min-height:116px!important;padding:17px 18px 16px 50px!important;border-radius:17px!important;box-shadow:0 9px 28px rgba(39,133,87,.15)!important}
+.pi-outlook-risk-v2 span,.pi-outlook-improve-v2 span{font-weight:950!important;font-size:9.5px!important}
+.pi-outlook-risk-v2 b,.pi-outlook-improve-v2 b{font-size:16px!important;font-weight:950!important;line-height:1.5!important}
+.pi-outlook-risk-v2:before,.pi-outlook-improve-v2:before{left:15px!important;top:16px!important;width:28px!important;height:28px!important;display:grid!important;place-items:center!important;border-radius:50%!important;color:#fff!important;font-size:17px!important;font-weight:950!important}
+.pi-outlook-risk-v2:before{background:#b83f35!important;box-shadow:0 4px 12px rgba(184,63,53,.3)!important}
+.pi-outlook-improve-v2:before{background:#278557!important;box-shadow:0 4px 12px rgba(39,133,87,.28)!important}

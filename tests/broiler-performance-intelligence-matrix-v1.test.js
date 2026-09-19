@@ -3,7 +3,7 @@
 const assert=require('node:assert/strict');
 require('../broiler-performance-intelligence-engine-v2.js');
 const E=global.AdineBroilerPerformanceIntelligenceV2;
-assert.equal(E.version,'BROILER-PI-V6.1');
+assert.equal(E.version,'BROILER-PI-V6.2');
 
 const STRAINS=['Ross 308','Ross 308 FF','Ross 708','Ross 308 AP','Cobb500','Cobb800','Arbor Acres Plus','Arbor Acres Plus S','Indian River','Indian River FF','Efficiency Plus','Hubbard EDGE','Arian'];
 const AGES=[7,14,21,28,35,42,49,56];
@@ -67,6 +67,27 @@ const recovery=R(35);
 const wg=[-10,-8,-6,-4,-3,-2], fg=[10,8,6,4,3,2];
 recovery.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg[i]/100);r.fcr=r.canonicalTargets.fcr*(1+fg[i]/100)});
 assert.ok(E.build({id:'recovery',strain:'Ross 308'},recovery).scenarioMatrix.patterns.includes('recovery_from_pressure'));
+const recoveryModel=E.build({id:'recovery-smart',strain:'Ross 308'},recovery);
+assert.equal(recoveryModel.forecastSummary?.improve?.label,'FCR');
+assert.equal(recoveryModel.forecastSummary?.improve?.trajectory?.regime,'recovering');
+
+const deteriorating=R(35);
+const wg2=[-2,-3,-4,-5,-6,-7],fg2=[2,3,4,5,6,7];
+deteriorating.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg2[i]/100);r.fcr=r.canonicalTargets.fcr*(1+fg2[i]/100)});
+const riskModel=E.build({id:'risk-smart',strain:'Ross 308'},deteriorating);
+assert.ok(riskModel.forecastSummary?.risk);
+assert.ok(['weight','fcr'].includes(riskModel.forecastSummary.risk.key));
+assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V2');
+
+const stableTrajectory=R(35);
+stableTrajectory.forEach(r=>{good(r,'weight');good(r,'fcr')});
+const stableTrajectoryModel=E.build({id:'stable-smart',strain:'Ross 308'},stableTrajectory);
+assert.equal(stableTrajectoryModel.forecastSummary?.risk,null);
+assert.equal(stableTrajectoryModel.forecastSummary?.improve,null);
+assert.equal(stableTrajectoryModel.forecastSummary?.method,'trajectory-regime + persistence + gap-headroom + conditional-forecast');
+
+assert.equal(riskModel.targetAuthority,'canonical-broiler-standards-engine');
+assert.ok(Object.values(riskModel.states).every(x=>x.official?.reference?.label || x.official?.status==='unavailable'));
 
 // Trend recovery must not be inferred from a merely good current state.
 // A stable, favorable flock is protective, not "recovering".

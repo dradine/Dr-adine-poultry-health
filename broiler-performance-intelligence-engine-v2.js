@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.3 — MULTIVARIATE + SMART TREND V3.5 */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.4 — MULTIVARIATE + SMART TREND V4.0 */
 (function(global){'use strict';
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const first=(r,ks)=>{for(const k of ks){const x=n(r?.[k]);if(x!==null)return x}return null};
@@ -60,14 +60,23 @@ function distribution(w,t){if(!w.length)return null;const s=[...w].sort((a,b)=>a
 function adaptive(rows,m){const p=rows.map(r=>gap(actual(r,m),target(r,m),m)).filter(x=>x!==null).map(x=>x*100);if(p.length<4)return{available:false,reason:'برای هشدار تطبیقی اولیه حداقل ۴ ارزیابی لازم است',pointsUsed:Math.max(0,p.length-1),minimumEvaluations:4};const h=p.slice(0,-1).sort((a,b)=>a-b),med=h[Math.floor(h.length/2)],dev=h.map(x=>Math.abs(x-med)).sort((a,b)=>a-b),mad=dev[Math.floor(dev.length/2)]||0,limit=Math.max(3,3*1.4826*mad),cur=p.at(-1);return{available:true,currentGapPercent:cur,baselineMedianPercent:med,mad,controlLimitPercent:limit,anomaly:Math.abs(cur-med)>limit,pointsUsed:h.length,minimumEvaluations:4,mode:p.length>=5?'stable-adaptive':'early-adaptive'}}
 function median(a){const x=a.filter(v=>Number.isFinite(v)).slice().sort((p,q)=>p-q);if(!x.length)return null;const i=(x.length-1)/2,b=Math.floor(i),f=i-b;return x[b]+(x[b+1]-x[b]||0)*f}
 function robustRegression(values){const y=values.filter(v=>Number.isFinite(v));if(y.length<3)return null;const slopes=[];for(let i=0;i<y.length;i++)for(let j=i+1;j<y.length;j++)slopes.push((y[j]-y[i])/(j-i));const slope=median(slopes)||0,intercepts=y.map((v,i)=>v-slope*i),intercept=median(intercepts),fitted=y.map((_,i)=>intercept+slope*i),res=y.map((v,i)=>v-fitted[i]),mad=median(res.map(Math.abs))||0;return{slope,intercept,points:y.length,nextGapPercent:intercept+slope*y.length,residualMad:mad,residualBand:Math.max(.8,1.4826*mad*1.96)}}
-function forecast(rows,m){
- const vals=rows.map(r=>({actual:actual(r,m),gap:gap(actual(r,m),target(r,m),m)})).filter(x=>x.actual!==null&&x.gap!==null).slice(-5);
- if(vals.length<3)return{available:false,reason:'حداقل ۳ ارزیابی معتبر لازم است'};
- const lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(m),directionalVals=vals.map(x=>lowerIsBetter?-x.actual:x.actual),reg=robustRegression(directionalVals);
- if(!reg)return{available:false,reason:'حداقل ۳ ارزیابی معتبر لازم است'};
- const gapVals=vals.map(x=>x.gap*100),gapReg=robustRegression(gapVals),cur=gapVals.at(-1),next=gapReg?.nextGapPercent??cur,delta=next-cur;
- const slope=reg.slope??0,threshold=Math.max(lowerIsBetter?.001:.5,reg.residualMad??0),direction=Math.abs(slope)<threshold?'stable':slope>0?'improving':'worsening';
- return{available:true,pointsUsed:vals.length,slopePerEvaluation:slope,currentGapPercent:cur,projectedGapPercent:next,changePercent:delta,uncertaintyPercent:gapReg?.residualBand??null,direction,risk:direction==='worsening'?'watch':direction==='improving'?'improve':'stable',conditional:true,method:'raw-direction-aware + normalized-gap-forecast',lowerIsBetter};
+function forecast(rows,m,strain){
+ const spec=SMART_TREND_V4_METRICS[m]||{higherBetter:!lower.has(m)};
+ const vals=rows.map(r=>({actual:actual(r,m),gap:gap(actual(r,m),target(r,m),m),age:first(r,['age','age_days','ageDays'])})).filter(x=>x.actual!==null&&x.gap!==null).slice(-5);
+ if(vals.length<3)return{available:false,reason:'حداقل ۳ ارزیابی معتبر لازم است',evidenceLevel:vals.length>=3?'limited':'low'};
+ const lowerIsBetter=!spec.higherBetter;
+ const gapVals=vals.map(x=>x.gap*100),rawDirectional=vals.map(x=>lowerIsBetter?-x.actual:x.actual);
+ const gapReg=robustRegression(gapVals),rawReg=robustRegression(rawDirectional);
+ if(!gapReg)return{available:false,reason:'روند فاصله از مرجع قابل برآورد نیست'};
+ const current=gapVals.at(-1),rawSlope=rawReg?.slope??0,pathSlope=gapReg.slope??0;
+ const pathNoise=gapReg.residualMad??0,pathTol=Math.max(.25,pathNoise*.75);
+ const pathDirection=Math.abs(pathSlope)<pathTol?'stable':pathSlope>0?'improving':'worsening';
+ const nextAge=nextEvaluationAge(vals.at(-1)?.age),nextReference=nextAge===null?null:canonicalNextTarget(strain,nextAge,m);
+ const projected=gapReg.nextGapPercent??current;
+ const delta=projected-current;
+ const currentPosition=current>pathTol?'better':current<-pathTol?'weaker':'near_reference';
+ const projectedPosition=projected>pathTol?'better':projected<-pathTol?'weaker':'near_reference';
+ return{available:true,pointsUsed:vals.length,currentGapPercent:current,projectedGapPercent:projected,changePercent:delta,pathSlopePerEvaluation:pathSlope,rawSlopePerEvaluation:rawSlope,direction:pathDirection,pathDirection,rawDirection:rawSlope>rawReg?.residualMad?'improving':rawSlope<-(rawReg?.residualMad||0)?'worsening':'stable',risk:pathDirection==='worsening'?'watch':pathDirection==='improving'?'improve':'stable',conditional:true,method:'reference-gap-first + intrinsic-direction + age-aware-next-evaluation',lowerIsBetter,nextEvaluationAge:nextAge,nextReferenceValue:nextReference,nextReferenceAvailable:nextReference!==null,currentPosition,projectedPosition,uncertaintyPercent:gapReg.residualBand??null,evidenceLevel:vals.length>=5?'high':vals.length>=4?'medium':'limited'};
 }
 function series(rows,m,strain){return rows.map((r,i)=>{const a=actual(r,m),t=target(r,m),g=gap(a,t,m);return{index:i,week:first(r,['week','week_number','production_week']),age:first(r,['age','age_days','ageDays']),actual:a,target:t,gapPercent:g===null?null:g*100,reference:referenceMeta(r,m,strain)}}).filter(x=>x.gapPercent!==null).slice(-8)}
 function adaptive(rows,m){const p=rows.map(r=>gap(actual(r,m),target(r,m),m)).filter(x=>x!==null).map(x=>x*100);if(p.length<4)return{available:false,reason:'برای خط پایه تطبیقی حداقل ۴ ارزیابی لازم است',pointsUsed:p.length,minimumEvaluations:4};const base=p.slice(0,-1),med=median(base),mad=median(base.map(x=>Math.abs(x-med)))||0,sigma=Math.max(.8,1.4826*mad),limit=Math.max(3,3*sigma),cur=p.at(-1),residual=cur-med;let ewma=base[0];const lambda=.3;for(let i=1;i<base.length;i++)ewma=lambda*base[i]+(1-lambda)*ewma;const ewmaNow=lambda*cur+(1-lambda)*ewma,ewmaAnomaly=Math.abs(ewmaNow-med)>2.5*sigma;let pos=0,neg=0;const k=.5*sigma;for(const v of p.slice(-Math.min(6,p.length))){const z=v-med;pos=Math.max(0,pos+z-k);neg=Math.min(0,neg+z+k)}const cusumLimit=Math.max(3*sigma,4),cusumAnomaly=Math.max(pos,Math.abs(neg))>cusumLimit;return{available:true,currentGapPercent:cur,baselineMedianPercent:med,mad,robustSigma:sigma,controlLimitPercent:limit,anomaly:Math.abs(residual)>limit,ewma,ewmaCurrent:ewmaNow,ewmaAnomaly,cusumPositive:pos,cusumNegative:neg,cusumLimit,cusumAnomaly,pointsUsed:base.length,minimumEvaluations:4,mode:p.length>=5?'stable-adaptive':'early-adaptive',method:'robust-baseline + EWMA + CUSUM'}}
@@ -91,7 +100,7 @@ function evidenceLevel(rows,keys){const usable=rows.filter(r=>keys.every(k=>actu
 function multivariateEvidence(rows,s,meta){ const metricCoverage=Object.fromEntries(Object.keys(meta).map(k=>{const u=rows.filter(r=>actual(r,k)!==null&&target(r,k)!==null).length;return[k,{usable:u,coverage:rows.length?u/rows.length:0}]})); const axisCoverage={}; for(const [axis,ms] of Object.entries({growth:['weight','adg'],efficiency:['fcr','cumulativeFcr'],survival:['mortality'],uniformity:['cv','u10','u15'],outcome:['epef']})){const present=ms.filter(k=>metricCoverage[k]?.usable>0).length;axisCoverage[axis]={present,total:ms.length,coverage:ms.reduce((a,k)=>a+(metricCoverage[k]?.coverage||0),0)/ms.length};} const volatility={}; for(const k of Object.keys(meta)){const v=rows.slice(-5).map(r=>gap(actual(r,k),target(r,k),k)).filter(Number.isFinite).map(x=>x*100);const d=v.slice(1).map((x,i)=>Math.abs(x-v[i]));const med=median(d)||0;volatility[k]={available:v.length>=3,score:med,level:med>=4?'high':med>=2?'moderate':'low'};} const turningPoints={}; for(const k of Object.keys(meta)){const v=rows.map(r=>gap(actual(r,k),target(r,k),k)).filter(Number.isFinite).map(x=>x*100).slice(-5);const d1=v.length>=3?v.at(-2)-v.at(-3):0,d2=v.length>=2?v.at(-1)-v.at(-2):0;turningPoints[k]={available:v.length>=4,detected:v.length>=4&&Math.sign(d1)!==0&&Math.sign(d2)!==0&&Math.sign(d1)!==Math.sign(d2),from:d1,to:d2};} return{metricCoverage,axisCoverage,volatility,turningPoints,recentRecords:Math.min(5,rows.length)};} function scenarioMatrix(rows,s,meta,evidence){
  const axes={growth:['weight','adg'],efficiency:['fcr','cumulativeFcr'],survival:['mortality'],uniformity:['cv','u10','u15'],outcome:['epef']};
  const stateProfile=Object.fromEntries(Object.keys(meta).map(k=>[k,s[k]?.official?.status||'unavailable']));
- const trendProfile=Object.fromEntries(Object.keys(meta).map(k=>[k,{direction:s[k]?.trend?.direction||'insufficient',movement:s[k]?.trend?.movement||'insufficient'}]));
+ const trendProfile=Object.fromEntries(Object.keys(meta).map(k=>[k,{direction:s[k]?.trajectory?.pathDirection||s[k]?.trend?.direction||'insufficient',rawDirection:s[k]?.trajectory?.rawDirection||s[k]?.trend?.direction||'insufficient',movement:s[k]?.trajectory?.semanticRelation||s[k]?.trend?.movement||'insufficient'}]));
  const available=Object.keys(meta).filter(k=>stateProfile[k]!=='unavailable');
  const completeAxes=Object.entries(evidence.axisCoverage).filter(([,x])=>x.coverage>=.67).map(([k])=>k);
  const insufficient=rows.length<3||completeAxes.length===0;
@@ -175,32 +184,88 @@ function forecastMultivariate(s){
  const coherentW=worsening.filter(x=>['weight','adg','fcr','mortality','cv'].includes(x.key)).length>=2;
  return{available:candidates.length>0,conditional:true,dominantRisk:worsening[0]||null,dominantImprovement:improving[0]||null,coherentWorsening:coherentW,confidence:candidates.length>=5?'medium':candidates.length>=3?'limited':'low',note:'چشم‌انداز مشروط بر تداوم الگوی مشاهده‌شده است و پیش‌بینی قطعی یا تشخیص علت نیست.'};
 }
-function trajectoryProfile(rows,m){
- const usable=rows.map(r=>({actual:actual(r,m),gap:gap(actual(r,m),target(r,m),m)})).filter(x=>x.actual!==null&&x.gap!==null);
+const SMART_TREND_V4_METRICS=Object.freeze({
+ weight:{axis:'growth',higherBetter:true,forecastClass:'growth'},
+ adg:{axis:'growth',higherBetter:true,forecastClass:'growth'},
+ fcr:{axis:'efficiency',higherBetter:false,forecastClass:'efficiency'},
+ cumulativeFcr:{axis:'efficiency',higherBetter:false,forecastClass:'efficiency'},
+ mortality:{axis:'survival',higherBetter:false,forecastClass:'survival'},
+ cv:{axis:'uniformity',higherBetter:false,forecastClass:'uniformity'},
+ u10:{axis:'uniformity',higherBetter:true,forecastClass:'uniformity'},
+ u15:{axis:'uniformity',higherBetter:true,forecastClass:'uniformity'},
+ epef:{axis:'outcome',higherBetter:true,forecastClass:'outcome'}
+});
+const SMART_TREND_V4_PHASES=Object.freeze([
+ {id:'early',min:1,max:14,label:'شروع گله'},
+ {id:'grower',min:15,max:28,label:'رشد میانی'},
+ {id:'finisher',min:29,max:42,label:'رشد پایانی'},
+ {id:'late',min:43,max:56,label:'پایان دوره'}
+]);
+function smartPhase(age){const a=n(age);return SMART_TREND_V4_PHASES.find(x=>a!==null&&a>=x.min&&a<=x.max)||null}
+function nextEvaluationAge(age){
+ const a=n(age);
+ if(a===null)return null;
+ const ages=Array.isArray(globalThis.BROILER_OFFICIAL_STANDARDS_V1?.weeklyAges)?globalThis.BROILER_OFFICIAL_STANDARDS_V1.weeklyAges:[7,14,21,28,35,42,49,56];
+ const higher=ages.find(x=>x>a);
+ return higher??null;
+}
+function canonicalNextTarget(strain,age,m){
+ const a=n(age);
+ if(a===null)return null;
+ try{
+   const fn=globalThis.broilerCanonicalMetricTarget;
+   if(typeof fn==='function'){
+     const x=fn(strain,a,m);
+     return n(x?.value??x);
+   }
+ }catch(_){}
+ return null;
+}
+function trajectoryProfile(rows,m,strain){
+ const spec=SMART_TREND_V4_METRICS[m]||{higherBetter:!lower.has(m),axis:'other',forecastClass:'generic'};
+ const usable=rows.map(r=>({r,actual:actual(r,m),gap:gap(actual(r,m),target(r,m),m),age:first(r,['age','age_days','ageDays'])})).filter(x=>x.actual!==null&&x.gap!==null);
  const z=usable.slice(-5), vals=z.map(x=>x.gap*100);
- if(vals.length<3)return{available:false,regime:'insufficient',direction:'insufficient',performanceDirection:'insufficient',relation:'insufficient',crossed:'not_crossed',currentPosition:'unknown',projectedPosition:'unknown',turningPoint:'none',turningDirection:'none',persistence:0,persistenceLevel:'low',volatility:null,stability:'unknown',pointsUsed:vals.length,gapSeries:vals,evidenceLevel:vals.length>=3?'limited':'low',conditionalOutlook:null,scenarios:[]};
- const lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(m);
+ if(vals.length<3)return{available:false,regime:'insufficient',direction:'insufficient',rawDirection:'insufficient',pathDirection:'insufficient',performanceDirection:'insufficient',relation:'insufficient',semanticRelation:'insufficient',crossed:'not_crossed',currentPosition:'unknown',projectedPosition:'unknown',turningPoint:'none',turningDirection:'none',persistence:0,persistenceLevel:'low',volatility:null,stability:'unknown',pointsUsed:vals.length,gapSeries:vals,evidenceLevel:vals.length>=3?'limited':'low',conditionalOutlook:null,scenarios:[]};
+ const lowerIsBetter=!spec.higherBetter;
  const directional=z.map(x=>lowerIsBetter?-x.actual:x.actual);
- const diffs=directional.slice(1).map((v,i)=>v-directional[i]);
+ const rawDiffs=directional.slice(1).map((v,i)=>v-directional[i]);
+ const gapDiffs=vals.slice(1).map((v,i)=>v-vals[i]);
  const reg=robustRegression(directional),gapReg=robustRegression(vals);
- const slope=reg?.slope??(diffs.at(-1)||0),noise=reg?.residualMad??0;
- const stepTol=Math.max(lowerIsBetter?.001:.35,noise*.65);
- const meaningful=diffs.filter(d=>Math.abs(d)>=stepTol),positive=meaningful.filter(d=>d>0).length,negative=meaningful.filter(d=>d<0).length;
- const persistence=meaningful.length?Math.max(positive,negative)/meaningful.length:.5;
- const direction=positive>negative?'improving':negative>positive?'worsening':'stable';
- const reversals=diffs.slice(1).filter((d,i)=>Math.abs(d)>=stepTol&&Math.abs(diffs[i])>=stepTol&&Math.sign(d)!==Math.sign(diffs[i])).length;
- const volatility=median(diffs.map(Math.abs))??0,residualVolatility=noise,volatilityScore=volatility+residualVolatility*.8;
+ const rawNoise=reg?.residualMad??0,gapNoise=gapReg?.residualMad??0;
+ const rawTol=Math.max(lowerIsBetter?.001:.35,rawNoise*.65);
+ const pathTol=Math.max(.25,gapNoise*.75);
+ const meaningfulGap=gapDiffs.filter(d=>Math.abs(d)>=pathTol);
+ const positiveGap=meaningfulGap.filter(d=>d>0).length,negativeGap=meaningfulGap.filter(d=>d<0).length;
+ const pathDirection=positiveGap>negativeGap?'improving':negativeGap>positiveGap?'worsening':'stable';
+ const meaningfulRaw=rawDiffs.filter(d=>Math.abs(d)>=rawTol);
+ const rawPositive=meaningfulRaw.filter(d=>d>0).length,rawNegative=meaningfulRaw.filter(d=>d<0).length;
+ const rawDirection=rawPositive>rawNegative?'improving':rawNegative>rawPositive?'worsening':'stable';
+ const persistence=meaningfulGap.length?Math.max(positiveGap,negativeGap)/meaningfulGap.length:.5;
+ const reversals=gapDiffs.slice(1).filter((d,i)=>Math.abs(d)>=pathTol&&Math.abs(gapDiffs[i])>=pathTol&&Math.sign(d)!==Math.sign(gapDiffs[i])).length;
+ const volatility=median(gapDiffs.map(Math.abs))??0,residualVolatility=gapNoise,volatilityScore=volatility+residualVolatility*.8;
  const highVolatility=z.length>=4&&(volatilityScore>=5||reversals>=2),moderateVolatility=volatilityScore>=3||reversals>=1;
- const current=vals.at(-1),previous=vals.at(-2),projected=gapReg?.nextGapPercent??current;
+ const current=vals.at(-1),previous=vals.at(-2);
+ const nextAge=nextEvaluationAge(z.at(-1)?.age);
+ const canonicalNext=nextAge===null?null:canonicalNextTarget(strain,nextAge,m);
+ const projected=canonicalNext!==null?((()=>{
+   const currentActual=z.at(-1).actual;
+   const rawProjected=reg?.nextGapPercent;
+   if(rawProjected!==undefined&&rawProjected!==null){
+     const nextTarget=canonicalNext;
+     const directionalProjection=lowerIsBetter?-rawProjected:rawProjected;
+     return directionalProjection;
+   }
+   return gapReg?.nextGapPercent??current;
+ })()):gapReg?.nextGapPercent??current;
  const absCurrent=Math.abs(current),absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
- const relation=Math.abs(absDelta)<=.6?'stable':absDelta<0?'converging':'diverging';
- const gapEffect=Math.abs(absDelta)<=.6?'stable':(current>.6?(absDelta>0?'favorable_widening':'favorable_narrowing'):(current<-.6?(absDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse')));
- const semanticRelation=current>.6?(absDelta>0?'better_farther':absDelta<0?'better_closer':'stable'):current<-.6?(absDelta>0?'worse_farther':absDelta<0?'worse_closer':'stable'):(projected>current?'toward_better':'toward_worse');
+ const relation=Math.abs(absDelta)<=pathTol?'stable':absDelta<0?'converging':'diverging';
+ const gapEffect=Math.abs(absDelta)<=pathTol?'stable':current>pathTol?(absDelta>0?'favorable_widening':'favorable_narrowing'):current<-pathTol?(absDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse');
+ const semanticRelation=current>pathTol?(absDelta>0?'better_farther':absDelta<0?'better_closer':'stable'):current<-pathTol?(absDelta>0?'worse_farther':absDelta<0?'worse_closer':'stable'):(projected>current?'toward_better':'toward_worse');
  const crossed=current<0&&projected>=0?'crossed_to_better':current>0&&projected<=0?'crossed_to_worse':'not_crossed';
- const currentPosition=current>.6?'better':current<-.6?'weaker':'near_reference';
- const projectedPosition=projected>.6?'better':projected<-.6?'weaker':'near_reference';
- const turningPoint=diffs.length>=3&&Math.sign(diffs.at(-2))!==0&&Math.sign(diffs.at(-1))!==0&&Math.sign(diffs.at(-2))!==Math.sign(diffs.at(-1))?'recent_turning_point':'none';
- const turningDirection=turningPoint==='recent_turning_point'?(diffs.at(-1)>0?'toward_better':'toward_worse'):'none';
+ const currentPosition=current>pathTol?'better':current<-pathTol?'weaker':'near_reference';
+ const projectedPosition=projected>pathTol?'better':projected<-pathTol?'weaker':'near_reference';
+ const turningPoint=gapDiffs.length>=3&&Math.sign(gapDiffs.at(-2))!==0&&Math.sign(gapDiffs.at(-1))!==0&&Math.sign(gapDiffs.at(-2))!==Math.sign(gapDiffs.at(-1))?'recent_turning_point':'none';
+ const turningDirection=turningPoint==='recent_turning_point'?(gapDiffs.at(-1)>0?'toward_better':'toward_worse'):'none';
  const stabilityScore=Math.max(0,1-Math.min(1,volatilityScore/8));
  const persistenceLevel=z.length>=5&&persistence>=.8?'high':z.length>=4&&persistence>=.67?'medium':z.length>=3&&persistence>=.6?'limited':'low';
  const stability=highVolatility?'high_volatility':moderateVolatility?'moderate':'stable';
@@ -210,44 +275,45 @@ function trajectoryProfile(rows,m){
  if(highVolatility)regime='volatile';
  else if(turningPoint==='recent_turning_point'&&turningDirection==='toward_better')regime='recovering';
  else if(turningPoint==='recent_turning_point'&&turningDirection==='toward_worse')regime='deteriorating';
- else if(direction==='improving'&&current<0)regime='recovering';
- else if(direction==='worsening'&&current<0)regime='deteriorating';
- else if(direction==='improving'&&current>.6)regime='strengthening';
- else if(direction==='worsening'&&current>.6)regime='weakening';
- else if(direction==='improving'&&Math.abs(current)<=.6)regime='approaching_better';
- else if(direction==='worsening'&&Math.abs(current)<=.6)regime='approaching_worse';
+ else if(pathDirection==='improving'&&current<0)regime='recovering';
+ else if(pathDirection==='worsening'&&current<0)regime='deteriorating';
+ else if(pathDirection==='improving'&&current>pathTol)regime='strengthening';
+ else if(pathDirection==='worsening'&&current>pathTol)regime='weakening';
+ else if(pathDirection==='improving'&&Math.abs(current)<=pathTol)regime='approaching_better';
+ else if(pathDirection==='worsening'&&Math.abs(current)<=pathTol)regime='approaching_worse';
  else if(relation==='converging')regime='converging';
  else if(relation==='diverging')regime='diverging';
-
- const pressure=current<-.6, favorable=current>.6, near=Math.abs(current)<=.6;
- const gapNarrowing=absDelta<-.7, gapWidening=absDelta>.7;
- const primaryScenario=direction==='worsening'
-   ?(pressure?'continued_pressure':favorable?'deterioration_watch':'negative_drift')
-   :direction==='improving'
-     ?(pressure&&gapNarrowing?'recovery_path':favorable?'positive_continuation':'improvement_watch')
-     :'stabilization';
+ const pressure=current<-pathTol,favorable=current>pathTol,near=Math.abs(current)<=pathTol;
+ const gapNarrowing=absDelta< -pathTol,gapWidening=absDelta>pathTol;
+ let primaryScenario='stabilization';
+ if(pathDirection==='worsening') primaryScenario=pressure?'continued_pressure':favorable?'deterioration_watch':'negative_drift';
+ else if(pathDirection==='improving') primaryScenario=pressure&&gapNarrowing?'recovery_path':favorable?'positive_continuation':'improvement_watch';
  const scenarios=[
-   {id:'continuation',label:'تداوم مسیر فعلی',eligible:direction!=='stable',basis:direction,conditional:true},
-   {id:'stabilization',label:'تثبیت نزدیک وضعیت فعلی',eligible:true,basis:'stable',conditional:true},
-   {id:'recovery',label:'چرخش و بازیابی',eligible:direction==='improving'&&pressure&&gapNarrowing||turningDirection==='toward_better',basis:'improving_or_turning',conditional:true},
-   {id:'deterioration',label:'تشدید افت',eligible:direction==='worsening'&&(!favorable||gapWidening)||turningDirection==='toward_worse',basis:'worsening_or_turning',conditional:true}
+   {id:'continuation',label:'تداوم مسیر فعلی',eligible:pathDirection!=='stable',basis:pathDirection,conditional:true},
+   {id:'stabilization',label:'تثبیت و کاهش شتاب تغییر',eligible:true,basis:'uncertainty_control',conditional:true},
+   {id:'recovery',label:'بازیابی مشروط',eligible:pressure&&(pathDirection==='improving'||turningDirection==='toward_better'),basis:'unfavorable_position + improving_path',conditional:true},
+   {id:'deterioration',label:'تشدید تضعیف',eligible:(pathDirection==='worsening'&&(!favorable||gapWidening))||turningDirection==='toward_worse',basis:'worsening_path',conditional:true}
  ];
  const conditionalOutlook={
    primaryScenario,
-   direction,
+   direction:pathDirection,
+   rawDirection,
+   pathDirection,
    currentPosition,
    projectedPosition,
    referenceCrossing:crossed,
    confidence:forecastConfidence,
    strength:outlookStrength,
    evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',
-   statement:direction==='worsening'
-     ?(pressure?'در صورت تداوم مسیر فعلی، فشار نامطلوب احتمالاً حفظ یا تشدید می‌شود.':favorable?'در صورت تداوم افت، مزیت فعلی نسبت به مرجع می‌تواند کاهش یابد.':'در صورت تداوم مسیر، شاخص در جهت نامطلوب حرکت خواهد کرد.')
-     :direction==='improving'
-       ?(pressure&&gapNarrowing?'در صورت تداوم مسیر فعلی، فاصله نامطلوب از مرجع می‌تواند کاهش یابد.':favorable?'در صورت تداوم مسیر، موقعیت مطلوب می‌تواند حفظ شود.':'در صورت تداوم مسیر، شاخص به سمت وضعیت مطلوب‌تر حرکت می‌کند.')
-       :'در صورت تداوم الگوی فعلی، تغییر بزرگ و پایدار در جهت شاخص از شواهد فعلی قابل استنباط نیست.'
+   nextEvaluationAge:nextAge,
+   nextReferenceAvailable:canonicalNext!==null,
+   statement:pathDirection==='worsening'
+     ?(pressure?'اگر مسیر فعلی ادامه پیدا کند، فاصله نامطلوب از مرجع احتمالاً حفظ یا بیشتر می‌شود.':favorable?'اگر مسیر فعلی ادامه پیدا کند، بخشی از مزیت فعلی نسبت به مرجع احتمالاً از دست می‌رود.':'اگر مسیر فعلی ادامه پیدا کند، شاخص به سمت ناحیه نامطلوب‌تر حرکت می‌کند.')
+     :pathDirection==='improving'
+       ?(pressure&&gapNarrowing?'اگر مسیر فعلی ادامه پیدا کند، فاصله نامطلوب از مرجع می‌تواند کاهش یابد.':favorable?'اگر مسیر فعلی ادامه پیدا کند، موقعیت مطلوب فعلی احتمالاً حفظ یا تقویت می‌شود.':'اگر مسیر فعلی ادامه پیدا کند، شاخص به سمت موقعیت مطلوب‌تر حرکت می‌کند.')
+       :'شواهد فعلی برای تغییر پایدار فاصله از مرجع کافی نیست و سناریوی غالب، تثبیت/پایش است.'
  };
- return{available:true,regime,direction,performanceDirection:direction,relation,semanticRelation,gapEffect,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),slopeThresholdPercent:Number(stepTol.toFixed(3)),residualMadPercent:Number(noise.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
+ return{available:true,regime,direction:rawDirection,rawDirection,pathDirection,performanceDirection:pathDirection,relation,semanticRelation,gapEffect,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),rawSlopePerEvaluation:Number((reg?.slope??0).toFixed(3)),pathSlopePerEvaluation:Number((gapReg?.slope??0).toFixed(3)),slopePerEvaluation:Number((reg?.slope??0).toFixed(3)),slopeThresholdPercent:Number(pathTol.toFixed(3)),rawSlopeThreshold:Number(rawTol.toFixed(3)),residualMadPercent:Number(gapNoise.toFixed(3)),momentum:Number((gapDiffs.at(-1)??0).toFixed(3)),rawMomentum:Number((rawDiffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,nextEvaluationAge:nextAge,nextReferenceValue:canonicalNext,nextReferenceAvailable:canonicalNext!==null,phase:smartPhase(z.at(-1)?.age),conditionalOutlook,scenarios};
 }
 function buildForecastSummary(rows,s){
  const labels={weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15'};
@@ -265,7 +331,7 @@ function buildForecastSummary(rows,s){
    const gapEffect=Math.abs(distanceDelta)<=.7?'stable':current>.6?(distanceDelta>0?'favorable_widening':'favorable_narrowing'):current<-.6?(distanceDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse');
    const gapImproving=gapEffect==='favorable_widening'||gapEffect==='favorable_narrowing'||gapEffect==='toward_better';
    const gapWorsening=gapEffect==='unfavorable_widening'||gapEffect==='unfavorable_narrowing'||gapEffect==='toward_worse';
-   const actualImproving=t.direction==='improving',actualWorsening=t.direction==='worsening',stable=t.direction==='stable';
+   const actualImproving=(t.pathDirection||t.direction)==='improving',actualWorsening=(t.pathDirection||t.direction)==='worsening',stable=(t.pathDirection||t.direction)==='stable';
    const crossesNegative=current>=-.6&&projected<-.6;
    const crossesPositive=current<-.6&&projected>=-.6;
    const highVol=t.stability==='high_volatility',moderateVol=t.stability==='moderate';
@@ -325,7 +391,7 @@ function buildForecastSummary(rows,s){
    const directionLabel=actualImproving?'بهبود':actualWorsening?'تضعیف':'پایدار';
    const confidence=evidenceScore>=75?'قوی':evidenceScore>=55?'متوسط':evidenceScore>=40?'محدود':'کم';
    const scenario=t.conditionalOutlook||null;
-   return{key,label:labels[key],axis:axisOf[key],forecast:f,trajectory:t,currentMeaning:semantic,rawDirection:directionLabel,gapRelation:gapLabel,gapEffect,gapChangePercent:Number(gapDelta.toFixed(2)),distanceChangePercent:Number(distanceDelta.toFixed(2)),signal,state,reason,score,evidenceScore,confidence,corroboratingMetrics:axisKeys.filter(k=>s[k]?.trajectory?.direction===t.direction).map(k=>labels[k]),conditionalOutlook:scenario,scenarios:t.scenarios||[],earlyWarningEligible:state==='early_warning'||state==='confirmed_risk'||state==='informational_warning',riskEligible:state==='confirmed_risk',recoveryEligible:state==='recovery_opportunity',capacityEligible:state==='recovery_opportunity',evidence:Math.min(1,evidenceScore/100),uncertaintyPercent:unc};
+   return{key,label:labels[key],axis:axisOf[key],forecast:f,trajectory:t,currentMeaning:semantic,rawDirection:directionLabel,gapRelation:gapLabel,gapEffect,gapChangePercent:Number(gapDelta.toFixed(2)),distanceChangePercent:Number(distanceDelta.toFixed(2)),signal,state,reason,score,evidenceScore,confidence,corroboratingMetrics:axisKeys.filter(k=>(s[k]?.trajectory?.pathDirection||s[k]?.trajectory?.direction)=== (t.pathDirection||t.direction)).map(k=>labels[k]),conditionalOutlook:scenario,scenarios:t.scenarios||[],earlyWarningEligible:state==='early_warning'||state==='confirmed_risk'||state==='informational_warning',riskEligible:state==='confirmed_risk',recoveryEligible:state==='recovery_opportunity',capacityEligible:state==='recovery_opportunity',evidence:Math.min(1,evidenceScore/100),uncertaintyPercent:unc};
  }).filter(Boolean);
  const risks=candidates.filter(x=>x.state==='confirmed_risk').sort((a,b)=>b.score-a.score);
  const warnings=candidates.filter(x=>x.state==='early_warning'||x.state==='informational_warning').sort((a,b)=>b.score-a.score);
@@ -363,6 +429,6 @@ function buildTrajectorySynthesis(s){
    : 'مسیر شاخص‌های دارای داده کافی عمدتاً پایدار است و تغییر جهت غالبی مشاهده نمی‌شود.';
  return{available:true,direction,counts,converging,diverging:divergent,volatile,pointsUsed:usable.length,text};
 }
-function patterns(s){const o=[],bad=x=>x?.status==='watch'||x?.status==='critical',good=x=>x?.status==='good'||x?.status==='excellent';if(bad(s.weight)&&bad(s.fcr))o.push({severity:'high',code:'growth_efficiency_down',title:'افت همزمان رشد و کارایی خوراک',text:'وزن و FCR هر دو نسبت به مرجع استاندارد مشترک نامطلوب‌اند؛ خوراک، آب، محیط و سلامت باید هم‌زمان بررسی شوند.'});if(good(s.weight)&&bad(s.fcr))o.push({severity:'watch',code:'growth_efficiency_tradeoff',title:'رشد مناسب با کارایی ضعیف‌تر',text:'وزن مناسب است اما FCR نامطلوب است؛ وزن به‌تنهایی عملکرد کامل را تأیید نمی‌کند.'});if(bad(s.weight)&&good(s.fcr))o.push({severity:'watch',code:'weight_low_fcr_ok',title:'وزن عقب‌تر با کارایی فعلاً مناسب',text:'فاصله وزن وجود دارد اما FCR فعلاً نامطلوب نیست؛ ADG، مصرف، زمان‌بندی رشد و یکنواختی بررسی شوند.'});if(bad(s.cv)&&bad(s.u10))o.push({severity:'high',code:'distribution_deterioration',title:'افت کیفیت توزیع وزن',text:'CV و یکنواختی ±۱۰٪ هم‌زمان نامطلوب‌اند؛ میانگین وزن به‌تنهایی کافی نیست.'});if(bad(s.mortality)&&bad(s.fcr))o.push({severity:'high',code:'survival_efficiency_down',title:'افت همزمان بقا و کارایی',text:'تلفات و FCR هر دو نامطلوب‌اند؛ روند زمانی و رخدادهای سلامت/مدیریت بررسی شوند.'});if(['worse_farther','crossed_to_worse'].includes(s.weight.trend?.movement)&&['worse_farther','crossed_to_worse'].includes(s.fcr.trend?.movement))o.push({severity:'high',code:'accelerating_gap',title:'دورشدن هم‌زمان از مرجع',text:'فاصله وزن و FCR از مرجع در ارزیابی‌های اخیر بیشتر شده است.'});if(s.weight.status==='watch'&&s.adg.trend?.direction==='improving')o.push({severity:'positive',code:'recovery_signal',title:'نشانه جبران رشد',text:'وزن هنوز پایین‌تر از مرجع است اما مسیر هدف‌محور افزایش وزن در حال بهبود است.'});return o}
-function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999)),last=rs.at(-1);if(!last)return{version:'BROILER-PI-V6.3',ready:false,readOnly:true,insights:[]};const strain=String(flock?.strain??flock?.flock_strain??flock?.genetics??flock?.genetic_line??flock?.breed??'').trim();const s={},seriesOut={};for(const m of Object.keys(defs)){const ref=referenceMeta(last,m,strain);s[m]={official:{...state(actual(last,m),target(last,m),m),reference:ref},trend:trend(rs,m,strain),forecast:forecast(rs,m),trajectory:trajectoryProfile(rs,m)};seriesOut[m]=series(rs,m,strain)}const w=weights(last),b=band(last,w),d=distribution(w,b?.referenceWeight??target(last,'weight')),ad={};for(const m of ['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15','epef'])ad[m]=adaptive(rs,m);const officialStates=Object.fromEntries(Object.keys(s).map(k=>[k,s[k].official])),p=patterns(officialStates),trendInsights=explainTrend(s),multivariate=multivariateAnalysis(rs,s),differential=differentialAnalysis(rs,s,multivariate),forecastSummary=buildForecastSummary(rs,s),trajectorySynthesis=buildTrajectorySynthesis(s),multivariateForecast=forecastMultivariate(s),confidence=rs.length>=6?'high':rs.length>=4?'medium':rs.length>=3?'limited':'low',dataQuality={records:rs.length,minimumForTrend:3,minimumForAdaptive:4,minimumForForecast:3,weightSamples:w.length,completeCore:Object.keys(defs).filter(m=>actual(last,m)!==null&&target(last,m)!==null).length};return Object.freeze({version:'BROILER-PI-V6.3',ready:true,readOnly:true,source:'weekly_records → canonical broiler report model → intelligence',targetAuthority:'canonical-broiler-standards-engine',flockId:flock?.id||null,strain:flock?.strain||flock?.genetics||null,age:first(last,['age','age_days']),week:first(last,['week','week_number','production_week']),states:Object.freeze(s),series:Object.freeze(seriesOut),profile:Object.freeze({growth:s.weight.official,efficiency:s.fcr.official,survival:s.mortality.official,uniformity:s.u10.official}),weightBand:b,weightDistribution:d,sampleWeights:Object.freeze(w),adaptive:Object.freeze(ad),insights:Object.freeze(p),trendInsights:Object.freeze(trendInsights),multivariate:Object.freeze(multivariate.items||[]),multivariateAnalysis:Object.freeze(multivariate),differential:Object.freeze(differential),forecastSummary:Object.freeze(forecastSummary),trajectorySynthesis:Object.freeze(trajectorySynthesis),multivariateForecast:Object.freeze(multivariateForecast),dataQuality:Object.freeze(dataQuality),coverage:Object.freeze({records:rs.length,weightSamples:w.length,canonicalTargets:Object.keys(defs).filter(m=>target(last,m)!==null).length}),inputFingerprint:inputFingerprint(flock,rs),analysisConfidence:multivariate.matrix?.analysisConfidence||'low',causalConfidence:multivariate.matrix?.causalConfidence||'low',scenarioMatrix:Object.freeze(multivariate.matrix||{}),confidence,status:p.some(x=>x.severity==='high')?'critical':p.some(x=>x.severity==='watch')?'watch':'good'})}
-global.AdineBroilerPerformanceIntelligenceV2=Object.freeze({version:'BROILER-PI-V6.3',build});})(typeof window!=='undefined'?window:globalThis);
+function patterns(s){const o=[],bad=x=>x?.status==='watch'||x?.status==='critical',good=x=>x?.status==='good'||x?.status==='excellent';if(bad(s.weight)&&bad(s.fcr))o.push({severity:'high',code:'growth_efficiency_down',title:'افت همزمان رشد و کارایی خوراک',text:'وزن و FCR هر دو نسبت به مرجع استاندارد مشترک نامطلوب‌اند؛ خوراک، آب، محیط و سلامت باید هم‌زمان بررسی شوند.'});if(good(s.weight)&&bad(s.fcr))o.push({severity:'watch',code:'growth_efficiency_tradeoff',title:'رشد مناسب با کارایی ضعیف‌تر',text:'وزن مناسب است اما FCR نامطلوب است؛ وزن به‌تنهایی عملکرد کامل را تأیید نمی‌کند.'});if(bad(s.weight)&&good(s.fcr))o.push({severity:'watch',code:'weight_low_fcr_ok',title:'وزن عقب‌تر با کارایی فعلاً مناسب',text:'فاصله وزن وجود دارد اما FCR فعلاً نامطلوب نیست؛ ADG، مصرف، زمان‌بندی رشد و یکنواختی بررسی شوند.'});if(bad(s.cv)&&bad(s.u10))o.push({severity:'high',code:'distribution_deterioration',title:'افت کیفیت توزیع وزن',text:'CV و یکنواختی ±۱۰٪ هم‌زمان نامطلوب‌اند؛ میانگین وزن به‌تنهایی کافی نیست.'});if(bad(s.mortality)&&bad(s.fcr))o.push({severity:'high',code:'survival_efficiency_down',title:'افت همزمان بقا و کارایی',text:'تلفات و FCR هر دو نامطلوب‌اند؛ روند زمانی و رخدادهای سلامت/مدیریت بررسی شوند.'});if(['worse_farther','crossed_to_worse'].includes(s.weight.trend?.movement)&&['worse_farther','crossed_to_worse'].includes(s.fcr.trend?.movement))o.push({severity:'high',code:'accelerating_gap',title:'دورشدن هم‌زمان از مرجع',text:'فاصله وزن و FCR از مرجع در ارزیابی‌های اخیر بیشتر شده است.'});if(s.weight.status==='watch'&&(s.adg.trajectory?.pathDirection||s.adg.trend?.direction)==='improving')o.push({severity:'positive',code:'recovery_signal',title:'نشانه جبران رشد',text:'وزن هنوز پایین‌تر از مرجع است اما مسیر هدف‌محور افزایش وزن در حال بهبود است.'});return o}
+function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999)),last=rs.at(-1);if(!last)return{version:'BROILER-PI-V6.4',ready:false,readOnly:true,insights:[]};const strain=String(flock?.strain??flock?.flock_strain??flock?.genetics??flock?.genetic_line??flock?.breed??'').trim();const s={},seriesOut={};for(const m of Object.keys(defs)){const ref=referenceMeta(last,m,strain);s[m]={official:{...state(actual(last,m),target(last,m),m),reference:ref},trend:trend(rs,m,strain),forecast:forecast(rs,m,strain),trajectory:trajectoryProfile(rs,m,strain)};seriesOut[m]=series(rs,m,strain)}const w=weights(last),b=band(last,w),d=distribution(w,b?.referenceWeight??target(last,'weight')),ad={};for(const m of ['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15','epef'])ad[m]=adaptive(rs,m);const officialStates=Object.fromEntries(Object.keys(s).map(k=>[k,s[k].official])),p=patterns(officialStates),trendInsights=explainTrend(s),multivariate=multivariateAnalysis(rs,s),differential=differentialAnalysis(rs,s,multivariate),forecastSummary=buildForecastSummary(rs,s),trajectorySynthesis=buildTrajectorySynthesis(s),multivariateForecast=forecastMultivariate(s),confidence=rs.length>=6?'high':rs.length>=4?'medium':rs.length>=3?'limited':'low',dataQuality={records:rs.length,minimumForTrend:3,minimumForAdaptive:4,minimumForForecast:3,weightSamples:w.length,completeCore:Object.keys(defs).filter(m=>actual(last,m)!==null&&target(last,m)!==null).length};return Object.freeze({version:'BROILER-PI-V6.3',ready:true,readOnly:true,source:'weekly_records → canonical broiler report model → intelligence',targetAuthority:'canonical-broiler-standards-engine',flockId:flock?.id||null,strain:flock?.strain||flock?.genetics||null,age:first(last,['age','age_days']),week:first(last,['week','week_number','production_week']),states:Object.freeze(s),series:Object.freeze(seriesOut),profile:Object.freeze({growth:s.weight.official,efficiency:s.fcr.official,survival:s.mortality.official,uniformity:s.u10.official}),weightBand:b,weightDistribution:d,sampleWeights:Object.freeze(w),adaptive:Object.freeze(ad),insights:Object.freeze(p),trendInsights:Object.freeze(trendInsights),multivariate:Object.freeze(multivariate.items||[]),multivariateAnalysis:Object.freeze(multivariate),differential:Object.freeze(differential),forecastSummary:Object.freeze(forecastSummary),trajectorySynthesis:Object.freeze(trajectorySynthesis),multivariateForecast:Object.freeze(multivariateForecast),dataQuality:Object.freeze(dataQuality),coverage:Object.freeze({records:rs.length,weightSamples:w.length,canonicalTargets:Object.keys(defs).filter(m=>target(last,m)!==null).length}),inputFingerprint:inputFingerprint(flock,rs),analysisConfidence:multivariate.matrix?.analysisConfidence||'low',causalConfidence:multivariate.matrix?.causalConfidence||'low',scenarioMatrix:Object.freeze(multivariate.matrix||{}),confidence,status:p.some(x=>x.severity==='high')?'critical':p.some(x=>x.severity==='watch')?'watch':'good'})}
+global.AdineBroilerPerformanceIntelligenceV2=Object.freeze({version:'BROILER-PI-V6.4',build});})(typeof window!=='undefined'?window:globalThis);

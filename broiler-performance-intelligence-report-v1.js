@@ -126,7 +126,7 @@ function sparkline(model,key){
    '<rect class="pi-chart-zone-bad" x="'+px+'" y="'+zeroY.toFixed(1)+'" width="'+(w-px-pr)+'" height="'+Math.max(0,h-pb-zeroY).toFixed(1)+'"></rect>'+
    grid+
    '<line class="pi-chart-zero-line" x1="'+px+'" y1="'+zeroY.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+zeroY.toFixed(1)+'"></line>'+
-   '<path class="pi-chart-good-area" d="'+areaTop+' L'+x(a.at(-1)._i).toFixed(1)+' '+zeroY.toFixed(1)+' L'+x(a[0]._i).toFixed(1)+' '+zeroY.toFixed(1)+' Z"></path>'+
+   '<path class="pi-chart-good-area" d="'+areaTop+' L'+x(a.length-1).toFixed(1)+' '+zeroY.toFixed(1)+' L'+x(0).toFixed(1)+' '+zeroY.toFixed(1)+' Z"></path>'+
    '<path class="pi-chart-bad-area" d="'+areaBottom+' L'+x(a[0]._i).toFixed(1)+' '+zeroY.toFixed(1)+' L'+x(a.at(-1)._i).toFixed(1)+' '+zeroY.toFixed(1)+' Z"></path>'+
    '<path class="pi-chart-main-line" style="stroke:'+lineColor+'" d="'+path+'"></path>'+
    forecast+points+xLabels+

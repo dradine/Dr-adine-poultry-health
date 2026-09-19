@@ -255,7 +255,7 @@ function trajectoryProfile(rows,m,strain){
  const recentDistanceDelta=absCurrent-previousAbs;
  const recentGapEffect=Math.abs(recentDistanceDelta)<=pathTol?'stable':current>pathTol?(recentDistanceDelta>0?'favorable_widening':'favorable_narrowing'):current< -pathTol?(recentDistanceDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(current>previous?'toward_better':'toward_worse');
  const recentSemanticRelation=current>pathTol?(recentDistanceDelta>0?'better_farther':recentDistanceDelta<0?'better_closer':'stable'):current< -pathTol?(recentDistanceDelta>0?'worse_farther':recentDistanceDelta<0?'worse_closer':'stable'):(current>previous?'toward_better':'toward_worse');
- const absCurrent=Math.abs(current),absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
+ const absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
  const relation=Math.abs(absDelta)<=pathTol?'stable':absDelta<0?'converging':'diverging';
  const gapEffect=Math.abs(absDelta)<=pathTol?'stable':current>pathTol?(absDelta>0?'favorable_widening':'favorable_narrowing'):current<-pathTol?(absDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse');
  const semanticRelation=current>pathTol?(absDelta>0?'better_farther':absDelta<0?'better_closer':'stable'):current<-pathTol?(absDelta>0?'worse_farther':absDelta<0?'worse_closer':'stable'):(projected>current?'toward_better':'toward_worse');

@@ -174,3 +174,13 @@ assert.equal(semanticModel.states.mortality.trajectory.currentPosition,'better')
 assert.ok(E.build({id:'synth',strain:'Ross 308'},R(35)).trajectorySynthesis?.available);
 
 console.log('SMART TREND V3.1 VALIDATION PASSED: normalized gap, persistence, convergence/divergence, volatility and conditional forecast gates');
+
+// Smart Trend V3.3 evidence-tiered outlook checks.
+const v33Warn=R(35).slice(0,3);[-1,-2,-3].forEach((g,i)=>{v33Warn[i].weight=v33Warn[i].canonicalTargets.weight*(1+g/100)});
+const v33WarnModel=E.build({id:'v33-warn',strain:'Ross 308'},v33Warn);
+assert.ok(v33WarnModel.forecastSummary?.risk); assert.equal(v33WarnModel.forecastSummary.risk.state,'early_warning'); assert.equal(v33WarnModel.forecastSummary.risk.riskEligible,false);
+const v33Recover=R(35).slice(0,3);[-10,-7,-4].forEach((g,i)=>{v33Recover[i].weight=v33Recover[i].canonicalTargets.weight*(1+g/100)});
+const v33RecoverModel=E.build({id:'v33-recover',strain:'Ross 308'},v33Recover); assert.ok(v33RecoverModel.forecastSummary?.improve); assert.equal(v33RecoverModel.forecastSummary.improve.state,'recovery_opportunity');
+const v33Positive=R(35).slice(0,3);[5,6,7].forEach((g,i)=>{v33Positive[i].weight=v33Positive[i].canonicalTargets.weight*(1+g/100)});
+const v33PositiveModel=E.build({id:'v33-positive',strain:'Ross 308'},v33Positive); assert.equal(v33PositiveModel.forecastSummary.improve.state,'positive_momentum');
+console.log('SMART TREND V3.3 VALIDATION PASSED');

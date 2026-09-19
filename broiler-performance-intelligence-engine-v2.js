@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.4 — MULTIVARIATE + SMART TREND V4.0 */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.4 — MULTIVARIATE + SMART TREND V4.0 — TDZ FIX 2026-09-20 */
 (function(global){'use strict';
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const first=(r,ks)=>{for(const k of ks){const x=n(r?.[k]);if(x!==null)return x}return null};
@@ -250,6 +250,7 @@ function trajectoryProfile(rows,m,strain){
  // Projection is made on the normalized age-specific reference gap itself.
  // The next strain target is metadata/validation, not a second transformation.
  const projected=gapReg?.nextGapPercent??current;
+ const absCurrent=Math.abs(current);
  const previousAbs=previous===null?absCurrent:Math.abs(previous);
  const recentDistanceDelta=absCurrent-previousAbs;
  const recentGapEffect=Math.abs(recentDistanceDelta)<=pathTol?'stable':current>pathTol?(recentDistanceDelta>0?'favorable_widening':'favorable_narrowing'):current< -pathTol?(recentDistanceDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(current>previous?'toward_better':'toward_worse');

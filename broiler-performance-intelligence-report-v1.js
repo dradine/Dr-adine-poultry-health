@@ -111,7 +111,7 @@ function sparkline(model,key){
          '<text class="pi-chart-y-label" x="'+(px-9)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+fmt(v,digits)+unit+'</text>';
  });
 
- const xLabels=a.map((p,i)=>{
+ const xLabels='<text class="pi-chart-x-label pi-chart-zero-day" x="'+px.toFixed(1)+'" y="'+(h-31)+'" text-anchor="middle">روز ۰</text>'+a.map((p,i)=>{
    const label=p.age!==undefined&&p.age!==null?('روز '+fmt(p.age,0)):(p.week!==undefined&&p.week!==null?('هفته '+fmt(p.week,0)):(i+1));
    return '<text class="pi-chart-x-label" x="'+x(i).toFixed(1)+'" y="'+(h-31)+'" text-anchor="middle">'+esc(label)+'</text>';
  }).join('');

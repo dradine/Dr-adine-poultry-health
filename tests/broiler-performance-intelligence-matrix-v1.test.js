@@ -184,3 +184,11 @@ const v33RecoverModel=E.build({id:'v33-recover',strain:'Ross 308'},v33Recover); 
 const v33Positive=R(35).slice(0,3);[5,6,7].forEach((g,i)=>{v33Positive[i].weight=v33Positive[i].canonicalTargets.weight*(1+g/100)});
 const v33PositiveModel=E.build({id:'v33-positive',strain:'Ross 308'},v33Positive); assert.equal(v33PositiveModel.forecastSummary.improve.state,'positive_momentum');
 console.log('SMART TREND V3.3 VALIDATION PASSED');
+
+// Smart Trend V3.4 — turning point / conditional next-evaluation outlook.
+const v34Turn=R(35).slice(0,4);[0,2,-1,2].forEach((g,i)=>{v34Turn[i].weight=v34Turn[i].canonicalTargets.weight*(1+g/100)});
+const v34TurnModel=E.build({id:'v34-turn',strain:'Ross 308'},v34Turn);
+const v34Tr=v34TurnModel.states?.weight?.trajectory;
+assert.ok(v34Tr?.available); assert.equal(v34Tr.turningPoint,'recent_turning_point'); assert.equal(v34Tr.turningDirection,'toward_better'); assert.ok(v34Tr.projectedPosition);
+assert.ok(v34TurnModel.forecastSummary?.improve||v34TurnModel.forecastSummary?.risk);
+console.log('SMART TREND V3.4 VALIDATION PASSED: turning point and conditional next-evaluation outlook');

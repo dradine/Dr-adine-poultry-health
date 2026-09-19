@@ -5,7 +5,7 @@ require('../broiler-performance-intelligence-engine-v2.js');
 const E=global.AdineBroilerPerformanceIntelligenceV2;
 assert.equal(E.version,'BROILER-PI-V6.1');
 
-const STRAINS=['Ross 308','Ross 308 AP','Indian River','Arbor Acres Plus','Ross 708'];
+const STRAINS=['Ross 308','Ross 308 FF','Ross 708','Ross 308 AP','Cobb500','Cobb800','Arbor Acres Plus','Arbor Acres Plus S','Indian River','Indian River FF','Efficiency Plus','Hubbard EDGE','Arian'];
 const AGES=[7,14,21,28,35,42,49,56];
 const BASE={weight:100,adg:14,fcr:1.35,cumulativeFcr:1.35,mortality:1,cv:8,u10:80,u15:93,epef:430};
 const fields=Object.keys(BASE);
@@ -90,4 +90,4 @@ for(const k of ['weight','adg','fcr','cumulativeFcr','mortality','cv','u10','u15
  assert.notEqual(m.inputFingerprint,baseModel.inputFingerprint,`fingerprint did not change for ${k}`);
 }
 
-console.log(`PI MATRIX VALIDATION V2 PASSED: ${count} age×strain×pattern cases + explicit edge/data-quality assertions`);
+console.log(`PI MATRIX VALIDATION V3 PASSED: ${count} age×strain×pattern cases + explicit edge/data-quality assertions`);

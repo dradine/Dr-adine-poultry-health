@@ -105,6 +105,11 @@ function multivariateEvidence(rows,s,meta){ const metricCoverage=Object.fromEntr
  if(pair('mortality','weight'))patterns.push('survival_growth_pressure');
  if(pair('mortality','cv')||pair('mortality','u10'))patterns.push('survival_uniformity_pressure');
  if(bad('cv')&&bad('u10'))patterns.push('distribution_pressure');
+ const pressuredMetrics=Object.keys(meta).filter(bad);
+ const improvingUnderPressure=pressuredMetrics.filter(k=>improving(k));
+ const worseningWhileGood=Object.keys(meta).filter(k=>good(k)&&worsening(k));
+ if(improvingUnderPressure.length)patterns.push('recovery_from_pressure');
+ if(worseningWhileGood.length)patterns.push('early_warning');
  const pressureAxes=Object.values(evidence.axisCoverage).filter(x=>x.coverage>0).length?Object.keys(axes).filter(a=>{const ms=axes[a].filter(k=>bad(k));return ms.length>=Math.max(1,Math.ceil(axes[a].length/2))&&a!=='outcome'}):[];
  const recoveryAxes=Object.keys(axes).filter(a=>axes[a].some(improving)&&!axes[a].every(k=>!improving(k)));
  if(pressureAxes.length>=2)patterns.push('coherent_multiaxis_pressure');

@@ -108,8 +108,10 @@ function multivariateEvidence(rows,s,meta){ const metricCoverage=Object.fromEntr
  const pressuredMetrics=Object.keys(meta).filter(bad);
  const improvingUnderPressure=pressuredMetrics.filter(k=>improving(k));
  const crossedToBetter=Object.keys(meta).filter(k=>trendProfile[k].movement==='crossed_to_better');
+ const historicalPressure=Object.keys(meta).filter(k=>rows.slice(0,-1).some(r=>{const q=state(actual(r,k),target(r,k),k);return q.status==='watch'||q.status==='critical';}));
  const worseningWhileGood=Object.keys(meta).filter(k=>good(k)&&worsening(k));
- if(improvingUnderPressure.length||crossedToBetter.length)patterns.push('recovery_from_pressure');
+ const recoveringHistory=historicalPressure.filter(k=>improving(k));
+ if(improvingUnderPressure.length||crossedToBetter.length||recoveringHistory.length)patterns.push('recovery_from_pressure');
  if(worseningWhileGood.length)patterns.push('early_warning');
  const pressureAxes=Object.values(evidence.axisCoverage).filter(x=>x.coverage>0).length?Object.keys(axes).filter(a=>{const ms=axes[a].filter(k=>bad(k));return ms.length>=Math.max(1,Math.ceil(axes[a].length/2))&&a!=='outcome'}):[];
  const recoveryAxes=Object.keys(axes).filter(a=>axes[a].some(improving)&&!axes[a].every(k=>!improving(k)));

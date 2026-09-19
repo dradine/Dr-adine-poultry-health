@@ -200,17 +200,23 @@ function buildForecastSummary(rows,s){
    const current=n(t.currentGapPercent),projected=n(t.projectedGapPercent),unc=n(t.uncertaintyPercent)??99;
    const persistence=t.persistence??0,points=t.pointsUsed||0;
    const uncertaintyPenalty=Math.max(0,1-Math.min(1,unc/6));
-   const worsening=projected<current-.7;
-   const improving=projected>current+.7;
+   const gapWorsening=projected<current-.7;
+   const gapImproving=projected>current+.7;
    const underPressure=current<-.6;
    const crossesNegative=current>=-.6&&projected<-.6;
    const crossesPositive=current<-.6&&projected>=-.6;
+   // «بهبود» در Smart Trend فقط وقتی مجاز است که جهت خام شاخص نیز بهبود باشد.
+   // برای شاخص‌های lower-is-better: کاهش مقدار = بهبود؛ برای higher-is-better: افزایش = بهبود.
+   const actualImproving=t.direction==='improving';
+   const actualWorsening=t.direction==='worsening';
+   const improving=actualImproving&&gapImproving;
+   const worsening=actualWorsening&&gapWorsening;
    const earlyWarningEligible=points>=3&&worsening&&(underPressure||crossesNegative||persistence>=.67);
    const riskEligible=points>=4&&earlyWarningEligible&&t.persistenceLevel!=='low'&&t.stability!=='high_volatility';
    const earlyWarningScore=earlyWarningEligible?(Math.max(0,-projected)*.38+Math.max(0,current-projected)*.28+persistence*5*.18+uncertaintyPenalty*5*.16):0;
    const riskScore=riskEligible?earlyWarningScore*(points>=5?1:.78):0;
    const headroom=Math.max(0,-current);
-   const capacityEligible=points>=3&&improving&&headroom>.5&&persistence>=.55&&t.stability!=='high_volatility';
+   const capacityEligible=points>=3&&actualImproving&&gapImproving&&headroom>.5&&persistence>=.55&&t.stability!=='high_volatility';
    const capacityScore=capacityEligible?(Math.min(headroom,20)*.45+Math.min(Math.max(0,projected-current),10)*.35+uncertaintyPenalty*10*.20):0;
    const semantic=current>.6?'بهتر از مرجع':current<-.6?'ضعیف‌تر از مرجع':'نزدیک به مرجع';
    return{key,label:labels[key],forecast:f,trajectory:t,currentMeaning:semantic,earlyWarningEligible,riskEligible,earlyWarningScore,riskScore,capacityEligible,capacityScore,evidence:Math.min(1,points/5)};

@@ -229,3 +229,12 @@
 
 .pi-chart-reference-line{fill:none;stroke:#65736e;stroke-width:1.8;stroke-dasharray:5 4;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.85}
 .pi-chart-main-line{fill:none;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+
+
+/* PI V11.2 — center trend chart and preserve axis/legend readability */
+.pi-trend-chart-card .pi-smart-gap-chart{display:block;width:min(100%,360px);max-width:360px;height:auto;min-height:118px;margin:6px auto 2px;overflow:visible;position:relative}
+.pi-trend-chart-card .pi-chart-reference{position:relative;z-index:2;clear:both;margin-top:6px}
+.pi-trend-chart-card .pi-chart-foot{position:relative;z-index:2;clear:both}
+.pi-trend-chart-card .pi-chart-x-label{font-weight:700}
+.pi-trend-chart-card .pi-chart-zero-day{fill:#596762;font-weight:900}
+@media(max-width:520px){.pi-trend-chart-card .pi-smart-gap-chart{width:min(100%,360px);max-width:360px;min-height:132px;margin-left:auto;margin-right:auto}}

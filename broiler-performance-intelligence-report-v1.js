@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V11.5 — SMART TREND SCENARIOS */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V11.5 — SMART TREND SCENARIOS V3.6 */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -75,7 +75,7 @@ function sparkline(model,key){
  return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V11.5" data-direction-mode="'+(lowerIsBetter?'lower-is-better':'higher-is-better')+'" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' و مقایسه با '+esc(last.reference?.label||state.official?.reference?.label||'استاندارد سنی')+'">'+grid+'<path class="pi-chart-reference-line" d="'+targetPath+'"></path><path class="pi-chart-main-line" style="stroke:'+lineColor+'" d="'+actualPath+'"></path>'+forecast+points+xLabels+'<text class="pi-chart-zero-label" x="'+(w-pr)+'" y="11" text-anchor="end">فاصله از مرجع سنی: '+currentLabel+'</text><text class="pi-chart-zero-label" x="'+px+'" y="'+(h-19)+'" text-anchor="start">— مرجع سنی</text><text class="pi-chart-zero-label" x="'+(px+54)+'" y="'+(h-19)+'" text-anchor="start">● واقعی</text></svg>';
 }
 function trajectoryLabel(x){
- return ({recovering:'بازیابی',deteriorating:'تضعیف',converging:'همگرایی',diverging:'افزایش فاصله',stable:'پایدار',volatile:'نوسان بالا',insufficient:'داده ناکافی'}[x]||'—');
+ return ({recovering:'بازیابی',deteriorating:'تضعیف',strengthening:'تقویت موقعیت',weakening:'کاهش مزیت',approaching_better:'حرکت به سمت بهتر',approaching_worse:'حرکت به سمت نامطلوب',converging:'کاهش فاصله تا مرجع',diverging:'افزایش فاصله از مرجع',stable:'پایدار',volatile:'نوسان بالا',insufficient:'داده ناکافی'}[x]||'—');
 }
 function trendDashboard(m){
  const keys=['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15'];

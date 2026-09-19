@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V11.5 — SMART TREND SCENARIOS V3.6 */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V11.5 — SMART TREND SCENARIOS V3.7 */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));

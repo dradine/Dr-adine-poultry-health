@@ -200,39 +200,71 @@ function buildForecastSummary(rows,s){
    const current=n(t.currentGapPercent),projected=n(t.projectedGapPercent),unc=n(t.uncertaintyPercent)??99;
    const persistence=t.persistence??0,points=t.pointsUsed||0;
    const uncertaintyPenalty=Math.max(0,1-Math.min(1,unc/6));
-   const gapWorsening=projected<current-.7;
-   const gapImproving=projected>current+.7;
-   const underPressure=current<-.6;
-   const crossesNegative=current>=-.6&&projected<-.6;
-   const crossesPositive=current<-.6&&projected>=-.6;
-   // «بهبود» در Smart Trend فقط وقتی مجاز است که جهت خام شاخص نیز بهبود باشد.
-   // برای شاخص‌های lower-is-better: کاهش مقدار = بهبود؛ برای higher-is-better: افزایش = بهبود.
    const actualImproving=t.direction==='improving';
    const actualWorsening=t.direction==='worsening';
-   const improving=actualImproving&&gapImproving;
-   const worsening=actualWorsening&&gapWorsening;
-   const earlyWarningEligible=points>=3&&worsening&&(underPressure||crossesNegative||persistence>=.67);
-   const riskEligible=points>=4&&earlyWarningEligible&&t.persistenceLevel!=='low'&&t.stability!=='high_volatility';
-   const earlyWarningScore=earlyWarningEligible?(Math.max(0,-projected)*.38+Math.max(0,current-projected)*.28+persistence*5*.18+uncertaintyPenalty*5*.16):0;
+   const gapChange=projected-current;
+   const distanceChange=Math.abs(projected)-Math.abs(current);
+   const gapNarrowing=distanceChange<-.7;
+   const gapWidening=distanceChange>.7;
+   const underPressure=current<-.6;
+   const nearReference=Math.abs(current)<=.6;
+   const aboveReference=current>.6;
+   const crossesNegative=current>=-.6&&projected<-.6;
+   const crossesPositive=current<-.6&&projected>=-.6;
+   /*
+    * دو مفهوم عمداً از هم جدا می‌شوند:
+    * ۱) جهت واقعی شاخص: مثلاً U15↑=بهبود و U15↓=تضعیف؛ FCR↓=بهبود.
+    * ۲) رابطه با مرجع سنی: فاصله کمتر/بیشتر یا عبور از مرجع.
+    * «ظرفیت بهبود» فقط وقتی مجاز است که هر دو هم‌جهت باشند:
+    * شاخص واقعاً در جهت مطلوب حرکت کند + فاصله نامطلوب هم کاهش یابد.
+    * «ریسک» نیز فقط با بدترشدن خام یا بدترشدن نسبیِ معنی‌دار فعال می‌شود؛
+    * نزدیک‌شدن یک شاخصِ بالاتر از هدف به هدف، به‌تنهایی ریسک نیست.
+   */
+   const recoveryEligible=points>=3&&actualImproving&&underPressure&&gapNarrowing&&persistence>=.55&&t.stability!=='high_volatility';
+   const relativeWarning=points>=3&&actualImproving&&underPressure&&gapWidening&&persistence>=.55;
+   const deteriorationEligible=points>=3&&actualWorsening&&persistence>=.55&&(underPressure||gapWidening||crossesNegative);
+   const riskEligible=points>=4&&deteriorationEligible&&t.persistenceLevel!=='low'&&t.stability!=='high_volatility';
+   const earlyWarningEligible=points>=3&&(deteriorationEligible||relativeWarning);
+   const recoveryScore=recoveryEligible?(Math.min(Math.abs(current),20)*.45+Math.min(Math.max(0,-distanceChange),10)*.35+uncertaintyPenalty*10*.20):0;
+   const earlyWarningScore=earlyWarningEligible?(Math.max(0,-projected)*.34+Math.max(0,distanceChange)*.26+(actualWorsening?2.2:0)+persistence*5*.16+uncertaintyPenalty*5*.12):0;
    const riskScore=riskEligible?earlyWarningScore*(points>=5?1:.78):0;
-   const headroom=Math.max(0,-current);
-   const capacityEligible=points>=3&&actualImproving&&gapImproving&&headroom>.5&&persistence>=.55&&t.stability!=='high_volatility';
-   const capacityScore=capacityEligible?(Math.min(headroom,20)*.45+Math.min(Math.max(0,projected-current),10)*.35+uncertaintyPenalty*10*.20):0;
    const semantic=current>.6?'بهتر از مرجع':current<-.6?'ضعیف‌تر از مرجع':'نزدیک به مرجع';
-   return{key,label:labels[key],forecast:f,trajectory:t,currentMeaning:semantic,earlyWarningEligible,riskEligible,earlyWarningScore,riskScore,capacityEligible,capacityScore,evidence:Math.min(1,points/5)};
+   const gapLabel=gapNarrowing?'کاهش فاصله از مرجع':gapWidening?'افزایش فاصله از مرجع': 'فاصله نسبتاً پایدار';
+   const directionLabel=actualImproving?'بهبود':actualWorsening?'تضعیف':'پایدار';
+   let signal='none',reason='';
+   if(recoveryEligible){
+     signal='recovery';
+     reason='مقدار واقعی شاخص در جهت مطلوب حرکت می‌کند و هم‌زمان فاصله نامطلوب از مرجع سنی در حال کاهش است.';
+   }else if(relativeWarning){
+     signal='relative_warning';
+     reason='مقدار واقعی شاخص در جهت مطلوب حرکت می‌کند، اما مرجع سنی با سرعت بیشتری تغییر کرده و فاصله نامطلوب در حال افزایش است.';
+   }else if(deteriorationEligible){
+     signal='deterioration';
+     reason=underPressure&&gapWidening?'شاخص هم‌اکنون پایین‌تر از مرجع است و هم جهت واقعی آن نامطلوب است و هم فاصله از مرجع در حال افزایش است.':
+       underPressure?'شاخص پایین‌تر از مرجع است و جهت واقعی آن در حال تضعیف است.':
+       gapWidening?'فاصله از مرجع در حال افزایش است و جهت واقعی شاخص نیز نشانه تضعیف دارد.':
+       crossesNegative?'مسیر مشروط در حال عبور به ناحیه نامطلوب زیر مرجع است.':
+       'جهت واقعی شاخص در حال تضعیف است و نیاز به تأیید در ارزیابی بعدی دارد.';
+   }
+   return{key,label:labels[key],forecast:f,trajectory:t,currentMeaning:semantic,
+     rawDirection:directionLabel,gapRelation:gapLabel,gapChangePercent:Number(gapChange.toFixed(2)),
+     distanceChangePercent:Number(distanceChange.toFixed(2)),signal,reason,
+     earlyWarningEligible,riskEligible,earlyWarningScore,riskScore,recoveryEligible,recoveryScore,
+     capacityEligible:recoveryEligible,capacityScore:recoveryScore,evidence:Math.min(1,points/5),
+     uncertaintyPercent:unc};
  }).filter(Boolean);
  const warnings=candidates.filter(x=>x.earlyWarningEligible).sort((a,b)=>b.earlyWarningScore-a.earlyWarningScore);
  const risks=candidates.filter(x=>x.riskEligible).sort((a,b)=>b.riskScore-a.riskScore);
- const improvements=candidates.filter(x=>x.capacityEligible).sort((a,b)=>b.capacityScore-a.capacityScore);
+ const improvements=candidates.filter(x=>x.recoveryEligible).sort((a,b)=>b.recoveryScore-a.recoveryScore);
  const risk=risks[0]||null,earlyWarning=warnings[0]||null,improve=improvements[0]||null;
  return{
-   version:'SMART-TREND-V3.1',
-   risk:risk?{...risk,reason:risk.trajectory.relation==='diverging'?'فاصله عملکردی از مرجع سنی در حال افزایش است و تداوم مسیر کافی است':risk.trajectory.crossed==='crossed_to_worse'?'مسیر مشروط به سمت زیر مرجع عبور می‌کند':'تضعیف مسیر با شواهد روندی کافی ادامه دارد'}:null,
-   earlyWarning:earlyWarning?{...earlyWarning,reason:'هشدار زودهنگام مسیر؛ برای تأیید نیاز به ارزیابی بعدی و داده بیشتر است'}:null,
-   improve:improve?{...improve,reason:improve.trajectory.regime==='recovering'?'فاصله نامطلوب در حال کاهش است و ظرفیت جبران دیده می‌شود':'فاصله نامطلوب با مومنتوم مطلوب در حال کاهش است'}:null,
+   version:'SMART-TREND-V3.2',
+   risk:risk?{...risk}:null,
+   earlyWarning:earlyWarning?{...earlyWarning,reason:earlyWarning.reason}:null,
+   improve:improve?{...improve}:null,
    rankedRisks:risks.slice(0,5),rankedEarlyWarnings:warnings.slice(0,5),rankedImprovements:improvements.slice(0,5),
-   method:'normalized-gap + robust-momentum + persistence + convergence/divergence + calibrated-volatility + conditional-forecast',
-   note:'Smart Trend مسیر زمانی هر شاخص را جداگانه تحلیل می‌کند؛ تحلیل چندشاخصی را تکرار نمی‌کند و چشم‌انداز آن شرطی است، نه پیش‌بینی قطعی.'
+   method:'raw-direction + age-reference-distance + persistence + volatility + conditional-forecast',
+   note:'Smart Trend ابتدا جهت واقعی هر شاخص را بر اساس ذات شاخص تعیین می‌کند و سپس آن را جداگانه با مرجع سنی مقایسه می‌کند؛ «ظرفیت بهبود» فقط با هم‌جهتی این دو شواهد فعال می‌شود. چشم‌انداز شرطی است، نه پیش‌بینی قطعی.'
  };
 }
 function buildTrajectorySynthesis(s){

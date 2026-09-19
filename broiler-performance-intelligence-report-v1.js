@@ -140,7 +140,7 @@ function sparkline(model,key){
    '<path class="pi-chart-reference-line" d="'+targetPath+'"></path>'+
    '<path class="pi-chart-main-line" style="stroke:'+lineColor+'" d="'+actualPath+'"></path>'+
    forecast+points+xLabels+
-   '<text class="pi-chart-zero-label" x="'+(w-pr)+'" y="11" text-anchor="end">فعلی نسبت به مرجع: '+currentLabel+'</text>'+
+   '<text class="pi-chart-zero-label" x="'+(w-pr)+'" y="11" text-anchor="end">فاصله از مرجع سنی: '+currentLabel+'</text>'+
    '<text class="pi-chart-zero-label" x="'+px+'" y="'+(h-19)+'" text-anchor="start">— مرجع سنی</text>'+
    '<text class="pi-chart-zero-label" x="'+(px+54)+'" y="'+(h-19)+'" text-anchor="start">● واقعی</text>'+
    '</svg>';

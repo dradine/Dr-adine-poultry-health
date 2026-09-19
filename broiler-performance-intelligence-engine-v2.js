@@ -194,6 +194,7 @@ function trajectoryProfile(rows,m){
  const current=vals.at(-1),previous=vals.at(-2),projected=gapReg?.nextGapPercent??current;
  const absCurrent=Math.abs(current),absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
  const relation=Math.abs(absDelta)<=.6?'stable':absDelta<0?'converging':'diverging';
+ const semanticRelation=current>.6?(direction==='improving'?'better_farther':direction==='worsening'?'closer_to_reference':'stable'):current<-.6?(direction==='improving'?'converging':direction==='worsening'?'worse_farther':'stable'):(direction==='improving'?'toward_better':direction==='worsening'?'toward_worse':'stable');
  const crossed=current<0&&projected>=0?'crossed_to_better':current>0&&projected<=0?'crossed_to_worse':'not_crossed';
  const currentPosition=current>.6?'better':current<-.6?'weaker':'near_reference';
  const projectedPosition=projected>.6?'better':projected<-.6?'weaker':'near_reference';
@@ -210,8 +211,10 @@ function trajectoryProfile(rows,m){
  else if(turningPoint==='recent_turning_point'&&turningDirection==='toward_worse')regime='deteriorating';
  else if(direction==='improving'&&current<0)regime='recovering';
  else if(direction==='worsening'&&current<0)regime='deteriorating';
- else if(direction==='improving'&&current>=0)regime='converging';
- else if(direction==='worsening'&&current>=0)regime='diverging';
+ else if(direction==='improving'&&current>.6)regime='strengthening';
+ else if(direction==='worsening'&&current>.6)regime='weakening';
+ else if(direction==='improving'&&Math.abs(current)<=.6)regime='approaching_better';
+ else if(direction==='worsening'&&Math.abs(current)<=.6)regime='approaching_worse';
  else if(relation==='converging')regime='converging';
  else if(relation==='diverging')regime='diverging';
 
@@ -243,7 +246,7 @@ function trajectoryProfile(rows,m){
        ?(pressure&&gapNarrowing?'در صورت تداوم مسیر فعلی، فاصله نامطلوب از مرجع می‌تواند کاهش یابد.':favorable?'در صورت تداوم مسیر، موقعیت مطلوب می‌تواند حفظ شود.':'در صورت تداوم مسیر، شاخص به سمت وضعیت مطلوب‌تر حرکت می‌کند.')
        :'در صورت تداوم الگوی فعلی، تغییر بزرگ و پایدار در جهت شاخص از شواهد فعلی قابل استنباط نیست.'
  };
- return{available:true,regime,direction,performanceDirection:direction,relation,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),slopeThresholdPercent:Number(stepTol.toFixed(3)),residualMadPercent:Number(noise.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
+ return{available:true,regime,direction,performanceDirection:direction,relation,semanticRelation,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),slopeThresholdPercent:Number(stepTol.toFixed(3)),residualMadPercent:Number(noise.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
 }
 function buildForecastSummary(rows,s){
  const labels={weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15'};
@@ -329,7 +332,7 @@ function buildForecastSummary(rows,s){
  const scenarioCounts={continuation:0,stabilization:0,recovery:0,deterioration:0};
  candidates.forEach(x=>(x.scenarios||[]).forEach(sc=>{if(sc.eligible&&scenarioCounts[sc.id]!==undefined)scenarioCounts[sc.id]++}));
  return{
-   version:'SMART-TREND-V3.5',
+   version:'SMART-TREND-V3.6',
    risk:risk?{...risk}:null,
    earlyWarning:warnings[0]?{...warnings[0]}:null,
    improve:improve?{...improve}:null,
@@ -337,7 +340,7 @@ function buildForecastSummary(rows,s){
    rankedInformational:informational.slice(0,5),
    scenarioOverview:{counts:scenarioCounts,metricCount:candidates.length,dominantScenario:Object.entries(scenarioCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null},
    method:'metric-direction-semantics + age-reference-position + raw-momentum + persistence + turning-point + volatility + conditional-scenarios + axis-corroboration + evidence-tier',
-   note:'Smart Trend V3.5 جهت ذاتی هر شاخص را مستقل تفسیر می‌کند: وزن/ADG/U10/U15/EPEF با افزایش بهتر؛ FCR/FCR تجمعی/تلفات/CV با کاهش بهتر. فاصله از مرجع و مسیر واقعی جداگانه محاسبه می‌شوند و چشم‌انداز فقط به‌صورت شرطی و متناسب با شواهد ارائه می‌شود. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
+   note:'Smart Trend V3.6 جهت ذاتی هر شاخص را مستقل تفسیر می‌کند: وزن/ADG/U10/U15/EPEF با افزایش بهتر؛ FCR/FCR تجمعی/تلفات/CV با کاهش بهتر. فاصله از مرجع و مسیر واقعی جداگانه محاسبه می‌شوند و چشم‌انداز فقط به‌صورت شرطی و متناسب با شواهد ارائه می‌شود. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
  };
 }
 function buildTrajectorySynthesis(s){

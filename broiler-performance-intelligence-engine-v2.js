@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.2 — MULTIVARIATE SCIENTIFIC */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE ENGINE V6.3 — MULTIVARIATE SCIENTIFIC */
 (function(global){'use strict';
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const first=(r,ks)=>{for(const k of ks){const x=n(r?.[k]);if(x!==null)return x}return null};

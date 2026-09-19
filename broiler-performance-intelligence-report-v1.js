@@ -133,7 +133,7 @@ function sparkline(model,key){
    const projectedActual=lowerIsBetter?last.target*(1-projected/100):last.target*(1+projected/100);
    if(!Number.isFinite(projectedActual))return '';
    return '<line class="pi-chart-forecast" style="stroke:'+directionColor(f.direction)+'" x1="'+x(a.length-1).toFixed(1)+'" y1="'+y(last.actual).toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y(projectedActual).toFixed(1)+'"></line>';
- })();
+ })() : '';
 
  return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V11.1" data-direction-mode="'+(lowerIsBetter?'lower-is-better':'higher-is-better')+'" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' و مقایسه با '+esc(last.reference?.label||state.official?.reference?.label||'استاندارد سنی')+'">'+
    grid+

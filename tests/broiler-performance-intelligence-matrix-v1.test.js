@@ -68,6 +68,24 @@ const wg=[-10,-7,-3,0,3,6], fg=[10,7,3,0,-3,-6];
 recovery.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg[i]/100);r.fcr=r.canonicalTargets.fcr*(1+fg[i]/100)});
 assert.ok(E.build({id:'recovery',strain:'Ross 308'},recovery).scenarioMatrix.patterns.includes('recovery_from_pressure'));
 
+// Trend recovery must not be inferred from a merely good current state.
+// A stable, favorable flock is protective, not "recovering".
+const stableGood=R(35);
+stableGood.forEach(r=>{good(r,'weight');good(r,'fcr');good(r,'cv');good(r,'u10')});
+const stableGoodModel=E.build({id:'stable-good',strain:'Ross 308'},stableGood);
+assert.equal(stableGoodModel.multivariateAnalysis?.summary?.improvingAxes?.length||0,0);
+assert.equal(stableGoodModel.scenarioMatrix.patterns.includes('coherent_recovery'),false);
+
+// Pressure evidence must expose all currently pressured/worsening metrics,
+// not only metrics crossing the stronger burden threshold.
+const pressureTrace=R(35);
+pressureTrace.forEach(r=>{bad(r,'cv');bad(r,'u10');bad(r,'u15')});
+const pressureModel=E.build({id:'pressure-trace',strain:'Ross 308'},pressureTrace);
+assert.ok((pressureModel.multivariateAnalysis?.summary?.pressureEvidence||[]).includes('CV'));
+assert.ok((pressureModel.multivariateAnalysis?.summary?.pressureEvidence||[]).includes('U10'));
+assert.ok((pressureModel.multivariateAnalysis?.summary?.pressureEvidence||[]).includes('U15'));
+assert.ok(pressureModel.multivariateAnalysis?.axisSummary?.find(x=>x.axis==='uniformity' && 'trendRecovery' in x));
+
 // Data-depth gate: state-only, limited trend, moderate, strong.
 assert.equal(E.build({id:'d1',strain:'Ross 308'},[row('Ross 308',7,0,0)]).analysisConfidence,'low');
 assert.equal(E.build({id:'d2',strain:'Ross 308'},[0,1].map(i=>row('Ross 308',14,0,i))).analysisConfidence,'low');

@@ -173,4 +173,4 @@ assert.equal(semanticModel.states.fcr.trajectory.currentPosition,'better');
 assert.equal(semanticModel.states.mortality.trajectory.currentPosition,'better');
 assert.ok(E.build({id:'synth',strain:'Ross 308'},R(35)).trajectorySynthesis?.available);
 
-console.log('SMART TREND V3 VALIDATION PASSED: normalized gap, persistence, convergence/divergence, volatility and conditional forecast gates');
+console.log('SMART TREND V3.1 VALIDATION PASSED: normalized gap, persistence, convergence/divergence, volatility and conditional forecast gates');

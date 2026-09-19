@@ -95,8 +95,11 @@ function trendDashboard(m){
 function forecastText(f,item){
  if(!f?.available)return 'چشم‌انداز مشروط هنوز قابل محاسبه نیست.';
  const d=f.direction==='improving'?'بهبود':f.direction==='worsening'?'تضعیف':'ثبات';
+ const tr=item?.trajectory||{};
+ const projected=tr.projectedPosition==='better'?'بهتر از مرجع':tr.projectedPosition==='weaker'?'ضعیف‌تر از مرجع':'نزدیک به مرجع';
+ const turning=tr.turningPoint==='recent_turning_point'?(tr.turningDirection==='toward_better'?'نقطه چرخش اخیر به سمت بهتر':'نقطه چرخش اخیر به سمت نامطلوب'):'بدون نقطه چرخش اخیر';
  const u=Number.isFinite(Number(f.uncertaintyPercent))?' عدم‌قطعیت مسیر حدود ±'+fmt(f.uncertaintyPercent,1)+' واحد درصد است.':'';
- return 'جهت واقعی شاخص: '+d+'؛ این چشم‌انداز فقط در صورت ادامه الگوی فعلی معتبر است.'+u;
+ return 'چشم‌انداز ارزیابی بعدی: اگر الگوی فعلی ادامه یابد، جهت شاخص '+d+' و موقعیت مشروط آن '+projected+' خواهد بود؛ '+turning+'. این برآورد شرطی است، نه پیش‌بینی قطعی.'+u;
 }
 function outlookCard(item,kind){
  const isImprove=kind==='improve';
@@ -105,23 +108,15 @@ function outlookCard(item,kind){
  }
  const tr=item.trajectory||{},state=item.state||'informational';
  const title=isImprove?'ظرفیت بازیابی / مسیر مثبت':'ریسک / هشدار مسیر';
- const stateLabel={
-   confirmed_risk:'ریسک تأییدشده مسیر',
-   early_warning:'هشدار زودهنگام',
-   informational_warning:'پایش تقویتی',
-   recovery_opportunity:'ظرفیت بازیابی',
-   positive_momentum:'مومنتوم مثبت',
-   informational:'چشم‌انداز اطلاعاتی'
- }[state]||'چشم‌انداز مسیر';
- const relation=item.gapRelation||'فاصله نسبتاً پایدار';
- const raw=item.rawDirection||'پایدار';
- const position=item.currentMeaning||'نامشخص';
- const gap=Number.isFinite(Number(tr.currentGapPercent))?fmt(tr.currentGapPercent,1)+'٪':'—';
- const projected=Number.isFinite(Number(tr.projectedGapPercent))?fmt(tr.projectedGapPercent,1)+'٪':'—';
- const confidence=item.confidence||'محدود';
+ const stateLabel={confirmed_risk:'ریسک تأییدشده مسیر',early_warning:'هشدار زودهنگام',informational_warning:'پایش تقویتی',recovery_opportunity:'ظرفیت بازیابی',positive_momentum:'مومنتوم مثبت',informational:'چشم‌انداز اطلاعاتی'}[state]||'چشم‌انداز مسیر';
+ const relation=item.gapRelation||'فاصله نسبتاً پایدار',raw=item.rawDirection||'پایدار',position=item.currentMeaning||'نامشخص';
+ const projectedPosition=tr.projectedPosition==='better'?'بهتر از مرجع':tr.projectedPosition==='weaker'?'ضعیف‌تر از مرجع':'نزدیک به مرجع';
+ const turning=tr.turningPoint==='recent_turning_point'?(tr.turningDirection==='toward_better'?'چرخش مثبت اخیر':'چرخش منفی اخیر'):'بدون چرخش اخیر';
+ const gap=Number.isFinite(Number(tr.currentGapPercent))?fmt(tr.currentGapPercent,1)+'٪':'—',projected=Number.isFinite(Number(tr.projectedGapPercent))?fmt(tr.projectedGapPercent,1)+'٪':'—';
+ const confidence=item.confidence||'محدود',strength=tr.outlookStrength==='strong'?'قوی':tr.outlookStrength==='moderate'?'متوسط':'محدود';
  const corroboration=(item.corroboratingMetrics||[]).length?(' • پشتیبان هم‌محور: '+item.corroboratingMetrics.join('، ')):'';
  const evidence=(tr.pointsUsed||0)+' ارزیابی • شواهد '+confidence+' • امتیاز شواهد '+fmt(item.evidenceScore,0)+'/100 • تداوم '+(tr.persistenceLevel==='high'?'بالا':tr.persistenceLevel==='medium'?'متوسط':tr.persistenceLevel==='limited'?'محدود':'کم')+' • نوسان '+(tr.stability==='stable'?'پایدار':tr.stability==='moderate'?'متوسط':'بالا');
- return '<div class="pi-outlook-inner"><span>'+esc(title)+' • '+esc(stateLabel)+'</span><b>'+esc(item.label)+'</b><strong>'+esc(item.reason||'بر اساس مسیر مشاهده‌شده')+'</strong><div class="pi-outlook-facts"><small>جهت واقعی شاخص: <b>'+esc(raw)+'</b></small><small>وضعیت فعلی: <b>'+esc(position)+'</b></small><small>حرکت نسبت به مرجع: <b>'+esc(relation)+'</b></small><small>فاصله فعلی: <b>'+esc(gap)+'</b> • فاصله مشروط: <b>'+esc(projected)+'</b></small><small>هم‌محوری: <b>'+esc(item.axis||'—')+'</b>'+esc(corroboration)+'</small></div><small>شواهد: '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,item))+'</p></div>';
+ return '<div class="pi-outlook-inner"><span>'+esc(title)+' • '+esc(stateLabel)+'</span><b>'+esc(item.label)+'</b><strong>'+esc(item.reason||'بر اساس مسیر مشاهده‌شده')+'</strong><div class="pi-outlook-facts"><small>جهت واقعی شاخص: <b>'+esc(raw)+'</b></small><small>وضعیت فعلی: <b>'+esc(position)+'</b></small><small>حرکت نسبت به مرجع: <b>'+esc(relation)+'</b></small><small>ارزیابی بعدیِ مشروط: <b>'+esc(projectedPosition)+'</b> • فاصله مشروط: <b>'+esc(projected)+'</b></small><small>چرخش مسیر: <b>'+esc(turning)+'</b> • قدرت چشم‌انداز: <b>'+esc(strength)+'</b></small><small>هم‌محوری: <b>'+esc(item.axis||'—')+'</b>'+esc(corroboration)+'</small></div><small>شواهد: '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,item))+'</p></div>';
 }
 function evidenceCard(x){
  return '<article class="pi-smart-insight '+esc(x.severity||'watch')+' pi-severity-'+esc(x.severity||'positive')+'"><div class="pi-insight-top"><span class="pi-badge">'+(x.severity==='high'?'مهم':x.severity==='watch'?'پایش':'مثبت')+'</span><b>'+esc(x.title)+'</b></div><p>'+esc(x.text)+'</p><small>شواهد: '+esc((x.evidence||[]).join(' • '))+'</small></article>';

@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V9.4 — DIRECTION-AWARE CHARTS */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V10.0 — DIRECTION-AWARE CHARTS */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -59,19 +59,80 @@ function radarPoint(v,angle){const x=120+Math.sin(angle)*v*.97,y=120-Math.cos(an
 function radarValue(s){const g=n(s?.gapPercent),status=s?.status;if(g===null)return 75;const anchors={critical:38,watch:55,on_target:75,good:88,excellent:98};const center=anchors[status]??75;const drift=Math.max(-10,Math.min(10,g))*0.9;return Math.max(28,Math.min(100,center+drift))}
 function metricName(k){return{weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15',epef:'EPEF',feed:'خوراک',water:'آب',wfr:'آب/خوراک'}[k]||k}
 function sparkline(model,key){
- const a=model.series?.[key]||[],state=model.states?.[key]||{},t=state.trend||{},f=state.forecast,ref=a.at(-1)?.reference||state.official?.reference||{};
- const trend=t.direction==='improving'?'trend-good':t.direction==='worsening'?'trend-bad':t.direction==='stable'?'trend-neutral':'trend-muted';
- const trendStroke=t.direction==='improving'?'#2f8a61':t.direction==='worsening'?'#b83f35':t.direction==='stable'?'#7b8782':'#aeb9b4';
+ const raw=model.series?.[key]||[],
+       a=raw.map((x,i)=>({...x,_i:i,g:n(x.gapPercent)})).filter(x=>x.g!==null),
+       state=model.states?.[key]||{},
+       t=state.trend||{},
+       f=state.forecast||{},
+       ref=a.at(-1)?.reference||state.official?.reference||{};
  if(!a.length)return '<div class="pi-spark-empty">داده روند کافی نیست</div>';
- const vals=a.map(x=>n(x.gapPercent)).filter(x=>x!==null),projected=f?.available?(f.projectedGapPercent):null,all=projected===null?vals:[...vals,projected];
- const pointStroke=v=>v>0?'#2f8a61':v<0?'#b83f35':'#7b8782';
- const gradientId='piGapGradient_'+key;
- const gradientStops=vals.map((v,i)=>'<stop offset="'+(vals.length===1?0:i/(vals.length-1)*100).toFixed(1)+'%" stop-color="'+pointStroke(v)+'"></stop>').join('');
- const lo=Math.min(-10,...all),hi=Math.max(10,...all),w=300,h=72,p=8,den=Math.max(1,hi-lo),x=i=>p+(i/Math.max(1,a.length-1))*(w-2*p),y=v=>h-p-(v-lo)/den*(h-2*p);
- const path=vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
- const lastX=x(Math.max(0,vals.length-1)),lastY=y(vals.at(-1));
- const proj=f?.available&&projected!==null?'<line class="pi-spark-proj" style="stroke:'+(f.direction==='improving'?'#2f8a61':f.direction==='worsening'?'#b83f35':'#7b8782')+'" x1="'+lastX.toFixed(1)+'" y1="'+lastY.toFixed(1)+'" x2="'+(w-p).toFixed(1)+'" y2="'+y(projected).toFixed(1)+'"></line>':'';
- return '<svg class="pi-spark '+trend+'" data-trend-direction="'+esc(t.direction||'unknown')+'" data-pi-render-version="V9.4" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' نسبت به '+esc(ref.label||'استاندارد سنی')+'"><line class="pi-spark-zero" x1="'+p+'" y1="'+y(0)+'" x2="'+(w-p)+'" y2="'+y(0)+'"></line><defs><linearGradient id="'+gradientId+'" x1="0%" y1="0%" x2="100%" y2="0%">'+gradientStops+'</linearGradient></defs><path class="pi-spark-line '+trend+'" style="stroke:url(#'+gradientId+')" d="'+path+'"></path><circle class="pi-spark-last '+trend+'" style="fill:'+pointStroke(vals.at(-1))+'" cx="'+lastX+'" cy="'+lastY+'" r="3.5"></circle>'+proj+'</svg>';
+
+ const w=360,h=126,px=30,pr=12,pt=12,pb=28,
+       vals=a.map(x=>x.g),
+       projected=f.available?n(f.projectedGapPercent):null,
+       all=projected===null?vals:[...vals,projected],
+       lo=Math.min(-10,...all),hi=Math.max(10,...all),
+       den=Math.max(1,hi-lo),
+       x=i=>px+(i/Math.max(1,a.length-1))*(w-px-pr),
+       y=v=>pt+(hi-v)/den*(h-pt-pb),
+       zeroY=y(0);
+
+ const niceStep=den>35?10:den>18?5:den>9?2:1,
+       axisMin=Math.ceil(lo/niceStep)*niceStep,
+       axisMax=Math.floor(hi/niceStep)*niceStep,
+       axisVals=[];
+ for(let v=axisMin;v<=axisMax+niceStep/2;v+=niceStep)axisVals.push(v);
+
+ const directionColor=d=>d==='improving'?'#1f8a63':d==='worsening'?'#c3473e':d==='stable'?'#7b8782':'#9aa6a1';
+ const pointColor=v=>v>0?'#1f8a63':v<0?'#c3473e':'#7b8782';
+ const lineColor=directionColor(t.direction);
+
+ let grid='';
+ axisVals.forEach(v=>{
+   const yy=y(v);
+   grid+='<line class="pi-chart-grid-line" x1="'+px+'" y1="'+yy.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+yy.toFixed(1)+'"></line>'+
+         '<text class="pi-chart-y-label" x="'+(px-6)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+
+         (v>0?'+':'')+fmt(v,0)+'٪</text>';
+ });
+
+ const xLabels=a.map((p,i)=>{
+   const label=p.age!==undefined&&p.age!==null?p.age:(p.week!==undefined&&p.week!==null?'هفته '+p.week:String(i+1));
+   return '<text class="pi-chart-x-label" x="'+x(i).toFixed(1)+'" y="'+(h-7)+'" text-anchor="middle">'+esc(label)+'</text>';
+ }).join('');
+
+ let path='';
+ a.forEach((p,i)=>{path+=(i?'L':'M')+x(i).toFixed(1)+' '+y(p.g).toFixed(1)+' ';});
+
+ const areaTop=a.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(Math.max(0,p.g)).toFixed(1)).join(' ');
+ const areaBottom=a.slice().reverse().map((p,i)=>{
+   const idx=a.length-1-i;
+   return 'L'+x(idx).toFixed(1)+' '+y(Math.min(0,p.g)).toFixed(1);
+ }).join(' ');
+
+ const points=a.map((p,i)=>{
+   const c=pointColor(p.g);
+   const label=p.age!==undefined&&p.age!==null?('سن '+fmt(p.age,0)+' روز'):(p.week!==undefined?('هفته '+fmt(p.week,0)):'ارزیابی '+(i+1));
+   return '<g class="pi-chart-point" tabindex="0"><circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.g).toFixed(1)+'" r="5" fill="'+c+'" stroke="#fff" stroke-width="2"></circle><circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.g).toFixed(1)+'" r="8" fill="transparent"><title>'+esc(label)+' — '+esc(metricName(key))+'؛ فاصله عملکردی '+(p.g>0?'+':'')+fmt(p.g,1)+'٪</title></circle></g>';
+ }).join('');
+
+ const forecast=projected!==null&&a.length>0
+   ?'<line class="pi-chart-forecast" style="stroke:'+directionColor(f.direction)+'" x1="'+x(a.length-1).toFixed(1)+'" y1="'+y(vals.at(-1)).toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y(projected).toFixed(1)+'"></line>'
+   :'';
+
+ const trendBadge=t.direction==='improving'?'بهبود':t.direction==='worsening'?'افت':t.direction==='stable'?'پایدار':'داده ناکافی';
+
+ return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V10.0" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند فاصله عملکردی '+esc(metricName(key))+' نسبت به '+esc(ref.label||'استاندارد سنی')+'">'+
+   '<rect class="pi-chart-zone-good" x="'+px+'" y="'+pt+'" width="'+(w-px-pr)+'" height="'+Math.max(0,zeroY-pt).toFixed(1)+'"></rect>'+
+   '<rect class="pi-chart-zone-bad" x="'+px+'" y="'+zeroY.toFixed(1)+'" width="'+(w-px-pr)+'" height="'+Math.max(0,h-pb-zeroY).toFixed(1)+'"></rect>'+
+   grid+
+   '<line class="pi-chart-zero-line" x1="'+px+'" y1="'+zeroY.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+zeroY.toFixed(1)+'"></line>'+
+   '<path class="pi-chart-good-area" d="'+areaTop+' L'+x(a.at(-1)._i).toFixed(1)+' '+zeroY.toFixed(1)+' L'+x(a[0]._i).toFixed(1)+' '+zeroY.toFixed(1)+' Z"></path>'+
+   '<path class="pi-chart-bad-area" d="'+areaBottom+' L'+x(a[0]._i).toFixed(1)+' '+zeroY.toFixed(1)+' L'+x(a.at(-1)._i).toFixed(1)+' '+zeroY.toFixed(1)+' Z"></path>'+
+   '<path class="pi-chart-main-line" style="stroke:'+lineColor+'" d="'+path+'"></path>'+
+   forecast+points+xLabels+
+   '<text class="pi-chart-zero-label" x="'+(w-pr)+'" y="'+(zeroY-5).toFixed(1)+'" text-anchor="end">استاندارد سن</text>'+
+   '<title>'+esc(metricName(key))+'؛ '+trendBadge+'؛ صفر = استاندارد همان سن؛ مثبت = بهتر؛ منفی = ضعیف‌تر</title>'+
+   '</svg>';
 }
 function trendDashboard(m){
  const keys=['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15'];
@@ -134,5 +195,5 @@ section('تحلیل چندشاخصی','تفسیر ترکیبی وضعیت فعل
  })(),'adaptive')+section('منبع، اعتماد و محدودیت','استاندارد و داده از منبع استاندارد مشترک','<div class="pi-note"><b>منبع استاندارد:</b> '+esc(m.targetAuthority)+'<br><b>رکوردها:</b> '+fmt(m.coverage?.records,0)+' • <b>اهداف مرجع علمی:</b> '+fmt(m.coverage?.canonicalTargets,0)+' • <b>نمونه وزن:</b> '+fmt(m.coverage?.weightSamples,0)+' قطعه<br><br>هوش عملکرد هیچ استاندارد رسمی یا مدیریتی مستقلی تعریف نمی‌کند. مقادیر مرجع از منبع استاندارد مشترک دریافت می‌شوند و در نبود داده کافی، سیستم نتیجه‌گیری را محدود می‌کند.</div>')+'</div>';bind()}
 function bind(){document.querySelectorAll('.pi-accordion-head').forEach(b=>b.addEventListener('click',()=>{const e=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',String(!e));b.nextElementSibling.hidden=e;b.querySelector('i').textContent=e?'⌄':'⌃'}));document.querySelectorAll('[data-band]').forEach(b=>b.addEventListener('click',()=>{const x=global.__adinePerformanceIntelligenceModel.weightBand;if(!x)return;const k=b.dataset.band,n=k==='10'?['داخل ±۱۰٪',x.within10,x.within10Percent]:k==='mid'?['بین ±۱۰ تا ±۱۵٪',x.between10and15,x.between10and15Percent]:['خارج ±۱۵٪',x.outside15,x.outside15Percent],z=document.getElementById('piBandNote');if(z)z.textContent=n[0]+': '+fmt(n[1],0)+' قطعه • '+pct(n[2])+' از '+fmt(x.sampleCount,0)+' نمونه • مرجع: '+fmt(x.referenceWeight,0)+' گرم'}));
 document.querySelectorAll('[data-weight-point]').forEach(p=>p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();document.querySelectorAll('.pi-weight-point.selected').forEach(x=>x.classList.remove('selected'));p.classList.add('selected');const z=document.getElementById('piWeightSelected');const w=n(p.dataset.weight);if(z&&w!==null){const m=global.__adinePerformanceIntelligenceModel,b=m.weightBand,t=b?.referenceWeight,g=t?((w-t)/t*100):null;const pos=w>=t*0.9&&w<=t*1.1?'داخل ±۱۰٪':w>=t*0.85&&w<=t*1.15?'بین ±۱۰ تا ±۱۵٪':'خارج ±۱۵٪';z.innerHTML='<b>نمونه '+fmt((Number(p.dataset.weightIndex)||0)+1,0)+' از '+fmt(b.sampleCount,0)+' • '+fmt(w,0)+' گرم</b><span>فاصله از وزن مرجع: '+(g===null?'—':fmt(g,1)+'٪')+'</span><span>وضعیت محدوده: '+pos+'</span>'}}));}
-global.AdineBroilerPerformanceIntelligenceReport={version:'V9.4',render};
+global.AdineBroilerPerformanceIntelligenceReport={version:'V10.0',render};
 })(typeof window!=='undefined'?window:globalThis);

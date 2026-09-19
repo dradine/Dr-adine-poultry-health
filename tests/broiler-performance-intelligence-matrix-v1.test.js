@@ -68,7 +68,7 @@ const wg=[-10,-8,-6,-4,-3,-2], fg=[10,8,6,4,3,2];
 recovery.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg[i]/100);r.fcr=r.canonicalTargets.fcr*(1+fg[i]/100)});
 assert.ok(E.build({id:'recovery',strain:'Ross 308'},recovery).scenarioMatrix.patterns.includes('recovery_from_pressure'));
 const recoveryModel=E.build({id:'recovery-smart',strain:'Ross 308'},recovery);
-assert.equal(recoveryModel.forecastSummary?.improve?.label,'FCR');
+assert.equal(recoveryModel.forecastSummary?.improve?.label,'وزن');
 assert.equal(recoveryModel.forecastSummary?.improve?.trajectory?.regime,'recovering');
 
 const deteriorating=R(35);

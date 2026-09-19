@@ -107,7 +107,7 @@ stableTrajectory.forEach(r=>{good(r,'weight');good(r,'fcr')});
 const stableTrajectoryModel=E.build({id:'stable-smart',strain:'Ross 308'},stableTrajectory);
 assert.equal(stableTrajectoryModel.forecastSummary?.risk,null);
 assert.equal(stableTrajectoryModel.forecastSummary?.improve,null);
-assert.equal(stableTrajectoryModel.forecastSummary?.method,'normalized-gap + robust-momentum + persistence + convergence/divergence + volatility + conditional-forecast');
+assert.equal(stableTrajectoryModel.forecastSummary?.method,'normalized-gap + robust-momentum + persistence + convergence/divergence + calibrated-volatility + conditional-forecast');
 
 assert.equal(riskModel.targetAuthority,'canonical-broiler-standards-engine');
 assert.ok(Object.values(riskModel.states).every(x=>x.official?.reference?.label || x.official?.status==='unavailable'));

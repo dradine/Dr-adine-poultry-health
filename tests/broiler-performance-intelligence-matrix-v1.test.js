@@ -64,7 +64,7 @@ bad(early[5],'weight'); bad(early[5],'fcr');
 assert.ok(E.build({id:'early',strain:'Ross 308'},early).scenarioMatrix.patterns.includes('early_warning'));
 
 const recovery=R(35);
-const wg=[-10,-7,-3,0,3,6], fg=[10,7,3,0,-3,-6];
+const wg=[-10,-8,-6,-4,-3,-2], fg=[10,8,6,4,3,2];
 recovery.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg[i]/100);r.fcr=r.canonicalTargets.fcr*(1+fg[i]/100)});
 assert.ok(E.build({id:'recovery',strain:'Ross 308'},recovery).scenarioMatrix.patterns.includes('recovery_from_pressure'));
 

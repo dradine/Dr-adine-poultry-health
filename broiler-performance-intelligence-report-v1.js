@@ -79,7 +79,7 @@ function sparkline(model,key){
  const span=Math.max(1,hi-lo),pad=Math.max(span*.08,Math.abs((hi+lo)/2)*.015||1);
  lo-=pad;hi+=pad;
  const den=Math.max(1,hi-lo);
- const x=i=>px+(i/Math.max(1,a.length-1))*(w-px-pr);
+ const x=i=>px+((i+1)/Math.max(1,a.length))*(w-px-pr);
  const y=v=>pt+(hi-v)/den*(h-pt-pb);
 
  const niceStep=(range)=>{

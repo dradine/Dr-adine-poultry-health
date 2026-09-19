@@ -3,7 +3,7 @@
 const assert=require('node:assert/strict');
 require('../broiler-performance-intelligence-engine-v2.js');
 const E=global.AdineBroilerPerformanceIntelligenceV2;
-assert.equal(E.version,'BROILER-PI-V6.3');
+assert.equal(E.version,'BROILER-PI-V6.4');
 
 const STRAINS=['Ross 308','Ross 308 FF','Ross 708','Ross 308 AP','Cobb500','Cobb800','Arbor Acres Plus','Arbor Acres Plus S','Indian River','Indian River FF','Efficiency Plus','Hubbard EDGE','Arian'];
 const AGES=[7,14,21,28,35,42,49,56];
@@ -139,7 +139,7 @@ deteriorating.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg2[i]/100);
 const riskModel=E.build({id:'risk-smart',strain:'Ross 308'},deteriorating);
 assert.ok(riskModel.forecastSummary?.risk);
 assert.ok(['weight','fcr'].includes(riskModel.forecastSummary.risk.key));
-assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.7');
+assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V4.0');
 assert.ok(riskModel.states.weight.trajectory.currentGapPercent<0);
 assert.ok(Number.isFinite(riskModel.states.weight.trajectory.momentum));
 
@@ -286,4 +286,57 @@ const cvModel=E.build({id:'cv-directional',strain:'Ross 308'},cvRows);
 assert.equal(cvModel.states.cv.trajectory.direction,'improving');
 assert.equal(cvModel.states.cv.trajectory.currentPosition,'near_reference');
 
-console.log('SMART TREND V3.5 VALIDATION PASSED: metric-direction semantics, scenario outlook and U15 regression guard');
+console.log('SMART TREND V3.5 COMPATIBILITY VALIDATION PASSED: metric-direction semantics and U15 regression guard');
+
+// Smart Trend V4.0 — reference-gap-first path semantics.
+// A metric can move intrinsically in the expected biological direction while
+// still losing ground against its age-specific reference. The card forecast
+// must classify the reference-relative path as deterioration in that case.
+const ageAwareWeight=[
+  {id:'w7',week:1,age:7,weight:900,canonicalTargets:{weight:1000}},
+  {id:'w14',week:2,age:14,weight:950,canonicalTargets:{weight:1080}},
+  {id:'w21',week:3,age:21,weight:1000,canonicalTargets:{weight:1200}}
+];
+const ageAwareModel=E.build({id:'age-aware-weight',strain:'Ross 308'},ageAwareWeight);
+assert.equal(ageAwareModel.states.weight.trajectory.rawDirection,'improving');
+assert.equal(ageAwareModel.states.weight.trajectory.pathDirection,'worsening');
+assert.equal(ageAwareModel.states.weight.trajectory.currentPosition,'weaker');
+assert.ok(ageAwareModel.forecastSummary?.risk||ageAwareModel.forecastSummary?.earlyWarning);
+assert.equal(ageAwareModel.states.weight.trajectory.uncertaintyPercent,null);
+
+// Three evaluations are enough to describe direction, but not enough to show
+// a numeric uncertainty band as if it were a validated measurement interval.
+assert.equal(ageAwareModel.states.weight.forecast.uncertaintyPercent,null);
+
+// Four evaluations can expose the model's residual-based path uncertainty.
+const fourAware=[
+  ...ageAwareWeight,
+  {id:'w28',week:4,age:28,weight:1020,canonicalTargets:{weight:1250}}
+];
+const fourAwareModel=E.build({id:'age-aware-weight-4',strain:'Ross 308'},fourAware);
+assert.ok(fourAwareModel.states.weight.trajectory.uncertaintyPercent===null || Number.isFinite(fourAwareModel.states.weight.trajectory.uncertaintyPercent));
+
+// Canonical catalog guard: all 13 broiler strains in the selector must resolve
+// through the canonical standards authority without inventing a null target
+// for weight at the documented weekly ages.
+require('../broiler-official-standards-v1.js');
+for(const strain of STRAINS){
+  const resolved=global.broilerCanonicalMetricTarget(strain,56,'weight');
+  assert.ok(resolved && Number.isFinite(Number(resolved.value)), 'canonical weight missing for '+strain);
+}
+
+// Smart Trend V4.0 — lower-is-better metrics use the same reference-gap-first
+// semantics: farther below a reference is favorable; moving back toward it is
+// deterioration even if the absolute value is still below the target.
+const fcrAgeAware=[
+  {id:'f7',week:1,age:7,fcr:1.00,canonicalTargets:{fcr:0.90}},
+  {id:'f14',week:2,age:14,fcr:0.99,canonicalTargets:{fcr:0.88}},
+  {id:'f21',week:3,age:21,fcr:0.98,canonicalTargets:{fcr:0.84}}
+];
+const fcrAgeModel=E.build({id:'fcr-age-aware',strain:'Ross 308'},fcrAgeAware);
+assert.equal(fcrAgeModel.states.fcr.trajectory.rawDirection,'improving');
+assert.equal(fcrAgeModel.states.fcr.trajectory.pathDirection,'worsening');
+assert.equal(fcrAgeModel.states.fcr.trajectory.currentPosition,'weaker');
+assert.equal(fcrAgeModel.states.fcr.trajectory.semanticRelation,'worse_farther');
+
+console.log('SMART TREND V4.0 VALIDATION PASSED: reference-gap-first paths, age-aware semantics, 13-strain canonical coverage, and uncertainty gating');

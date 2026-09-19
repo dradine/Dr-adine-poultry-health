@@ -105,8 +105,9 @@ assert.ok(Number.isFinite(riskModel.states.weight.trajectory.momentum));
 const stableTrajectory=R(35);
 stableTrajectory.forEach(r=>{good(r,'weight');good(r,'fcr')});
 const stableTrajectoryModel=E.build({id:'stable-smart',strain:'Ross 308'},stableTrajectory);
-assert.equal(stableTrajectoryModel.forecastSummary?.risk,null);
-assert.equal(stableTrajectoryModel.forecastSummary?.improve,null);
+assert.equal(stableTrajectoryModel.forecastSummary?.risk?.state||null,null);
+assert.ok(stableTrajectoryModel.forecastSummary?.improve);
+assert.equal(stableTrajectoryModel.forecastSummary?.improve?.state,'informational');
 assert.ok(stableTrajectoryModel.forecastSummary?.method.includes('metric-direction-semantics'));
 assert.ok(stableTrajectoryModel.forecastSummary?.scenarioOverview);
 

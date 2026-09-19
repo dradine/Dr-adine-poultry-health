@@ -67,7 +67,7 @@ function sparkline(model,key){
        lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(key);
  if(!a.length)return '<div class="pi-spark-empty">داده روند و مرجع سنی کافی نیست</div>';
 
- const w=360,h=184,px=58,pr=58,pt=18,pb=72;
+ const w=360,h=184,px=82,pr=34,pt=18,pb=72;
  const projected=f.available?n(f.projectedGapPercent):null;
  const values=[];
  a.forEach(p=>{values.push(p.actual,p.target)});

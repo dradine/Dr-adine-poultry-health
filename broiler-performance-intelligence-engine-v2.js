@@ -158,7 +158,7 @@ function inputFingerprint(flock,rows){
 function multivariateAnalysis(rows,s){
  const meta={weight:{label:'وزن',axis:'growth',weight:1.25,lower:false},adg:{label:'افزایش وزن',axis:'growth',weight:1.15,lower:false},fcr:{label:'FCR',axis:'efficiency',weight:1.2,lower:true},cumulativeFcr:{label:'FCR تجمعی',axis:'efficiency',weight:1.05,lower:true},mortality:{label:'تلفات',axis:'survival',weight:1.15,lower:true},cv:{label:'CV',axis:'uniformity',weight:1,lower:true},u10:{label:'U10',axis:'uniformity',weight:1,lower:false},u15:{label:'U15',axis:'uniformity',weight:.9,lower:false},epef:{label:'EPEF',axis:'outcome',weight:.55,lower:false,derived:true}};
  const axisMeta={growth:{label:'رشد',metrics:['weight','adg']},efficiency:{label:'کارایی خوراک',metrics:['fcr','cumulativeFcr']},survival:{label:'بقا و سلامت عملکردی',metrics:['mortality']},uniformity:{label:'کیفیت و یکنواختی گله',metrics:['cv','u10','u15']},outcome:{label:'خروجی ترکیبی عملکرد',metrics:['epef']}}; const evidence=multivariateEvidence(rows,s,meta); const matrix=scenarioMatrix(rows,s,meta,evidence);
- const usable=Object.keys(meta).map(k=>{const q=s[k]||{},o=q.official||{},t=q.trend||{};if(o.current===null||o.current===undefined||o.gapPercent===null||o.gapPercent===undefined)return null;const status=o.status||'unavailable',gap=Number(o.gapPercent),pressure=status==='critical'?3:status==='watch'?2:status==='on_target'?0:status==='good'?-1:status==='excellent'?-2:0,trend=t.direction==='worsening'?2:t.direction==='improving'?-2:0,movement=['worse_farther','crossed_to_worse'].includes(t.movement)?1:['better_farther','crossed_to_better'].includes(t.movement)?-1:0,burden=Math.max(-4,Math.min(4,pressure*.9+trend*.75+movement*.45));return{key:k,...meta[k],axis:meta[k].axis,status,gap,trend:t.direction||'insufficient',movement:t.movement||'insufficient',burden,reference:o.reference||null}}).filter(Boolean);
+ const usable=Object.keys(meta).map(k=>{const q=s[k]||{},o=q.official||{},t=q.trend||{};if(o.current===null||o.current===undefined||o.gapPercent===null||o.gapPercent===undefined)return null;const status=o.status||'unavailable',gap=Number(o.gapPercent),pressure=status==='critical'?3:status==='watch'?2:status==='on_target'?0:status==='good'?-1:status==='excellent'?-2:0,trend=(t.pathDirection||t.direction)==='worsening'?2:(t.pathDirection||t.direction)==='improving'?-2:0,movement=['worse_farther','crossed_to_worse'].includes(t.movement)?1:['better_farther','crossed_to_better'].includes(t.movement)?-1:0,burden=Math.max(-4,Math.min(4,pressure*.9+trend*.75+movement*.45));return{key:k,...meta[k],axis:meta[k].axis,status,gap,trend:(t.pathDirection||t.direction)||'insufficient',movement:t.movement||'insufficient',burden,reference:o.reference||null}}).filter(Boolean);
  const confidenceScore=Math.max(0,Math.min(100,Math.round(Math.min(1,rows.length/6)*40+Object.values(evidence.axisCoverage).filter(x=>x.coverage>=.5).length/5*35+(Object.values(evidence.volatility).filter(x=>x.available&&x.level!=='high').length/Math.max(1,Object.keys(evidence.volatility).length))*15+(evidence.recentRecords>=3?10:0)))); const confidence=confidenceScore>=75?'بالا':confidenceScore>=50?'متوسط':confidenceScore>=30?'محدود':'پایین';
  const axisScores={};Object.keys(axisMeta).forEach(axis=>{const ms=usable.filter(x=>x.axis===axis),den=ms.reduce((a,x)=>a+x.weight,0);const trendPart=x=>(x.trend==='worsening'?2:x.trend==='improving'?-2:0)*.75+(['worse_farther','crossed_to_worse'].includes(x.movement)?1:['better_farther','crossed_to_better'].includes(x.movement)?-1:0)*.45;axisScores[axis]={axis,label:axisMeta[axis].label,metrics:ms.map(x=>x.key),coverage:ms.length+'/'+axisMeta[axis].metrics.length,score:den?ms.reduce((a,x)=>a+x.burden*x.weight,0)/den:0,pressure:den?ms.reduce((a,x)=>a+Math.max(0,x.burden)*x.weight,0)/den:0,protective:den?ms.reduce((a,x)=>a+Math.max(0,-x.burden)*x.weight,0)/den:0,trendPressure:den?ms.reduce((a,x)=>a+Math.max(0,trendPart(x))*x.weight,0)/den:0,trendRecovery:den?ms.reduce((a,x)=>a+Math.max(0,-trendPart(x))*x.weight,0)/den:0,recovery:den?ms.reduce((a,x)=>a+Math.max(0,-trendPart(x))*x.weight,0)/den:0}});
  const axisPriority=a=>a.pressure*(.55+.45*(evidence.axisCoverage[a.axis]?.coverage||0))*(a.axis==='outcome'?.65:1); const pressured=Object.values(axisScores).filter(a=>a.pressure>=1.05).sort((a,b)=>axisPriority(b)-axisPriority(a)),improving=Object.values(axisScores).filter(a=>a.trendRecovery>=1.0).sort((a,b)=>b.trendRecovery*(.55+.45*(evidence.axisCoverage[b.axis]?.coverage||0))-a.trendRecovery*(.55+.45*(evidence.axisCoverage[a.axis]?.coverage||0))),supporting=usable.filter(x=>x.burden>=1.2).sort((a,b)=>b.burden-a.burden).slice(0,6),pressureEvidence=usable.filter(x=>['watch','critical'].includes(x.status)||x.trend==='worsening'||['worse_farther','crossed_to_worse'].includes(x.movement)).sort((a,b)=>b.burden-a.burden).slice(0,6),protective=usable.filter(x=>x.burden<=-1.2).sort((a,b)=>a.burden-b.burden).slice(0,6),mixed=usable.filter(x=>Math.abs(x.burden)<1.2),dominant=pressured[0]||null,secondary=pressured[1]||null,directionalSignals=usable.filter(x=>x.trend==='improving'||x.trend==='worsening'),directionalCoherence=directionalSignals.length?Math.round(Math.max(...['improving','worsening'].map(d=>directionalSignals.filter(x=>x.trend===d).length))/directionalSignals.length*100):0,referenceCoherence=usable.length?Math.round(usable.filter(x=>Math.abs(x.burden)>=1.2).length/usable.length*100):0,crossAxisCoherence=pressured.length>=2?Math.round(Math.min(100,pressured.slice(0,3).reduce((a,x)=>a+Math.min(1,x.pressure/3),0)/Math.min(3,pressured.length)*100)):0,coherence=Math.round(directionalCoherence*.35+referenceCoherence*.25+crossAxisCoherence*.4);
@@ -247,16 +247,9 @@ function trajectoryProfile(rows,m,strain){
  const current=vals.at(-1),previous=vals.at(-2);
  const nextAge=nextEvaluationAge(z.at(-1)?.age);
  const canonicalNext=nextAge===null?null:canonicalNextTarget(strain,nextAge,m);
- const projected=canonicalNext!==null?((()=>{
-   const currentActual=z.at(-1).actual;
-   const rawProjected=reg?.nextGapPercent;
-   if(rawProjected!==undefined&&rawProjected!==null){
-     const nextTarget=canonicalNext;
-     const directionalProjection=lowerIsBetter?-rawProjected:rawProjected;
-     return directionalProjection;
-   }
-   return gapReg?.nextGapPercent??current;
- })()):gapReg?.nextGapPercent??current;
+ // Projection is made on the normalized age-specific reference gap itself.
+ // The next strain target is metadata/validation, not a second transformation.
+ const projected=gapReg?.nextGapPercent??current;
  const absCurrent=Math.abs(current),absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
  const relation=Math.abs(absDelta)<=pathTol?'stable':absDelta<0?'converging':'diverging';
  const gapEffect=Math.abs(absDelta)<=pathTol?'stable':current>pathTol?(absDelta>0?'favorable_widening':'favorable_narrowing'):current<-pathTol?(absDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse');
@@ -326,14 +319,14 @@ function buildForecastSummary(rows,s){
    const points=t.pointsUsed||0,persistence=t.persistence??0;
    if(current===null||projected===null)return null;
    const gapDelta=projected-current,distanceDelta=Math.abs(projected)-Math.abs(current);
-   const underPressure=current<-.6,aboveReference=current>.6,nearReference=Math.abs(current)<=.6;
-   const gapNarrowing=distanceDelta<-.7,gapWidening=distanceDelta>.7;
-   const gapEffect=Math.abs(distanceDelta)<=.7?'stable':current>.6?(distanceDelta>0?'favorable_widening':'favorable_narrowing'):current<-.6?(distanceDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse');
+   const pathTol=Math.max(.25,Number(t.slopeThresholdPercent)||.25),underPressure=current< -pathTol,aboveReference=current>pathTol,nearReference=Math.abs(current)<=pathTol;
+   const gapNarrowing=distanceDelta< -pathTol,gapWidening=distanceDelta>pathTol;
+   const gapEffect=t.gapEffect|| (Math.abs(distanceDelta)<=pathTol?'stable':current>pathTol?(distanceDelta>0?'favorable_widening':'favorable_narrowing'):current< -pathTol?(distanceDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse'));
    const gapImproving=gapEffect==='favorable_widening'||gapEffect==='favorable_narrowing'||gapEffect==='toward_better';
    const gapWorsening=gapEffect==='unfavorable_widening'||gapEffect==='unfavorable_narrowing'||gapEffect==='toward_worse';
    const actualImproving=(t.pathDirection||t.direction)==='improving',actualWorsening=(t.pathDirection||t.direction)==='worsening',stable=(t.pathDirection||t.direction)==='stable';
-   const crossesNegative=current>=-.6&&projected<-.6;
-   const crossesPositive=current<-.6&&projected>=-.6;
+   const crossesNegative=current>=-pathTol&&projected< -pathTol;
+   const crossesPositive=current< -pathTol&&projected>=-pathTol;
    const highVol=t.stability==='high_volatility',moderateVol=t.stability==='moderate';
    const evidenceBase=points>=6?90:points===5?78:points===4?64:points===3?48:25;
    const persistenceScore=Math.round(Math.max(0,Math.min(1,persistence))*100);
@@ -342,7 +335,7 @@ function buildForecastSummary(rows,s){
    const slopeScore=Math.round(slopeSignal*100);
    const volatilityPenalty=highVol?22:moderateVol?10:0;
    const axisKeys=metricKeys.filter(k=>axisOf[k]===axisOf[key]&&k!==key);
-   const corroborating=axisKeys.filter(k=>s[k]?.trajectory?.available&&s[k].trajectory.pointsUsed>=3&&s[k].trajectory.direction===t.direction).length;
+   const corroborating=axisKeys.filter(k=>s[k]?.trajectory?.available&&s[k].trajectory.pointsUsed>=3&&(s[k].trajectory.pathDirection||s[k].trajectory.direction)===(t.pathDirection||t.direction)).length;
    const axisSupport=Math.min(2,corroborating);
    const crossMetricSupport=axisSupport>=2?1:axisSupport===1?.5:0;
    const evidenceScore=Math.max(0,Math.min(100,Math.round(evidenceBase*.40+persistenceScore*.25+slopeScore*.15+crossMetricSupport*100*.20-volatilityPenalty)));
@@ -417,7 +410,7 @@ function buildTrajectorySynthesis(s){
  const keys=['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15'];
  const usable=keys.map(k=>s[k]?.trajectory).filter(t=>t?.available&&t.pointsUsed>=3);
  if(!usable.length)return{available:false,text:'برای جمع‌بندی مسیر، داده زمانی کافی وجود ندارد.',counts:{improving:0,worsening:0,stable:0}};
- const counts={improving:usable.filter(t=>t.direction==='improving').length,worsening:usable.filter(t=>t.direction==='worsening').length,stable:usable.filter(t=>t.direction==='stable').length};
+ const counts={improving:usable.filter(t=>(t.pathDirection||t.direction)==='improving').length,worsening:usable.filter(t=>(t.pathDirection||t.direction)==='worsening').length,stable:usable.filter(t=>(t.pathDirection||t.direction)==='stable').length};
  const dominant=Math.max(counts.improving,counts.worsening,counts.stable);
  const direction=counts.improving===dominant?'improving':counts.worsening===dominant?'worsening':'stable';
  const divergent=usable.filter(t=>t.relation==='diverging').length,converging=usable.filter(t=>t.relation==='converging').length;

@@ -213,7 +213,7 @@
 .pi-smart-gap-chart{display:block;width:100%;height:auto;min-height:118px;overflow:visible}
 .pi-chart-grid-line{stroke:#dfe6e3;stroke-width:1;stroke-dasharray:2 4;vector-effect:non-scaling-stroke}
 .pi-chart-y-label,.pi-chart-x-label,.pi-chart-zero-label{font-family:Tahoma,Arial,sans-serif;font-size:8px;fill:#73817c;user-select:none}
-.pi-chart-zero-label{font-size:8px;font-weight:700;fill:#596762}
+.pi-chart-zero-label{font-size:5.2px;font-weight:700;fill:#596762;letter-spacing:-.1px}
 .pi-chart-zero-line{stroke:#65736e;stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
 .pi-chart-zone-good{fill:rgba(31,138,99,.045)}
 .pi-chart-zone-bad{fill:rgba(195,71,62,.035)}

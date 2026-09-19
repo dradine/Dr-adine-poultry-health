@@ -201,3 +201,9 @@
 .pi-outlook-risk-v2:before,.pi-outlook-improve-v2:before{left:15px!important;top:16px!important;width:28px!important;height:28px!important;display:grid!important;place-items:center!important;border-radius:50%!important;color:#fff!important;font-size:17px!important;font-weight:950!important}
 .pi-outlook-risk-v2:before{background:#b83f35!important;box-shadow:0 4px 12px rgba(184,63,53,.3)!important}
 .pi-outlook-improve-v2:before{background:#278557!important;box-shadow:0 4px 12px rgba(39,133,87,.28)!important}
+
+
+/* PI V9.2 — direction-aware sparkline colors */
+.pi-spark-line.trend-good{stroke:#2f8a61!important}.pi-spark-line.trend-bad{stroke:#b83f35!important}.pi-spark-line.trend-neutral{stroke:#7b8782!important}.pi-spark-line.trend-muted{stroke:#aeb9b4!important}
+.pi-spark-last.trend-good{fill:#2f8a61!important}.pi-spark-last.trend-bad{fill:#b83f35!important}.pi-spark-last.trend-neutral{fill:#7b8782!important}.pi-spark-last.trend-muted{fill:#aeb9b4!important}
+.pi-spark-proj.trend-good{stroke:#2f8a61!important}.pi-spark-proj.trend-bad{stroke:#b83f35!important}.pi-spark-proj.trend-neutral{stroke:#7b8782!important}

@@ -194,7 +194,8 @@ function trajectoryProfile(rows,m){
  const current=vals.at(-1),previous=vals.at(-2),projected=gapReg?.nextGapPercent??current;
  const absCurrent=Math.abs(current),absProjected=Math.abs(projected),absDelta=absProjected-absCurrent;
  const relation=Math.abs(absDelta)<=.6?'stable':absDelta<0?'converging':'diverging';
- const semanticRelation=current>.6?(direction==='improving'?'better_farther':direction==='worsening'?'closer_to_reference':'stable'):current<-.6?(direction==='improving'?'converging':direction==='worsening'?'worse_farther':'stable'):(direction==='improving'?'toward_better':direction==='worsening'?'toward_worse':'stable');
+ const gapEffect=Math.abs(absDelta)<=.6?'stable':(current>.6?(absDelta>0?'favorable_widening':'favorable_narrowing'):(current<-.6?(absDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse')));
+ const semanticRelation=current>.6?(absDelta>0?'better_farther':absDelta<0?'better_closer':'stable'):current<-.6?(absDelta>0?'worse_farther':absDelta<0?'worse_closer':'stable'):(projected>current?'toward_better':'toward_worse');
  const crossed=current<0&&projected>=0?'crossed_to_better':current>0&&projected<=0?'crossed_to_worse':'not_crossed';
  const currentPosition=current>.6?'better':current<-.6?'weaker':'near_reference';
  const projectedPosition=projected>.6?'better':projected<-.6?'weaker':'near_reference';
@@ -246,7 +247,7 @@ function trajectoryProfile(rows,m){
        ?(pressure&&gapNarrowing?'در صورت تداوم مسیر فعلی، فاصله نامطلوب از مرجع می‌تواند کاهش یابد.':favorable?'در صورت تداوم مسیر، موقعیت مطلوب می‌تواند حفظ شود.':'در صورت تداوم مسیر، شاخص به سمت وضعیت مطلوب‌تر حرکت می‌کند.')
        :'در صورت تداوم الگوی فعلی، تغییر بزرگ و پایدار در جهت شاخص از شواهد فعلی قابل استنباط نیست.'
  };
- return{available:true,regime,direction,performanceDirection:direction,relation,semanticRelation,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),slopeThresholdPercent:Number(stepTol.toFixed(3)),residualMadPercent:Number(noise.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
+ return{available:true,regime,direction,performanceDirection:direction,relation,semanticRelation,gapEffect,crossed,currentPosition,projectedPosition,turningPoint,turningDirection,persistence:Number(persistence.toFixed(2)),persistenceLevel,volatility:Number(volatility.toFixed(2)),volatilityScore:Number(volatilityScore.toFixed(2)),reversals,stability,stabilityScore:Number(stabilityScore.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),slopeThresholdPercent:Number(stepTol.toFixed(3)),residualMadPercent:Number(noise.toFixed(3)),momentum:Number((diffs.at(-1)??0).toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,distanceToZeroPercent:Number(absCurrent.toFixed(2)),projectedDistanceToZeroPercent:Number(absProjected.toFixed(2)),distanceDeltaPercent:Number(absDelta.toFixed(2)),pointsUsed:z.length,uncertaintyPercent:gapReg?.residualBand??null,forecastConfidence,outlookStrength,evidenceLevel:z.length>=5?'high':z.length>=4?'medium':'limited',gapSeries:vals,rawSeries:z.map(x=>x.actual),directionalSeries:directional,conditionalOutlook,scenarios};
 }
 function buildForecastSummary(rows,s){
  const labels={weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15'};
@@ -261,6 +262,9 @@ function buildForecastSummary(rows,s){
    const gapDelta=projected-current,distanceDelta=Math.abs(projected)-Math.abs(current);
    const underPressure=current<-.6,aboveReference=current>.6,nearReference=Math.abs(current)<=.6;
    const gapNarrowing=distanceDelta<-.7,gapWidening=distanceDelta>.7;
+   const gapEffect=Math.abs(distanceDelta)<=.7?'stable':current>.6?(distanceDelta>0?'favorable_widening':'favorable_narrowing'):current<-.6?(distanceDelta>0?'unfavorable_widening':'unfavorable_narrowing'):(projected>current?'toward_better':'toward_worse');
+   const gapImproving=gapEffect==='favorable_widening'||gapEffect==='favorable_narrowing'||gapEffect==='toward_better';
+   const gapWorsening=gapEffect==='unfavorable_widening'||gapEffect==='unfavorable_narrowing'||gapEffect==='toward_worse';
    const actualImproving=t.direction==='improving',actualWorsening=t.direction==='worsening',stable=t.direction==='stable';
    const crossesNegative=current>=-.6&&projected<-.6;
    const crossesPositive=current<-.6&&projected>=-.6;
@@ -276,8 +280,8 @@ function buildForecastSummary(rows,s){
    const axisSupport=Math.min(2,corroborating);
    const crossMetricSupport=axisSupport>=2?1:axisSupport===1?.5:0;
    const evidenceScore=Math.max(0,Math.min(100,Math.round(evidenceBase*.40+persistenceScore*.25+slopeScore*.15+crossMetricSupport*100*.20-volatilityPenalty)));
-   const severityBase=Math.max(0,-current)*.45+Math.max(0,distanceDelta)*.25+(actualWorsening?12:0)+(crossesNegative?10:0);
-   const recoveryBase=Math.max(0,-current)*.35+Math.max(0,-distanceDelta)*.30+(actualImproving?12:0)+(crossesPositive?8:0);
+   const severityBase=Math.max(0,-current)*.45+Math.max(0,distanceDelta)*.25*(current<-.6?1:0)+(actualWorsening?12:0)+(crossesNegative?10:0);
+   const recoveryBase=Math.max(0,-current)*.35+Math.max(0,-distanceDelta)*.30*(current<-.6?1:0)+(actualImproving?12:0)+(crossesPositive?8:0);
    let state='informational',signal='informational',reason='';
    if(actualWorsening){
      if(points>=5&&evidenceScore>=68&&(underPressure||gapWidening||crossesNegative)&&!highVol){
@@ -317,11 +321,11 @@ function buildForecastSummary(rows,s){
    }
    const score=state==='confirmed_risk'?severityBase+evidenceScore*.35:state==='early_warning'?severityBase+evidenceScore*.25:state==='recovery_opportunity'?recoveryBase+evidenceScore*.25:state==='positive_momentum'?recoveryBase*.5+evidenceScore*.15:Math.abs(gapDelta);
    const semantic=current>.6?'بهتر از مرجع':current<-.6?'ضعیف‌تر از مرجع':'نزدیک به مرجع';
-   const gapLabel=gapNarrowing?'کاهش فاصله از مرجع':gapWidening?'افزایش فاصله از مرجع':'فاصله نسبتاً پایدار';
+   const gapLabel=gapEffect==='favorable_widening'?'افزایش فاصله از مرجع • در مسیر بهبود':gapEffect==='favorable_narrowing'?'کاهش فاصله از مرجع • در مسیر بهبود':gapEffect==='unfavorable_widening'?'افزایش فاصله از مرجع • در مسیر تضعیف':gapEffect==='unfavorable_narrowing'?'کاهش فاصله از مرجع • در مسیر تضعیف':gapEffect==='toward_better'?'حرکت فاصله در مسیر بهبود':gapEffect==='toward_worse'?'حرکت فاصله در مسیر تضعیف':'فاصله نسبتاً پایدار';
    const directionLabel=actualImproving?'بهبود':actualWorsening?'تضعیف':'پایدار';
    const confidence=evidenceScore>=75?'قوی':evidenceScore>=55?'متوسط':evidenceScore>=40?'محدود':'کم';
    const scenario=t.conditionalOutlook||null;
-   return{key,label:labels[key],axis:axisOf[key],forecast:f,trajectory:t,currentMeaning:semantic,rawDirection:directionLabel,gapRelation:gapLabel,gapChangePercent:Number(gapDelta.toFixed(2)),distanceChangePercent:Number(distanceDelta.toFixed(2)),signal,state,reason,score,evidenceScore,confidence,corroboratingMetrics:axisKeys.filter(k=>s[k]?.trajectory?.direction===t.direction).map(k=>labels[k]),conditionalOutlook:scenario,scenarios:t.scenarios||[],earlyWarningEligible:state==='early_warning'||state==='confirmed_risk'||state==='informational_warning',riskEligible:state==='confirmed_risk',recoveryEligible:state==='recovery_opportunity',capacityEligible:state==='recovery_opportunity',evidence:Math.min(1,evidenceScore/100),uncertaintyPercent:unc};
+   return{key,label:labels[key],axis:axisOf[key],forecast:f,trajectory:t,currentMeaning:semantic,rawDirection:directionLabel,gapRelation:gapLabel,gapEffect,gapChangePercent:Number(gapDelta.toFixed(2)),distanceChangePercent:Number(distanceDelta.toFixed(2)),signal,state,reason,score,evidenceScore,confidence,corroboratingMetrics:axisKeys.filter(k=>s[k]?.trajectory?.direction===t.direction).map(k=>labels[k]),conditionalOutlook:scenario,scenarios:t.scenarios||[],earlyWarningEligible:state==='early_warning'||state==='confirmed_risk'||state==='informational_warning',riskEligible:state==='confirmed_risk',recoveryEligible:state==='recovery_opportunity',capacityEligible:state==='recovery_opportunity',evidence:Math.min(1,evidenceScore/100),uncertaintyPercent:unc};
  }).filter(Boolean);
  const risks=candidates.filter(x=>x.state==='confirmed_risk').sort((a,b)=>b.score-a.score);
  const warnings=candidates.filter(x=>x.state==='early_warning'||x.state==='informational_warning').sort((a,b)=>b.score-a.score);
@@ -332,7 +336,7 @@ function buildForecastSummary(rows,s){
  const scenarioCounts={continuation:0,stabilization:0,recovery:0,deterioration:0};
  candidates.forEach(x=>(x.scenarios||[]).forEach(sc=>{if(sc.eligible&&scenarioCounts[sc.id]!==undefined)scenarioCounts[sc.id]++}));
  return{
-   version:'SMART-TREND-V3.6',
+   version:'SMART-TREND-V3.7',
    risk:risk?{...risk}:null,
    earlyWarning:warnings[0]?{...warnings[0]}:null,
    improve:improve?{...improve}:null,
@@ -340,7 +344,7 @@ function buildForecastSummary(rows,s){
    rankedInformational:informational.slice(0,5),
    scenarioOverview:{counts:scenarioCounts,metricCount:candidates.length,dominantScenario:Object.entries(scenarioCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null},
    method:'metric-direction-semantics + age-reference-position + raw-momentum + persistence + turning-point + volatility + conditional-scenarios + axis-corroboration + evidence-tier',
-   note:'Smart Trend V3.6 جهت ذاتی هر شاخص را مستقل تفسیر می‌کند: وزن/ADG/U10/U15/EPEF با افزایش بهتر؛ FCR/FCR تجمعی/تلفات/CV با کاهش بهتر. فاصله از مرجع و مسیر واقعی جداگانه محاسبه می‌شوند و چشم‌انداز فقط به‌صورت شرطی و متناسب با شواهد ارائه می‌شود. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
+   note:'Smart Trend V3.7 جهت ذاتی هر شاخص را مستقل تفسیر می‌کند: وزن/ADG/U10/U15/EPEF با افزایش بهتر؛ FCR/FCR تجمعی/تلفات/CV با کاهش بهتر. فاصله از مرجع و مسیر واقعی جداگانه محاسبه می‌شوند و چشم‌انداز فقط به‌صورت شرطی و متناسب با شواهد ارائه می‌شود. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
  };
 }
 function buildTrajectorySynthesis(s){

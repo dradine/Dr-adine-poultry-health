@@ -8,7 +8,7 @@ const pct=v=>n(v)===null?'—':fmt(v,1)+'٪';
 const st=s=>({excellent:'بهتر از مرجع',good:'مطلوب',on_target:'روی مرجع',watch:'نیازمند پایش',critical:'نیازمند بررسی فوری',unavailable:'قابل ارزیابی نیست'}[s]||'قابل ارزیابی نیست');
 const bc=s=>s==='critical'?'critical':s==='watch'?'watch':s==='good'||s==='excellent'?'good':'neutral';
 const trendClass=d=>d==='improving'?'trend-good':d==='worsening'?'trend-bad':d==='stable'?'trend-neutral':'trend-muted';
-const trendIcon=d=>'';
+const trendIcon=d=>d==='improving'?'↑':d==='worsening'?'↓':d==='stable'?'→':'';
 function section(t,sub,body,key='neutral'){return '<section class="pi-section pi-section-'+esc(key)+'"><button class="pi-accordion-head" type="button" aria-expanded="true"><span><b>'+esc(t)+'</b><small>'+esc(sub||'')+'</small></span><i>⌃</i></button><div class="pi-accordion-body">'+body+'</div></section>'}
 function metric(l,v,s,key){
  const status=s?.status||'unavailable',gap=n(s?.gapPercent),model=global.__adinePerformanceIntelligenceModel||{},q=model.states?.[key]||{},t=q.trend||{};
@@ -67,7 +67,7 @@ function sparkline(model,key){
        lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(key);
  if(!a.length)return '<div class="pi-spark-empty">داده روند و مرجع سنی کافی نیست</div>';
 
- const w=360,h=138,px=58,pr=12,pt=18,pb=31;
+ const w=360,h=164,px=76,pr=12,pt=18,pb=50;
  const projected=f.available?n(f.projectedGapPercent):null;
  const values=[];
  a.forEach(p=>{values.push(p.actual,p.target)});

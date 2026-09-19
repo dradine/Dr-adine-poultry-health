@@ -67,7 +67,7 @@ function sparkline(model,key){
        lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(key);
  if(!a.length)return '<div class="pi-spark-empty">داده روند و مرجع سنی کافی نیست</div>';
 
- const w=360,h=184,px=92,pr=14,pt=18,pb=72;
+ const w=360,h=184,px=58,pr=58,pt=18,pb=72;
  const projected=f.available?n(f.projectedGapPercent):null;
  const values=[];
  a.forEach(p=>{values.push(p.actual,p.target)});
@@ -111,7 +111,7 @@ function sparkline(model,key){
          '<text class="pi-chart-y-label" x="'+(px-9)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+fmt(v,digits)+unit+'</text>';
  });
 
- const xLabels='<text class="pi-chart-x-label pi-chart-zero-day" x="'+px.toFixed(1)+'" y="'+(h-31)+'" text-anchor="middle">روز ۰</text>'+a.map((p,i)=>{
+ const xLabels=a.map((p,i)=>{
    const label=p.age!==undefined&&p.age!==null?('روز '+fmt(p.age,0)):(p.week!==undefined&&p.week!==null?('هفته '+fmt(p.week,0)):(i+1));
    return '<text class="pi-chart-x-label" x="'+x(i).toFixed(1)+'" y="'+(h-31)+'" text-anchor="middle">'+esc(label)+'</text>';
  }).join('');
@@ -135,7 +135,7 @@ function sparkline(model,key){
    return '<line class="pi-chart-forecast" style="stroke:'+directionColor(f.direction)+'" x1="'+x(a.length-1).toFixed(1)+'" y1="'+y(last.actual).toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y(projectedActual).toFixed(1)+'"></line>';
  })() : '';
 
- return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V11.1" data-direction-mode="'+(lowerIsBetter?'lower-is-better':'higher-is-better')+'" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' و مقایسه با '+esc(last.reference?.label||state.official?.reference?.label||'استاندارد سنی')+'">'+
+ return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V11.3" data-direction-mode="'+(lowerIsBetter?'lower-is-better':'higher-is-better')+'" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' و مقایسه با '+esc(last.reference?.label||state.official?.reference?.label||'استاندارد سنی')+'">'+
    grid+
    '<path class="pi-chart-reference-line" d="'+targetPath+'"></path>'+
    '<path class="pi-chart-main-line" style="stroke:'+lineColor+'" d="'+actualPath+'"></path>'+
@@ -206,5 +206,5 @@ section('تحلیل چندشاخصی','تفسیر ترکیبی وضعیت فعل
  })(),'adaptive')+section('منبع، اعتماد و محدودیت','استاندارد و داده از منبع استاندارد مشترک','<div class="pi-note"><b>منبع استاندارد:</b> '+esc(m.targetAuthority)+'<br><b>رکوردها:</b> '+fmt(m.coverage?.records,0)+' • <b>اهداف مرجع علمی:</b> '+fmt(m.coverage?.canonicalTargets,0)+' • <b>نمونه وزن:</b> '+fmt(m.coverage?.weightSamples,0)+' قطعه<br><br>هوش عملکرد هیچ استاندارد رسمی یا مدیریتی مستقلی تعریف نمی‌کند. مقادیر مرجع از منبع استاندارد مشترک دریافت می‌شوند و در نبود داده کافی، سیستم نتیجه‌گیری را محدود می‌کند.</div>')+'</div>';bind()}
 function bind(){document.querySelectorAll('.pi-accordion-head').forEach(b=>b.addEventListener('click',()=>{const e=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',String(!e));b.nextElementSibling.hidden=e;b.querySelector('i').textContent=e?'⌄':'⌃'}));document.querySelectorAll('[data-band]').forEach(b=>b.addEventListener('click',()=>{const x=global.__adinePerformanceIntelligenceModel.weightBand;if(!x)return;const k=b.dataset.band,n=k==='10'?['داخل ±۱۰٪',x.within10,x.within10Percent]:k==='mid'?['بین ±۱۰ تا ±۱۵٪',x.between10and15,x.between10and15Percent]:['خارج ±۱۵٪',x.outside15,x.outside15Percent],z=document.getElementById('piBandNote');if(z)z.textContent=n[0]+': '+fmt(n[1],0)+' قطعه • '+pct(n[2])+' از '+fmt(x.sampleCount,0)+' نمونه • مرجع: '+fmt(x.referenceWeight,0)+' گرم'}));
 document.querySelectorAll('[data-weight-point]').forEach(p=>p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();document.querySelectorAll('.pi-weight-point.selected').forEach(x=>x.classList.remove('selected'));p.classList.add('selected');const z=document.getElementById('piWeightSelected');const w=n(p.dataset.weight);if(z&&w!==null){const m=global.__adinePerformanceIntelligenceModel,b=m.weightBand,t=b?.referenceWeight,g=t?((w-t)/t*100):null;const pos=w>=t*0.9&&w<=t*1.1?'داخل ±۱۰٪':w>=t*0.85&&w<=t*1.15?'بین ±۱۰ تا ±۱۵٪':'خارج ±۱۵٪';z.innerHTML='<b>نمونه '+fmt((Number(p.dataset.weightIndex)||0)+1,0)+' از '+fmt(b.sampleCount,0)+' • '+fmt(w,0)+' گرم</b><span>فاصله از وزن مرجع: '+(g===null?'—':fmt(g,1)+'٪')+'</span><span>وضعیت محدوده: '+pos+'</span>'}}));}
-global.AdineBroilerPerformanceIntelligenceReport={version:'V11.1',render};
+global.AdineBroilerPerformanceIntelligenceReport={version:'V11.3',render};
 })(typeof window!=='undefined'?window:globalThis);

@@ -67,7 +67,7 @@ function sparkline(model,key){
        lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(key);
  if(!a.length)return '<div class="pi-spark-empty">داده روند و مرجع سنی کافی نیست</div>';
 
- const w=360,h=164,px=76,pr=12,pt=18,pb=50;
+ const w=360,h=184,px=92,pr=14,pt=18,pb=72;
  const projected=f.available?n(f.projectedGapPercent):null;
  const values=[];
  a.forEach(p=>{values.push(p.actual,p.target)});
@@ -108,12 +108,12 @@ function sparkline(model,key){
  axisVals.forEach(v=>{
    const yy=y(v);
    grid+='<line class="pi-chart-grid-line" x1="'+px+'" y1="'+yy.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+yy.toFixed(1)+'"></line>'+
-         '<text class="pi-chart-y-label" x="'+(px-7)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+fmt(v,digits)+unit+'</text>';
+         '<text class="pi-chart-y-label" x="'+(px-9)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+fmt(v,digits)+unit+'</text>';
  });
 
  const xLabels=a.map((p,i)=>{
    const label=p.age!==undefined&&p.age!==null?('روز '+fmt(p.age,0)):(p.week!==undefined&&p.week!==null?('هفته '+fmt(p.week,0)):(i+1));
-   return '<text class="pi-chart-x-label" x="'+x(i).toFixed(1)+'" y="'+(h-8)+'" text-anchor="middle">'+esc(label)+'</text>';
+   return '<text class="pi-chart-x-label" x="'+x(i).toFixed(1)+'" y="'+(h-31)+'" text-anchor="middle">'+esc(label)+'</text>';
  }).join('');
 
  const actualPath=a.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(p.actual).toFixed(1)).join(' ');

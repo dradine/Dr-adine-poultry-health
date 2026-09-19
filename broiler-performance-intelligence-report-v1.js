@@ -94,17 +94,24 @@ function trendDashboard(m){
 }
 function forecastText(f,kind){
  if(!f?.available)return 'داده کافی برای چشم‌انداز مشروط وجود ندارد.';
- const d=f.direction==='improving'?'بهبود':f.direction==='worsening'?'افت':'ثبات';
- const prefix=kind==='risk'?'در صورت تداوم مسیر فعلی، احتمال فشار بیشتر وجود دارد. ':kind==='improve'?'فاصله فعلی هنوز قابل جبران است. ':'';
- return prefix+'چشم‌انداز مشروط: '+d+'؛ عدم‌قطعیت برآورد حدود ±'+fmt(f.uncertaintyPercent,1)+' واحد درصد فاصله از مرجع.';
+ const d=f.direction==='improving'?'بهبود':f.direction==='worsening'?'تضعیف':'ثبات';
+ const u=Number.isFinite(Number(f.uncertaintyPercent))?' عدم‌قطعیت برآورد مسیر حدود ±'+fmt(f.uncertaintyPercent,1)+' واحد درصد است.':'';
+ return 'جهت خام شاخص: '+d+'؛ چشم‌انداز مشروط فقط در صورت ادامه همین الگو معتبر است.'+u;
 }
 function outlookCard(item,kind){
- if(!item)return '<div class="pi-outlook-empty">با داده فعلی، شواهد کافی برای تعیین این مورد وجود ندارد.</div>';
- const tr=item.trajectory||{},title=kind==='risk'?'ریسک مسیر':'شاخص دارای ظرفیت بهبود';
- const regime=trajectoryLabel(tr.regime),relation=tr.relation==='converging'?'همگرا':tr.relation==='diverging'?'افزایش فاصله':'پایدار';
- const reason=item.reason||'بر اساس مسیر مشاهده‌شده';
+ if(!item)return '<div class="pi-outlook-empty">با داده فعلی، شواهد کافی برای فعال‌کردن این کارت وجود ندارد.</div>';
+ const tr=item.trajectory||{},signal=item.signal||'',isImprove=kind==='improve';
+ const title=isImprove?'ظرفیت بهبود':'ریسک / هشدار مسیر';
+ const relation=item.gapRelation||'فاصله نسبتاً پایدار';
+ const raw=item.rawDirection||'پایدار';
+ const position=item.currentMeaning||'نامشخص';
+ const gap=Number.isFinite(Number(tr.currentGapPercent))?fmt(tr.currentGapPercent,1)+'٪':'—';
+ const projected=Number.isFinite(Number(tr.projectedGapPercent))?fmt(tr.projectedGapPercent,1)+'٪':'—';
+ let reason=item.reason||'بر اساس مسیر مشاهده‌شده';
+ if(signal==='relative_warning')reason='بهبود واقعی شاخص دیده می‌شود، اما فاصله نامطلوب آن از مرجع سنی در حال افزایش است؛ بنابراین این مورد «ظرفیت بهبود» محسوب نمی‌شود.';
  const evidence=(tr.pointsUsed||0)+' ارزیابی • تداوم '+(tr.persistenceLevel==='high'?'بالا':tr.persistenceLevel==='medium'?'متوسط':tr.persistenceLevel==='limited'?'محدود':'کم')+' • نوسان '+(tr.stability==='stable'?'پایدار':tr.stability==='moderate'?'متوسط':'بالا');
- return '<div class="pi-outlook-inner"><span>'+title+'</span><b>'+esc(item.label)+'</b><strong>'+esc(reason)+'</strong><small>وضعیت مسیر: '+esc(regime)+' • رابطه با مرجع: '+esc(relation)+' • '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,kind))+'</p></div>';
+ const status=isImprove?'بازیابی هم‌جهت':'هشدار مسیر';
+ return '<div class="pi-outlook-inner"><span>'+title+' • '+status+'</span><b>'+esc(item.label)+'</b><strong>'+esc(reason)+'</strong><div class="pi-outlook-facts"><small>جهت واقعی شاخص: <b>'+esc(raw)+'</b></small><small>وضعیت فعلی: <b>'+esc(position)+'</b></small><small>حرکت نسبت به مرجع: <b>'+esc(relation)+'</b></small><small>فاصله فعلی: <b>'+esc(gap)+'</b> • فاصله مشروط: <b>'+esc(projected)+'</b></small></div><small>شواهد: '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,kind))+'</p></div>';
 }
 function evidenceCard(x){
  return '<article class="pi-smart-insight '+esc(x.severity||'watch')+' pi-severity-'+esc(x.severity||'positive')+'"><div class="pi-insight-top"><span class="pi-badge">'+(x.severity==='high'?'مهم':x.severity==='watch'?'پایش':'مثبت')+'</span><b>'+esc(x.title)+'</b></div><p>'+esc(x.text)+'</p><small>شواهد: '+esc((x.evidence||[]).join(' • '))+'</small></article>';

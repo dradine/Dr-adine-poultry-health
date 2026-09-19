@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V9.2 — DIRECTION-AWARE CHARTS */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V9.4 — DIRECTION-AWARE CHARTS */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -64,11 +64,14 @@ function sparkline(model,key){
  const trendStroke=t.direction==='improving'?'#2f8a61':t.direction==='worsening'?'#b83f35':t.direction==='stable'?'#7b8782':'#aeb9b4';
  if(!a.length)return '<div class="pi-spark-empty">داده روند کافی نیست</div>';
  const vals=a.map(x=>n(x.gapPercent)).filter(x=>x!==null),projected=f?.available?(f.projectedGapPercent):null,all=projected===null?vals:[...vals,projected];
+ const pointStroke=v=>v>0?'#2f8a61':v<0?'#b83f35':'#7b8782';
+ const gradientId='piGapGradient_'+key;
+ const gradientStops=vals.map((v,i)=>'<stop offset="'+(vals.length===1?0:i/(vals.length-1)*100).toFixed(1)+'%" stop-color="'+pointStroke(v)+'"></stop>').join('');
  const lo=Math.min(-10,...all),hi=Math.max(10,...all),w=300,h=72,p=8,den=Math.max(1,hi-lo),x=i=>p+(i/Math.max(1,a.length-1))*(w-2*p),y=v=>h-p-(v-lo)/den*(h-2*p);
  const path=vals.map((v,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ');
  const lastX=x(Math.max(0,vals.length-1)),lastY=y(vals.at(-1));
  const proj=f?.available&&projected!==null?'<line class="pi-spark-proj" style="stroke:'+(f.direction==='improving'?'#2f8a61':f.direction==='worsening'?'#b83f35':'#7b8782')+'" x1="'+lastX.toFixed(1)+'" y1="'+lastY.toFixed(1)+'" x2="'+(w-p).toFixed(1)+'" y2="'+y(projected).toFixed(1)+'"></line>':'';
- return '<svg class="pi-spark '+trend+'" data-trend-direction="'+esc(t.direction||'unknown')+'" data-pi-render-version="V9.3" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' نسبت به '+esc(ref.label||'استاندارد سنی')+'"><line class="pi-spark-zero" x1="'+p+'" y1="'+y(0)+'" x2="'+(w-p)+'" y2="'+y(0)+'"></line><path class="pi-spark-line '+trend+'" style="stroke:'+trendStroke+'" d="'+path+'"></path><circle class="pi-spark-last '+trend+'" style="fill:'+trendStroke+'" cx="'+lastX+'" cy="'+lastY+'" r="3.5"></circle>'+proj+'</svg>';
+ return '<svg class="pi-spark '+trend+'" data-trend-direction="'+esc(t.direction||'unknown')+'" data-pi-render-version="V9.4" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند '+esc(metricName(key))+' نسبت به '+esc(ref.label||'استاندارد سنی')+'"><line class="pi-spark-zero" x1="'+p+'" y1="'+y(0)+'" x2="'+(w-p)+'" y2="'+y(0)+'"></line><defs><linearGradient id="'+gradientId+'" x1="0%" y1="0%" x2="100%" y2="0%">'+gradientStops+'</linearGradient></defs><path class="pi-spark-line '+trend+'" style="stroke:url(#'+gradientId+')" d="'+path+'"></path><circle class="pi-spark-last '+trend+'" style="fill:'+pointStroke(vals.at(-1))+'" cx="'+lastX+'" cy="'+lastY+'" r="3.5"></circle>'+proj+'</svg>';
 }
 function trendDashboard(m){
  const keys=['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15'];

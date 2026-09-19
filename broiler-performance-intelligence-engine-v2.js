@@ -168,18 +168,59 @@ function forecastMultivariate(s){
  const coherentW=worsening.filter(x=>['weight','adg','fcr','mortality','cv'].includes(x.key)).length>=2;
  return{available:candidates.length>0,conditional:true,dominantRisk:worsening[0]||null,dominantImprovement:improving[0]||null,coherentWorsening:coherentW,confidence:candidates.length>=5?'medium':candidates.length>=3?'limited':'low',note:'چشم‌انداز مشروط بر تداوم الگوی مشاهده‌شده است و پیش‌بینی قطعی یا تشخیص علت نیست.'};
 }
-function buildForecastSummary(s){
- const candidates=[];
- for(const [key,label] of [['weight','وزن'],['fcr','FCR'],['cumulativeFcr','FCR تجمعی'],['adg','افزایش وزن'],['mortality','تلفات'],['cv','CV'],['u10','U10'],['u15','U15']]){
-   const f=s[key]?.forecast; if(!f?.available)continue;
-   const worsening=f.direction==='worsening';
-   candidates.push({key,label,forecast:f,priority:(worsening?2:0)+Math.abs(f.projectedGapPercent)/10});
- }
- candidates.sort((a,b)=>b.priority-a.priority);
- const risk=candidates.find(x=>x.forecast.direction==='worsening');
- const improve=candidates.find(x=>x.forecast.direction==='improving');
- return {risk:risk||null,improve:improve||null,ranked:candidates.slice(0,5)};
+function trajectoryProfile(rows,m){
+ const vals=rows.map(r=>gap(actual(r,m),target(r,m),m)).filter(Number.isFinite).map(x=>x*100).slice(-5);
+ if(vals.length<3)return{available:false,regime:'insufficient',persistence:0,volatility:null,pointsUsed:vals.length};
+ const diffs=vals.slice(1).map((v,i)=>v-vals[i]), reg=robustRegression(vals), slope=reg?.slope??0;
+ const tol=Math.max(.5,reg?.residualMad??0);
+ const signed=diffs.filter(d=>Math.abs(d)>=tol);
+ const persistence=signed.length?signed.filter(d=>d>0).length/signed.length:.5;
+ const volatility=median(diffs.map(Math.abs))??0;
+ const current=vals.at(-1), previous=vals.at(-2), projected=reg?.nextGapPercent??current;
+ const converging=Math.abs(projected)<Math.abs(current)-.5;
+ const diverging=Math.abs(projected)>Math.abs(current)+.5;
+ let regime='stable';
+ if(volatility>=4 && signed.length>=2 && persistence>0.8)regime='volatile';
+ else if(converging&&projected<0)regime='recovering';
+ else if(diverging&&projected<0)regime='deteriorating';
+ else if(converging)regime='converging';
+ else if(diverging)regime='diverging';
+ else if(Math.abs(slope)<tol)regime='stable';
+ return{available:true,regime,persistence:Number(persistence.toFixed(2)),volatility:Number(volatility.toFixed(2)),slopePerEvaluation:Number(slope.toFixed(3)),currentGapPercent:current,previousGapPercent:previous,projectedGapPercent:projected,pointsUsed:vals.length,uncertaintyPercent:reg?.residualBand??null};
+}
+function buildForecastSummary(rows,s){
+ const labels={weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15'};
+ const candidates=Object.keys(labels).map(key=>{
+   const f=s[key]?.forecast,t=s[key]?.trajectory,o=s[key]?.official;
+   if(!f?.available||!t?.available||!o||o.status==='unavailable')return null;
+   const current=n(o.gapPercent),projected=n(f.projectedGapPercent),unc=n(f.uncertaintyPercent)??99;
+   const worsening=projected<current-.7;
+   const crossesNegative=current>=0&&projected<-.7;
+   const underPressure=current<0;
+   const persistence=t.persistence??0;
+   const evidence=Math.min(1,(t.pointsUsed||0)/5);
+   const uncertaintyPenalty=Math.max(0,1-Math.min(1,unc/6));
+   const riskEligible=worsening&&(underPressure||crossesNegative||persistence>=.67);
+   const riskScore=riskEligible?(Math.max(0,-projected)*.42+Math.max(0,current-projected)*.30+persistence*5*.18+uncertaintyPenalty*5*.10):0;
+   const headroom=Math.max(0,-current);
+   const momentum=Math.max(0,projected-current);
+   const capacityEligible=momentum>.5&&headroom>.5&&persistence>=.55;
+   const capacityScore=capacityEligible?(Math.min(headroom,20)*.45+Math.min(momentum,10)*.35+uncertaintyPenalty*10*.20):0;
+   return{key,label:labels[key],forecast:f,trajectory:t,riskEligible,riskScore,capacityEligible,capacityScore,evidence};
+ }).filter(Boolean);
+ const risks=candidates.filter(x=>x.riskEligible).sort((a,b)=>b.riskScore-a.riskScore);
+ const improvements=candidates.filter(x=>x.capacityEligible).sort((a,b)=>b.capacityScore-a.capacityScore);
+ const risk=risks[0]||null,improve=improvements[0]||null;
+ return{
+   version:'SMART-TREND-V2',
+   risk:risk?{...risk,reason:risk.trajectory.regime==='deteriorating'?'روند نامطلوب پایدار و فاصله فعلی/چشم‌انداز منفی است':risk.forecast.projectedGapPercent<0?'چشم‌انداز مشروط از مرجع عبور می‌کند':'فاصله نامطلوب با روند کاهشی ادامه دارد'}:null,
+   improve:improve?{...improve,reason:improve.trajectory.regime==='recovering'?'فاصله از مرجع در حال کاهش است و هنوز ظرفیت جبران وجود دارد':'فاصله قابل بهبود است و مومنتوم اخیر در جهت مطلوب قرار دارد'}:null,
+   rankedRisks:risks.slice(0,5),
+   rankedImprovements:improvements.slice(0,5),
+   method:'trajectory-regime + persistence + gap-headroom + conditional-forecast',
+   note:'این بخش چشم‌انداز مسیر است، نه تکرار تحلیل چندشاخصی و نه پیش‌بینی قطعی؛ ریسک فقط در صورت وجود شواهد روندی کافی فعال می‌شود.'
+ };
 }
 function patterns(s){const o=[],bad=x=>x?.status==='watch'||x?.status==='critical',good=x=>x?.status==='good'||x?.status==='excellent';if(bad(s.weight)&&bad(s.fcr))o.push({severity:'high',code:'growth_efficiency_down',title:'افت همزمان رشد و کارایی خوراک',text:'وزن و FCR هر دو نسبت به مرجع استاندارد مشترک نامطلوب‌اند؛ خوراک، آب، محیط و سلامت باید هم‌زمان بررسی شوند.'});if(good(s.weight)&&bad(s.fcr))o.push({severity:'watch',code:'growth_efficiency_tradeoff',title:'رشد مناسب با کارایی ضعیف‌تر',text:'وزن مناسب است اما FCR نامطلوب است؛ وزن به‌تنهایی عملکرد کامل را تأیید نمی‌کند.'});if(bad(s.weight)&&good(s.fcr))o.push({severity:'watch',code:'weight_low_fcr_ok',title:'وزن عقب‌تر با کارایی فعلاً مناسب',text:'فاصله وزن وجود دارد اما FCR فعلاً نامطلوب نیست؛ ADG، مصرف، زمان‌بندی رشد و یکنواختی بررسی شوند.'});if(bad(s.cv)&&bad(s.u10))o.push({severity:'high',code:'distribution_deterioration',title:'افت کیفیت توزیع وزن',text:'CV و یکنواختی ±۱۰٪ هم‌زمان نامطلوب‌اند؛ میانگین وزن به‌تنهایی کافی نیست.'});if(bad(s.mortality)&&bad(s.fcr))o.push({severity:'high',code:'survival_efficiency_down',title:'افت همزمان بقا و کارایی',text:'تلفات و FCR هر دو نامطلوب‌اند؛ روند زمانی و رخدادهای سلامت/مدیریت بررسی شوند.'});if(['worse_farther','crossed_to_worse'].includes(s.weight.trend?.movement)&&['worse_farther','crossed_to_worse'].includes(s.fcr.trend?.movement))o.push({severity:'high',code:'accelerating_gap',title:'دورشدن هم‌زمان از مرجع',text:'فاصله وزن و FCR از مرجع در ارزیابی‌های اخیر بیشتر شده است.'});if(s.weight.status==='watch'&&s.adg.trend?.direction==='improving')o.push({severity:'positive',code:'recovery_signal',title:'نشانه جبران رشد',text:'وزن هنوز پایین‌تر از مرجع است اما مسیر هدف‌محور افزایش وزن در حال بهبود است.'});return o}
-function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999)),last=rs.at(-1);if(!last)return{version:'BROILER-PI-V6.1',ready:false,readOnly:true,insights:[]};const strain=String(flock?.strain??flock?.flock_strain??flock?.genetics??flock?.genetic_line??flock?.breed??'').trim();const s={},seriesOut={};for(const m of Object.keys(defs)){const ref=referenceMeta(last,m,strain);s[m]={official:{...state(actual(last,m),target(last,m),m),reference:ref},trend:trend(rs,m,strain),forecast:forecast(rs,m)};seriesOut[m]=series(rs,m,strain)}const w=weights(last),b=band(last,w),d=distribution(w,b?.referenceWeight??target(last,'weight')),ad={};for(const m of ['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15','epef'])ad[m]=adaptive(rs,m);const officialStates=Object.fromEntries(Object.keys(s).map(k=>[k,s[k].official])),p=patterns(officialStates),trendInsights=explainTrend(s),multivariate=multivariateAnalysis(rs,s),differential=differentialAnalysis(rs,s,multivariate),forecastSummary=buildForecastSummary(s),multivariateForecast=forecastMultivariate(s),confidence=rs.length>=6?'high':rs.length>=4?'medium':rs.length>=3?'limited':'low',dataQuality={records:rs.length,minimumForTrend:3,minimumForAdaptive:4,minimumForForecast:3,weightSamples:w.length,completeCore:Object.keys(defs).filter(m=>actual(last,m)!==null&&target(last,m)!==null).length};return Object.freeze({version:'BROILER-PI-V6.1',ready:true,readOnly:true,source:'weekly_records → canonical broiler report model → intelligence',targetAuthority:'canonical-broiler-standards-engine',flockId:flock?.id||null,strain:flock?.strain||flock?.genetics||null,age:first(last,['age','age_days']),week:first(last,['week','week_number','production_week']),states:Object.freeze(s),series:Object.freeze(seriesOut),profile:Object.freeze({growth:s.weight.official,efficiency:s.fcr.official,survival:s.mortality.official,uniformity:s.u10.official}),weightBand:b,weightDistribution:d,sampleWeights:Object.freeze(w),adaptive:Object.freeze(ad),insights:Object.freeze(p),trendInsights:Object.freeze(trendInsights),multivariate:Object.freeze(multivariate.items||[]),multivariateAnalysis:Object.freeze(multivariate),differential:Object.freeze(differential),forecastSummary:Object.freeze(forecastSummary),multivariateForecast:Object.freeze(multivariateForecast),dataQuality:Object.freeze(dataQuality),coverage:Object.freeze({records:rs.length,weightSamples:w.length,canonicalTargets:Object.keys(defs).filter(m=>target(last,m)!==null).length}),inputFingerprint:inputFingerprint(flock,rs),analysisConfidence:multivariate.matrix?.analysisConfidence||'low',causalConfidence:multivariate.matrix?.causalConfidence||'low',scenarioMatrix:Object.freeze(multivariate.matrix||{}),confidence,status:p.some(x=>x.severity==='high')?'critical':p.some(x=>x.severity==='watch')?'watch':'good'})}
+function build(flock,rows){const rs=(Array.isArray(rows)?rows:[]).filter(Boolean).sort((a,b)=>(first(a,['week','week_number','production_week'])??9999)-(first(b,['week','week_number','production_week'])??9999)),last=rs.at(-1);if(!last)return{version:'BROILER-PI-V6.2',ready:false,readOnly:true,insights:[]};const strain=String(flock?.strain??flock?.flock_strain??flock?.genetics??flock?.genetic_line??flock?.breed??'').trim();const s={},seriesOut={};for(const m of Object.keys(defs)){const ref=referenceMeta(last,m,strain);s[m]={official:{...state(actual(last,m),target(last,m),m),reference:ref},trend:trend(rs,m,strain),forecast:forecast(rs,m),trajectory:trajectoryProfile(rs,m)};seriesOut[m]=series(rs,m,strain)}const w=weights(last),b=band(last,w),d=distribution(w,b?.referenceWeight??target(last,'weight')),ad={};for(const m of ['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15','epef'])ad[m]=adaptive(rs,m);const officialStates=Object.fromEntries(Object.keys(s).map(k=>[k,s[k].official])),p=patterns(officialStates),trendInsights=explainTrend(s),multivariate=multivariateAnalysis(rs,s),differential=differentialAnalysis(rs,s,multivariate),forecastSummary=buildForecastSummary(s),multivariateForecast=forecastMultivariate(s),confidence=rs.length>=6?'high':rs.length>=4?'medium':rs.length>=3?'limited':'low',dataQuality={records:rs.length,minimumForTrend:3,minimumForAdaptive:4,minimumForForecast:3,weightSamples:w.length,completeCore:Object.keys(defs).filter(m=>actual(last,m)!==null&&target(last,m)!==null).length};return Object.freeze({version:'BROILER-PI-V6.2',ready:true,readOnly:true,source:'weekly_records → canonical broiler report model → intelligence',targetAuthority:'canonical-broiler-standards-engine',flockId:flock?.id||null,strain:flock?.strain||flock?.genetics||null,age:first(last,['age','age_days']),week:first(last,['week','week_number','production_week']),states:Object.freeze(s),series:Object.freeze(seriesOut),profile:Object.freeze({growth:s.weight.official,efficiency:s.fcr.official,survival:s.mortality.official,uniformity:s.u10.official}),weightBand:b,weightDistribution:d,sampleWeights:Object.freeze(w),adaptive:Object.freeze(ad),insights:Object.freeze(p),trendInsights:Object.freeze(trendInsights),multivariate:Object.freeze(multivariate.items||[]),multivariateAnalysis:Object.freeze(multivariate),differential:Object.freeze(differential),forecastSummary:Object.freeze(forecastSummary),multivariateForecast:Object.freeze(multivariateForecast),dataQuality:Object.freeze(dataQuality),coverage:Object.freeze({records:rs.length,weightSamples:w.length,canonicalTargets:Object.keys(defs).filter(m=>target(last,m)!==null).length}),inputFingerprint:inputFingerprint(flock,rs),analysisConfidence:multivariate.matrix?.analysisConfidence||'low',causalConfidence:multivariate.matrix?.causalConfidence||'low',scenarioMatrix:Object.freeze(multivariate.matrix||{}),confidence,status:p.some(x=>x.severity==='high')?'critical':p.some(x=>x.severity==='watch')?'watch':'good'})}
 global.AdineBroilerPerformanceIntelligenceV2=Object.freeze({version:'BROILER-PI-V6.1',build});})(typeof window!=='undefined'?window:globalThis);

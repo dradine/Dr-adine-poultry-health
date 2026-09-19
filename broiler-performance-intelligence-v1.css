@@ -110,3 +110,24 @@
 
 /* V9.0 — scientific multivariate interpretation */
 .pi-multi-evidence{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(127,127,127,.08);font-size:.82rem;line-height:1.9}.pi-multi-evidence b{font-weight:800}.pi-smart-insight.high .pi-multi-evidence{border-inline-start:3px solid currentColor}.pi-smart-insight.watch .pi-multi-evidence{border-inline-start:3px solid currentColor}.pi-smart-insight.positive .pi-multi-evidence{border-inline-start:3px solid currentColor}
+
+
+/* PI V9.1 — rapid visual differentiation + explicit reference basis */
+.pi-section{position:relative}
+.pi-section-multivariate{border-top:3px solid #315c50}
+.pi-section-multivariate .pi-accordion-head{background:linear-gradient(90deg,rgba(49,92,80,.09),rgba(49,92,80,.025))}
+.pi-section-trend{border-top:3px solid #4b927a}
+.pi-section-trend .pi-accordion-head{background:linear-gradient(90deg,rgba(75,146,122,.10),rgba(75,146,122,.025))}
+.pi-section-adaptive{border-top:3px solid #b85c52}
+.pi-section-adaptive .pi-accordion-head{background:linear-gradient(90deg,rgba(184,92,82,.10),rgba(184,92,82,.025))}
+.pi-section-adaptive .pi-accordion-head b{color:#a34f47}
+.pi-subtitle-reference{margin-top:13px;padding:8px 10px;border-radius:10px;border-inline-start:3px solid #7b8782;background:rgba(123,135,130,.08)}
+.pi-subtitle-reference b{color:#596861!important}
+.pi-roadmap-title{margin-top:12px;padding:8px 10px;border-radius:10px;border-inline-start:3px solid #c78d43;background:rgba(199,141,67,.09)}
+.pi-roadmap-title b{color:#9d6d2f!important}
+.pi-chart-reference{margin-top:7px;padding:6px 8px;border-radius:8px;background:#f4f7f5;border:1px solid #e0e7e3;color:#68766f;font-size:7.5px;line-height:1.7}
+.pi-chart-reference b{color:#315c50}
+.pi-adaptive-basis{margin-bottom:9px;padding:9px 10px;border-radius:10px;background:#fff8f6;border:1px solid #ecc8c2;border-inline-start:3px solid #b85c52;color:#68716d;font-size:8px;line-height:1.9}
+.pi-adaptive-basis b{color:#a34f47}
+.pi-section-multivariate .pi-accordion-head b{color:#315c50}
+.pi-section-trend .pi-accordion-head b{color:#347c65}

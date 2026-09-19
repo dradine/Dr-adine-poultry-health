@@ -90,6 +90,25 @@ assert.notEqual(noisy3Model.states.weight.trajectory.stability,'high_volatility'
 
 // Lower-is-better semantics must remain positive when actual mortality/FCR is better than reference.
 assert.ok(E.build({id:'synth',strain:'Ross 308'},R(35)).trajectorySynthesis?.available);
+// Lower-is-better path semantics: decreasing FCR must be improving, and if it moves farther below reference,
+// the larger gap is favorable rather than a warning.
+const fcrImprovement=R(35).slice(0,5);
+fcrImprovement.forEach((r,i)=>{r.fcr=r.canonicalTargets.fcr*(1.08-i*0.04)});
+const fcrImprovementModel=E.build({id:'fcr-improvement-semantics',strain:'Ross 308'},fcrImprovement);
+assert.equal(fcrImprovementModel.states.fcr.trend.direction,'improving');
+assert.equal(fcrImprovementModel.states.fcr.trajectory.direction,'improving');
+assert.equal(fcrImprovementModel.states.fcr.trajectory.semanticRelation,'better_farther');
+assert.equal(fcrImprovementModel.states.fcr.trajectory.regime,'strengthening');
+
+// The same intrinsic direction rule must apply to cumulative FCR.
+const cumulativeFcrImprovement=R(35).slice(0,5);
+cumulativeFcrImprovement.forEach((r,i)=>{r.cumulativeFcr=r.canonicalTargets.cumulativeFcr*(1.08-i*0.04)});
+const cumulativeFcrImprovementModel=E.build({id:'cumulative-fcr-improvement-semantics',strain:'Ross 308'},cumulativeFcrImprovement);
+assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trend.direction,'improving');
+assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trajectory.direction,'improving');
+assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trajectory.semanticRelation,'better_farther');
+assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trajectory.regime,'strengthening');
+
 
 
 const deteriorating=R(35);
@@ -98,7 +117,7 @@ deteriorating.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg2[i]/100);
 const riskModel=E.build({id:'risk-smart',strain:'Ross 308'},deteriorating);
 assert.ok(riskModel.forecastSummary?.risk);
 assert.ok(['weight','fcr'].includes(riskModel.forecastSummary.risk.key));
-assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.5');
+assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.6');
 assert.ok(riskModel.states.weight.trajectory.currentGapPercent<0);
 assert.ok(Number.isFinite(riskModel.states.weight.trajectory.momentum));
 

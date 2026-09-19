@@ -22,4 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - run: node --check broiler-performance-intelligence-engine-v2.js
+      - run: node --check broiler-performance-intelligence-report-v1.js
       - run: node tests/broiler-performance-intelligence-matrix-v1.test.js

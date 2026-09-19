@@ -108,6 +108,28 @@ assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trend.direction,
 assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trajectory.direction,'improving');
 assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trajectory.semanticRelation,'better_farther');
 assert.equal(cumulativeFcrImprovementModel.states.cumulativeFcr.trajectory.regime,'strengthening');
+// Gap semantics must distinguish favorable from unfavorable distance changes for every metric family.
+const metricSemantics=[
+  ['weight','better_farther','improving'],
+  ['adg','better_farther','improving'],
+  ['u10','better_farther','improving'],
+  ['u15','better_farther','improving'],
+  ['fcr','better_farther','improving'],
+  ['cumulativeFcr','better_farther','improving'],
+  ['mortality','better_farther','improving'],
+  ['cv','better_farther','improving']
+];
+for(const [key,expectedGap,expectedDirection] of metricSemantics){
+  const rows=R(35).slice(0,5);
+  rows.forEach((r,i)=>{
+    const base=r.canonicalTargets[key];
+    r[key]=base*(key==='weight'||key==='adg'||key==='u10'||key==='u15' ? (1.05+i*0.03) : (1.05-i*0.03));
+  });
+  const model=E.build({id:'semantic-'+key,strain:'Ross 308'},rows);
+  assert.equal(model.states[key].trajectory.direction,expectedDirection,'direction '+key);
+  assert.equal(model.states[key].trajectory.semanticRelation,expectedGap,'semantic relation '+key);
+}
+
 
 
 
@@ -117,7 +139,7 @@ deteriorating.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg2[i]/100);
 const riskModel=E.build({id:'risk-smart',strain:'Ross 308'},deteriorating);
 assert.ok(riskModel.forecastSummary?.risk);
 assert.ok(['weight','fcr'].includes(riskModel.forecastSummary.risk.key));
-assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.6');
+assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.7');
 assert.ok(riskModel.states.weight.trajectory.currentGapPercent<0);
 assert.ok(Number.isFinite(riskModel.states.weight.trajectory.momentum));
 

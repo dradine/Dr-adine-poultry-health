@@ -172,3 +172,23 @@
 .pi-section-multivariate .pi-smart-insight.watch,.pi-section-trend .pi-smart-insight.watch{background:#fff9ef!important;border-color:#ead1a6!important;border-inline-start:5px solid #c78d43!important}
 .pi-section-multivariate .pi-smart-insight.positive,.pi-section-trend .pi-smart-insight.positive{background:#f3faf6!important;border-color:#b9dcc9!important;border-inline-start:5px solid #4b927a!important}
 .pi-section-trend .pi-chart-foot span:nth-child(2){font-weight:900;padding:3px 6px;border-radius:6px;background:#f1f5f3}
+
+/* PI V10.2 — high-visibility decision cards */
+.pi-outlook-risk,.pi-outlook-improve{
+  min-height:112px!important;
+  padding:16px 18px 15px 46px!important;
+  border-width:1.5px!important;
+  border-radius:16px!important;
+  box-shadow:0 8px 24px rgba(18,38,31,.09),inset 0 1px 0 rgba(255,255,255,.8)!important;
+  transition:transform .18s ease,box-shadow .18s ease!important;
+}
+.pi-outlook-risk{background:linear-gradient(135deg,#fff0ee 0%,#ffdcd8 100%)!important;border-color:#d9877e!important;border-inline-start:7px solid #b84b40!important}
+.pi-outlook-improve{background:linear-gradient(135deg,#eaf8ef 0%,#ccebd9 100%)!important;border-color:#72b792!important;border-inline-start:7px solid #2f8a61!important}
+.pi-outlook-risk:hover,.pi-outlook-improve:hover{transform:translateY(-2px);box-shadow:0 11px 28px rgba(18,38,31,.13),inset 0 1px 0 rgba(255,255,255,.9)!important}
+.pi-outlook-risk span,.pi-outlook-improve span{font-size:9px!important;font-weight:900!important;letter-spacing:.1px}
+.pi-outlook-risk b,.pi-outlook-improve b{font-size:15px!important;line-height:1.5!important;margin-top:5px!important;font-weight:950!important}
+.pi-outlook-risk small,.pi-outlook-improve small{font-size:8.5px!important;line-height:1.9!important;margin-top:6px!important}
+.pi-outlook-risk:before,.pi-outlook-improve:before{left:14px!important;top:15px!important;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;font-size:16px!important;font-weight:950;line-height:1}
+.pi-outlook-risk:before{background:#b84b40;color:#fff!important;box-shadow:0 4px 10px rgba(184,75,64,.25)}
+.pi-outlook-improve:before{background:#2f8a61;color:#fff!important;box-shadow:0 4px 10px rgba(47,138,97,.24)}
+@media(max-width:600px){.pi-outlook-risk,.pi-outlook-improve{min-height:105px!important;padding:14px 15px 14px 43px!important}.pi-outlook-risk b,.pi-outlook-improve b{font-size:14px!important}}

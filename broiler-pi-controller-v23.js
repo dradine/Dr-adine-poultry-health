@@ -42,6 +42,6 @@ stage='engine-build';global.__adinePerformanceIntelligenceModel=global.AdineBroi
 function click(e){const x=e.target?.closest?.('[data-pi-tab]');if(!x||!landingActive)return;e.preventDefault();e.stopImmediatePropagation();x.dataset.piTab==='intelligence'?intelligence():selectMain()}
 function top(e){const t=e.target?.closest?.('.report-tab');if(!t)return;if(t.dataset.tab==='overall'){e.preventDefault();e.stopImmediatePropagation();landing();}else if(t.dataset.tab==='weekly'||t.dataset.tab==='compare-empty'){landingActive=false;intelligenceActive=false;global.__adineComprehensiveLandingActive=false;document.querySelector('.report-tabs')?.classList.remove('comprehensive-active');if(t.dataset.tab==='compare-empty')clearWeek()}}
 document.addEventListener('click',click,true);document.addEventListener('click',top,true);
-global.AdineComprehensivePerformanceTabsV1=Object.freeze({version:'V23.0',intelligence,landing,selectMain,diagnostics:()=>({trace:global[TRACE]||[],snapshot:snapshot()})});
-trace('controller-loaded',{version:'V23.0',snapshot:snapshot()});
+global.AdineComprehensivePerformanceTabsV1=Object.freeze({version:'V23.1',intelligence,landing,selectMain,diagnostics:()=>({trace:global[TRACE]||[],snapshot:snapshot()})});
+trace('controller-loaded',{version:'V23.1',snapshot:snapshot()});
 })(typeof window!=='undefined'?window:globalThis);

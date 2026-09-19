@@ -3,7 +3,7 @@
 const assert=require('node:assert/strict');
 require('../broiler-performance-intelligence-engine-v2.js');
 const E=global.AdineBroilerPerformanceIntelligenceV2;
-assert.equal(E.version,'BROILER-PI-V6.2');
+assert.equal(E.version,'BROILER-PI-V6.3');
 
 const STRAINS=['Ross 308','Ross 308 FF','Ross 708','Ross 308 AP','Cobb500','Cobb800','Arbor Acres Plus','Arbor Acres Plus S','Indian River','Indian River FF','Efficiency Plus','Hubbard EDGE','Arian'];
 const AGES=[7,14,21,28,35,42,49,56];
@@ -70,6 +70,9 @@ assert.ok(E.build({id:'recovery',strain:'Ross 308'},recovery).scenarioMatrix.pat
 const recoveryModel=E.build({id:'recovery-smart',strain:'Ross 308'},recovery);
 assert.equal(recoveryModel.forecastSummary?.improve?.label,'وزن');
 assert.equal(recoveryModel.forecastSummary?.improve?.trajectory?.regime,'recovering');
+assert.ok(recoveryModel.states.weight.trajectory.gapSeries.length>=3);
+assert.ok(['high','medium','low'].includes(recoveryModel.states.weight.trajectory.persistenceLevel));
+assert.ok(['converging','diverging','stable'].includes(recoveryModel.states.weight.trajectory.relation));
 
 const deteriorating=R(35);
 const wg2=[-2,-3,-4,-5,-6,-7],fg2=[2,3,4,5,6,7];
@@ -77,14 +80,16 @@ deteriorating.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg2[i]/100);
 const riskModel=E.build({id:'risk-smart',strain:'Ross 308'},deteriorating);
 assert.ok(riskModel.forecastSummary?.risk);
 assert.ok(['weight','fcr'].includes(riskModel.forecastSummary.risk.key));
-assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V2');
+assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3');
+assert.ok(riskModel.states.weight.trajectory.currentGapPercent<0);
+assert.ok(Number.isFinite(riskModel.states.weight.trajectory.momentum));
 
 const stableTrajectory=R(35);
 stableTrajectory.forEach(r=>{good(r,'weight');good(r,'fcr')});
 const stableTrajectoryModel=E.build({id:'stable-smart',strain:'Ross 308'},stableTrajectory);
 assert.equal(stableTrajectoryModel.forecastSummary?.risk,null);
 assert.equal(stableTrajectoryModel.forecastSummary?.improve,null);
-assert.equal(stableTrajectoryModel.forecastSummary?.method,'trajectory-regime + persistence + gap-headroom + conditional-forecast');
+assert.equal(stableTrajectoryModel.forecastSummary?.method,'normalized-gap + robust-momentum + persistence + convergence/divergence + volatility + conditional-forecast');
 
 assert.equal(riskModel.targetAuthority,'canonical-broiler-standards-engine');
 assert.ok(Object.values(riskModel.states).every(x=>x.official?.reference?.label || x.official?.status==='unavailable'));
@@ -130,3 +135,21 @@ for(const k of ['weight','adg','fcr','cumulativeFcr','mortality','cv','u10','u15
 }
 
 console.log(`PI MATRIX VALIDATION V3 PASSED: ${count} age×strain×pattern cases + explicit edge/data-quality assertions`);
+
+// Smart Trend V3: with only 3 evaluations, a worsening path may be an early warning but not a confirmed risk.
+const threePointWarning=R(35);
+const gw=[-1,-2,-3];
+threePointWarning.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+gw[i]/100)});
+const threeWarningModel=E.build({id:'three-point-warning',strain:'Ross 308'},threePointWarning);
+assert.ok(threeWarningModel.forecastSummary?.earlyWarning || threeWarningModel.forecastSummary?.risk===null);
+assert.equal(threeWarningModel.forecastSummary?.risk,null);
+
+// Normalized gap semantics: positive is favorable for both higher-is-better and lower-is-better metrics.
+const semantic=R(35);
+semantic.forEach(r=>{r.weight=r.canonicalTargets.weight*1.05;r.fcr=r.canonicalTargets.fcr*.95;r.mortality=r.canonicalTargets.mortality*.80});
+const semanticModel=E.build({id:'semantic-gap',strain:'Ross 308'},semantic);
+assert.ok(semanticModel.states.weight.official.gapPercent>0);
+assert.ok(semanticModel.states.fcr.official.gapPercent>0);
+assert.ok(semanticModel.states.mortality.official.gapPercent>0);
+
+console.log('SMART TREND V3 VALIDATION PASSED: normalized gap, persistence, convergence/divergence, volatility and conditional forecast gates');

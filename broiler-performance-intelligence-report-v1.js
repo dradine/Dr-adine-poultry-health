@@ -122,7 +122,7 @@ function outlookCard(item,kind){
  const regime=trajectoryLabel(tr.regime),relation=tr.relation==='converging'?'همگرا':tr.relation==='diverging'?'افزایش فاصله':'پایدار';
  const reason=item.reason||'بر اساس مسیر مشاهده‌شده';
  const evidence=(tr.pointsUsed||0)+' ارزیابی • تداوم '+(tr.persistenceLevel==='high'?'بالا':tr.persistenceLevel==='medium'?'متوسط':tr.persistenceLevel==='limited'?'محدود':'کم')+' • نوسان '+(tr.stability==='stable'?'پایدار':tr.stability==='moderate'?'متوسط':'بالا');
- return '<div class="pi-outlook-inner"><span>'+title+'</span><b>'+esc(item.label)+'</b><strong>'+esc(reason)+'</strong><small>رژیم: '+esc(regime)+' • رابطه با مرجع: '+esc(relation)+' • '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,kind))+'</p></div>';
+ return '<div class="pi-outlook-inner"><span>'+title+'</span><b>'+esc(item.label)+'</b><strong>'+esc(reason)+'</strong><small>وضعیت مسیر: '+esc(regime)+' • رابطه با مرجع: '+esc(relation)+' • '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,kind))+'</p></div>';
 }
 function evidenceCard(x){
  return '<article class="pi-smart-insight '+esc(x.severity||'watch')+' pi-severity-'+esc(x.severity||'positive')+'"><div class="pi-insight-top"><span class="pi-badge">'+(x.severity==='high'?'مهم':x.severity==='watch'?'پایش':'مثبت')+'</span><b>'+esc(x.title)+'</b></div><p>'+esc(x.text)+'</p><small>شواهد: '+esc((x.evidence||[]).join(' • '))+'</small></article>';

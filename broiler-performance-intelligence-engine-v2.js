@@ -407,7 +407,7 @@ function buildForecastSummary(rows,s){
    rankedInformational:informational.slice(0,5),
    scenarioOverview:{counts:scenarioCounts,metricCount:candidates.length,dominantScenario:Object.entries(scenarioCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||null},
    method:'metric-direction-semantics + age-reference-position + raw-momentum + persistence + turning-point + volatility + conditional-scenarios + axis-corroboration + evidence-tier',
-   note:'Smart Trend V3.7 جهت ذاتی هر شاخص را مستقل تفسیر می‌کند: وزن/ADG/U10/U15/EPEF با افزایش بهتر؛ FCR/FCR تجمعی/تلفات/CV با کاهش بهتر. فاصله از مرجع و مسیر واقعی جداگانه محاسبه می‌شوند و چشم‌انداز فقط به‌صورت شرطی و متناسب با شواهد ارائه می‌شود. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
+   note:'Smart Trend V4.0 ابتدا مسیر فاصله از مرجع سنی را تحلیل می‌کند و جهت ذاتی شاخص را به‌صورت مستقل نگه می‌دارد: وزن/ADG/U10/U15/EPEF با افزایش بهتر؛ FCR/FCR تجمعی/تلفات/CV با کاهش بهتر. حرکت اخیر نسبت به مرجع از سناریوی مشروطِ ارزیابی بعدی جداست؛ در سه ارزیابی فقط جهت و سناریوی کیفی گزارش می‌شود و عدم‌قطعیت عددی نمایش داده نمی‌شود. این تحلیل پیش‌بینی قطعی یا تشخیص بیماری نیست.'
  };
 }
 function buildTrajectorySynthesis(s){

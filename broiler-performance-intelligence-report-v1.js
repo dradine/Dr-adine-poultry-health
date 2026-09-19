@@ -92,26 +92,36 @@ function trendDashboard(m){
    return '<article class="pi-trend-chart-card pi-status-'+esc(status)+' '+trendClass(t.direction)+'"><div class="pi-chart-head"><b>'+esc(metricName(k))+'</b><span class="'+trendClass(t.direction)+'">'+trendIcon(t.direction)+' '+esc(t.direction==='improving'?'بهبود':t.direction==='worsening'?'افت':t.direction==='stable'?'پایدار':'داده ناکافی')+'</span></div>'+sparkline(m,k)+'<div class="pi-chart-foot"><span>'+fmt(ser.length,0)+' ارزیابی</span><span>وضعیت مسیر: '+esc(regime)+'</span><span>رابطه با مرجع: '+esc(relation)+'</span><span>تداوم: '+esc(persistence)+'</span><span>شواهد: '+esc(evidence)+'</span></div><div class="pi-chart-reference"><b>وضعیت فعلی:</b> '+esc(meaning)+' • <b>فاصله عملکردی:</b> '+esc(gapText)+' • <b>چشم‌انداز:</b> '+esc(outlook)+' • <b>عدم‌قطعیت:</b> '+esc(f?.available?'±'+fmt(f.uncertaintyPercent,1)+' واحد درصد':'—')+' • <b>مرجع:</b> '+esc(ser.at(-1)?.reference?.label||q?.official?.reference?.label||'استاندارد سنی معتبر')+'</div></article>';
  }).join('')+'</div>';
 }
-function forecastText(f,kind){
- if(!f?.available)return 'داده کافی برای چشم‌انداز مشروط وجود ندارد.';
+function forecastText(f,item){
+ if(!f?.available)return 'چشم‌انداز مشروط هنوز قابل محاسبه نیست.';
  const d=f.direction==='improving'?'بهبود':f.direction==='worsening'?'تضعیف':'ثبات';
- const u=Number.isFinite(Number(f.uncertaintyPercent))?' عدم‌قطعیت برآورد مسیر حدود ±'+fmt(f.uncertaintyPercent,1)+' واحد درصد است.':'';
- return 'جهت خام شاخص: '+d+'؛ چشم‌انداز مشروط فقط در صورت ادامه همین الگو معتبر است.'+u;
+ const u=Number.isFinite(Number(f.uncertaintyPercent))?' عدم‌قطعیت مسیر حدود ±'+fmt(f.uncertaintyPercent,1)+' واحد درصد است.':'';
+ return 'جهت واقعی شاخص: '+d+'؛ این چشم‌انداز فقط در صورت ادامه الگوی فعلی معتبر است.'+u;
 }
 function outlookCard(item,kind){
- if(!item)return '<div class="pi-outlook-empty">با داده فعلی، شواهد کافی برای فعال‌کردن این کارت وجود ندارد.</div>';
- const tr=item.trajectory||{},signal=item.signal||'',isImprove=kind==='improve';
- const title=isImprove?'ظرفیت بهبود':'ریسک / هشدار مسیر';
+ const isImprove=kind==='improve';
+ if(!item){
+   return '<div class="pi-outlook-inner"><span>'+(isImprove?'ظرفیت بازیابی • چشم‌انداز اطلاعاتی':'ریسک / هشدار • وضعیت پایش')+'</span><b>شواهد کافی برای انتخاب شاخص غالب وجود ندارد</b><strong>در ارزیابی بعدی، تغییر جهت و فاصله از مرجع دوباره محاسبه می‌شود.</strong><p>این بخش عمداً خالی نمی‌ماند؛ نبود سیگنال غالب به‌معنای نبود داده نیست.</p></div>';
+ }
+ const tr=item.trajectory||{},state=item.state||'informational';
+ const title=isImprove?'ظرفیت بازیابی / مسیر مثبت':'ریسک / هشدار مسیر';
+ const stateLabel={
+   confirmed_risk:'ریسک تأییدشده مسیر',
+   early_warning:'هشدار زودهنگام',
+   informational_warning:'پایش تقویتی',
+   recovery_opportunity:'ظرفیت بازیابی',
+   positive_momentum:'مومنتوم مثبت',
+   informational:'چشم‌انداز اطلاعاتی'
+ }[state]||'چشم‌انداز مسیر';
  const relation=item.gapRelation||'فاصله نسبتاً پایدار';
  const raw=item.rawDirection||'پایدار';
  const position=item.currentMeaning||'نامشخص';
  const gap=Number.isFinite(Number(tr.currentGapPercent))?fmt(tr.currentGapPercent,1)+'٪':'—';
  const projected=Number.isFinite(Number(tr.projectedGapPercent))?fmt(tr.projectedGapPercent,1)+'٪':'—';
- let reason=item.reason||'بر اساس مسیر مشاهده‌شده';
- if(signal==='relative_warning')reason='بهبود واقعی شاخص دیده می‌شود، اما فاصله نامطلوب آن از مرجع سنی در حال افزایش است؛ بنابراین این مورد «ظرفیت بهبود» محسوب نمی‌شود.';
- const evidence=(tr.pointsUsed||0)+' ارزیابی • تداوم '+(tr.persistenceLevel==='high'?'بالا':tr.persistenceLevel==='medium'?'متوسط':tr.persistenceLevel==='limited'?'محدود':'کم')+' • نوسان '+(tr.stability==='stable'?'پایدار':tr.stability==='moderate'?'متوسط':'بالا');
- const status=isImprove?'بازیابی هم‌جهت':'هشدار مسیر';
- return '<div class="pi-outlook-inner"><span>'+title+' • '+status+'</span><b>'+esc(item.label)+'</b><strong>'+esc(reason)+'</strong><div class="pi-outlook-facts"><small>جهت واقعی شاخص: <b>'+esc(raw)+'</b></small><small>وضعیت فعلی: <b>'+esc(position)+'</b></small><small>حرکت نسبت به مرجع: <b>'+esc(relation)+'</b></small><small>فاصله فعلی: <b>'+esc(gap)+'</b> • فاصله مشروط: <b>'+esc(projected)+'</b></small></div><small>شواهد: '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,kind))+'</p></div>';
+ const confidence=item.confidence||'محدود';
+ const corroboration=(item.corroboratingMetrics||[]).length?(' • پشتیبان هم‌محور: '+item.corroboratingMetrics.join('، ')):'';
+ const evidence=(tr.pointsUsed||0)+' ارزیابی • شواهد '+confidence+' • امتیاز شواهد '+fmt(item.evidenceScore,0)+'/100 • تداوم '+(tr.persistenceLevel==='high'?'بالا':tr.persistenceLevel==='medium'?'متوسط':tr.persistenceLevel==='limited'?'محدود':'کم')+' • نوسان '+(tr.stability==='stable'?'پایدار':tr.stability==='moderate'?'متوسط':'بالا');
+ return '<div class="pi-outlook-inner"><span>'+esc(title)+' • '+esc(stateLabel)+'</span><b>'+esc(item.label)+'</b><strong>'+esc(item.reason||'بر اساس مسیر مشاهده‌شده')+'</strong><div class="pi-outlook-facts"><small>جهت واقعی شاخص: <b>'+esc(raw)+'</b></small><small>وضعیت فعلی: <b>'+esc(position)+'</b></small><small>حرکت نسبت به مرجع: <b>'+esc(relation)+'</b></small><small>فاصله فعلی: <b>'+esc(gap)+'</b> • فاصله مشروط: <b>'+esc(projected)+'</b></small><small>هم‌محوری: <b>'+esc(item.axis||'—')+'</b>'+esc(corroboration)+'</small></div><small>شواهد: '+esc(evidence)+'</small><p>'+esc(forecastText(item.forecast,item))+'</p></div>';
 }
 function evidenceCard(x){
  return '<article class="pi-smart-insight '+esc(x.severity||'watch')+' pi-severity-'+esc(x.severity||'positive')+'"><div class="pi-insight-top"><span class="pi-badge">'+(x.severity==='high'?'مهم':x.severity==='watch'?'پایش':'مثبت')+'</span><b>'+esc(x.title)+'</b></div><p>'+esc(x.text)+'</p><small>شواهد: '+esc((x.evidence||[]).join(' • '))+'</small></article>';

@@ -89,8 +89,6 @@ assert.notEqual(noisy3Model.states.weight.trajectory.persistenceLevel,'high');
 assert.notEqual(noisy3Model.states.weight.trajectory.stability,'high_volatility');
 
 // Lower-is-better semantics must remain positive when actual mortality/FCR is better than reference.
-assert.ok(semanticModel.states.fcr.trajectory.currentPosition==='better');
-assert.ok(semanticModel.states.mortality.trajectory.currentPosition==='better');
 assert.ok(E.build({id:'synth',strain:'Ross 308'},R(35)).trajectorySynthesis?.available);
 
 
@@ -171,5 +169,8 @@ const semanticModel=E.build({id:'semantic-gap',strain:'Ross 308'},semantic);
 assert.ok(semanticModel.states.weight.official.gapPercent>0);
 assert.ok(semanticModel.states.fcr.official.gapPercent>0);
 assert.ok(semanticModel.states.mortality.official.gapPercent>0);
+assert.equal(semanticModel.states.fcr.trajectory.currentPosition,'better');
+assert.equal(semanticModel.states.mortality.trajectory.currentPosition,'better');
+assert.ok(E.build({id:'synth',strain:'Ross 308'},R(35)).trajectorySynthesis?.available);
 
 console.log('SMART TREND V3 VALIDATION PASSED: normalized gap, persistence, convergence/divergence, volatility and conditional forecast gates');

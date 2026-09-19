@@ -146,3 +146,29 @@
 .pi-smart-insight.pi-severity-high{background:#fff5f3;border-color:#e2aaa2}.pi-smart-insight.pi-severity-watch{background:#fff9ef;border-color:#ead1a6}.pi-smart-insight.pi-severity-medium{background:#f4f8f6;border-color:#cbdcd4}.pi-smart-insight.pi-severity-positive{background:#f3faf6;border-color:#b9dcc9}
 .pi-alert-card{position:relative;overflow:hidden}.pi-alert-card:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:#c78d43}.pi-alert-card.high:before{background:#b85c52}.pi-alert-card.positive:before{background:#4b927a}.pi-alert-card.positive{background:#f3faf6;border-color:#b9dcc9}.pi-alert-card.watch{background:#fff9ef;border-color:#ead1a6}.pi-alert-card.high{background:#fff5f3;border-color:#e2aaa2}
 @media(max-width:760px){.pi-trend-chart-grid{grid-template-columns:1fr}.pi-trend-table{font-size:8px}.pi-roadmap-colored .pi-roadmap-step{min-height:72px}}
+
+/* PI V10.1 — trend movement semantics + high-visibility evidence table */
+.pi-trend-chart-card.trend-good{border:1px solid #a9d3be!important;background:linear-gradient(135deg,rgba(75,146,122,.14),#fbfdfc 48%)!important}
+.pi-trend-chart-card.trend-bad{border:1px solid #dfaaa3!important;background:linear-gradient(135deg,rgba(184,92,82,.15),#fffafa 48%)!important}
+.pi-trend-chart-card.trend-neutral{border:1px solid #cbd8d2!important;background:linear-gradient(135deg,rgba(49,92,80,.07),#fbfdfc 48%)!important}
+.pi-trend-chart-card.trend-muted{border:1px solid #d8dfdc!important;background:#f7f9f8!important}
+.pi-trend-chart-card.trend-good:after,.pi-trend-chart-card.trend-bad:after,.pi-trend-chart-card.trend-neutral:after{position:absolute;top:8px;left:8px;font-size:13px;font-weight:900}
+.pi-trend-chart-card.trend-good:after{content:"↑";color:#347c65}.pi-trend-chart-card.trend-bad:after{content:"↓";color:#a34f47}.pi-trend-chart-card.trend-neutral:after{content:"→";color:#315c50}
+.pi-trend-table tbody tr{border-inline-start:5px solid #d8dfdc!important}
+.pi-trend-table tbody tr.pi-row-status-excellent,.pi-trend-table tbody tr.pi-row-status-good{border-inline-start-color:#4b927a!important}
+.pi-trend-table tbody tr.pi-row-status-on_target{border-inline-start-color:#315c50!important}
+.pi-trend-table tbody tr.pi-row-status-watch{border-inline-start-color:#c78d43!important}
+.pi-trend-table tbody tr.pi-row-status-critical{border-inline-start-color:#b85c52!important}
+.pi-trend-table td:nth-child(2){font-weight:900}
+.pi-trend-table tbody tr.pi-row-status-good td:nth-child(2),.pi-trend-table tbody tr.pi-row-status-excellent td:nth-child(2){color:#347c65!important}
+.pi-trend-table tbody tr.pi-row-status-watch td:nth-child(2){color:#a16f2f!important}.pi-trend-table tbody tr.pi-row-status-critical td:nth-child(2){color:#a34f47!important}
+.pi-trend-table tbody tr:has(td:nth-child(4)){ }
+.pi-outlook{gap:12px}
+.pi-outlook-risk,.pi-outlook-improve{position:relative;overflow:hidden;border-radius:14px!important;padding:13px 15px!important;border:1px solid!important}
+.pi-outlook-risk{background:#fff5f3!important;border-color:#e2aaa2!important;border-inline-start:5px solid #b85c52!important}.pi-outlook-risk span,.pi-outlook-risk b{color:#a34f47!important}
+.pi-outlook-improve{background:#f3faf6!important;border-color:#b9dcc9!important;border-inline-start:5px solid #4b927a!important}.pi-outlook-improve span,.pi-outlook-improve b{color:#347c65!important}
+.pi-outlook-risk:before{content:"⚠";position:absolute;left:12px;top:10px;color:#b85c52;font-size:17px}.pi-outlook-improve:before{content:"↑";position:absolute;left:12px;top:10px;color:#4b927a;font-size:17px}
+.pi-section-multivariate .pi-smart-insight.high,.pi-section-trend .pi-smart-insight.high{background:#fff5f3!important;border-color:#e2aaa2!important;border-inline-start:5px solid #b85c52!important}
+.pi-section-multivariate .pi-smart-insight.watch,.pi-section-trend .pi-smart-insight.watch{background:#fff9ef!important;border-color:#ead1a6!important;border-inline-start:5px solid #c78d43!important}
+.pi-section-multivariate .pi-smart-insight.positive,.pi-section-trend .pi-smart-insight.positive{background:#f3faf6!important;border-color:#b9dcc9!important;border-inline-start:5px solid #4b927a!important}
+.pi-section-trend .pi-chart-foot span:nth-child(2){font-weight:900;padding:3px 6px;border-radius:6px;background:#f1f5f3}

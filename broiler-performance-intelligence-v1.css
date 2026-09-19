@@ -207,3 +207,22 @@
 .pi-spark-line.trend-good{stroke:#2f8a61!important}.pi-spark-line.trend-bad{stroke:#b83f35!important}.pi-spark-line.trend-neutral{stroke:#7b8782!important}.pi-spark-line.trend-muted{stroke:#aeb9b4!important}
 .pi-spark-last.trend-good{fill:#2f8a61!important}.pi-spark-last.trend-bad{fill:#b83f35!important}.pi-spark-last.trend-neutral{fill:#7b8782!important}.pi-spark-last.trend-muted{fill:#aeb9b4!important}
 .pi-spark-proj.trend-good{stroke:#2f8a61!important}.pi-spark-proj.trend-bad{stroke:#b83f35!important}.pi-spark-proj.trend-neutral{stroke:#7b8782!important}
+
+
+/* PI V10.0 — modern multi-point age-normalized performance charts */
+.pi-smart-gap-chart{display:block;width:100%;height:auto;min-height:118px;overflow:visible}
+.pi-chart-grid-line{stroke:#dfe6e3;stroke-width:1;stroke-dasharray:2 4;vector-effect:non-scaling-stroke}
+.pi-chart-y-label,.pi-chart-x-label,.pi-chart-zero-label{font-family:Tahoma,Arial,sans-serif;font-size:8px;fill:#73817c;user-select:none}
+.pi-chart-zero-label{font-size:8px;font-weight:700;fill:#596762}
+.pi-chart-zero-line{stroke:#65736e;stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.pi-chart-zone-good{fill:rgba(31,138,99,.045)}
+.pi-chart-zone-bad{fill:rgba(195,71,62,.035)}
+.pi-chart-good-area{fill:rgba(31,138,99,.075);stroke:none}
+.pi-chart-bad-area{fill:rgba(195,71,62,.055);stroke:none}
+.pi-chart-main-line{fill:none;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.pi-chart-point{cursor:pointer}
+.pi-chart-point circle:first-child{transition:transform .15s ease,filter .15s ease}
+.pi-chart-point:hover circle:first-child,.pi-chart-point:focus circle:first-child{transform:scale(1.35);filter:drop-shadow(0 2px 3px rgba(0,0,0,.18))}
+.pi-chart-forecast{fill:none;stroke-width:2;stroke-dasharray:5 4;opacity:.7;vector-effect:non-scaling-stroke}
+.pi-smart-gap-chart .pi-chart-x-label{font-size:7.5px}
+@media (max-width:520px){.pi-smart-gap-chart{min-height:112px}.pi-chart-y-label{font-size:7px}.pi-chart-x-label{font-size:7px}}

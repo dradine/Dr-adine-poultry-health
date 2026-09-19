@@ -56,8 +56,8 @@ function explainTrend(s){
    else if((w.status==='watch'||w.status==='critical')&&(f.status==='good'||f.status==='excellent'))
      out.push({type:'tradeoff',severity:'watch',title:'فاصله وزن با وجود کارایی مناسب خوراک',evidence:['وزن','FCR'],text:'FCR فعلاً مناسب است اما وزن از مرجع عقب‌تر است؛ تمرکز تحلیل باید روی سرعت رشد و یکنواختی باشد، نه صرفاً مصرف خوراک.'});
  }
- if(c&&u&&c.trend?.movement==='farther'&&u.trend?.movement==='farther')
-   out.push({type:'distribution',severity:'high',title:'کیفیت توزیع وزن در حال تضعیف است',evidence:['CV','U10'],text:'CV از مرجع دورتر و U10 نیز نامطلوب‌تر شده است؛ این هم‌جهتی، کاهش یکنواختی مؤثر گله را محتمل‌تر می‌کند.'});
+ if(c&&u&&['worse_farther','crossed_to_worse'].includes(c.trend?.movement)&&['worse_farther','crossed_to_worse'].includes(u.trend?.movement))
+   out.push({type:'distribution',severity:'high',title:'کیفیت توزیع وزن در حال تضعیف است',evidence:['CV','U10'],text:'CV و U10 هر دو در جهت نامطلوب حرکت کرده‌اند؛ این هم‌جهتی، کاهش یکنواختی مؤثر گله را محتمل‌تر می‌کند.'});
  if(m&&f&&m.trend?.direction==='worsening'&&f.trend?.direction==='worsening')
    out.push({type:'survival-efficiency',severity:'high',title:'فشار همزمان بر بقا و کارایی',evidence:['تلفات','FCR'],text:'تلفات و FCR در جهت نامطلوب حرکت کرده‌اند؛ علت از این داده‌ها قابل تعیین نیست و بررسی همزمان سلامت، محیط، آب و خوراک لازم است.'});
  return out;

@@ -98,7 +98,7 @@ deteriorating.forEach((r,i)=>{r.weight=r.canonicalTargets.weight*(1+wg2[i]/100);
 const riskModel=E.build({id:'risk-smart',strain:'Ross 308'},deteriorating);
 assert.ok(riskModel.forecastSummary?.risk);
 assert.ok(['weight','fcr'].includes(riskModel.forecastSummary.risk.key));
-assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.1');
+assert.equal(riskModel.forecastSummary.version,'SMART-TREND-V3.5');
 assert.ok(riskModel.states.weight.trajectory.currentGapPercent<0);
 assert.ok(Number.isFinite(riskModel.states.weight.trajectory.momentum));
 
@@ -107,7 +107,8 @@ stableTrajectory.forEach(r=>{good(r,'weight');good(r,'fcr')});
 const stableTrajectoryModel=E.build({id:'stable-smart',strain:'Ross 308'},stableTrajectory);
 assert.equal(stableTrajectoryModel.forecastSummary?.risk,null);
 assert.equal(stableTrajectoryModel.forecastSummary?.improve,null);
-assert.equal(stableTrajectoryModel.forecastSummary?.method,'normalized-gap + robust-momentum + persistence + convergence/divergence + calibrated-volatility + conditional-forecast');
+assert.ok(stableTrajectoryModel.forecastSummary?.method.includes('metric-direction-semantics'));
+assert.ok(stableTrajectoryModel.forecastSummary?.scenarioOverview);
 
 assert.equal(riskModel.targetAuthority,'canonical-broiler-standards-engine');
 assert.ok(Object.values(riskModel.states).every(x=>x.official?.reference?.label || x.official?.status==='unavailable'));
@@ -192,3 +193,55 @@ const v34Tr=v34TurnModel.states?.weight?.trajectory;
 assert.ok(v34Tr?.available); assert.equal(v34Tr.turningPoint,'recent_turning_point'); assert.equal(v34Tr.turningDirection,'toward_better'); assert.ok(v34Tr.projectedPosition);
 assert.ok(v34TurnModel.forecastSummary?.improve||v34TurnModel.forecastSummary?.risk);
 console.log('SMART TREND V3.4 VALIDATION PASSED: turning point and conditional next-evaluation outlook');
+
+// Smart Trend V3.5 — metric-direction semantics must govern raw trend interpretation.
+// Higher-is-better: weight / ADG / U10 / U15 / EPEF.
+// Lower-is-better: FCR / cumulative FCR / mortality / CV.
+const directionRows=R(35).slice(0,4);
+directionRows.forEach((r,i)=>{
+  const t=r.canonicalTargets;
+  r.weight=t.weight*(1+[-2,-1,1,2][i]/100);
+  r.adg=t.adg*(1+[-2,-1,1,2][i]/100);
+  r.u10=t.u10+[-4,-2,1,3][i];
+  r.u15=t.u15+[-4,-2,1,3][i];
+  r.fcr=t.fcr*(1+[3,2,1,0][i]/100);
+  r.cumulativeFcr=t.cumulativeFcr*(1+[3,2,1,0][i]/100);
+  r.mortality=t.mortality+[2,1,.5,0][i];
+  r.cv=t.cv+[3,2,1,0][i];
+});
+const directionModel=E.build({id:'direction-semantics',strain:'Ross 308'},directionRows);
+assert.equal(directionModel.states.weight.trajectory.direction,'improving');
+assert.equal(directionModel.states.adg.trajectory.direction,'improving');
+assert.equal(directionModel.states.u10.trajectory.direction,'improving');
+assert.equal(directionModel.states.u15.trajectory.direction,'improving');
+assert.equal(directionModel.states.fcr.trajectory.direction,'improving');
+assert.equal(directionModel.states.cumulativeFcr.trajectory.direction,'improving');
+assert.equal(directionModel.states.mortality.trajectory.direction,'improving');
+assert.equal(directionModel.states.cv.trajectory.direction,'improving');
+
+// Critical regression case: U15 100 -> 96 -> 90 with a 94 reference must never
+// manufacture a positive "next evaluation above reference" outlook.
+const u15Rows=R(35).slice(0,3);
+u15Rows[0].u15=100;
+u15Rows[1].u15=96;
+u15Rows[2].u15=90;
+u15Rows.forEach(r=>{r.canonicalTargets.u15=94});
+const u15Model=E.build({id:'u15-directional-regression',strain:'Ross 308'},u15Rows);
+const u15t=u15Model.states.u15.trajectory;
+assert.equal(u15t.direction,'worsening');
+assert.equal(u15t.currentPosition,'weaker');
+assert.notEqual(u15t.conditionalOutlook?.primaryScenario,'recovery_path');
+assert.equal(u15t.conditionalOutlook?.direction,'worsening');
+assert.ok(['continued_pressure','negative_drift','deterioration_watch'].includes(u15t.conditionalOutlook?.primaryScenario));
+assert.ok(u15t.projectedGapPercent<0);
+assert.ok(u15Model.forecastSummary?.risk||u15Model.forecastSummary?.earlyWarning);
+
+// Opposite semantic: CV 14 -> 12 -> 10 is improving because lower CV is better.
+const cvRows=R(35).slice(0,3);
+cvRows[0].cv=14; cvRows[1].cv=12; cvRows[2].cv=10;
+cvRows.forEach(r=>{r.canonicalTargets.cv=10});
+const cvModel=E.build({id:'cv-directional',strain:'Ross 308'},cvRows);
+assert.equal(cvModel.states.cv.trajectory.direction,'improving');
+assert.equal(cvModel.states.cv.trajectory.currentPosition,'near_reference');
+
+console.log('SMART TREND V3.5 VALIDATION PASSED: metric-direction semantics, scenario outlook and U15 regression guard');

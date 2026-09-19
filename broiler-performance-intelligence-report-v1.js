@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V9.0 — MULTIVARIATE SCIENTIFIC */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V9.2 — DIRECTION-AWARE CHARTS */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -59,7 +59,8 @@ function radarPoint(v,angle){const x=120+Math.sin(angle)*v*.97,y=120-Math.cos(an
 function radarValue(s){const g=n(s?.gapPercent),status=s?.status;if(g===null)return 75;const anchors={critical:38,watch:55,on_target:75,good:88,excellent:98};const center=anchors[status]??75;const drift=Math.max(-10,Math.min(10,g))*0.9;return Math.max(28,Math.min(100,center+drift))}
 function metricName(k){return{weight:'وزن',fcr:'FCR',cumulativeFcr:'FCR تجمعی',adg:'افزایش وزن',mortality:'تلفات',cv:'CV',u10:'U10',u15:'U15',epef:'EPEF',feed:'خوراک',water:'آب',wfr:'آب/خوراک'}[k]||k}
 function sparkline(model,key){
- const a=model.series?.[key]||[],f=model.states?.[key]?.forecast,ref=a.at(-1)?.reference||model.states?.[key]?.official?.reference||{};
+ const a=model.series?.[key]||[],state=model.states?.[key]||{},t=state.trend||{},f=state.forecast,ref=a.at(-1)?.reference||state.official?.reference||{};
+ const trend=t.direction==='improving'?'trend-good':t.direction==='worsening'?'trend-bad':t.direction==='stable'?'trend-neutral':'trend-muted';
  if(!a.length)return '<div class="pi-spark-empty">داده روند کافی نیست</div>';
  const vals=a.map(x=>n(x.gapPercent)).filter(x=>x!==null), projected=f?.available?(f.projectedGapPercent):null,all=projected===null?vals:[...vals,projected];
  const lo=Math.min(-10,...all),hi=Math.max(10,...all),w=300,h=72,p=8,den=Math.max(1,hi-lo),x=i=>p+(i/Math.max(1,a.length-1))*(w-2*p),y=v=>h-p-(v-lo)/den*(h-2*p);

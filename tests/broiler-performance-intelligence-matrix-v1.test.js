@@ -117,7 +117,8 @@ const metricSemantics=[
   ['fcr','better_farther','improving'],
   ['cumulativeFcr','better_farther','improving'],
   ['mortality','better_farther','improving'],
-  ['cv','better_farther','improving']
+  ['cv','better_farther','improving'],
+  ['epef','better_farther','improving']
 ];
 for(const [key,expectedGap,expectedDirection] of metricSemantics){
   const rows=R(35).slice(0,5);

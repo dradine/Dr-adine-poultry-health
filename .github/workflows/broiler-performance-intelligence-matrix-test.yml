@@ -1,0 +1,25 @@
+name: Broiler Performance Intelligence Matrix Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'broiler-performance-intelligence-engine-v2.js'
+      - 'tests/broiler-performance-intelligence-matrix-v1.test.js'
+      - '.github/workflows/broiler-performance-intelligence-matrix-test.yml'
+  pull_request:
+    paths:
+      - 'broiler-performance-intelligence-engine-v2.js'
+      - 'tests/broiler-performance-intelligence-matrix-v1.test.js'
+      - '.github/workflows/broiler-performance-intelligence-matrix-test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/broiler-performance-intelligence-matrix-v1.test.js

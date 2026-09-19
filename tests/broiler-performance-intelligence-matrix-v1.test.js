@@ -28,6 +28,8 @@ assert.ok(has('growth_uniformity_pressure',Array.from({length:6},(_,i)=>row('Ros
 const earlyRows=Array.from({length:6},(_,i)=>row('Ross 308',0,i));
 ['weight','fcr'].forEach(k=>{earlyRows[4][k]=k==='fcr'?T[k]*0.94:T[k]*1.06;earlyRows[5][k]=k==='fcr'?T[k]*1.06:T[k]*0.94;});
 assert.ok(E.build({id:'early',strain:'Ross 308'},earlyRows).scenarioMatrix.patterns.includes('early_warning'));
-const recoveryRows=Array.from({length:6},(_,i)=>row('Ross 308',20,i));
+const recoveryRows=Array.from({length:6},(_,i)=>row('Ross 308',0,i));
+const recoveryWeightGap=[-10,-7,-3,0,3,6],recoveryFcrGap=[10,7,3,0,-3,-6];
+recoveryRows.forEach((r,i)=>{r.weight=T.weight*(1+recoveryWeightGap[i]/100);r.fcr=T.fcr*(1+recoveryFcrGap[i]/100);});
 assert.ok(E.build({id:'recovery',strain:'Ross 308'},recoveryRows).scenarioMatrix.patterns.includes('recovery_from_pressure'));
 console.log(`PI MATRIX VALIDATION PASSED: ${count} multi-strain cases + 4 explicit rule assertions`);

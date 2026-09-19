@@ -12,7 +12,7 @@ const trendIcon=d=>d==='improving'?'↑':d==='worsening'?'↓':d==='stable'?'→
 function section(t,sub,body,key='neutral'){return '<section class="pi-section pi-section-'+esc(key)+'"><button class="pi-accordion-head" type="button" aria-expanded="true"><span><b>'+esc(t)+'</b><small>'+esc(sub||'')+'</small></span><i>⌃</i></button><div class="pi-accordion-body">'+body+'</div></section>'}
 function metric(l,v,s,key){
  const status=s?.status||'unavailable',gap=n(s?.gapPercent),model=global.__adinePerformanceIntelligenceModel||{},q=model.states?.[key]||{},t=q.trend||{};
- const ref=s?.reference||q?.reference||{}; const gapText=gap===null?'استاندارد قابل اتکا در این سن در دسترس نیست':(gap>0?'+':'')+fmt(gap,1)+'٪ نسبت به '+(ref.label||'استاندارد سنی');
+ const ref=s?.reference||q?.reference||{}; const gapText=key==='cv'&&gap!==null&&n(s?.statusBoundary)!==null?(fmt(s.current,1)+'٪؛ '+fmt(n(s.statusBoundary)-s.current,1)+' واحد درصد بهتر از مرز عملیاتی ۱۰٪'):(gap===null?'استاندارد قابل اتکا در این سن در دسترس نیست':(gap>0?'+':'')+fmt(gap,1)+'٪ نسبت به '+(ref.label||'استاندارد سنی'));
  const dir=t.direction==='improving'?'بهبود':t.direction==='worsening'?'افت':t.direction==='stable'?'پایدار':'سابقه کافی نیست';
  const movement=t.movement==='closer'?'نزدیک‌تر به استاندارد سنی':t.movement==='better_farther'?'بهتر از استاندارد؛ فاصله عملکردی بیشتر':t.movement==='worse_farther'?'نامطلوب‌تر؛ فاصله عملکردی بیشتر':t.movement==='crossed_to_better'?'عبور به سمت بهتر از استاندارد':t.movement==='crossed_to_worse'?'عبور به سمت نامطلوب':t.movement==='stable'?'فاصله عملکردی تقریباً ثابت':'—';
  const meaning={weight:'سطح وزن فعلی',fcr:'کارایی خوراک در ارزیابی اخیر',cumulativeFcr:'کارایی تجمعی خوراک',adg:'سرعت رشد',mortality:'وضعیت بقا',cv:'پراکندگی وزن',u10:'سهم وزن در محدوده ±۱۰٪',u15:'سهم وزن در محدوده ±۱۵٪'}[key]||'وضعیت شاخص';
@@ -64,7 +64,8 @@ function sparkline(model,key){
        state=model.states?.[key]||{},
        t=state.trend||{},
        f=state.forecast||{},
-       ref=a.at(-1)?.reference||state.official?.reference||{};
+       ref=a.at(-1)?.reference||state.official?.reference||{},
+       lowerIsBetter=['fcr','cumulativeFcr','mortality','cv'].includes(key);
  if(!a.length)return '<div class="pi-spark-empty">داده روند کافی نیست</div>';
 
  const w=360,h=126,px=30,pr=12,pt=12,pb=28,
@@ -73,8 +74,9 @@ function sparkline(model,key){
        all=projected===null?vals:[...vals,projected],
        lo=Math.min(-10,...all),hi=Math.max(10,...all),
        den=Math.max(1,hi-lo),
+       display=v=>lowerIsBetter?-v:v,
        x=i=>px+(i/Math.max(1,a.length-1))*(w-px-pr),
-       y=v=>pt+(hi-v)/den*(h-pt-pb),
+       y=v=>pt+(hi-display(v))/den*(h-pt-pb),
        zeroY=y(0);
 
  const niceStep=den>35?10:den>18?5:den>9?2:1,
@@ -103,12 +105,6 @@ function sparkline(model,key){
  let path='';
  a.forEach((p,i)=>{path+=(i?'L':'M')+x(i).toFixed(1)+' '+y(p.g).toFixed(1)+' ';});
 
- const areaTop=a.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(Math.max(0,p.g)).toFixed(1)).join(' ');
- const areaBottom=a.slice().reverse().map((p,i)=>{
-   const idx=a.length-1-i;
-   return 'L'+x(idx).toFixed(1)+' '+y(Math.min(0,p.g)).toFixed(1);
- }).join(' ');
-
  const points=a.map((p,i)=>{
    const c=pointColor(p.g);
    const label=p.age!==undefined&&p.age!==null?('سن '+fmt(p.age,0)+' روز'):(p.week!==undefined?('هفته '+fmt(p.week,0)):'ارزیابی '+(i+1));
@@ -119,19 +115,23 @@ function sparkline(model,key){
    ?'<line class="pi-chart-forecast" style="stroke:'+directionColor(f.direction)+'" x1="'+x(a.length-1).toFixed(1)+'" y1="'+y(vals.at(-1)).toFixed(1)+'" x2="'+(w-pr)+'" y2="'+y(projected).toFixed(1)+'"></line>'
    :'';
 
- const trendBadge=t.direction==='improving'?'بهبود':t.direction==='worsening'?'افت':t.direction==='stable'?'پایدار':'داده ناکافی';
+ const goodTop=lowerIsBetter?zeroY:pt,
+       goodHeight=lowerIsBetter?Math.max(0,h-pb-zeroY):Math.max(0,zeroY-pt),
+       badTop=lowerIsBetter?pt:zeroY,
+       badHeight=lowerIsBetter?Math.max(0,zeroY-pt):Math.max(0,h-pb-zeroY),
+       trendBadge=t.direction==='improving'?'بهبود':t.direction==='worsening'?'افت':t.direction==='stable'?'پایدار':'داده ناکافی',
+       orientation=lowerIsBetter?'برای شاخص کاهشی، بهبود به سمت پایین است':'برای شاخص افزایشی، بهبود به سمت بالا است';
 
- return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V10.0" data-trend-direction="'+esc(t.direction||'unknown')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند فاصله عملکردی '+esc(metricName(key))+' نسبت به '+esc(ref.label||'استاندارد سنی')+'">'+
-   '<rect class="pi-chart-zone-good" x="'+px+'" y="'+pt+'" width="'+(w-px-pr)+'" height="'+Math.max(0,zeroY-pt).toFixed(1)+'"></rect>'+
-   '<rect class="pi-chart-zone-bad" x="'+px+'" y="'+zeroY.toFixed(1)+'" width="'+(w-px-pr)+'" height="'+Math.max(0,h-pb-zeroY).toFixed(1)+'"></rect>'+
+ return '<svg class="pi-spark pi-smart-gap-chart" data-pi-render-version="V10.1" data-trend-direction="'+esc(t.direction||'unknown')+'" data-direction-mode="'+(lowerIsBetter?'lower-is-better':'higher-is-better')+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="روند فاصله عملکردی '+esc(metricName(key))+' نسبت به '+esc(ref.label||'استاندارد سنی')+'">'+
+   '<rect class="pi-chart-zone-good" x="'+px+'" y="'+goodTop.toFixed(1)+'" width="'+(w-px-pr)+'" height="'+goodHeight.toFixed(1)+'"></rect>'+
+   '<rect class="pi-chart-zone-bad" x="'+px+'" y="'+badTop.toFixed(1)+'" width="'+(w-px-pr)+'" height="'+badHeight.toFixed(1)+'"></rect>'+
    grid+
    '<line class="pi-chart-zero-line" x1="'+px+'" y1="'+zeroY.toFixed(1)+'" x2="'+(w-pr)+'" y2="'+zeroY.toFixed(1)+'"></line>'+
-   '<path class="pi-chart-good-area" d="'+areaTop+' L'+x(a.length-1).toFixed(1)+' '+zeroY.toFixed(1)+' L'+x(0).toFixed(1)+' '+zeroY.toFixed(1)+' Z"></path>'+
-   '<path class="pi-chart-bad-area" d="'+areaBottom+' L'+x(a[0]._i).toFixed(1)+' '+zeroY.toFixed(1)+' L'+x(a.at(-1)._i).toFixed(1)+' '+zeroY.toFixed(1)+' Z"></path>'+
    '<path class="pi-chart-main-line" style="stroke:'+lineColor+'" d="'+path+'"></path>'+
    forecast+points+xLabels+
    '<text class="pi-chart-zero-label" x="'+(w-pr)+'" y="'+(zeroY-5).toFixed(1)+'" text-anchor="end">استاندارد سن</text>'+
-   '<title>'+esc(metricName(key))+'؛ '+trendBadge+'؛ صفر = استاندارد همان سن؛ مثبت = بهتر؛ منفی = ضعیف‌تر</title>'+
+   '<text class="pi-chart-zero-label" x="'+px+'" y="'+(lowerIsBetter?(zeroY+13):(zeroY-13)).toFixed(1)+'" text-anchor="start">'+esc(orientation)+'</text>'+
+   '<title>'+esc(metricName(key))+'؛ '+trendBadge+'؛ صفر = استاندارد همان سن؛ مثبت = بهتر؛ منفی = ضعیف‌تر؛ '+esc(orientation)+'</title>'+
    '</svg>';
 }
 function trendDashboard(m){

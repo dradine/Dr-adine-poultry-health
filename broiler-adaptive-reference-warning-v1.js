@@ -7,13 +7,21 @@
 'use strict';
 if(g.__ADINE_ADAPTIVE_REFERENCE_WARNING_V1__)return;
 g.__ADINE_ADAPTIVE_REFERENCE_WARNING_V1__=true;
-const VERSION='ADAPTIVE-REFERENCE-WARNING-V1.0';
+const VERSION='ADAPTIVE-REFERENCE-WARNING-V1.1';
 const METRICS=['weight','adg','fcr','cumulativeFcr','mortality','cv','u10','u15','epef'];
 const LABEL={weight:'وزن',adg:'افزایش وزن روزانه',fcr:'FCR هفتگی',cumulativeFcr:'FCR تجمعی',mortality:'تلفات',cv:'CV',u10:'یکنواختی ±۱۰٪',u15:'یکنواختی ±۱۵٪',epef:'EPEF'};
 const LOWER=new Set(['fcr','cumulativeFcr','mortality','cv']);
-const aliases={weight:['weight','average_weight_g','average_weight'],adg:['weeklyWeightGain','weekly_gain_g','adg','average_daily_gain'],fcr:['fcr','weekly_fcr'],cumulativeFcr:['cumulativeFcr','cumulative_fcr'],mortality:['mortalityPercent','mortality','mortality_rate'],cv:['cv','cv_percent'],u10:['uniformity10','uniformity_10_percent','uniformity_10'],u15:['uniformity15','uniformity_15_percent','uniformity_15'],epef:['epef','EPEF','pef']};
+const aliases={weight:['weight','average_weight_g','average_weight'],adg:['adg','average_daily_gain','dailyWeightGain'],fcr:['fcr','weekly_fcr'],cumulativeFcr:['cumulativeFcr','cumulative_fcr'],mortality:['mortalityPercent','mortality','mortality_rate'],cv:['cv','cv_percent'],u10:['uniformity10','uniformity_10_percent','uniformity_10'],u15:['uniformity15','uniformity_15_percent','uniformity_15'],epef:['epef','EPEF','pef']};
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
-function actual(r,m){for(const k of aliases[m]||[]){const x=n(r?.[k]);if(x!==null)return x}return null}
+function actual(r,m){
+  if(m==='adg'){
+    for(const k of aliases.adg||[]){const x=n(r?.[k]);if(x!==null)return x}
+    for(const k of ['weeklyWeightGain','weekly_gain_g']){const x=n(r?.[k]);if(x!==null)return x/7}
+    return null;
+  }
+  for(const k of aliases[m]||[]){const x=n(r?.[k]);if(x!==null)return x}
+  return null;
+}
 function median(a){const x=a.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!x.length)return null;const i=(x.length-1)/2,b=Math.floor(i),f=i-b;return x[b]+(x[b+1]-x[b]||0)*f}
 function reference(strain,age,m){
  const fn=g.broilerCanonicalMetricTarget;if(typeof fn!=='function')return null;

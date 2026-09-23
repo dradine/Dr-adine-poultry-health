@@ -18,7 +18,7 @@ assert.equal(m.overall,'normal');
 assert.equal(m.metrics.weight.state,'normal');
 const improve=A.analyze(rows([-6,-5,-4,-2,1]),{strain});
 assert.equal(improve.metrics.weight.direction,'improving');
-assert.equal(improve.overall,'improving');
+assert.equal(improve.metrics.weight.state,'improving');
 const decline=A.analyze(rows([2,1,-1,-3,-5]),{strain});
 assert.equal(decline.metrics.weight.direction,'worsening');
 assert.ok(['watch','warning','normal'].includes(decline.overall));

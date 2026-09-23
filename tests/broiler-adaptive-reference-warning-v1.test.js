@@ -17,6 +17,11 @@ assert.ok(m.warnings.some(x=>x.metric==='weight'));
 m=A.analyze(rows([1,1,1,1,1]),{strain});
 assert.equal(m.overall,'normal');
 assert.equal(m.metrics.weight.state,'normal');
+// ADG input contract: weeklyWeightGain is a 7-day gain and must be normalized to daily ADG.
+const adgRows=[7,14,21,28,35].map(age=>{const t=ctx.broilerCanonicalMetricTarget(strain,age,'adg');return{age_days:age,weeklyWeightGain:t.value*7}});
+m=A.analyze(adgRows,{strain});
+assert.ok(m.metrics.adg.available);
+assert.ok(Math.abs(m.metrics.adg.currentGapPercent)<1e-9);
 m=A.analyze(rows([1,1]),{strain});
 assert.equal(m.metrics.weight.available,false);
 const all=Object.keys(ctx.BROILER_OFFICIAL_STANDARDS_V1.strains);

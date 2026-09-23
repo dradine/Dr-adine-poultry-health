@@ -4,7 +4,7 @@
 .adaptive-reference-warning .arw-title{font-size:16px;font-weight:900}
 .adaptive-reference-warning .arw-sub{margin-top:5px;font-size:11px;line-height:1.9;opacity:.72}
 .adaptive-reference-warning .arw-badge{border-radius:999px;padding:6px 10px;font-size:11px;font-weight:800}
-.adaptive-reference-warning .arw-normal{background:#e7f4ec;color:#21633c}
+.adaptive-reference-warning .arw-normal{background:#e7f4ec;color:#166534}
 .adaptive-reference-warning .arw-watch{background:#fff3d6;color:#825b00}
 .adaptive-reference-warning .arw-warning{background:#fde7e5;color:#8d2d27}
 .adaptive-reference-warning .arw-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
@@ -27,7 +27,7 @@
 
 
 /* V2 semantic state colors — explicit scoped colors prevent generic .watch/.high theme rules from overriding state meaning */
-.pi-adaptive-summary.positive strong,.pi-alert-card.positive .pi-alert-head span{color:#21633c}
+.pi-adaptive-summary.positive strong,.pi-alert-card.positive .pi-alert-head span{color:#166534}
 .pi-adaptive-summary.improving strong,.pi-alert-card.improving .pi-alert-head span{color:#1f7a4d}
 .pi-adaptive-summary.watch strong,.pi-alert-card.watch .pi-alert-head span{color:#9a6700}
 .pi-adaptive-summary.high strong,.pi-alert-card.high .pi-alert-head span{color:#b42318}

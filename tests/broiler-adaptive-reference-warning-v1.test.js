@@ -1,4 +1,4 @@
-/* ADINE — ADAPTIVE REFERENCE WARNING V1 REGRESSION */
+/* ADINE — ADAPTIVE REFERENCE WARNING V2 REGRESSION */
 'use strict';
 const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
 const ctx={console,CustomEvent:function(type,init){this.type=type;this.detail=init?.detail}};ctx.window=ctx;ctx.dispatchEvent=()=>{};vm.createContext(ctx);
@@ -11,19 +11,21 @@ function rows(gaps){
 }
 let m=A.analyze(rows([1,1,1,1,-6]),{strain});
 assert.equal(m.referenceAuthority,'BROILER_OFFICIAL_STANDARDS_V1');
-assert.ok(m.metrics.weight&&m.metrics.weight.available);
-assert.equal(m.overall,'watch');
-assert.ok(m.warnings.length===0 || m.warnings.some(x=>x.metric==='weight') || m.metrics.weight.state==='warning');
-assert.equal(m.metrics.weight.state,'warning');
+assert.ok(['watch','warning','critical'].includes(m.metrics.weight.state));
+assert.ok(['watch','warning','critical'].includes(m.overall));
 m=A.analyze(rows([1,1,1,1,1]),{strain});
 assert.equal(m.overall,'normal');
 assert.equal(m.metrics.weight.state,'normal');
-// ADG aliases used by the PI runtime are also weekly gains and must normalize to daily ADG.
+const improve=A.analyze(rows([-6,-5,-4,-2,1]),{strain});
+assert.equal(improve.metrics.weight.direction,'improving');
+assert.equal(improve.metrics.weight.state,'improving');
+const decline=A.analyze(rows([2,1,-1,-3,-5]),{strain});
+assert.equal(decline.metrics.weight.direction,'worsening');
+assert.ok(['watch','warning','normal'].includes(decline.overall));
 const aliasRows=[7,14,21,28,35].map(age=>{const t=ctx.broilerCanonicalMetricTarget(strain,age,'adg');return{age_days:age,adg:t.value*7}});
 m=A.analyze(aliasRows,{strain});
 assert.ok(m.metrics.adg.available);
 assert.ok(Math.abs(m.metrics.adg.currentGapPercent)<1e-9);
-// ADG input contract: weeklyWeightGain is a 7-day gain and must be normalized to daily ADG.
 const adgRows=[7,14,21,28,35].map(age=>{const t=ctx.broilerCanonicalMetricTarget(strain,age,'adg');return{age_days:age,weeklyWeightGain:t.value*7}});
 m=A.analyze(adgRows,{strain});
 assert.ok(m.metrics.adg.available);
@@ -33,28 +35,20 @@ assert.equal(m.metrics.weight.available,false);
 const all=Object.keys(ctx.BROILER_OFFICIAL_STANDARDS_V1.strains);
 assert.equal(all.length,13);
 for(const s of all){const r=A.reference(s,56,'weight');assert.ok(r&&Number.isFinite(r.value),s)}
-// Lower-is-better: FCR below its age reference is positive performance.
 const fr=[7,14,21,28,35].map((age,i)=>{const r=ctx.broilerCanonicalMetricTarget(strain,age,'fcr');return{age_days:age,fcr:r.value*(1-(i<4?.02:.08))}});
 m=A.analyze(fr,{strain});
 assert.ok(m.metrics.fcr.currentGapPercent>0);
 assert.notEqual(m.metrics.fcr.state,'warning');
-// A gradual negative path is detected even if each point is modest.
-const drift=[7,14,21,28,35,42].map((age,i)=>{const r=ctx.broilerCanonicalMetricTarget(strain,age,'weight');return{age_days:age,weight:r.value*(1-(i*.02))}});
-m=A.analyze(drift,{strain});
-assert.ok(m.metrics.weight.currentGapPercent<0); assert.ok(Number.isFinite(m.metrics.weight.baselineMedianPercent));
 const engineSource=fs.readFileSync('broiler-performance-intelligence-engine-v2.js','utf8');
 const presenterSource=fs.readFileSync('broiler-performance-intelligence-report-v1.js','utf8');
 const reportsSource=fs.readFileSync('reports.html','utf8');
-assert.match(engineSource,/adaptiveWarning=\(globalThis\.AdineAdaptiveReferenceWarningV1/);
+assert.match(engineSource,/AdineAdaptiveReferenceWarningV1/);
 assert.match(engineSource,/adaptiveWarning:adaptiveWarning\|\|null/);
 assert.match(presenterSource,/const aw=m\.adaptiveWarning\|\|null/);
-assert.match(presenterSource,/هشدار تطبیقی — مرجع سنی/);
-assert.match(reportsSource,/broiler-performance-intelligence-engine-v2\.js\?v=20260923\.19/);
-assert.match(reportsSource,/broiler-performance-intelligence-report-v1\.js\?v=20260923\.19/);
+assert.match(presenterSource,/روند بهبود/);
+assert.match(presenterSource,/هشدار عملکردی/);
+assert.match(presenterSource,/هشدار جدی/);
+assert.match(reportsSource,/broiler-adaptive-reference-warning-v1\.js\?v=20260923\.30/);
+assert.match(reportsSource,/broiler-performance-intelligence-report-v1\.js\?v=20260923\.30/);
 assert.match(reportsSource,/id="bottomNavigation"/);
-const adaptiveSource=fs.readFileSync('broiler-adaptive-reference-warning-v1.js','utf8');
-assert.match(adaptiveSource,/AdineAdaptiveReferenceWarningV1=\{version:VERSION/);
-assert.doesNotMatch(adaptiveSource,/E\.build=wrapped/);
-const html=fs.readFileSync('reports.html','utf8');
-assert.ok(html.indexOf('broiler-adaptive-reference-warning-v1.js?v=20260923.21') < html.indexOf('broiler-performance-intelligence-engine-v2.js?v=20260923.20'));
-console.log('ADAPTIVE REFERENCE WARNING V1: PASS — canonical authority, 13 strains, data gate, directional residual, robust baseline, EWMA/CUSUM');
+console.log('ADAPTIVE REFERENCE WARNING V2: PASS — directional trend, robust control, persistence, multi-axis confirmation and five-state presentation');

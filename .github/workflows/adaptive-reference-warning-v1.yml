@@ -1,0 +1,22 @@
+name: Adaptive Reference Warning V1 Regression
+on:
+  push:
+    branches: [main, 'feature/adaptive-reference-warning-v1']
+    paths:
+      - 'broiler-adaptive-reference-warning-v1.js'
+      - 'tests/broiler-adaptive-reference-warning-v1.test.js'
+      - 'broiler-official-standards-v1.js'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'broiler-adaptive-reference-warning-v1.js'
+      - 'tests/broiler-adaptive-reference-warning-v1.test.js'
+      - 'broiler-official-standards-v1.js'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: node tests/broiler-adaptive-reference-warning-v1.test.js

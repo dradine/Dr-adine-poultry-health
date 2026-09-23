@@ -22,16 +22,20 @@
     if(actual===null||target===null||target===0)return;
     const card=[...root.querySelectorAll('.cr2-trend-card')].find(x=>(x.querySelector('.cr2-card-label')?.textContent||'').trim()==='روند FCR');
     if(!card)return;
+    const cls=fcrTrendReferenceClass(actual,target);
     card.classList.remove('neutral','good','excellent','watch','critical');
-    card.classList.add(fcrTrendReferenceClass(actual,target));
+    card.classList.add(cls);
     const gap=(actual-target)/Math.abs(target)*100;
     const abs=Math.abs(gap).toLocaleString('fa-IR',{minimumFractionDigits:1,maximumFractionDigits:1});
-    const slope=card.querySelector('.cr2-card-sub')?.textContent.match(/شیب نسبی:\s*([^·]+)/)?.[1]?.trim()||'—';
+    const oldSub=card.querySelector('.cr2-card-sub')?.textContent||'';
+    const slopeMatch=oldSub.match(/شیب نسبی:\s*([^·]+)/);
+    const slope=slopeMatch?.[1]?.trim()||'—';
     let meaning='هم‌سطح مرجع';
     if(gap<0)meaning=`مطلوب نسبت به مرجع · ${abs}٪ پایین‌تر از مرجع`;
     else if(gap>0)meaning=`نامطلوب نسبت به مرجع · ${abs}٪ بالاتر از مرجع`;
+    const next=`${meaning} · شیب نسبی: ${slope}`;
     const sub=card.querySelector('.cr2-card-sub');
-    if(sub)sub.textContent=`${meaning} · شیب نسبی: ${slope}`;
+    if(sub&&sub.textContent!==next)sub.textContent=next;
     card.setAttribute('data-fcr-reference-gap',String(gap));
   }
   function run(){capture();setTimeout(()=>{inject();patchFcrTrend()},0);setTimeout(patchFcrTrend,50)}

@@ -13,5 +13,6 @@ function render(model){
  box.innerHTML='<div class="arw-head"><div><div class="arw-title">هشدار تطبیقی نسبت به مرجع سنی</div><div class="arw-sub">محاسبه فقط روی فاصله جهت‌دار از مرجع همان سن؛ مقادیر خام FCR/وزن مستقیماً مبنای هشدار نیستند. حداقل ۴ ارزیابی قبلی لازم است.</div></div><span class="arw-badge '+cls+'">'+labels[a.overall]+'</span></div><div class="arw-grid">'+(cards||'<div class="arw-note">برای فعال شدن هشدار تطبیقی هنوز داده کافی وجود ندارد.</div>')+'</div>';
 }
 g.addEventListener?.('adine:adaptive-warning',e=>render(e.detail));
+g.addEventListener?.('adine:pi-rendered',()=>{const model=g.__adinePerformanceIntelligenceModel;if(model?.adaptiveWarning)render(model)});
 g.AdineAdaptiveReferenceWarningUI={render};
 })(window);

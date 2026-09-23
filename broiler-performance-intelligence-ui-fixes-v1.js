@@ -1,120 +1,103 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE UI FIXES V1
-   UI-only patch. The PI engine already defines lower-is-better semantics for FCR and cumulative FCR.
-   This patch prevents the presenter from displaying the intrinsic numeric decline as a negative event.
-   It also removes the duplicated age-standard legend that appears immediately before the charts.
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE UI FIXES V2
+   STRICT UI/PRESENTATION PATCH ONLY.
+   No calculation, canonical standard, flock loading, navigation, or data mutation.
+   FCR and cumulative FCR are lower-is-better: numeric decline = improvement.
 */
 (function(global){'use strict';
   const ROOT_ID='root';
   const DUP='۰ = استاندارد سنیهمان ارزیابیمثبت = بهتر از مرجعمنفی = ضعیف‌تر از مرجعخط پیوسته = مسیر مشاهده‌شدهخط انتهایی = چشم‌انداز مشروط';
-  const normalize=s=>String(s||'').replace(/\s+/g,'').replace(/‌/g,'');
-  const isFcrLabel=s=>{
-    const x=String(s||'').replace(/\s+/g,' ').trim();
-    return x==='FCR' || x==='FCR تجمعی' || x.includes('FCR هفتگی') || x.includes('FCR تجمعی');
-  };
+  const normalize=s=>String(s??'').replace(/[\s‌]+/g,'');
+  const num=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
   function removeDuplicateLegend(root){
-    const exact=[];
-    root.querySelectorAll('*').forEach(el=>{
-      const txt=normalize(el.textContent);
-      if(txt===DUP) exact.push(el);
+    const matches=[];
+    root.querySelectorAll('*').forEach(el=>{if(normalize(el.textContent)===DUP)matches.push(el)});
+    // The first occurrence belongs to the Smart Trend explanation. Only later copies are removed.
+    for(let i=1;i<matches.length;i++)matches[i].remove();
+  }
+  function actualSeries(model,key){
+    const rows=model?.series?.[key];
+    if(!Array.isArray(rows))return [];
+    return rows.map(x=>num(x?.actual)).filter(v=>v!==null);
+  }
+  function fcrDirection(model,key){
+    const a=actualSeries(model,key);
+    if(a.length<2)return 'neutral';
+    const first=a[0],last=a[a.length-1];
+    const eps=Math.max(Math.abs(first)*0.001,0.0001);
+    // FCR: lower is better. Do not use the raw generic direction label here.
+    if(last<first-eps)return 'improving';
+    if(last>first+eps)return 'worsening';
+    return 'stable';
+  }
+  function findMetric(root,key){
+    return [...root.querySelectorAll('.pi-metric')].find(el=>{
+      const label=(el.querySelector('.pi-metric-label')?.textContent||'').trim();
+      return key==='fcr'?label==='FCR':label.includes('FCR تجمعی');
     });
-    if(exact.length>1){
-      // Keep the first legend near the Smart Trend header; remove later duplicate(s).
-      exact.slice(1).forEach(el=>el.remove());
-    }
   }
   function patchFcrCards(root){
     const model=global.__adinePerformanceIntelligenceModel||{};
-    const keys=['fcr','cumulativeFcr'];
-    keys.forEach(key=>{
-      const state=model.states?.[key]||{};
-      const trend=state.trend||{};
-      const lowerBetter=true;
-      const card=[...root.querySelectorAll('.pi-metric')].find(el=>{
-        const label=el.querySelector('.pi-metric-label')?.textContent||'';
-        return key==='fcr' ? (label.trim()==='FCR') : label.includes('FCR تجمعی');
-      });
-      if(!card)return;
-      // For FCR, a lower trajectory is intrinsically favorable.
+    ['fcr','cumulativeFcr'].forEach(key=>{
+      const card=findMetric(root,key);if(!card)return;
+      const direction=fcrDirection(model,key);
       card.classList.remove('trend-bad','trend-good','trend-neutral','trend-muted','critical','watch','good','excellent');
-      const semantic=trend.direction==='improving'?'good':trend.direction==='worsening'?'bad':'neutral';
-      card.classList.add('pi-fcr-semantic-'+semantic);
-      const trendEl=card.querySelector('.pi-metric-trend');
-      if(trendEl){
-        const b=trendEl.querySelector('b');
-        if(b)b.textContent=trend.direction==='improving'?'بهبود':trend.direction==='worsening'?'افت':'پایدار';
-        const spans=[...trendEl.querySelectorAll('span')];
-        const movement=trend.movement;
-        let text='';
-        if(movement==='better_farther')text=' • بهتر از استاندارد؛ فاصله عملکردی بیشتر';
-        else if(movement==='closer')text=' • نزدیک‌تر به استاندارد سنی';
-        else if(movement==='worse_farther')text=' • نامطلوب‌تر؛ فاصله عملکردی بیشتر';
-        else if(movement==='crossed_to_better')text=' • عبور به سمت بهتر از استاندارد';
-        else if(movement==='crossed_to_worse')text=' • عبور به سمت نامطلوب';
-        else if(movement==='stable')text=' • فاصله عملکردی تقریباً ثابت';
-        if(spans[0])spans[0].textContent=text;
-      }
-      // Mark the nearest chart/sparkline associated with this metric as favorable when the
-      // actual FCR trajectory is improving. This is presentation-only; data remain untouched.
-      let chart=card.nextElementSibling;
-      if(!chart){chart=card.parentElement?.querySelector('.pi-sparkline, .pi-spark, svg');}
-      if(chart){
-        chart.classList.remove('pi-fcr-chart-bad','pi-fcr-chart-good');
-        chart.classList.add(trend.direction==='improving'?'pi-fcr-chart-good':trend.direction==='worsening'?'pi-fcr-chart-bad':'pi-fcr-chart-neutral');
+      card.classList.add(direction==='improving'?'pi-fcr-semantic-good':direction==='worsening'?'pi-fcr-semantic-bad':'pi-fcr-semantic-neutral');
+      const trend=card.querySelector('.pi-metric-trend');
+      if(trend){
+        const b=trend.querySelector('b');
+        if(b)b.textContent=direction==='improving'?'بهبود':direction==='worsening'?'افت':'پایدار';
+        const span=trend.querySelector('span');
+        if(span)span.textContent=direction==='improving'?' • کاهش FCR در این شاخص بهبود عملکرد است':direction==='worsening'?' • افزایش FCR در این شاخص نامطلوب است':' • تغییر معناداری در مسیر FCR دیده نمی‌شود';
       }
     });
   }
-  function patchChartVisuals(root){
-    // The PI presenter uses SVG sparklines. Detect FCR chart containers by their nearby title,
-    // then recolor only the observed/projection paths; keep the reference path neutral/dashed.
-    root.querySelectorAll('svg').forEach(svg=>{
-      const box=svg.closest('.pi-chart, .pi-sparkline, .pi-spark, .pi-trajectory, article, section, div');
-      if(!box)return;
-      const txt=box.textContent||'';
-      if(!txt.includes('FCR'))return;
-      const isCumulative=txt.includes('FCR تجمعی');
-      const label=isCumulative?'FCR تجمعی':'FCR';
-      if(!txt.includes(label))return;
-      const model=global.__adinePerformanceIntelligenceModel||{};
-      const key=isCumulative?'cumulativeFcr':'fcr';
-      const direction=model.states?.[key]?.trend?.direction;
-      if(direction!=='improving')return;
-      const paths=[...svg.querySelectorAll('path,polyline')];
-      paths.forEach((p,i)=>{
-        // Do not recolor dashed reference/axis paths.
-        const dash=p.getAttribute('stroke-dasharray');
-        if(dash)return;
-        if(p.getAttribute('fill')==='none' || p.tagName.toLowerCase()==='polyline'){
-          p.setAttribute('stroke','var(--pi-fcr-good,#2f8f5b)');
-          p.style.stroke='var(--pi-fcr-good,#2f8f5b)';
-        }
+  function patchFcrCharts(root){
+    const model=global.__adinePerformanceIntelligenceModel||{};
+    ['fcr','cumulativeFcr'].forEach(key=>{
+      if(fcrDirection(model,key)!=='improving')return;
+      const label=key==='cumulativeFcr'?'FCR تجمعی':'FCR';
+      // Find the chart/sparkline by its nearest textual container. Reference/forecast dashed paths are untouched.
+      [...root.querySelectorAll('svg')].forEach(svg=>{
+        const box=svg.closest('.pi-chart,.pi-sparkline,.pi-spark,.pi-trajectory,article,section,div');
+        if(!box||!(box.textContent||'').includes(label))return;
+        [...svg.querySelectorAll('path,polyline')].forEach(p=>{
+          if(p.getAttribute('stroke-dasharray'))return;
+          const fill=p.getAttribute('fill');
+          if(fill==='none'||p.tagName.toLowerCase()==='polyline'){
+            p.style.setProperty('stroke','#4b927a','important');
+            p.setAttribute('stroke','#4b927a');
+          }
+        });
       });
+      const metric=findMetric(root,key);
+      const chart=metric?.nextElementSibling||metric?.parentElement?.querySelector('.pi-sparkline,.pi-spark');
+      chart?.classList.remove('pi-fcr-chart-bad','pi-fcr-chart-neutral');
+      chart?.classList.add('pi-fcr-chart-good');
     });
   }
   function injectStyle(){
     if(document.getElementById('adine-pi-fcr-ui-fix-style'))return;
     const s=document.createElement('style');s.id='adine-pi-fcr-ui-fix-style';
     s.textContent=`
-      .pi-metric.pi-fcr-semantic-good .pi-metric-trend b{color:#2f8f5b!important}
-      .pi-metric.pi-fcr-semantic-good .pi-metric-dot{background:#2f8f5b!important}
-      .pi-fcr-chart-good path,.pi-fcr-chart-good polyline{stroke:#2f8f5b!important}
+      .pi-metric.pi-fcr-semantic-good{background:linear-gradient(135deg,#eef9f3,#e2f3ea)!important;border-color:#9fd0b9!important}
+      .pi-metric.pi-fcr-semantic-good:before{background:#4b927a!important}
+      .pi-metric.pi-fcr-semantic-good .pi-metric-trend b{color:#347c65!important}
+      .pi-metric.pi-fcr-semantic-bad{background:linear-gradient(135deg,#fff0ee,#ffe2df)!important;border-color:#df9d96!important}
+      .pi-metric.pi-fcr-semantic-bad:before{background:#b85c52!important}
+      .pi-metric.pi-fcr-semantic-bad .pi-metric-trend b{color:#a84e47!important}
+      .pi-fcr-chart-good path,.pi-fcr-chart-good polyline{stroke:#4b927a!important}
     `;
     document.head.appendChild(s);
   }
-  function run(){
-    const root=document.getElementById(ROOT_ID);if(!root)return;
-    injectStyle();
-    removeDuplicateLegend(root);
-    patchFcrCards(root);
-    patchChartVisuals(root);
-  }
+  function run(){const root=document.getElementById(ROOT_ID);if(!root)return;injectStyle();removeDuplicateLegend(root);patchFcrCards(root);patchFcrCharts(root)}
   let scheduled=false;
   function schedule(){if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;run()})}
   function boot(){
     const root=document.getElementById(ROOT_ID);if(!root)return;
     run();
     new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
-    document.addEventListener('click',e=>{if(e.target?.closest?.('.report-tab[data-tab="overall"]'))setTimeout(run,50)},true);
+    document.addEventListener('click',e=>{if(e.target?.closest?.('.report-tab[data-tab="overall"]'))setTimeout(run,80)},true);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-  global.AdinePerformanceIntelligenceUIFixesV1={version:'PI-UI-FIXES-V1',run};
+  global.AdinePerformanceIntelligenceUIFixesV1={version:'PI-UI-FIXES-V2',run};
 })(window);

@@ -6,6 +6,9 @@ on:
       - 'broiler-adaptive-reference-warning-v1.js'
       - 'tests/broiler-adaptive-reference-warning-v1.test.js'
       - 'broiler-official-standards-v1.js'
+      - 'broiler-performance-intelligence-engine-v2.js'
+      - 'broiler-performance-intelligence-report-v1.js'
+      - 'reports.html'
   pull_request:
     branches: [main]
     paths:

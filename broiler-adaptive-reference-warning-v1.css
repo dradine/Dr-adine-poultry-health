@@ -27,6 +27,11 @@
 
 
 /* V2 semantic state colors — explicit scoped colors prevent generic .watch/.high theme rules from overriding state meaning */
+.pi-alert-card .pi-alert-head span{background:#e7f4ec;color:#166534}
+.pi-alert-card.improving .pi-alert-head span{background:#dff3e7;color:#176b42}
+.pi-alert-card.watch .pi-alert-head span{background:#fff0c7;color:#8a5a00}
+.pi-alert-card.high .pi-alert-head span{background:#fde0dc;color:#a61b12}
+.pi-alert-card.critical .pi-alert-head span{background:#f8d2ce;color:#861b13}
 .pi-adaptive-summary.positive strong,.pi-alert-card.positive .pi-alert-head span{color:#166534}
 .pi-adaptive-summary.improving strong,.pi-alert-card.improving .pi-alert-head span{color:#1f7a4d}
 .pi-adaptive-summary.watch strong,.pi-alert-card.watch .pi-alert-head span{color:#9a6700}

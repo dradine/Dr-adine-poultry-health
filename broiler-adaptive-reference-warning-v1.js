@@ -7,7 +7,7 @@
 'use strict';
 if(g.__ADINE_ADAPTIVE_REFERENCE_WARNING_V2__)return;
 g.__ADINE_ADAPTIVE_REFERENCE_WARNING_V2__=true;
-const VERSION='ADAPTIVE-REFERENCE-WARNING-V2.0';
+const VERSION='ADAPTIVE-REFERENCE-WARNING-V2.0.1';
 const METRICS=['weight','adg','fcr','cumulativeFcr','mortality','cv','u10','u15','epef'];
 const LABEL={weight:'وزن',adg:'افزایش وزن روزانه',fcr:'FCR هفتگی',cumulativeFcr:'FCR تجمعی',mortality:'تلفات',cv:'CV',u10:'یکنواختی ±۱۰٪',u15:'یکنواختی ±۱۵٪',epef:'EPEF'};
 const LOWER=new Set(['fcr','cumulativeFcr','mortality','cv']);

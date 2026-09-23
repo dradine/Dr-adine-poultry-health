@@ -1,7 +1,7 @@
 name: Adaptive Reference Warning V1 Regression
 on:
   push:
-    branches: [main]
+    branches: [main, 'feature/adaptive-reference-warning-v1']
     paths:
       - 'broiler-adaptive-reference-warning-v1.js'
       - 'tests/broiler-adaptive-reference-warning-v1.test.js'

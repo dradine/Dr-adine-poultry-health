@@ -11,9 +11,12 @@ function rows(gaps){
 }
 let m=A.analyze(rows([1,1,1,1,-6]),{strain});
 assert.equal(m.referenceAuthority,'BROILER_OFFICIAL_STANDARDS_V1');
-assert.equal(m.metrics.weight.state,'warning');
-assert.equal(m.overall,'warning');
-assert.equal(m.severity,'warning');
+assert.equal(m.metrics.weight.state,'watch');
+assert.equal(m.overall,'watch');
+assert.equal(m.severity,'watch');
+const severe=A.analyze(rows([1,1,1,1,-4,-6,-8]),{strain});
+assert.ok(['warning','critical'].includes(severe.metrics.weight.state));
+assert.ok(['warning','critical'].includes(severe.overall));
 m=A.analyze(rows([1,1,1,1,1]),{strain});
 assert.equal(m.overall,'normal');
 assert.equal(m.metrics.weight.state,'normal');

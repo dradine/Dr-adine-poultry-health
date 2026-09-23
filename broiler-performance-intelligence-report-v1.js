@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V11.6 — SMART TREND SCENARIOS V4.0 */
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE PRESENTATION V11.7 — SMART TREND SCENARIOS V4.0 */
 (function(global){'use strict';
 const root=()=>document.getElementById('root');
 const esc=s=>String(s??'—').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -79,7 +79,7 @@ function trajectoryLabel(x){
 }
 function trendDashboard(m){
  const keys=['weight','fcr','cumulativeFcr','adg','mortality','cv','u10','u15','epef'];
- return '<div class="pi-smart-trend-legend"><span>۰ = استاندارد سنی همان ارزیابی</span><span>مثبت = بهتر از مرجع</span><span>منفی = ضعیف‌تر از مرجع</span><span>خط پیوسته = مسیر مشاهده‌شده</span><span>خط انتهایی = چشم‌انداز مشروط</span></div><div class="pi-trend-chart-grid">'+keys.map(k=>{
+ return '<div class="pi-trend-chart-grid">'+keys.map(k=>{
    const q=m.states?.[k]||{},t=q.trend||{},f=q.forecast||{},tr=q.trajectory||{},ser=m.series?.[k]||[],status=q.official?.status||'unavailable';
    const regime=trajectoryLabel(tr.regime);
    const evidence=tr.evidenceLevel==='high'?'بالا':tr.evidenceLevel==='medium'?'متوسط':tr.evidenceLevel==='limited'?'محدود':'کم';

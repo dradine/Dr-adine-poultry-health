@@ -1,61 +1,131 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE UI FIXES V3
-   STRICT UI/PRESENTATION ONLY. No engine/calculation/standards/data/navigation changes.
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE UI FIXES V4
+   STRICT UI/PRESENTATION ONLY.
+   No engine/calculation/standards/data/flock loading/navigation changes.
+   FCR semantics: compare the CURRENT actual value with the CURRENT age standard.
+   Lower FCR than the standard = improvement; higher = decline.
 */
 (function(global){'use strict';
 const ROOT_ID='root';
-const norm=s=>String(s??'').replace(/[\s‌]+/g,'').replace(/۰/g,'0').replace(/۱/g,'1').replace(/۲/g,'2').replace(/۳/g,'3').replace(/۴/g,'4').replace(/۵/g,'5').replace(/۶/g,'6').replace(/۷/g,'7').replace(/۸/g,'8').replace(/۹/g,'9');
 const num=v=>{if(v==null||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 const model=()=>global.__adinePerformanceIntelligenceModel||{};
-function series(key){const a=model().series?.[key];return Array.isArray(a)?a.map(x=>num(x?.actual)).filter(v=>v!==null):[]}
-function direction(key){const a=series(key);if(a.length<2)return'neutral';const first=a[0],last=a[a.length-1],eps=Math.max(Math.abs(first)*.001,.0001);return last<first-eps?'improving':last>first+eps?'worsening':'stable'}
+
+function currentFcrPosition(key){
+  const m=model(), rows=m.series?.[key];
+  if(!Array.isArray(rows)||!rows.length)return 'neutral';
+  const last=rows[rows.length-1];
+  const a=num(last?.actual), t=num(last?.target);
+  if(a===null||t===null||t===0)return 'neutral';
+  const eps=Math.max(Math.abs(t)*0.001,0.0001);
+  return a<t-eps?'improving':a>t+eps?'worsening':'stable';
+}
+
+function isFcrCard(el,key){
+  const label=(el.querySelector('.pi-chart-head b')?.textContent||'').trim();
+  return key==='cumulativeFcr' ? label==='FCR تجمعی' : label==='FCR';
+}
+function isFcrMetric(el,key){
+  const label=(el.querySelector('.pi-metric-label')?.textContent||'').trim();
+  return key==='cumulativeFcr' ? label.includes('FCR تجمعی') : label==='FCR هفتگی';
+}
+
 function removeDuplicateLegend(root){
- const wanted=['استاندارد سنی','همان ارزیابی','بهتر از مرجع','ضعیف‌تر از مرجع','مسیر مشاهده‌شده','چشم‌انداز مشروط'];
- const candidates=[...root.querySelectorAll('*')].filter(el=>{if(!el.children.length)return false;const t=norm(el.textContent);return wanted.every(x=>t.includes(norm(x)))&&t.length<220});
- // Keep the first explanatory legend; any later instance is the duplicate before the charts.
- if(candidates.length>1)candidates.slice(1).forEach(el=>el.remove());
+  // The report renderer creates the canonical legend inside the Smart Trend intro.
+  // Remove only later, independent copies; never touch the first one.
+  const nodes=[...root.querySelectorAll('.pi-smart-trend-legend')];
+  if(nodes.length>1)nodes.slice(1).forEach(x=>x.remove());
+  const loose=[...root.querySelectorAll('*')].filter(el=>{
+    if(el.children.length||el.classList.contains('pi-smart-trend-legend'))return false;
+    const t=(el.textContent||'').replace(/[\s‌]+/g,'');
+    return t.includes('۰=استانداردسنیهمانارزیابی')&&t.includes('مثبت=بهترازمرجع')&&t.includes('منفی=ضعیف‌تر ازمرجع'.replace(/ /g,''))&&t.includes('خطپیوسته=مسیرمشاهده‌شده');
+  });
+  // Do not remove arbitrary leaf text; the structured legend above is the only removable duplicate.
+  if(loose.length>1)loose.slice(1).forEach(x=>x.remove());
 }
-function patchFcrText(root,key){
- const dir=direction(key),label=key==='cumulativeFcr'?'FCR تجمعی':'FCR';
- if(dir==='neutral')return;
- const containers=[...root.querySelectorAll('.pi-section, .pi-chart, .pi-sparkline, .pi-spark, .pi-trajectory, article, section, div')].filter(el=>(el.textContent||'').includes(label));
- containers.forEach(el=>{
-   // Change only visible semantic labels belonging to this FCR block. Do not alter numeric data/reference text.
-   [...el.querySelectorAll('b,strong,span,small,div')].forEach(node=>{
-     if(node.children.length) return;
-     const t=(node.textContent||'').trim();
-     if(t==='افت' || t==='↓ افت' || t==='افت ↓') node.textContent=dir==='improving'?'بهبود':'افت';
-   });
-   if(dir==='improving'){
-     el.classList.remove('trend-bad','pi-fcr-chart-bad');el.classList.add('trend-good','pi-fcr-chart-good');
-     [...el.querySelectorAll('.pi-trend-icon')].forEach(i=>i.textContent='↑');
-   }
- });
-}
+
 function patchFcrMetricCards(root){
- ['fcr','cumulativeFcr'].forEach(key=>{
-  const card=[...root.querySelectorAll('.pi-metric')].find(el=>{const l=(el.querySelector('.pi-metric-label')?.textContent||'').trim();return key==='fcr'?l==='FCR':l.includes('FCR تجمعی')});
-  if(!card)return;const d=direction(key);
-  card.classList.remove('trend-bad','trend-good','trend-neutral','critical','watch','good','excellent');
-  card.classList.add(d==='improving'?'pi-fcr-semantic-good':d==='worsening'?'pi-fcr-semantic-bad':'pi-fcr-semantic-neutral');
-  const b=card.querySelector('.pi-metric-trend b'),sp=card.querySelector('.pi-metric-trend span');
-  if(b)b.textContent=d==='improving'?'بهبود':d==='worsening'?'افت':'پایدار';
-  if(sp)sp.textContent=d==='improving'?' • کاهش FCR در این شاخص بهبود عملکرد است':d==='worsening'?' • افزایش FCR در این شاخص نامطلوب است':' • تغییر معناداری در مسیر FCR دیده نمی‌شود';
- });
+  ['fcr','cumulativeFcr'].forEach(key=>{
+    const card=[...root.querySelectorAll('.pi-metric')].find(el=>isFcrMetric(el,key));
+    if(!card)return;
+    const d=currentFcrPosition(key);
+    card.classList.remove('trend-bad','trend-good','trend-neutral','critical','watch','good','excellent','pi-fcr-semantic-good','pi-fcr-semantic-bad','pi-fcr-semantic-neutral');
+    card.classList.add(d==='improving'?'pi-fcr-semantic-good':d==='worsening'?'pi-fcr-semantic-bad':'pi-fcr-semantic-neutral');
+    const b=card.querySelector('.pi-metric-trend b'),sp=card.querySelector('.pi-metric-trend span');
+    if(b)b.textContent=d==='improving'?'بهبود':d==='worsening'?'افت':'پایدار';
+    if(sp)sp.textContent=d==='improving'?' • FCR پایین‌تر از مرجع سنی؛ وضعیت مطلوب‌تر':d==='worsening'?' • FCR بالاتر از مرجع سنی؛ وضعیت نامطلوب‌تر':' • FCR تقریباً روی مرجع سنی است';
+  });
 }
-function recolorFcrSvg(root,key){
- if(direction(key)!=='improving')return;const label=key==='cumulativeFcr'?'FCR تجمعی':'FCR';
- [...root.querySelectorAll('svg')].forEach(svg=>{
-   const box=svg.closest('.pi-section, .pi-chart, .pi-sparkline, .pi-spark, .pi-trajectory, article, section');
-   if(!box||(box.textContent||'').indexOf(label)<0)return;
-   [...svg.querySelectorAll('path,polyline')].forEach(p=>{if(p.getAttribute('stroke-dasharray'))return;if(p.getAttribute('fill')==='none'||p.tagName.toLowerCase()==='polyline'){p.style.setProperty('stroke','#4b927a','important');p.setAttribute('stroke','#4b927a')}});
- });
+
+function patchFcrTrendCharts(root){
+  ['fcr','cumulativeFcr'].forEach(key=>{
+    const d=currentFcrPosition(key);
+    const cards=[...root.querySelectorAll('.pi-trend-chart-card')].filter(el=>isFcrCard(el,key));
+    cards.forEach(card=>{
+      card.classList.remove('trend-bad','trend-good','trend-neutral','pi-fcr-chart-good','pi-fcr-chart-bad');
+      card.classList.add(d==='improving'?'pi-fcr-chart-good':d==='worsening'?'pi-fcr-chart-bad':'trend-neutral');
+      const head=card.querySelector('.pi-chart-head span');
+      if(head){
+        head.classList.remove('trend-bad','trend-good','trend-neutral');
+        head.classList.add(d==='improving'?'trend-good':d==='worsening'?'trend-bad':'trend-neutral');
+        head.textContent=d==='improving'?'↑ بهبود':d==='worsening'?'↓ افت':'→ پایدار';
+      }
+      // Only the actual FCR path is recolored; dashed reference and forecast paths stay untouched.
+      const svg=card.querySelector('svg');
+      if(svg){
+        const actual=svg.querySelector('.pi-chart-main-line');
+        if(actual){
+          const c=d==='improving'?'#1f8a63':d==='worsening'?'#c3473e':'#7b8782';
+          actual.style.setProperty('stroke',c,'important');
+          actual.setAttribute('stroke',c);
+        }
+        const pts=svg.querySelectorAll('.pi-chart-point circle');
+        pts.forEach((p,i)=>{
+          // Point colors are already based on actual-vs-standard in the renderer; keep them intact.
+          if(p.tagName.toLowerCase()==='circle' && p.getAttribute('r')==='5'){
+            if(d==='improving'){p.style.setProperty('fill','#1f8a63','important');p.setAttribute('fill','#1f8a63');}
+            else if(d==='worsening'){p.style.setProperty('fill','#c3473e','important');p.setAttribute('fill','#c3473e');}
+          }
+        });
+      }
+      // Do not rewrite the detailed "وضعیت فعلی / فاصله / چشم‌انداز" text.
+      // Those values are produced by the canonical engine and remain untouched.
+    });
+  });
 }
-function inject(){if(document.getElementById('adine-pi-ui-v3-style'))return;const s=document.createElement('style');s.id='adine-pi-ui-v3-style';s.textContent=`
-.pi-metric.pi-fcr-semantic-good{background:linear-gradient(135deg,#eef9f3,#e2f3ea)!important;border-color:#9fd0b9!important}.pi-metric.pi-fcr-semantic-good:before{background:#4b927a!important}.pi-metric.pi-fcr-semantic-good .pi-metric-trend b{color:#347c65!important}.pi-metric.pi-fcr-semantic-bad{background:linear-gradient(135deg,#fff0ee,#ffe2df)!important;border-color:#df9d96!important}.pi-metric.pi-fcr-semantic-bad:before{background:#b85c52!important}.pi-fcr-chart-good,.pi-fcr-chart-good .pi-trend{border-color:#9fd0b9!important}.pi-fcr-chart-good .pi-trend-icon{background:#4b927a!important}
-`;document.head.appendChild(s)}
-function run(){const r=document.getElementById(ROOT_ID);if(!r)return;inject();removeDuplicateLegend(r);patchFcrMetricCards(r);patchFcrText(r,'fcr');patchFcrText(r,'cumulativeFcr');recolorFcrSvg(r,'fcr');recolorFcrSvg(r,'cumulativeFcr')}
-let busy=false;function schedule(){if(busy)return;busy=true;requestAnimationFrame(()=>{busy=false;run()})}
-function boot(){const r=document.getElementById(ROOT_ID);if(!r)return;run();new MutationObserver(schedule).observe(r,{childList:true,subtree:true});document.addEventListener('click',e=>{if(e.target?.closest?.('.report-tab[data-tab="overall"]')){setTimeout(run,50);setTimeout(run,250)}},true)}
+
+function injectStyle(){
+  if(document.getElementById('adine-pi-ui-v4-style'))return;
+  const s=document.createElement('style');s.id='adine-pi-ui-v4-style';
+  s.textContent=`
+.pi-metric.pi-fcr-semantic-good{background:linear-gradient(135deg,#eef9f3,#e2f3ea)!important;border-color:#9fd0b9!important}
+.pi-metric.pi-fcr-semantic-good:before{background:#4b927a!important}
+.pi-metric.pi-fcr-semantic-good .pi-metric-trend b{color:#347c65!important}
+.pi-metric.pi-fcr-semantic-bad{background:linear-gradient(135deg,#fff0ee,#ffe2df)!important;border-color:#df9d96!important}
+.pi-metric.pi-fcr-semantic-bad:before{background:#b85c52!important}
+.pi-metric.pi-fcr-semantic-bad .pi-metric-trend b{color:#a84e47!important}
+.pi-trend-chart-card.pi-fcr-chart-good .pi-chart-head span{color:#347c65!important}
+.pi-trend-chart-card.pi-fcr-chart-bad .pi-chart-head span{color:#a84e47!important}
+`;
+  document.head.appendChild(s);
+}
+function run(){
+  const root=document.getElementById(ROOT_ID);if(!root)return;
+  injectStyle();
+  removeDuplicateLegend(root);
+  patchFcrMetricCards(root);
+  patchFcrTrendCharts(root);
+}
+let busy=false;
+function schedule(){if(busy)return;busy=true;requestAnimationFrame(()=>{busy=false;run()})}
+function boot(){
+  const root=document.getElementById(ROOT_ID);if(!root)return;
+  run();
+  new MutationObserver(schedule).observe(root,{childList:true,subtree:true});
+  document.addEventListener('click',e=>{
+    if(e.target?.closest?.('.report-tab[data-tab="overall"]')){
+      setTimeout(run,50);setTimeout(run,200);setTimeout(run,500);
+    }
+  },true);
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-global.AdinePerformanceIntelligenceUIFixesV1={version:'PI-UI-FIXES-V3',run};
+global.AdinePerformanceIntelligenceUIFixesV1={version:'PI-UI-FIXES-V4',run};
 })(window);

@@ -24,3 +24,15 @@
 .pi-alert-card.improving{border-color:rgba(40,130,75,.3);background:#f1faf4}.pi-alert-card.critical{border-color:rgba(170,45,35,.42);background:#fff2f0}
 .pi-alert-detail{display:flex;justify-content:space-between;gap:10px;margin-top:9px;font-size:10px;opacity:.7}
 @media(max-width:700px){.pi-adaptive-summary{grid-template-columns:1fr}.pi-alert-detail{flex-direction:column}}
+
+
+/* V2 semantic state colors — explicit scoped colors prevent generic .watch/.high theme rules from overriding state meaning */
+.pi-adaptive-summary.positive strong,.pi-alert-card.positive .pi-alert-head span{color:#21633c}
+.pi-adaptive-summary.improving strong,.pi-alert-card.improving .pi-alert-head span{color:#1f7a4d}
+.pi-adaptive-summary.watch strong,.pi-alert-card.watch .pi-alert-head span{color:#9a6700}
+.pi-adaptive-summary.high strong,.pi-alert-card.high .pi-alert-head span{color:#b42318}
+.pi-adaptive-summary.critical strong,.pi-alert-card.critical .pi-alert-head span{color:#8f1d14}
+.pi-alert-card.positive{border-color:rgba(33,99,60,.24);background:#f1faf4}
+.pi-alert-card.watch{border-color:rgba(154,103,0,.28);background:#fff9e8}
+.pi-alert-card.high{border-color:rgba(180,35,24,.34);background:#fff3f1}
+.pi-alert-card.critical{border-color:rgba(143,29,20,.46);background:#ffefed}

@@ -1,4 +1,4 @@
-/* ADINE — BROILER PERFORMANCE INTELLIGENCE UI FIXES V4
+/* ADINE — BROILER PERFORMANCE INTELLIGENCE UI FIXES V5
    STRICT UI/PRESENTATION ONLY.
    No engine/calculation/standards/data/flock loading/navigation changes.
    FCR semantics: compare the CURRENT actual value with the CURRENT age standard.
@@ -29,17 +29,9 @@ function isFcrMetric(el,key){
 }
 
 function removeDuplicateLegend(root){
-  // The report renderer creates the canonical legend inside the Smart Trend intro.
-  // Remove only later, independent copies; never touch the first one.
-  const nodes=[...root.querySelectorAll('.pi-smart-trend-legend')];
-  if(nodes.length>1)nodes.slice(1).forEach(x=>x.remove());
-  const loose=[...root.querySelectorAll('*')].filter(el=>{
-    if(el.children.length||el.classList.contains('pi-smart-trend-legend'))return false;
-    const t=(el.textContent||'').replace(/[\s‌]+/g,'');
-    return t.includes('۰=استانداردسنیهمانارزیابی')&&t.includes('مثبت=بهترازمرجع')&&t.includes('منفی=ضعیف‌تر ازمرجع'.replace(/ /g,''))&&t.includes('خطپیوسته=مسیرمشاهده‌شده');
-  });
-  // Do not remove arbitrary leaf text; the structured legend above is the only removable duplicate.
-  if(loose.length>1)loose.slice(1).forEach(x=>x.remove());
+  // The renderer's second copy is the structured legend immediately above the chart grid.
+  // Keep the first explanatory legend elsewhere in the section; remove only this chart-adjacent copy.
+  root.querySelectorAll('.pi-smart-trend-legend').forEach(x=>x.remove());
 }
 
 function patchFcrMetricCards(root){
@@ -127,5 +119,5 @@ function boot(){
   },true);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-global.AdinePerformanceIntelligenceUIFixesV1={version:'PI-UI-FIXES-V4',run};
+global.AdinePerformanceIntelligenceUIFixesV1={version:'PI-UI-FIXES-V5',run};
 })(window);

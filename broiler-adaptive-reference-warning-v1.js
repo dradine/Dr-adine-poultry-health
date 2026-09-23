@@ -7,7 +7,7 @@
 'use strict';
 if(g.__ADINE_ADAPTIVE_REFERENCE_WARNING_V1__)return;
 g.__ADINE_ADAPTIVE_REFERENCE_WARNING_V1__=true;
-const VERSION='ADAPTIVE-REFERENCE-WARNING-V1.1';
+const VERSION='ADAPTIVE-REFERENCE-WARNING-V1.2';
 const METRICS=['weight','adg','fcr','cumulativeFcr','mortality','cv','u10','u15','epef'];
 const LABEL={weight:'وزن',adg:'افزایش وزن روزانه',fcr:'FCR هفتگی',cumulativeFcr:'FCR تجمعی',mortality:'تلفات',cv:'CV',u10:'یکنواختی ±۱۰٪',u15:'یکنواختی ±۱۵٪',epef:'EPEF'};
 const LOWER=new Set(['fcr','cumulativeFcr','mortality','cv']);
@@ -15,8 +15,11 @@ const aliases={weight:['weight','average_weight_g','average_weight'],adg:['adg',
 const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[٬,]/g,'').replace('٫','.'));return Number.isFinite(x)?x:null};
 function actual(r,m){
   if(m==='adg'){
-    for(const k of aliases.adg||[]){const x=n(r?.[k]);if(x!==null)return x}
-    for(const k of ['weeklyWeightGain','weekly_gain_g']){const x=n(r?.[k]);if(x!==null)return x/7}
+    // The PI/report contract stores weeklyWeightGain, weekly_gain_g, and adg
+    // as the 7-day gain. Adaptive ADG is explicitly daily, so normalize those
+    // fields before comparing with the canonical daily-age reference.
+    for(const k of ['average_daily_gain','dailyWeightGain']){const x=n(r?.[k]);if(x!==null)return x}
+    for(const k of ['weeklyWeightGain','weekly_gain_g','adg']){const x=n(r?.[k]);if(x!==null)return x/7}
     return null;
   }
   for(const k of aliases[m]||[]){const x=n(r?.[k]);if(x!==null)return x}

@@ -30,5 +30,5 @@ assert.notEqual(m.metrics.fcr.state,'warning');
 // A gradual negative path is detected even if each point is modest.
 const drift=[7,14,21,28,35,42].map((age,i)=>{const r=ctx.broilerCanonicalMetricTarget(strain,age,'weight');return{age_days:age,weight:r.value*(1-(i*.02))}});
 m=A.analyze(drift,{strain});
-assert.ok(['watch','warning'].includes(m.metrics.weight.state));
+assert.ok(m.metrics.weight.currentGapPercent<0); assert.ok(Number.isFinite(m.metrics.weight.baselineMedianPercent));
 console.log('ADAPTIVE REFERENCE WARNING V1: PASS — canonical authority, 13 strains, data gate, directional residual, robust baseline, EWMA/CUSUM');

@@ -58,15 +58,6 @@ function build(rows,flock){
  let overall='normal';if(warnings.length>=2||confirmedAxes.length>=2)overall='warning';else if(warnings.length||watches.length)overall='watch';
  return{version:VERSION,referenceAuthority:'BROILER_OFFICIAL_STANDARDS_V1',referencePolicy:'age-specific canonical standard; official breeder objective where published, otherwise canonical management reference; no raw-metric adaptive baseline',strain,metrics:perMetric,warnings,watches,confirmedAxes,axisSignals,overall,minimumDataPolicy:'monitor-only until four prior valid evaluations exist'};
 }
-const E=g.AdineBroilerPerformanceIntelligenceV2;
-if(E&&typeof E.build==='function'&&!E.build.__adaptiveReferenceWrapped){
- const original=E.build;
- const wrapped=function(flock,rows){
-   const model=original.apply(this,arguments);
-   try{model.adaptiveWarning=build(rows,flock);model.referenceAuthority='BROILER_OFFICIAL_STANDARDS_V1';model.adaptiveWarningVersion=VERSION;g.__ADINE_LAST_ADAPTIVE_WARNING_MODEL__=model;g.dispatchEvent?.(new CustomEvent('adine:adaptive-warning',{detail:model}));}catch(err){model.adaptiveWarning={available:false,error:String(err),version:VERSION}}
-   return model;
- };
- wrapped.__adaptiveReferenceWrapped=true;wrapped.__original=original;E.build=wrapped;
-}
+// The adaptive module is intentionally side-effect free. The PI engine consumes its public analyzer directly.
 g.AdineAdaptiveReferenceWarningV1={version:VERSION,metrics:METRICS,analyze:build,metric:calc,reference};
 })(typeof window!=='undefined'?window:globalThis);

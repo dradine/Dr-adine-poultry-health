@@ -55,5 +55,5 @@ assert.doesNotMatch(controllerSource,/Report\?\.version==='V11.6'/);
 assert.match(reportsSource,/broiler-adaptive-reference-warning-v1\.js\?v=20260923\.30/);
 assert.match(reportsSource,/broiler-performance-intelligence-report-v1\.js\?v=20260923\.30/);
 assert.match(reportsSource,/id="bottomNavigation"/);
-assert.match(reportsSource,/broiler-pi-controller-v23\.js\?v=20260923\.3/);
+assert.match(reportsSource,/broiler-pi-controller-v23\.js\?v=20260923\.4/);
 console.log('ADAPTIVE REFERENCE WARNING V2: PASS — directional trend, robust control, persistence, multi-axis confirmation and five-state presentation');

@@ -17,8 +17,12 @@ create table if not exists public.layer_accounting_transactions (
   currency text not null default 'IRR',
   counterparty text,
   payment_status text not null default 'paid' check (payment_status in ('paid','pending','partial','cancelled')),
+  transaction_code text,
+  paid_amount numeric not null default 0,
+  due_date date,
   reference_no text,
   notes text,
+  journal_note text,
   source_module text not null default 'layer-accounting',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

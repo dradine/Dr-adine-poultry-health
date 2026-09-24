@@ -129,7 +129,7 @@
 
         accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
 
-        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="15" cy="13" r="6"/><path d="M6 38c1-8 4-12 9-12s8 4 9 12"/><path d="M19 21c7 0 12 4 13 11"/><path d="M28 15c4 0 7 3 7 7s-3 7-7 7"/><path d="M34 29c3 1 5 4 6 9"/><path class="icon-fill" d="M36 10h5v8h-5z"/><path d="M38.5 10V7h3v3"/></svg>`
+        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="15" cy="13" r="6"/><path d="M6 38c1-8 4-12 9-12s8 4 9 12"/><path d="M19 21c7 0 12 4 13 11"/><path d="M28 15c4 0 7 3 7 7s-3 7-7 7"/><path d="M34 29c3 1 5 4 6 9"/><path class="icon-fill" d="M36 10h5v8h-5z"/><path d="M38.5 10V7h3v3"/></svg>`,
 
         user: `
             <svg viewBox="0 0 48 48">

@@ -24,4 +24,14 @@
   };
   // Dashboard-only mobile stylesheet. Cache-busted so GitHub Pages cannot keep the previous CSS.
   try{if(document.body?.classList.contains("dashboard-page")&&!document.getElementById("adine-dashboard-compact-css")){const l=document.createElement("link");l.id="adine-dashboard-compact-css";l.rel="stylesheet";l.href="dashboard-compact.css?v=3";(document.head||document.documentElement).appendChild(l);}}catch(e){console.warn("Dashboard mobile CSS:",e);}
+  // Layer reports: load accounting as a detachable feature module. It does not run on Broiler pages.
+  try{
+    const page=String(window.location.pathname||"").toLowerCase().split("/").pop();
+    if(page==="layer-reports.html"&&!document.querySelector('script[data-adine-layer-accounting="1"]')){
+      const s=document.createElement("script");
+      s.src="layer-accounting-v1.js?v=1";
+      s.dataset.adineLayerAccounting="1";
+      (document.head||document.documentElement).appendChild(s);
+    }
+  }catch(e){console.warn("Layer accounting module loader:",e);}
 })();

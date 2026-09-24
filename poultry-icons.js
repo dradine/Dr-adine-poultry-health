@@ -14,7 +14,7 @@
 
         farm: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M6 21 24 9l18 12v20H6z"/><path d="M6 21 24 9l18 12M10 20v21h28M18 41V27h12v14M18 22h12"/></svg>`,
 
-        flock: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M12 39c1-7 5-11 11-11s10 4 11 11z"/><circle class="icon-fill" cx="23" cy="17" r="7"/><path d="M12 39c1-7 5-11 11-11s10 4 11 11M16 17c0-5 3-8 7-8s7 3 7 8M30 17l7 2-7 2M34 27c5 1 8 5 9 12M36 26c0-3 2-5 5-5"/></svg>`,
+        flock: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M6 21 24 9l18 12v20H6z"/><path d="M6 21 24 9l18 12M10 20v21h28M18 41V29h12v12M18 22h12"/><circle class="icon-fill" cx="34" cy="17" r="4"/><path d="M38 17l5 1.5-5 1.5"/></svg>`,
 
         broiler: `
             <svg viewBox="0 0 48 48">
@@ -60,14 +60,9 @@
                 <circle cx="35" cy="16" r="2" fill="currentColor" stroke="none"/>
             </svg>`,
 
-        vaccine: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="m29 7 12 12-17 17-9-9z"/><path d="m29 7 12 12-17 17-9-9zM20 14l14 14M16 27 9 40M8 40h12M34 12l5-5M24 20v8M20 24h8"/></svg>`,
+        vaccine: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="m29 7 12 12-17 17-9-9z"/><path d="m29 7 12 12-17 17-9-9zM20 14l14 14M16 27 9 40M8 40h12M34 12l5-5M29 19l-4 4"/></svg>`,
 
-        medicine: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M16 7h16v7H16zM18 14h12v27H18z"/>
-                <path d="M16 7h16v7H16zM18 14h12v27H18zM18 21h12"/>
-                <path d="M24 25v11M18.5 30.5h11"/>
-            </svg>`,
+        medicine: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M17 10a7 7 0 0 1 10 0l11 11a7 7 0 0 1-10 10L17 20a7 7 0 0 1 0-10z"/><path d="M17 10a7 7 0 0 1 10 0l11 11a7 7 0 0 1-10 10L17 20a7 7 0 0 1 0-10zM13 14l21 21M22 19l7-7"/></svg>`,
 
         water: `
             <svg viewBox="0 0 48 48">
@@ -87,9 +82,9 @@
 
         archive: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 10h34v8H7zM10 18h28v22H10z"/><path d="M7 10h34v8H7zM10 18h28v22H10zM18 25h12M18 31h12M19 6h10"/></svg>`,
 
-        health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 40S8 31 8 19c0-6 4-10 9-10 3 0 6 2 7 5 1-3 4-5 7-5 5 0 9 4 9 10 0 12-16 21-16 21z"/><path d="M24 40S8 31 8 19c0-6 4-10 9-10 3 0 6 2 7 5 1-3 4-5 7-5 5 0 9 4 9 10 0 12-16 21-16 21zM14 24h6l2-5 3 10 2-5h7"/></svg>`,
+        health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 6 40 12v11c0 10-7 16-16 19C15 39 8 33 8 23V12z"/><path d="M24 6 40 12v11c0 10-7 16-16 19C15 39 8 33 8 23V12zM24 15v16M16 23h16"/></svg>`,
 
-        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 6 42 24 24 42 6 24z"/><path d="M24 6 42 24 24 42 6 24zM18 18l12 12M30 18 18 30"/></svg>`,
+        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 28c3-7 9-10 16-10s13 3 18 10v8H7z"/><circle class="icon-fill" cx="20" cy="14" r="6"/><path d="M7 36h34M20 8c-4 0-7 3-7 7s3 7 7 7M26 14l7 2-7 2M31 29l4-4 4 4"/></svg>`,
 
         calendar: `
             <svg viewBox="0 0 48 48">
@@ -129,6 +124,8 @@
             </svg>`,
 
         accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
+
+        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="18" cy="15" r="7"/><path d="M7 40c1-8 5-12 11-12s10 4 11 12M18 8v14M11 15h14"/><path class="icon-fill" d="M30 24h9v16h-9z"/><path d="M33 24v-3a3 3 0 0 1 6 0v3M32 31h5M34.5 28.5v5"/></svg>`,
 
         user: `
             <svg viewBox="0 0 48 48">

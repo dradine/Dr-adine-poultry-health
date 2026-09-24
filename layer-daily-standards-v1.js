@@ -65,8 +65,8 @@ function resolve(flock){
  const g=norm(flock?.genetics),s=norm(flock?.strain);
  const key=g.includes('hy')?'hyline':g.includes('hendrix')||g.includes('isa')||g.includes('dekalb')||g.includes('bovans')||g.includes('shaver')||g.includes('hisex')?'hendrix':g.includes('lohmann')?'lohmann':g.includes('novo')?'novogen':g.includes('tetra')?'tetra':'';
  const family=catalogs[key];
- if(family){const found=Object.entries(family.strains).find(([name])=>norm(name)===s||s.includes(norm(name))||norm(name).includes(s));if(found)return {...found[1],genetics:key,strain:found[0],fallback:false}}
- return {...generic,genetics:key||'unknown',strain:flock?.strain||'unknown',fallback:true}
+ if(family){const found=Object.entries(family.strains).find(([name])=>norm(name)===s||s.includes(norm(name))||norm(name).includes(s));if(found){const meta=found[1];const numericReady=Array.isArray(meta.curve)&&meta.curve.length>1;return {...meta,genetics:key,strain:found[0],fallback:!numericReady,numericReady}}}
+ return {...generic,genetics:key||'unknown',strain:flock?.strain||'unknown',fallback:true,numericReady:false}
 }
 function interpolate(age,anchors){
  const a=Number(age); if(!Number.isFinite(a)||!anchors?.length)return null;
@@ -83,5 +83,5 @@ function evaluate(metric,actual,ref,direction){
  const state=Math.abs(good)<=3?'normal':good>0?'improving':'watch';
  return {state,deltaPercent:delta};
 }
-g.ADINE_LAYER_DAILY_STANDARDS_V1=Object.freeze({version:'2026-09-24.v1',catalogs,resolve,interpolate,evaluate,generic});
+g.ADINE_LAYER_DAILY_STANDARDS_V1=Object.freeze({version:'2026-09-24.v2',catalogs,resolve,interpolate,evaluate,generic});
 })(window);

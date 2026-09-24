@@ -803,7 +803,26 @@ async function deleteHouse(
    GENETICS
 ========================================================= */
 
+function ensureGuangmingNo2CatalogEntry() {
+    try {
+        if (!window.POULTRY_CATALOG || !window.POULTRY_CATALOG.broiler || !Array.isArray(window.POULTRY_CATALOG.broiler.genetics)) return;
+        const list = window.POULTRY_CATALOG.broiler.genetics;
+        if (!list.some(item => String(item?.id || "") === "guangming")) {
+            list.push({
+                id: "guangming",
+                name: "Guangming / گوانگ‌مینگ",
+                strains: ["Guangming No.2"]
+            });
+        }
+    } catch (error) {
+        console.warn("Guangming No.2 catalog bridge skipped:", error);
+    }
+}
+
+
 function setupGenetics() {
+
+    ensureGuangmingNo2CatalogEntry();
 
     const production = document.getElementById("productionType");
     const genetics = document.getElementById("genetics");

@@ -48,6 +48,8 @@
                 <path d="m33 15 7 2-7 2M20 37v4M28 37v4"/>
             </svg>`,
 
+        weeklyReport: `<svg viewBox="0 0 48 48"><rect class="icon-fill" x="7" y="7" width="34" height="34" rx="5"/><path d="M7 17h34M15 5v6M33 5v6M14 24h5M22 24h5M30 24h4M14 31h5M22 31h5"/><path d="M14 36v-2M21 36v-6M28 36v-10M35 36v-14"/></svg>`,
+
         scale: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 8h30v32H9z"/><path d="M9 8h30v32H9zM15 15h18M15 21h10"/><path d="M15 34v-7h5v7M23 34v-11h5v11M31 34v-16h4v16M14 37h22"/></svg>`,
 
         uniformity: `

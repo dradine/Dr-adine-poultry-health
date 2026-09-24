@@ -213,6 +213,16 @@ const profiles={
     ]
   },
 
+  'Super Nick':{
+    genetics:'h&n',sourceType:OFFICIAL,sourceYear:2020,
+    sourceLabel:'H&N Super Nick Commercial Layer Field Performance Report — Turkey',
+    sourceUrl:'https://hn-int.com/wp-content/uploads/2020/10/2011-2-FtF-en.pdf',
+    records:[
+      {ageDays:560,henDayProduction:77.7,eggWeight:66}
+    ],
+    notes:'گزارش رسمی عملکرد گله‌های تجاری H&N در ترکیه؛ مقادیر 77–80 هفتگی به‌عنوان داده میدانی رسمی ثبت شده‌اند و به منحنی نقطه‌ای جعلی تبدیل نشده‌اند.'
+  },
+
   'Nick Chick':{
     genetics:'h&n',sourceType:OFFICIAL,sourceYear:2025,
     sourceLabel:'H&N Nick Chick Commercial Layer Performance Standards',
@@ -246,8 +256,7 @@ const profiles={
 // Explicitly assign every catalog strain. If it is not in profiles, it receives
 // the management standard; it never inherits another strain's genetic curve.
 const MANAGEMENT_ONLY=[
- 'W-80 Plus','W-80 Pro',
- 'ISA White','Dekalb White','Dekalb Brown','Bovans White','Bovans Brown',
+  'ISA White','Dekalb White','Dekalb Brown','Bovans White','Bovans Brown',
  'Shaver White','Shaver Brown','Hisex White','Hisex Brown',
  'Lohmann Brown-Extra','Lohmann LSL-Extra','Lohmann Sandy','Lohmann Tradition'
 ];
@@ -277,7 +286,7 @@ function resolve(flock){
   'W-36','W-80','W-80 Plus','W-80 Pro','Brown',
   'ISA Brown','ISA White','Dekalb White','Dekalb Brown','Bovans White','Bovans Brown','Shaver White','Shaver Brown','Hisex White','Hisex Brown',
   'Lohmann Brown-Classic','Lohmann Brown-Lite','Lohmann Brown-Extra','Lohmann LSL-Classic','Lohmann LSL-Lite','Lohmann LSL-Extra','Lohmann Sandy','Lohmann Tradition',
-  'NOVOgen Brown','NOVOgen White','TETRA Brown','Nick Chick'
+  'NOVOgen Brown','NOVOgen White','TETRA Brown','Nick Chick','Super Nick'
  ];
  const known=catalogStrains.find(k=>norm(k)===s);
  return {

@@ -798,3 +798,31 @@ function normalizeText(
         console.warn("Compact UI layer was not loaded:", error);
     }
 })();
+
+
+/* =========================================================
+   IP & LEGAL FOOTER
+   Presentation-only layer. No data/calculation/navigation logic.
+========================================================= */
+(function injectAdineLegalFooter(){
+    try {
+        if (document.querySelector(".legal-footer")) return;
+
+        const footer = document.createElement("footer");
+        footer.className = "legal-footer";
+        footer.setAttribute("aria-label", "حقوق مالکیت فکری و شرایط استفاده");
+
+        footer.innerHTML =
+            '<a href="settings.html#legal-rights">' +
+            '© 2026 Adine Poultry Health Center · حقوق مالکیت فکری محفوظ · شرایط استفاده' +
+            '</a>';
+
+        const host = document.querySelector(".app-shell") ||
+                     document.querySelector(".app") ||
+                     document.body;
+
+        if (host) host.appendChild(footer);
+    } catch (error) {
+        console.warn("Legal footer layer was not loaded:", error);
+    }
+})();

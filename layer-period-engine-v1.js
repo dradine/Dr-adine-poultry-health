@@ -83,7 +83,7 @@ async function sync(flock, user, supabaseClient, dailyRows){
   });
   for(const w of weeks){await supabaseClient.from('layer_weekly_monitoring').upsert(w,{onConflict:'flock_id,week_no'});}
   const months=[...byMonth.values()].map(({j,rows:rs})=>{
-    const a=baseAgg(rs),s=rs[0],e=rs.at(-1);
+    const a=baseAgg(rs),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const complete=todayIso>=monthEndIso&&rs.length>=expected&&contiguous&&s.record_date===activeStart&&e.record_date===monthEndIso;
     const monthStart=rs.find(x=>{const q=toJalali(x.record_date);return q?.year===j.year&&q?.month===j.month;})?.record_date||s.record_date;
     const expected=daysInJalaliMonth(j.year,j.month);
     const complete=rs.length>=expected;

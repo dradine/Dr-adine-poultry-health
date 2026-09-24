@@ -183,11 +183,13 @@
             </svg>`,
 
         accounting: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M8 7h25a3 3 0 0 1 3 3v29H8z"/>
-                <path d="M8 7h25a3 3 0 0 1 3 3v29H8zM13 14h18M13 20h10M13 26h7"/>
-                <path d="M25 35v-7h5v7M31 35v-12h5v12M37 35v-18h4v18"/>
-                <path d="M13 35h28"/>
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M10 7h20a3 3 0 0 1 3 3v28H10a3 3 0 0 1-3-3V10a3 3 0 0 1 3-3z"/>
+                <path d="M13 14h14M13 19h10M13 24h7"/>
+                <path d="M27 38v-9h5v9M33 38V24h5v14M39 38V18h3v20"/>
+                <path d="M12 38h30"/>
+                <circle cx="37" cy="10" r="5"/>
+                <path d="M37 7.8v4.4M35.3 10h3.4"/>
             </svg>`,
 
         user: `

@@ -52,7 +52,5 @@ input,textarea{touch-action:manipulation}
 .dashboard-page .dashboard-section-heading h2{color:#0f3d30!important;font-size:21px!important;font-weight:900!important;line-height:1.55!important;text-shadow:none!important;margin:0 0 5px!important}
 .dashboard-page .dashboard-section-heading p{color:#48645a!important;font-size:12.5px!important;font-weight:650!important;line-height:1.85!important;text-shadow:none!important;margin:0!important}
 
-/* Prevent startup photo flash on dashboard */
-.dashboard-page .dashboard-hero .hero-image{opacity:0;transition:opacity .2s ease}
-.dashboard-page .dashboard-hero.is-ready .hero-image{opacity:1}
+/* Dashboard hero keeps its intentional farm image; page background remains solid during startup. */
 .dashboard-accounting-svg{width:34px!important;height:34px!important;display:block;fill:none;stroke:#176b45;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}

@@ -12,9 +12,19 @@
 
         home: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26M19 41V29h10v12"/></svg>`,
 
-        farm: `<img class="adi-icon-external" src="https://api.iconify.design/lucide-lab/farm.svg" alt="" aria-hidden="true">`,
+        farm: `
+            <svg viewBox="0 0 24 24">
+                <path d="M8 14V4.5a2.5 2.5 0 0 0-5 0V14M8 8l6-5 8 6M20 5v10M12 10h4v4h-4zM2 14h20M2 22l5-8m0 8 5-8m10 8H12l5-8m-2 4h7"/>
+            </svg>`,
 
-        flock: `<span class="adi-icon-flock"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"></span>`,
+        flock: `
+            <svg viewBox="0 0 48 48">
+                <path class="icon-fill" d="M9 37c1-8 6-13 13-13s12 5 13 13z"/>
+                <circle class="icon-fill" cx="22" cy="15" r="7"/>
+                <path d="M9 37c1-8 6-13 13-13s12 5 13 13M15 15c0-4 3-7 7-7s7 3 7 7M29 15l8 2-8 2M19 35v6M25 35v6"/>
+                <circle class="icon-fill" cx="36" cy="32" r="5"/>
+                <path d="M36 29v6M33 32h6"/>
+            </svg>`,
 
         broiler: `
             <svg viewBox="0 0 48 48">
@@ -48,7 +58,10 @@
                 <path d="m33 15 7 2-7 2M20 37v4M28 37v4"/>
             </svg>`,
 
-        weeklyReport: `<img class="adi-icon-external" src="https://api.iconify.design/tabler/file-pencil.svg" alt="" aria-hidden="true">`,
+        weeklyReport: `
+            <svg viewBox="0 0 24 24">
+                <path d="M14 3v4a1 1 0 0 0 1 1h4M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2M10 18l5-5a1.414 1.414 0 0 0-2-2l-5 5v2z"/>
+            </svg>`,
 
         scale: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 8h30v32H9z"/><path d="M9 8h30v32H9zM15 15h18M15 21h10"/><path d="M15 34v-7h5v7M23 34v-11h5v11M31 34v-16h4v16M14 37h22"/></svg>`,
 
@@ -80,15 +93,31 @@
                 <path d="M15 27c4-4 7 4 11 0s7 4 11 0M19 15h10"/>
             </svg>`,
 
-        report: `<img class="adi-icon-external" src="https://api.iconify.design/lucide/file-chart-line.svg" alt="" aria-hidden="true">`,
+        report: `
+            <svg viewBox="0 0 48 48">
+                <path d="M12 7h18l8 8v26H12zM30 7v9h8M18 32l5-6 5 4 7-9"/>
+                <path d="M18 37h19"/>
+            </svg>`,
 
         archive: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 10h34v8H7zM10 18h28v22H10z"/><path d="M7 10h34v8H7zM10 18h28v22H10zM18 25h12M18 31h12M19 6h10"/></svg>`,
 
         health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11zM24 15v16M16 23h16"/></svg>`,
 
-        healthcare: `<img class="adi-icon-external" src="https://api.iconify.design/healthicons/virus-lab-research-syringe.svg" alt="" aria-hidden="true">`,
+        healthcare: `
+            <svg viewBox="0 0 48 48">
+                <path class="icon-fill" d="M9 10h22v27H9z"/>
+                <path d="M9 10h22v27H9zM14 15h12M14 21h12M14 27h7"/>
+                <path d="m29 28 8-8M34 25l-5-5M36 16l4 4M38 13l3 3M28 31l4 4"/>
+            </svg>`,
 
-        mortality: `<span class="adi-icon-mortality"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"><img class="adi-icon-external" src="https://api.iconify.design/tabler/alert-triangle-filled.svg" alt="" aria-hidden="true"></span>`,
+        mortality: `
+            <svg viewBox="0 0 48 48">
+                <path class="icon-fill" d="M9 37c1-8 6-13 13-13s12 5 13 13z"/>
+                <circle class="icon-fill" cx="22" cy="15" r="7"/>
+                <path d="M9 37c1-8 6-13 13-13s12 5 13 13M15 15c0-4 3-7 7-7s7 3 7 7M29 15l8 2-8 2M19 35v6M25 35v6"/>
+                <path class="icon-fill" d="m37 4 9 16H28z"/>
+                <path d="m37 4 9 16H28zM37 9v5M37 17h.01"/>
+            </svg>`,
 
         calendar: `
             <svg viewBox="0 0 48 48">
@@ -129,7 +158,13 @@
 
         accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
 
-        professionals: `<img class="adi-icon-external" src="https://api.iconify.design/openmoji/male-doctor.svg" alt="" aria-hidden="true">`,
+        professionals: `
+            <svg viewBox="0 0 48 48">
+                <circle class="icon-fill" cx="22" cy="13" r="7"/>
+                <path d="M9 39c1-8 6-13 13-13s12 5 13 13M15 13c0-4 3-7 7-7s7 3 7 7"/>
+                <path d="M31 27h7v12h-7zM34.5 29v8M31 33h7"/>
+                <path d="M35 20v6M31 23h8"/>
+            </svg>`,
 
         user: `
             <svg viewBox="0 0 48 48">

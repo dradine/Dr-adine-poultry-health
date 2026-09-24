@@ -10,31 +10,11 @@
 
     const ICON = {
 
-        home: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M7 22 24 8l17 14v19H29V29H19v12H7z"/>
-                <path d="M7 22 24 8l17 14"/>
-                <path d="M11 20v21h26V20"/>
-                <path d="M19 41V29h10v12"/>
-            </svg>`,
+        home: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26M19 41V29h10v12"/></svg>`,
 
-        farm: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M7 40V22l17-12 17 12v18H31V28H17v12z"/>
-                <path d="M7 40h34M7 22 24 10l17 12M17 40V28h14v12"/>
-                <path d="M19 22h10"/>
-                <path d="M24 16v6"/>
-            </svg>`,
+        farm: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M6 21 24 9l18 12v20H6z"/><path d="M6 21 24 9l18 12M10 20v21h28M18 41V27h12v14M18 22h12"/></svg>`,
 
-        flock: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M18 39c0-7 4-12 10-14 5 2 9 7 9 14z"/>
-                <circle class="icon-fill" cx="26" cy="17" r="8"/>
-                <path d="M18 39c0-7 4-12 10-14 5 2 9 7 9 14M18 17c0-5 3-9 8-9s8 4 8 9"/>
-                <path d="m34 17 7 2-7 2"/>
-                <circle cx="28.5" cy="16" r="1.2" fill="currentColor" stroke="none"/>
-                <path d="M22 37v4M30 37v4"/>
-            </svg>`,
+        flock: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M12 39c1-7 5-11 11-11s10 4 11 11z"/><circle class="icon-fill" cx="23" cy="17" r="7"/><path d="M12 39c1-7 5-11 11-11s10 4 11 11M16 17c0-5 3-8 7-8s7 3 7 8M30 17l7 2-7 2M34 27c5 1 8 5 9 12M36 26c0-3 2-5 5-5"/></svg>`,
 
         broiler: `
             <svg viewBox="0 0 48 48">
@@ -68,13 +48,7 @@
                 <path d="m33 15 7 2-7 2M20 37v4M28 37v4"/>
             </svg>`,
 
-        scale: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M10 15h28l-5 10H15z"/>
-                <path d="M24 8v28M10 15h28M7 15h10l-5 10H9zM31 15h10l-5 10h-3z"/>
-                <path d="M14 36h20M18 40h12"/>
-                <path d="M20 15a4 4 0 0 1 8 0"/>
-            </svg>`,
+        scale: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 13h30l-5 12H14z"/><path d="M9 13h30l-5 12H14zM24 7v29M14 42h20M18 38h12M18 13a6 6 0 0 1 12 0M11 25h26"/></svg>`,
 
         uniformity: `
             <svg viewBox="0 0 48 48">
@@ -86,12 +60,7 @@
                 <circle cx="35" cy="16" r="2" fill="currentColor" stroke="none"/>
             </svg>`,
 
-        vaccine: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="m30 7 11 11-16 16-8-8z"/>
-                <path d="m30 7 11 11-16 16-8-8zM21 14l13 13M17 26l-5 13 13-5"/>
-                <path d="M34 13l5-5M9 40h12"/>
-            </svg>`,
+        vaccine: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="m29 7 12 12-17 17-9-9z"/><path d="m29 7 12 12-17 17-9-9zM20 14l14 14M16 27 9 40M8 40h12M34 12l5-5M24 20v8M20 24h8"/></svg>`,
 
         medicine: `
             <svg viewBox="0 0 48 48">
@@ -114,31 +83,13 @@
                 <path d="M15 27c4-4 7 4 11 0s7 4 11 0M19 15h10"/>
             </svg>`,
 
-        report: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M9 6h30v36H9z"/>
-                <path d="M9 6h30v36H9zM15 13h18M15 19h18M15 35v-8M22 35V22M29 35v-5M36 35V23"/>
-            </svg>`,
+        report: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 6h30v36H9z"/><path d="M9 6h30v36H9zM15 14h18M15 20h18M15 36V28h4v8M22 36V24h4v12M29 36V21h4v15"/></svg>`,
 
-        archive: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M7 10h34v8H7zM10 18h28v22H10z"/>
-                <path d="M7 10h34v8H7zM10 18h28v22H10zM18 25h12M18 31h12M19 6h10"/>
-            </svg>`,
+        archive: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 10h34v8H7zM10 18h28v22H10z"/><path d="M7 10h34v8H7zM10 18h28v22H10zM18 25h12M18 31h12M19 6h10"/></svg>`,
 
-        health: `
-            <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M24 40S8 31 8 19c0-6 4-10 9-10 3 0 6 2 7 5 1-3 4-5 7-5 5 0 9 4 9 10 0 12-16 21-16 21z"/>
-                <path d="M24 40S8 31 8 19c0-6 4-10 9-10 3 0 6 2 7 5 1-3 4-5 7-5 5 0 9 4 9 10 0 12-16 21-16 21z"/>
-                <path d="M16 24h5l2-5 3 10 2-5h5"/>
-            </svg>`,
+        health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 40S8 31 8 19c0-6 4-10 9-10 3 0 6 2 7 5 1-3 4-5 7-5 5 0 9 4 9 10 0 12-16 21-16 21z"/><path d="M24 40S8 31 8 19c0-6 4-10 9-10 3 0 6 2 7 5 1-3 4-5 7-5 5 0 9 4 9 10 0 12-16 21-16 21zM14 24h6l2-5 3 10 2-5h7"/></svg>`,
 
-        mortality: `
-            <svg viewBox="0 0 48 48">
-                <circle class="icon-fill" cx="24" cy="24" r="17"/>
-                <circle cx="24" cy="24" r="17"/>
-                <path d="m17 17 14 14M31 17 17 31"/>
-            </svg>`,
+        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 6 42 24 24 42 6 24z"/><path d="M24 6 42 24 24 42 6 24zM18 18l12 12M30 18 18 30"/></svg>`,
 
         calendar: `
             <svg viewBox="0 0 48 48">
@@ -163,12 +114,7 @@
                 <circle cx="24" cy="34" r="1.7" fill="currentColor" stroke="none"/>
             </svg>`,
 
-        settings: `
-            <svg viewBox="0 0 48 48">
-                <circle class="icon-fill" cx="24" cy="24" r="15"/>
-                <circle cx="24" cy="24" r="6"/>
-                <path d="M24 5v7M24 36v7M5 24h7M36 24h7M10 10l5 5M33 33l5 5M38 10l-5 5M15 33l-5 5"/>
-            </svg>`,
+        settings: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="m24 7 4 2 5-1 3 4-1 5 3 4-1 5-3 3 1 5-4 3-5-1-4 3-5-2-2-5-4-3 1-5-2-4 3-4 5-1 3-4z"/><circle cx="24" cy="24" r="6"/><path d="M24 7v4M24 37v4M7 24h4M37 24h4"/></svg>`,
 
         logout: `
             <svg viewBox="0 0 48 48">
@@ -182,15 +128,7 @@
                 <path d="m15 24 6 6 13-14"/>
             </svg>`,
 
-        accounting: `
-            <svg viewBox="0 0 48 48" aria-hidden="true">
-                <path d="M10 7h20a3 3 0 0 1 3 3v28H10a3 3 0 0 1-3-3V10a3 3 0 0 1 3-3z"/>
-                <path d="M13 14h14M13 19h10M13 24h7"/>
-                <path d="M27 38v-9h5v9M33 38V24h5v14M39 38V18h3v20"/>
-                <path d="M12 38h30"/>
-                <circle cx="37" cy="10" r="5"/>
-                <path d="M37 7.8v4.4M35.3 10h3.4"/>
-            </svg>`,
+        accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
 
         user: `
             <svg viewBox="0 0 48 48">

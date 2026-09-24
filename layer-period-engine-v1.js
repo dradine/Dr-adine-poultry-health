@@ -68,8 +68,8 @@ async function sync(flock, user, supabaseClient, dailyRows){
   const first=rows[0].record_date;
   const byWeek=new Map(), byMonth=new Map();
   rows.forEach(r=>{
-    const age=Number(r.age_days)||0; const week=Math.floor((age-1)/7)+1;
-    r.__week=week; r.__week_start_age=(week-1)*7+1; r.__week_end_age=week*7;
+    const age=Number(r.age_days)||0; const week=Math.floor(age/7)+1;
+    r.__week=week; r.__week_start_age=week===1?1:(week-1)*7; r.__week_end_age=week*7-1;
     if(!byWeek.has(week))byWeek.set(week,[]);byWeek.get(week).push(r);
     const j=toJalali(r.record_date);if(j){const key=monthKey(j);if(!byMonth.has(key))byMonth.set(key,{j,rows:[]});byMonth.get(key).rows.push(r);}
   });

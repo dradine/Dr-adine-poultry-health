@@ -7,19 +7,7 @@
 const MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 function digits(v){return String(v??'').replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632));}
-function gregorianToJalali(gy,gm,gd){
-  const gdm=[0,31,28,31,30,31,30,31,31,30,31,30,31];
-  const gy2=gy-1600, gm2=gm-1, gd2=gd-1;
-  let days=365*gy2+Math.floor((gy2+3)/4)-Math.floor((gy2+99)/100)+Math.floor((gy2+399)/400);
-  days+=gd2; for(let i=0;i<gm2;i++) days+=gdm[i];
-  if(gm2>1 && ((gy%4===0&&gy%100!==0)||gy%400===0)) days++;
-  let jy=979+33*Math.floor(days/12053); days%=12053;
-  jy+=4*Math.floor(days/1461); days%=1461;
-  if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365;}
-  const jm=days<186?1+Math.floor(days/31):7+Math.floor((days-186)/30);
-  const jd=1+(days<186?days%31:(days-186)%30);
-  return {year:jy,month:jm,day:jd,label:fa(jy)+'/'+fa(jm)+'/'+fa(jd),monthLabel:MONTHS[jm-1]};
-}
+function gregorianToJalali(gy,gm,gd){const gdm=[0,31,59,90,120,151,181,212,243,273,304,334];let jy=gy>1600?979:0;gy=gy>1600?gy-1600:gy-621;const gy2=gm>2?gy+1:gy;let days=365*gy+Math.floor((gy2+3)/4)-Math.floor((gy2+99)/100)+Math.floor((gy2+399)/400)-80+gd+gdm[gm-1];jy+=33*Math.floor(days/12053);days%=12053;jy+=4*Math.floor(days/1461);days%=1461;if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365;}const jm=days<186?1+Math.floor(days/31):7+Math.floor((days-186)/30);const jd=1+(days<186?days%31:(days-186)%30);return {year:jy,month:jm,day:jd,label:fa(jy)+'/'+fa(jm)+'/'+fa(jd),monthLabel:MONTHS[jm-1]};}
 function parseIso(s){const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?{y:+m[1],m:+m[2],d:+m[3]}:null;}
 function toJalali(iso){const p=parseIso(iso);return p?gregorianToJalali(p.y,p.m,p.d):null;}
 function isoAdd(iso,days){const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}

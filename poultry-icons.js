@@ -12,9 +12,9 @@
 
         home: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26M19 41V29h10v12"/></svg>`,
 
-        farm: `<span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/lucide-lab/farm.svg)"></span>`,
+        farm: `<img class="adi-icon-external" src="https://api.iconify.design/lucide-lab/farm.svg" alt="" aria-hidden="true">`,
 
-        flock: `<span class="adi-icon-flock"><span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/healthicons/animal-chicken.svg)"></span><span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/healthicons/animal-chicken.svg)"></span><span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/healthicons/animal-chicken.svg)"></span></span>`,
+        flock: `<span class="adi-icon-flock"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"></span>`,
 
         broiler: `
             <svg viewBox="0 0 48 48">
@@ -48,7 +48,7 @@
                 <path d="m33 15 7 2-7 2M20 37v4M28 37v4"/>
             </svg>`,
 
-        weeklyReport: `<span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/tabler/file-pencil.svg)"></span>`,
+        weeklyReport: `<img class="adi-icon-external" src="https://api.iconify.design/tabler/file-pencil.svg" alt="" aria-hidden="true">`,
 
         scale: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 8h30v32H9z"/><path d="M9 8h30v32H9zM15 15h18M15 21h10"/><path d="M15 34v-7h5v7M23 34v-11h5v11M31 34v-16h4v16M14 37h22"/></svg>`,
 
@@ -80,15 +80,15 @@
                 <path d="M15 27c4-4 7 4 11 0s7 4 11 0M19 15h10"/>
             </svg>`,
 
-        report: `<span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/lucide/file-chart-line.svg)"></span>`,
+        report: `<img class="adi-icon-external" src="https://api.iconify.design/lucide/file-chart-line.svg" alt="" aria-hidden="true">`,
 
         archive: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 10h34v8H7zM10 18h28v22H10z"/><path d="M7 10h34v8H7zM10 18h28v22H10zM18 25h12M18 31h12M19 6h10"/></svg>`,
 
         health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11zM24 15v16M16 23h16"/></svg>`,
 
-        healthcare: `<span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/healthicons/virus-lab-research-syringe.svg)"></span>`,
+        healthcare: `<img class="adi-icon-external" src="https://api.iconify.design/healthicons/virus-lab-research-syringe.svg" alt="" aria-hidden="true">`,
 
-        mortality: `<span class="adi-icon-mortality"><span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/healthicons/animal-chicken.svg)"></span><span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/tabler/alert-triangle-filled.svg)"></span></span>`,
+        mortality: `<span class="adi-icon-mortality"><img class="adi-icon-external" src="https://api.iconify.design/healthicons/animal-chicken.svg" alt="" aria-hidden="true"><img class="adi-icon-external" src="https://api.iconify.design/tabler/alert-triangle-filled.svg" alt="" aria-hidden="true"></span>`,
 
         calendar: `
             <svg viewBox="0 0 48 48">
@@ -129,7 +129,7 @@
 
         accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
 
-        professionals: `<span class="adi-icon-external" style="--adi-icon-url:url(https://api.iconify.design/openmoji/male-doctor.svg)"></span>`,
+        professionals: `<img class="adi-icon-external" src="https://api.iconify.design/openmoji/male-doctor.svg" alt="" aria-hidden="true">`,
 
         user: `
             <svg viewBox="0 0 48 48">

@@ -87,17 +87,64 @@ function renderDaySelector(){
  if(preferred)el.value=preferred;
 }
 function renderHistory(){
- const el=$('history');if(!el)return;
- if(!records.length){el.innerHTML='<div class="muted">هنوز رکوردی ثبت نشده است.</div>';return;}
- const totalPages=Math.max(1,Math.ceil(records.length/HISTORY_PAGE_SIZE));historyPage=Math.min(Math.max(historyPage,1),totalPages);
- const start=(historyPage-1)*HISTORY_PAGE_SIZE;
- const pageRows=records.slice(start,start+HISTORY_PAGE_SIZE);
- el.innerHTML=pageRows.map(r=>'<div class="history-row"><b>'+esc(isoToJalali(r.record_date))+'</b><span>سن '+esc(r.age_days)+'</span><span>تولید '+(r.hen_day_production_percent!=null?Number(r.hen_day_production_percent).toFixed(1)+'%':'—')+' | دان '+(r.feed_per_hen_g!=null?Number(r.feed_per_hen_g).toFixed(1)+'g':'—')+'</span><span class="history-actions"><button type="button" class="history-btn edit" data-action="edit" data-id="'+esc(r.id)+'">ویرایش</button><button type="button" class="history-btn delete" data-action="delete" data-id="'+esc(r.id)+'">حذف</button></span></div>').join('');
- const pager='<div class="history-pager"><button type="button" class="history-page-btn" data-page="'+(historyPage-1)+'" '+(historyPage<=1?'disabled':'')+'>‹ قبلی</button>'+Array.from({length:totalPages},(_,i)=>{const p=i+1;return '<button type="button" class="history-page-btn '+(p===historyPage?'active':'')+'" data-page="'+p+'">'+p+'</button>';}).join('')+'<button type="button" class="history-page-btn" data-page="'+(historyPage+1)+'" '+(historyPage>=totalPages?'disabled':'')+'>بعدی ›</button></div>';
- el.insertAdjacentHTML('beforeend',pager);
- el.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.disabled)return;historyPage=Number(b.dataset.page)||1;renderHistory();}));
- el.querySelectorAll('[data-action="edit"]').forEach(b=>b.addEventListener('click',()=>{const r=records.find(x=>String(x.id)===String(b.dataset.id));if(!r)return;current=r;renderDaySelector();loadForm(r);window.scrollTo({top:0,behavior:'smooth'});}));
- el.querySelectorAll('[data-action="delete"]').forEach(b=>b.addEventListener('click',async()=>{const r=records.find(x=>String(x.id)===String(b.dataset.id));if(!r)return;if(!confirm('رکورد روز '+isoToJalali(r.record_date)+' حذف شود؟'))return;const del=await supabaseClient.from('layer_daily_monitoring').delete().eq('id',r.id).eq('flock_id',flock.id);if(del.error){alert('حذف رکورد انجام نشد: '+del.error.message);return;}if(current&&String(current.id)===String(r.id))current=null;await loadRecords();const next=current||records[0]||null;if(next){current=next;loadForm(next);}else loadForm(null);});}));
+  const el=$('history');
+  if(!el)return;
+  if(!records.length){
+    el.innerHTML='<div class="muted">هنوز رکوردی ثبت نشده است.</div>';
+    return;
+  }
+  const totalPages=Math.max(1,Math.ceil(records.length/HISTORY_PAGE_SIZE));
+  historyPage=Math.min(Math.max(historyPage,1),totalPages);
+  const start=(historyPage-1)*HISTORY_PAGE_SIZE;
+  const pageRows=records.slice(start,start+HISTORY_PAGE_SIZE);
+  el.innerHTML=pageRows.map(r=>{
+    return '<div class="history-row"><b>'+esc(isoToJalali(r.record_date))+'</b><span>سن '+esc(r.age_days)+'</span><span>تولید '+(r.hen_day_production_percent!=null?Number(r.hen_day_production_percent).toFixed(1)+'%':'—')+' | دان '+(r.feed_per_hen_g!=null?Number(r.feed_per_hen_g).toFixed(1)+'g':'—')+'</span><span class="history-actions"><button type="button" class="history-btn edit" data-action="edit" data-id="'+esc(r.id)+'">ویرایش</button><button type="button" class="history-btn delete" data-action="delete" data-id="'+esc(r.id)+'">حذف</button></span></div>';
+  }).join('');
+  const pager='<div class="history-pager"><button type="button" class="history-page-btn" data-page="'+(historyPage-1)+'" '+(historyPage<=1?'disabled':'')+'>‹ قبلی</button>'
+    +Array.from({length:totalPages},(_,i)=>{
+      const p=i+1;
+      return '<button type="button" class="history-page-btn '+(p===historyPage?'active':'')+'" data-page="'+p+'">'+p+'</button>';
+    }).join('')
+    +'<button type="button" class="history-page-btn" data-page="'+(historyPage+1)+'" '+(historyPage>=totalPages?'disabled':'')+'>بعدی ›</button></div>';
+  el.insertAdjacentHTML('beforeend',pager);
+  el.querySelectorAll('[data-page]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(btn.disabled)return;
+      historyPage=Number(btn.dataset.page)||1;
+      renderHistory();
+    });
+  });
+  el.querySelectorAll('[data-action="edit"]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const row=records.find(x=>String(x.id)===String(btn.dataset.id));
+      if(!row)return;
+      current=row;
+      renderDaySelector();
+      loadForm(row);
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+  el.querySelectorAll('[data-action="delete"]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      const row=records.find(x=>String(x.id)===String(btn.dataset.id));
+      if(!row)return;
+      if(!confirm('رکورد روز '+isoToJalali(row.record_date)+' حذف شود؟'))return;
+      const del=await supabaseClient.from('layer_daily_monitoring').delete().eq('id',row.id).eq('flock_id',flock.id);
+      if(del.error){
+        alert('حذف رکورد انجام نشد: '+del.error.message);
+        return;
+      }
+      if(current&&String(current.id)===String(row.id))current=null;
+      await loadRecords();
+      const next=current||records[0]||null;
+      if(next){
+        current=next;
+        loadForm(next);
+      }else{
+        loadForm(null);
+      }
+    });
+  });
 }
 document.addEventListener('DOMContentLoaded',()=>{const dateJ=$('recordDateJalali');if(dateJ)dateJ.addEventListener('change',()=>{const iso=jalaliToIso(dateJ.value);if(!iso){dateJ.setCustomValidity('تاریخ شمسی معتبر وارد کنید.');return}dateJ.setCustomValidity('');set('recordDate',iso);set('ageDays',ageFrom(iso)||1);calc();});document.querySelectorAll('.section-head').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('open')));document.querySelectorAll('#layerDailyForm input,#layerDailyForm select,#layerDailyForm textarea').forEach(el=>el.addEventListener('input',calc));$('layerDailyForm').addEventListener('submit',async e=>{e.preventDefault();if(!flock||!user)return;const p=payload();const r=await supabaseClient.from('layer_daily_monitoring').upsert(p,{onConflict:'flock_id,record_date'}).select().maybeSingle();if(r.error){console.error(r.error);alert('ذخیره پایش تخم‌گذار انجام نشد: '+r.error.message);return}alert('پایش روزانه تخم‌گذار ذخیره شد.');await loadRecords();try{await g.ADINE_LAYER_PERIOD_ENGINE_V1.sync(flock,user,supabaseClient,records)}catch(err){console.warn('Layer period auto-sync skipped',err)}});$('daySelect')?.addEventListener('change',()=>{const r=records.find(x=>String(x.record_date)===String(val('daySelect')));if(r){current=r;loadForm(r);}});$('reload').addEventListener('click',()=>loadFlock());loadFlock();});
 })(window);

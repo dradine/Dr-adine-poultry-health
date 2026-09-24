@@ -42,19 +42,8 @@ const profiles={
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2020,
     sourceLabel:'Hy-Line W-36 Commercial Layers Management Guide — January 2020',
     sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-36/36%20COM%20ENG.pdf',
-    records:[
-      {ageDays:126,bodyWeight:1235,dailyFeed:78,dailyWater:155},
-      {ageDays:140,bodyWeight:1415,dailyFeed:82,dailyWater:165,henDayProduction:60,eggWeight:48},
-      {ageDays:154,bodyWeight:1490,dailyFeed:88,dailyWater:175,henDayProduction:84,eggWeight:52},
-      {ageDays:168,bodyWeight:1525,dailyFeed:94,dailyWater:185,henDayProduction:94,eggWeight:57},
-      {ageDays:182,bodyWeight:1550,dailyFeed:100,dailyWater:195,henDayProduction:95,eggWeight:59},
-      {ageDays:210,bodyWeight:1560,dailyFeed:102,dailyWater:200,henDayProduction:93,eggWeight:61},
-      {ageDays:245,bodyWeight:1570,dailyFeed:102,dailyWater:200,henDayProduction:90,eggWeight:62},
-      {ageDays:280,bodyWeight:1580,dailyFeed:102,dailyWater:200,henDayProduction:88,eggWeight:63},
-      {ageDays:420,bodyWeight:1580,dailyFeed:102,dailyWater:200,henDayProduction:82,eggWeight:63.3},
-      {ageDays:490,bodyWeight:1580,dailyFeed:100,dailyWater:195,henDayProduction:78,eggWeight:63.5},
-      {ageDays:700,bodyWeight:1580,dailyFeed:100,dailyWater:195,henDayProduction:68,eggWeight:63.8}
-    ]
+    records:[],
+    notes:'منبع رسمی دارای بازه‌های عملکردی است؛ تا زمان پشتیبانی کامل از استانداردهای بازه‌ای، عدد نقطه‌ای ساخته نمی‌شود.'
   },
 
   'W-80':{
@@ -109,20 +98,8 @@ const profiles={
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2025,
     sourceLabel:'Hy-Line Brown Commercial Layers Performance Standards — December 2025',
     sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/Brown/BRN%20STD%20ENG.pdf',
-    records:[
-      {ageDays:126,bodyWeight:1200,dailyFeed:70,dailyWater:110},
-      {ageDays:140,bodyWeight:1400,dailyFeed:78,dailyWater:145,henDayProduction:52,eggWeight:48},
-      {ageDays:168,bodyWeight:1490,dailyFeed:80,dailyWater:155,henDayProduction:91,eggWeight:54},
-      {ageDays:182,bodyWeight:1550,dailyFeed:82,dailyWater:160,henDayProduction:94,eggWeight:57},
-      {ageDays:196,bodyWeight:1600,dailyFeed:96,dailyWater:175,henDayProduction:97,eggWeight:60},
-      {ageDays:224,bodyWeight:1790,dailyFeed:113,dailyWater:225,henDayProduction:98,eggWeight:56},
-      {ageDays:280,bodyWeight:1900,dailyFeed:113,dailyWater:225,henDayProduction:96,eggWeight:60},
-      {ageDays:350,bodyWeight:1940,dailyFeed:114,dailyWater:225,henDayProduction:93,eggWeight:63},
-      {ageDays:420,bodyWeight:1960,dailyFeed:114,dailyWater:225,henDayProduction:92,eggWeight:64},
-      {ageDays:490,bodyWeight:1980,dailyFeed:114,dailyWater:225,henDayProduction:90,eggWeight:64},
-      {ageDays:560,bodyWeight:2000,dailyFeed:114,dailyWater:225,henDayProduction:88,eggWeight:64},
-      {ageDays:700,bodyWeight:2020,dailyFeed:114,dailyWater:225,henDayProduction:82,eggWeight:64.5}
-    ]
+    records:[],
+    notes:'منبع رسمی دارای بازه‌های عملکردی برای بسیاری از شاخص‌هاست؛ عدد نقطه‌ای از بازه ساخته نشده و فعلاً مرجع مدیریتی برای محاسبه استفاده می‌شود.'
   },
 
   'ISA Brown':{
@@ -149,13 +126,11 @@ const profiles={
     sourceUrl:'https://lohmann-breeders.com/files/downloads/MG/e-Guides/Cage/English/LB_eMG_Cage_EN_PerfData_LB-Classic_p8.pdf',
     records:[
       {ageDays:119,bodyWeight:1420},
-      {ageDays:140,bodyWeight:1420,henDayProduction:50,eggWeight:56},
-      {ageDays:182,bodyWeight:1635,henDayProduction:95,eggWeight:60},
-      {ageDays:350,bodyWeight:1900,henDayProduction:92,eggWeight:63.7},
-      {ageDays:504,bodyWeight:1980,henDayProduction:88,eggWeight:64.1},
-      {ageDays:560,bodyWeight:2020,henDayProduction:84,eggWeight:64.9},
-      {ageDays:700,bodyWeight:2060,henDayProduction:75,eggWeight:65.2}
-    ]
+      {ageDays:504,eggWeight:63.7},
+      {ageDays:560,eggWeight:64.1},
+      {ageDays:700,eggWeight:64.9}
+    ],
+    notes:'تنها مقادیر نقطه‌ای مستند وارد شده‌اند؛ peak و cumulative egg totals به‌صورت منحنی روزانه جعل نشده‌اند.'
   },
 
   'Lohmann Brown-Lite':{
@@ -164,12 +139,11 @@ const profiles={
     sourceUrl:'https://lohmann-breeders.com/files/downloads/MG/Data%20Tables/Protected_LB_Zusatzheft_Alternative%20Haltung_LB-Lite_EN_06.21_V01-21_high.pdf',
     records:[
       {ageDays:119,bodyWeight:1407},
-      {ageDays:140,bodyWeight:1550,henDayProduction:50,eggWeight:55},
-      {ageDays:182,bodyWeight:1613,henDayProduction:94,eggWeight:59},
-      {ageDays:504,bodyWeight:1900,henDayProduction:88,eggWeight:61.7},
-      {ageDays:560,bodyWeight:1950,henDayProduction:86,eggWeight:62},
-      {ageDays:630,bodyWeight:1980,henDayProduction:82,eggWeight:62.4}
-    ]
+      {ageDays:504,eggWeight:61.7},
+      {ageDays:560,eggWeight:62.0},
+      {ageDays:630,eggWeight:62.4}
+    ],
+    notes:'مقادیر نقطه‌ای مستند breeder وارد شده‌اند؛ نرخ‌های تولیدی بازه‌ای به عدد ساختگی تبدیل نشده‌اند.'
   },
 
   'Lohmann LSL-Classic':{
@@ -178,13 +152,11 @@ const profiles={
     sourceUrl:'https://lohmann-breeders.com/files/downloads/MG/Cage/LB_MG_Cage_LSL-Classic_EN.pdf',
     records:[
       {ageDays:119,bodyWeight:1270},
-      {ageDays:140,bodyWeight:1270,henDayProduction:50,eggWeight:55},
-      {ageDays:182,bodyWeight:1400,henDayProduction:95,eggWeight:59},
-      {ageDays:350,bodyWeight:1600,henDayProduction:92,eggWeight:61},
-      {ageDays:504,bodyWeight:1700,henDayProduction:88,eggWeight:62.4},
-      {ageDays:560,bodyWeight:1750,henDayProduction:84,eggWeight:62.8},
-      {ageDays:700,bodyWeight:1790,henDayProduction:76,eggWeight:63.6}
-    ]
+      {ageDays:504,eggWeight:62.4},
+      {ageDays:560,eggWeight:62.8},
+      {ageDays:700,eggWeight:63.6}
+    ],
+    notes:'مقادیر نقطه‌ای مستند breeder وارد شده‌اند؛ peak و cumulative egg production به منحنی روزانه تبدیل نشده‌اند.'
   },
 
   'Lohmann LSL-Lite':{
@@ -192,12 +164,11 @@ const profiles={
     sourceLabel:'LOHMANN LSL-LITE — current breeder performance data',
     sourceUrl:'https://lohmann-breeders.com/strains/lohmann-lsl-lite/',
     records:[
-      {ageDays:140,bodyWeight:1260,henDayProduction:50,eggWeight:55},
-      {ageDays:182,bodyWeight:1380,henDayProduction:95,eggWeight:58},
-      {ageDays:504,bodyWeight:1650,henDayProduction:90,eggWeight:60.2},
-      {ageDays:560,bodyWeight:1690,henDayProduction:87,eggWeight:60.8},
-      {ageDays:700,bodyWeight:1720,henDayProduction:78,eggWeight:61}
-    ]
+      {ageDays:504,eggWeight:60.2},
+      {ageDays:560,eggWeight:60.8},
+      {ageDays:700,eggWeight:60.8}
+    ],
+    notes:'اعداد نقطه‌ای وزن تخم از breeder page؛ سایر شاخص‌های خلاصه‌ای به منحنی ساختگی تبدیل نشده‌اند.'
   },
 
   'NOVOgen Brown':{
@@ -280,7 +251,7 @@ function interpolate(points,age){
 function resolve(flock){
  const s=norm(flock?.strain),g0=norm(flock?.genetics);
  const exact=Object.keys(profiles).find(k=>norm(k)===s||s.includes(norm(k))||norm(k).includes(s));
- if(exact)return {...profiles[exact],strain:exact,fallback:false,numericReady:true,management:MANAGEMENT_PROFILE};
+ if(exact){const p=profiles[exact];return {...p,strain:exact,fallback:!(Array.isArray(p.records)&&p.records.length>1),numericReady:Array.isArray(p.records)&&p.records.length>1,management:MANAGEMENT_PROFILE};}
  const aliases={
   'hy-line w-80':'W-80','hyline w-80':'W-80','hy-line brown':'Brown',
   'lohmann brown':'Lohmann Brown-Classic','lohmann lsl':'Lohmann LSL-Classic',

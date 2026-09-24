@@ -12,9 +12,9 @@
 
         home: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26M19 41V29h10v12"/></svg>`,
 
-        farm: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M6 21 24 9l18 12v20H6z"/><path d="M6 21 24 9l18 12M10 20v21h28M18 41V27h12v14M18 22h12"/></svg>`,
+        farm: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M5 22 24 8l19 14v19H5z"/><path d="M5 22 24 8l19 14M9 20v21h30M17 41V28h14v13M17 23h14"/><path d="M35 10v-4h5v8"/><path d="M37.5 28v7M34 31.5h7"/></svg>`,
 
-        flock: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M6 21 24 9l18 12v20H6z"/><path d="M6 21 24 9l18 12M10 20v21h28M18 41V29h12v12M18 22h12"/><circle class="icon-fill" cx="34" cy="17" r="4"/><path d="M38 17l5 1.5-5 1.5"/></svg>`,
+        flock: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M5 23 24 11l19 12v17H5z"/><path d="M5 23 24 11l19 12M9 22v18h30M18 40V29h12v11"/><circle class="icon-fill" cx="17" cy="21" r="3.5"/><path d="M20.5 21 25 22.5 20.5 24"/><circle class="icon-fill" cx="30" cy="20" r="3.5"/><path d="M33.5 20 38 21.5 33.5 23"/></svg>`,
 
         broiler: `
             <svg viewBox="0 0 48 48">
@@ -48,7 +48,7 @@
                 <path d="m33 15 7 2-7 2M20 37v4M28 37v4"/>
             </svg>`,
 
-        scale: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 13h30l-5 12H14z"/><path d="M9 13h30l-5 12H14zM24 7v29M14 42h20M18 38h12M18 13a6 6 0 0 1 12 0M11 25h26"/></svg>`,
+        scale: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 8h30v32H9z"/><path d="M9 8h30v32H9zM15 15h18M15 21h10"/><path d="M15 34v-7h5v7M23 34v-11h5v11M31 34v-16h4v16M14 37h22"/></svg>`,
 
         uniformity: `
             <svg viewBox="0 0 48 48">
@@ -84,9 +84,9 @@
 
         health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11zM24 15v16M16 23h16"/></svg>`,
 
-        healthcare: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11zM24 15v16M16 23h16"/><circle cx="34" cy="11" r="6"/><path d="M34 8v6M31 11h6"/></svg>`,
+        healthcare: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M8 12 24 6l16 6v11c0 9-6 15-16 19C14 38 8 32 8 23z"/><path d="M8 12 24 6l16 6v11c0 9-6 15-16 19C14 38 8 32 8 23zM24 14v16M16 22h16"/><path d="M31 32h8a3 3 0 0 0 0-6h-8a3 3 0 0 0 0 6zM34 26v6"/></svg>`,
 
-        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 31c2-7 7-11 15-11s13 4 15 11v6H9z"/><circle class="icon-fill" cx="22" cy="13" r="7"/><path d="M9 37h30M22 6c-4 0-7 3-7 7s3 7 7 7M29 13l7 2-7 2"/><path d="M33 25v11M28 31h10"/></svg>`,
+        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 31c2-8 8-12 17-12s15 4 17 12v6H7z"/><circle class="icon-fill" cx="21" cy="12" r="7"/><path d="M7 37h34M21 5c-4 0-7 3-7 7s3 7 7 7M28 12l7 2-7 2"/><path d="M35 25v12M30 32l5 5 5-5"/></svg>`,
 
         calendar: `
             <svg viewBox="0 0 48 48">
@@ -127,7 +127,7 @@
 
         accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
 
-        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="16" cy="14" r="6"/><path d="M6 39c1-8 5-12 10-12s9 4 10 12"/><path d="M30 9h8a3 3 0 0 1 3 3v25H28V12a3 3 0 0 1 3-3z"/><path d="M33 9V6h3v3M31 18h9M31 24h9M31 30h6"/><path d="M20 19c4 1 6 4 6 8"/></svg>`,
+        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="15" cy="13" r="6"/><path d="M6 38c1-8 4-12 9-12s8 4 9 12"/><path d="M19 21c7 0 12 4 13 11"/><path d="M28 15c4 0 7 3 7 7s-3 7-7 7"/><path d="M34 29c3 1 5 4 6 9"/><path class="icon-fill" d="M36 10h5v8h-5z"/><path d="M38.5 10V7h3v3"/></svg>`
 
         user: `
             <svg viewBox="0 0 48 48">

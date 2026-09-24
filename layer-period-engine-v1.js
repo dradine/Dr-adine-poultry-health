@@ -38,7 +38,7 @@ function baseAgg(rows){
   const last=[...rows].sort((a,b)=>String(a.record_date).localeCompare(String(b.record_date))).at(-1)||{};
   const totalEggs=sum(rows,'egg_count');
   const totalFeed=sum(rows,'feed_quantity_kg');
-  const totalEggMass=rows.reduce((s,r)=>s+(Number(r.egg_mass_g_hen_day)||0),0);
+  const totalEggMass=rows.reduce((s,r)=>{const em=Number(r.egg_mass_g_hen_day),birds=Number(r.opening_birds);return s+(Number.isFinite(em)&&Number.isFinite(birds)&&birds>0?em*birds:0);},0);
   return {
     mortality_count:sum(rows,'mortality_count'),cull_count:sum(rows,'cull_count'),
     total_eggs:totalEggs,total_saleable_eggs:sum(rows,'saleable_egg_count'),total_cracked_eggs:sum(rows,'cracked_egg_count'),

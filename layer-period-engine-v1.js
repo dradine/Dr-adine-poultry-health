@@ -74,11 +74,11 @@ async function sync(flock, user, supabaseClient, dailyRows){
     const j=toJalali(r.record_date);if(j){const key=monthKey(j);if(!byMonth.has(key))byMonth.set(key,{j,rows:[]});byMonth.get(key).rows.push(r);}
   });
   const weeks=[...byWeek.entries()].map(([week,rs])=>{
-    const a=baseAgg(rs),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date);
+    const a=baseAgg(rs),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date); const consecutive=rs.length===7&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1);
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,week_no:week,
       period_start:s.record_date,period_end:e.record_date,age_start_days:s.age_days,age_end_days:e.age_days,
       jalali_year:j?.year||null,jalali_month:j?.month||null,jalali_week_label:'هفته '+fa(week),
-      source_daily_count:rs.length,expected_daily_count:7,is_complete:rs.length>=7,source_daily_ids:rs.map(x=>x.id),
+      source_daily_count:rs.length,expected_daily_count:7,is_complete:consecutive,source_daily_ids:rs.map(x=>x.id),
       welfare_summary:welfareSummary(rs),performance_summary:{peak_or_average:'daily-derived'},updated_at:new Date().toISOString()};
   });
   for(const w of weeks){await supabaseClient.from('layer_weekly_monitoring').upsert(w,{onConflict:'flock_id,week_no'});}

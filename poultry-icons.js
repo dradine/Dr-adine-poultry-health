@@ -184,9 +184,10 @@
 
         accounting: `
             <svg viewBox="0 0 48 48">
-                <path class="icon-fill" d="M7 12h34v25H7z"/>
-                <path d="M7 12h34v25H7zM12 18h24M13 30h7M25 30h10M13 24h12"/>
-                <path d="m31 24 4-4 4 4"/>
+                <path class="icon-fill" d="M8 7h25a3 3 0 0 1 3 3v29H8z"/>
+                <path d="M8 7h25a3 3 0 0 1 3 3v29H8zM13 14h18M13 20h10M13 26h7"/>
+                <path d="M25 35v-7h5v7M31 35v-12h5v12M37 35v-18h4v18"/>
+                <path d="M13 35h28"/>
             </svg>`,
 
         user: `

@@ -8,11 +8,12 @@ const MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرد�
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 function digits(v){return String(v??'').replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632));}
 function gregorianToJalali(gy,gm,gd){const gdm=[0,31,59,90,120,151,181,212,243,273,304,334];let jy=gy>1600?979:0;gy=gy>1600?gy-1600:gy-621;const gy2=gm>2?gy+1:gy;let days=365*gy+Math.floor((gy2+3)/4)-Math.floor((gy2+99)/100)+Math.floor((gy2+399)/400)-80+gd+gdm[gm-1];jy+=33*Math.floor(days/12053);days%=12053;jy+=4*Math.floor(days/1461);days%=1461;if(days>365){jy+=Math.floor((days-1)/365);days=(days-1)%365;}const jm=days<186?1+Math.floor(days/31):7+Math.floor((days-186)/30);const jd=1+(days<186?days%31:(days-186)%30);return {year:jy,month:jm,day:jd,label:fa(jy)+'/'+fa(jm)+'/'+fa(jd),monthLabel:MONTHS[jm-1]};}
+function jalaliToGregorian(jy,jm,jd){jy=Number(jy)-979;const jmd=[31,31,31,31,31,31,30,30,30,30,30,29];let days=365*jy+Math.floor(jy/33)*8+Math.floor((jy%33+3)/4)+jd-1;for(let i=0;i<jm-1;i++)days+=jmd[i];let gdNo=days+79,gy=1600+400*Math.floor(gdNo/146097);gdNo%=146097;let leap=true;if(gdNo>=36525){gdNo--;gy+=100*Math.floor(gdNo/36524);gdNo%=36524;if(gdNo>=365)gdNo++;else leap=false;}gy+=4*Math.floor(gdNo/1461);gdNo%=1461;if(gdNo>=366){leap=false;gdNo--;gy+=Math.floor(gdNo/365);gdNo%=365;}const gmd=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];let gm=1;while(gdNo>=gmd[gm-1]){gdNo-=gmd[gm-1];gm++;}return gy+'-'+String(gm).padStart(2,'0')+'-'+String(gdNo+1).padStart(2,'0');}
 function parseIso(s){const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?{y:+m[1],m:+m[2],d:+m[3]}:null;}
 function toJalali(iso){const p=parseIso(iso);return p?gregorianToJalali(p.y,p.m,p.d):null;}
 function isoAdd(iso,days){const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
 function isoDiff(a,b){return Math.round((new Date(a+'T00:00:00Z')-new Date(b+'T00:00:00Z'))/86400000);}
-function daysInJalaliMonth(y,m){if(m<=6)return 31;if(m<=11)return 30;return isLeapJalali(y)?30:29;}
+function daysInJalaliMonth(y,m){if(m<=6)return 31;if(m<=11)return 30;return isLeapJalali(y)?30:29;} function jalaliMonthStartIso(y,m){return jalaliToGregorian(y,m,1)} function jalaliMonthEndIso(y,m){return jalaliToGregorian(y,m,daysInJalaliMonth(y,m))}
 function isLeapJalali(jy){
   const r=((jy-474)%2820+2820)%2820;
   return (((r+38)*682)%2816)<682;
@@ -95,5 +96,5 @@ async function sync(flock, user, supabaseClient, dailyRows){
   for(const m of months){await supabaseClient.from('layer_monthly_monitoring').upsert(m,{onConflict:'flock_id,jalali_month_key'});}
   return {weeks,months};
 }
-g.ADINE_LAYER_PERIOD_ENGINE_V1={fa,toJalali,monthKey,daysInJalaliMonth,sync};
+g.ADINE_LAYER_PERIOD_ENGINE_V1={fa,toJalali,jalaliToGregorian,monthKey,daysInJalaliMonth,sync};
 })(window);

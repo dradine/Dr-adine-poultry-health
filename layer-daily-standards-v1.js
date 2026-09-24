@@ -250,7 +250,7 @@ function interpolate(points,age){
 }
 function resolve(flock){
  const s=norm(flock?.strain),g0=norm(flock?.genetics);
- const exact=Object.keys(profiles).find(k=>norm(k)===s||s.includes(norm(k))||norm(k).includes(s));
+ const exact=Object.keys(profiles).find(k=>norm(k)===s);
  if(exact){const p=profiles[exact];return {...p,strain:exact,fallback:!(Array.isArray(p.records)&&p.records.length>1),numericReady:Array.isArray(p.records)&&p.records.length>1,management:MANAGEMENT_PROFILE};}
  const aliases={
   'hy-line w-80':'W-80','hyline w-80':'W-80','hy-line brown':'Brown',

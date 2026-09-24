@@ -7,6 +7,7 @@ context.window=context;
 vm.createContext(context);
 
 const load=p=>vm.runInContext(fs.readFileSync(p,'utf8'),context,{filename:p});
+const plain=v=>JSON.parse(JSON.stringify(v));
 
 load('standard-data.js');
 load('broiler-official-standards-v1.js');
@@ -14,7 +15,7 @@ load('standards-resolver-core-v1.js');
 load('guangming2-integration-v1.js');
 
 assert.ok(context.POULTRY_CATALOG.broiler.genetics.some(x=>x.id==='guangming'));
-assert.deepStrictEqual(context.POULTRY_CATALOG.broiler.genetics.find(x=>x.id==='guangming').strains,['Guangming No.2']);
+assert.deepStrictEqual(plain(context.POULTRY_CATALOG.broiler.genetics.find(x=>x.id==='guangming').strains),['Guangming No.2']);
 
 const g=context.ADINE_GUANGMING2;
 assert.equal(g.strain,'Guangming No.2');
@@ -41,7 +42,7 @@ assert.equal(context.broilerCanonicalMetricTarget('Ross 308 AP',56,'cumulativeFc
 load('broiler-daily-standards-v1.js');
 const daily=context.ADINE_BROILER_DAILY_STANDARDS_V1;
 assert.ok(daily.strains['Guangming No.2']);
-assert.deepStrictEqual(daily.strains['Guangming No.2'].dayWeightG,{1:58,2:71,3:92,4:117,5:145,6:175,7:208});
+assert.deepStrictEqual(plain(daily.strains['Guangming No.2'].dayWeightG),{1:58,2:71,3:92,4:117,5:145,6:175,7:208});
 assert.equal(daily.strains['Guangming No.2'].sourceType,'official-anchor+management-derived-daily');
 assert.equal(daily.aliases['گوانمینگ ۲'],'Guangming No.2');
 

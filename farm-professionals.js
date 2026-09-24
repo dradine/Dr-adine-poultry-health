@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="box">
                 <h3>${AdineAccess.esc(f.name)}</h3>
                 <p class="muted">${AdineAccess.esc(f.farm_type||'نوع نامشخص')} | ${AdineAccess.esc(f.farm_code||'بدون کد')}</p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px"><a class="btn btn-secondary" href="professional-messages.html?farm=${f.id}">💬 پیام‌های متخصصان این فارم</a></div>
                 <div class="professional-add-grid">
                     <div>
                         <input id="code-${f.id}" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="کد حرفه‌ای ۴ رقمی">

@@ -30,7 +30,7 @@
   }
   function catalog(){try{if(typeof POULTRY_CATALOG!=="undefined"&&POULTRY_CATALOG)return POULTRY_CATALOG;}catch(e){}return window.POULTRY_CATALOG||null;}
   function els(){return{t:document.getElementById("productionType"),g:document.getElementById("genetics"),s:document.getElementById("flockStrain"),p:document.getElementById("flockProgram")};}
-  function groups(t){var c=catalog(),g=c&&c[key(t)]&&c[key(t)].genetics;return Array.isArray(g)&&g.length?g:(FALLBACK[key(t)]||[]);}
+  function groups(t){var c=catalog(),k=key(t),g=c&&c[k]&&c[k].genetics;var a=Array.isArray(g)?g.slice():((FALLBACK[k]||[]).slice());if(k==="broiler"&&!a.some(function(v){return String(v&&v.id)==="guangming";})){a.push({id:"guangming",name:"Guangming / گوانگ‌مینگ",strains:["Guangming No.2"]});}return a;}
   function reset(s,text){if(!s)return;s.innerHTML="";var o=document.createElement("option");o.value="";o.textContent=text;s.appendChild(o);}
   function add(s,text,value){var o=document.createElement("option");o.value=String(value==null?"":value);o.textContent=String(text==null?"":text);s.appendChild(o);}
   function companies(){var x=els();if(!x.t||!x.g||!x.s)return;var a=groups(x.t.value);x.g.disabled=false;reset(x.g,"انتخاب شرکت / ژنتیک");a.forEach(function(g){add(x.g,g.name,g.id);});x.s.disabled=true;reset(x.s,"ابتدا شرکت / ژنتیک را انتخاب کنید");if(x.p){x.p.disabled=true;reset(x.p,"ابتدا سویه را انتخاب کنید");}}

@@ -12,9 +12,9 @@
 
         home: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 22 24 8l17 14v19H29V29H19v12H7z"/><path d="M7 22 24 8l17 14M11 20v21h26M19 41V29h10v12"/></svg>`,
 
-        farm: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M5 22 24 8l19 14v19H5z"/><path d="M5 22 24 8l19 14M9 20v21h30M17 41V28h14v13M17 23h14"/><path d="M35 10v-4h5v8"/><path d="M37.5 28v7M34 31.5h7"/></svg>`,
+        farm: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M5 21 24 8l19 13v20H5z"/><path d="M5 21 24 8l19 13M10 20v21h28M18 41V28h12v13M18 23h12"/><circle cx="36" cy="12" r="6"/><path d="M36 9v6M33 12h6"/></svg>`,
 
-        flock: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M5 23 24 11l19 12v17H5z"/><path d="M5 23 24 11l19 12M9 22v18h30M18 40V29h12v11"/><circle class="icon-fill" cx="17" cy="21" r="3.5"/><path d="M20.5 21 25 22.5 20.5 24"/><circle class="icon-fill" cx="30" cy="20" r="3.5"/><path d="M33.5 20 38 21.5 33.5 23"/></svg>`,
+        flock: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="16" cy="18" r="7"/><circle class="icon-fill" cx="31" cy="16" r="6"/><path d="M7 39c1-8 4-12 9-12s8 4 9 12M24 39c1-7 3-11 7-11s7 4 8 11"/><path d="M22 18l6 2-6 2M36 16l5 2-5 2"/></svg>`,
 
         broiler: `
             <svg viewBox="0 0 48 48">
@@ -48,7 +48,7 @@
                 <path d="m33 15 7 2-7 2M20 37v4M28 37v4"/>
             </svg>`,
 
-        weeklyReport: `<svg viewBox="0 0 48 48"><rect class="icon-fill" x="7" y="7" width="34" height="34" rx="5"/><path d="M7 17h34M15 5v6M33 5v6M14 24h5M22 24h5M30 24h4M14 31h5M22 31h5"/><path d="M14 36v-2M21 36v-6M28 36v-10M35 36v-14"/></svg>`,
+        weeklyReport: `<svg viewBox="0 0 48 48"><rect class="icon-fill" x="7" y="6" width="34" height="36" rx="5"/><path d="M7 16h34M15 4v6M33 4v6M14 35v-7M21 35v-12M28 35v-18M35 35v-23"/><path d="M12 23h4M12 28h4"/></svg>`,
 
         scale: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 8h30v32H9z"/><path d="M9 8h30v32H9zM15 15h18M15 21h10"/><path d="M15 34v-7h5v7M23 34v-11h5v11M31 34v-16h4v16M14 37h22"/></svg>`,
 
@@ -86,9 +86,9 @@
 
         health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11zM24 15v16M16 23h16"/></svg>`,
 
-        healthcare: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M8 12 24 6l16 6v11c0 9-6 15-16 19C14 38 8 32 8 23z"/><path d="M8 12 24 6l16 6v11c0 9-6 15-16 19C14 38 8 32 8 23zM24 14v16M16 22h16"/><path d="M31 32h8a3 3 0 0 0 0-6h-8a3 3 0 0 0 0 6zM34 26v6"/></svg>`,
+        healthcare: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 39 11v12c0 10-6 16-15 20C15 39 9 33 9 23V11z"/><path d="M24 5 39 11v12c0 10-6 16-15 20C15 39 9 33 9 23V11z"/><path d="m31 18 7 7-11 11-7-7zM22 24l7 7M27 18l7 7"/></svg>`,
 
-        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 31c2-8 8-12 17-12s15 4 17 12v6H7z"/><circle class="icon-fill" cx="21" cy="12" r="7"/><path d="M7 37h34M21 5c-4 0-7 3-7 7s3 7 7 7M28 12l7 2-7 2"/><path d="M35 25v12M30 32l5 5 5-5"/></svg>`,
+        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 36c1-8 6-12 15-12s14 4 15 12z"/><circle class="icon-fill" cx="24" cy="14" r="7"/><path d="M24 7v14M17 14h14"/><path d="M34 8 42 16M42 8l-8 8"/><path d="M8 40h32"/></svg>`,
 
         calendar: `
             <svg viewBox="0 0 48 48">
@@ -129,7 +129,7 @@
 
         accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
 
-        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="15" cy="13" r="6"/><path d="M6 38c1-8 4-12 9-12s8 4 9 12"/><path d="M19 21c7 0 12 4 13 11"/><path d="M28 15c4 0 7 3 7 7s-3 7-7 7"/><path d="M34 29c3 1 5 4 6 9"/><path class="icon-fill" d="M36 10h5v8h-5z"/><path d="M38.5 10V7h3v3"/></svg>`,
+        professionals: `<svg viewBox="0 0 48 48"><path d="M6 39c1-8 5-12 11-12s10 4 11 12"/><circle class="icon-fill" cx="17" cy="15" r="7"/><path d="M31 8v14M24 15h14"/><path d="M34 28c5 0 8 3 8 8v3H26v-3c0-5 3-8 8-8z"/><path d="M34 24a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/><path d="M31 39h6"/></svg>`,
 
         user: `
             <svg viewBox="0 0 48 48">

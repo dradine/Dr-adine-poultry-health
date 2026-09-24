@@ -26,9 +26,15 @@
         href="style.css"
     >
 
+    <link
+        rel="stylesheet"
+        href="auth-compact.css"
+    >
+
     <style>
       .checkbox-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}.role-option{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #dfe6e2;border-radius:10px;background:#fafcfb}.hidden{display:none!important}
-    </style>
+     .legal-consent{margin:4px 0 14px;padding:10px 11px;border:1px solid #d9e7df;border-radius:13px;background:#f7fbf9}.legal-consent-label{display:flex!important;align-items:flex-start;gap:9px;margin:0!important;font-size:11px!important;line-height:1.8;color:#52665d!important;font-weight:500!important;cursor:pointer}.legal-consent-label input{width:18px!important;height:18px!important;min-height:18px!important;flex:0 0 18px;margin:2px 0 0!important;accent-color:#17603f;cursor:pointer}.legal-consent-label a{color:#17603f;font-weight:800;text-decoration:underline}.auth-page select{width:100%!important;min-height:46px!important;box-sizing:border-box!important;font-size:16px!important;border:1px solid var(--auth-line)!important;border-radius:13px!important;background:#fbfdfc!important;color:var(--auth-text)!important;padding:0 13px!important;outline:none!important}.auth-page select:focus{border-color:#5a9a7b!important;background:#fff!important;box-shadow:0 0 0 3px rgba(31,96,69,.10)!important}@media(max-width:480px){.legal-consent{padding:9px 10px}.legal-consent-label{font-size:10.5px!important}.auth-page select{min-height:45px!important}} 
+</style>
 
 </head>
 
@@ -41,7 +47,7 @@
             <div class="auth-logo">
 
                 <img
-                    src="logo.png"
+                    src="IMG_4309.png"
                     alt="مرکز تخصصی سلامت طیور آدینه"
                 >
 
@@ -165,6 +171,16 @@
                         required
                     >
 
+                </div>
+
+                <div class="legal-consent">
+                    <label class="legal-consent-label">
+                        <input id="legalConsent" type="checkbox" required>
+                        <span>
+                            با ایجاد حساب، شرایط استفاده و حقوق مالکیت فکری سامانه را مطالعه کرده و می‌پذیرم.
+                            <a href="settings.html#legal-rights" target="_blank" rel="noopener">مشاهده متن کامل</a>
+                        </span>
+                    </label>
                 </div>
 
                 <button

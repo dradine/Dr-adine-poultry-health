@@ -1,11 +1,12 @@
 (function(){'use strict';document.addEventListener('DOMContentLoaded',async()=>{
  const auth=await AdineAuth.requireAuth();if(!auth)return;
  const type=String(auth.profile?.user_type||'').toLowerCase();if(!['poultry_operator','poultry_manager','poultry_technical_expert'].includes(type)){location.replace('professional.html');return;}
+ const params=new URLSearchParams(location.search), farmFilter=params.get('farm');
  const esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML};
  async function load(){
   const r=await supabaseClient.from('professional_messages').select('id,sender_id,recipient_id,farm_id,body,attachment_path,attachment_name,attachment_size,created_at').or(`sender_id.eq.${auth.user.id},recipient_id.eq.${auth.user.id}`).order('created_at',{ascending:true});
   if(r.error){document.getElementById('messages').innerHTML='<div class="pro-empty">خطا در دریافت پیام‌ها.</div>';return}
-  const data=r.data||[];if(!data.length){document.getElementById('messages').innerHTML='<div class="pro-empty">پیامی از متخصصان ندارید.</div>';return}
+  const data=(r.data||[]).filter(x=>!farmFilter||String(x.farm_id)===String(farmFilter));if(!data.length){document.getElementById('messages').innerHTML='<div class="pro-empty">پیامی از متخصصان ندارید.</div>';return}
   const farms=await supabaseClient.from('farms').select('id,name').in('id',[...new Set(data.map(x=>x.farm_id).filter(Boolean))]);
   const fm=Object.fromEntries((farms.data||[]).map(x=>[x.id,x.name]));
   const pros=[...new Set(data.map(x=>x.sender_id===auth.user.id?x.recipient_id:x.sender_id))];

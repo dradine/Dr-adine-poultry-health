@@ -9,31 +9,11 @@ async function renderCompare(){const w=Number($('compareWeek').value);const fs=(
 function loadAccountingOnce(){return new Promise(function(resolve,reject){if(window.initLayerAccountingV2)return resolve();if(window.__layerAccountingLoading)return window.__layerAccountingLoading.then(resolve).catch(reject);window.__layerAccountingLoading=new Promise(function(ok,bad){var s=document.createElement('script');s.src='layer-accounting-v2.js?v=20260925-v8';s.onload=function(){ok()};s.onerror=function(){bad(new Error('accounting module failed to load'))};document.head.appendChild(s)});window.__layerAccountingLoading.then(resolve).catch(reject)})}
 function openAccounting(){show('accounting');loadAccountingOnce().then(function(){if(window.initLayerAccountingV2)return window.initLayerAccountingV2(flockId,flock)}).catch(function(e){console.error(e);var p=$('accountingPanel');if(p){p.innerHTML='<div class="note">حسابداری فعلاً بارگذاری نشد؛ سایر گزارش‌ها مستقل هستند.</div>'}})}
 document.querySelectorAll('.tab').forEach(function(b){b.onclick=function(){if(b.dataset.tab==='accounting')openAccounting();else show(b.dataset.tab)}});document.querySelectorAll('.subtab').forEach(function(b){b.onclick=function(){show(b.dataset.period)}});async function boot(){const a=await checkUserAccess();if(!a?.authenticated){location.href='login.html';return}const s=typeof getCurrentSelection==='function'?getCurrentSelection()||{}:{};flockId=s.flockId||q.get('flock_id')||q.get('flockId');if(!flockId){$('subtitle').textContent='گله فعال پیدا نشد.';return}const f=await supabaseClient.from('flocks').select('*').eq('id',flockId).maybeSingle();if(f.error||!f.data)return;flock=f.data;if(String(flock.production_type).toLowerCase()!=='layer'){location.href='reports.html'+location.search;return}$('identity').innerHTML=cards([['گله',flock.flock_name],['سویه',flock.strain||'—'],['نوع','تخم‌گذار'],['استاندارد','Layer Standards V1']]);const [a1,a2,a3]=await Promise.all([supabaseClient.from('layer_daily_monitoring').select('*').eq('flock_id',flockId).order('record_date',{ascending:true}),supabaseClient.from('layer_weekly_monitoring').select('*').eq('flock_id',flockId).order('week_no',{ascending:true}),supabaseClient.from('layer_monthly_monitoring').select('*').eq('flock_id',flockId).order('jalali_year').order('jalali_month')]);daily=(a1.data||[]).slice().sort((x,y)=>String(x.record_date).localeCompare(String(y.record_date)));weekly=(a2.data||[]).slice().sort((x,y)=>Number(x.week_no)-Number(y.week_no));monthly=(a3.data||[]).slice().sort((x,y)=>String(x.jalali_month_key).localeCompare(String(y.jalali_month_key)));$('day').innerHTML=daily.length?daily.map(x=>'<option value="'+esc(x.record_date)+'">روز '+esc(x.age_days)+' • '+esc(x.record_date)+'</option>').join(''):'<option value="">هنوز رکورد روزانه‌ای ثبت نشده است</option>';$('week').innerHTML=weekly.map(x=>'<option value="'+x.week_no+'">هفته '+x.week_no+' • سن '+x.age_start_days+' تا '+x.age_end_days+'</option>').join('');$('month').innerHTML=monthly.map(x=>'<option value="'+x.jalali_month_key+'">'+(x.jalali_month_label||x.jalali_month_key)+' • سن '+x.age_start_days+' تا '+x.age_end_days+'</option>').join('');$('compareWeek').innerHTML=weekly.map(x=>'<option value="'+x.week_no+'">هفته '+x.week_no+'</option>').join('');if(q.get('day')&&daily.some(x=>String(x.record_date)===String(q.get('day'))))$('day').value=q.get('day');else if(daily.length)$('day').value=daily[daily.length-1].record_date;if(q.get('week'))$('week').value=q.get('week');if(q.get('month'))$('month').value=q.get('month');renderDaily();renderWeekly();renderMonthly();renderOverall();renderCompare();if(q.get('period')==='accounting'){openAccounting()}else if(q.get('period'))show(q.get('period'));$('day').onchange=renderDaily;$('week').onchange=()=>{renderWeekly();renderCompare()};$('month').onchange=renderMonthly;$('compareWeek').onchange=renderCompare;}
-// Layer accounting: keep exactly one canonical V2 module and remove any legacy/cached duplicate.
-(function(){
-  function clean(){
-    var legacySelectors=[
-      '#layerAccountingPanel','#layer-accounting-panel','#legacyAccountingPanel',
-      '[data-accounting-version="v1"]','.layer-accounting-v1','.accounting-v1','.legacy-accounting',
-      '[data-accounting="legacy"]'
-    ];
-    legacySelectors.forEach(function(sel){
-      document.querySelectorAll(sel).forEach(function(el){if(el.id!=="accountingPanel")el.remove()});
-    });
-    var panels=[].slice.call(document.querySelectorAll('.ac-v2, #accountingPanel'));
-    panels.forEach(function(el,i){if(i>0)el.remove()});
-    var sections=[].slice.call(document.querySelectorAll('section'));
-    sections.forEach(function(el){
-      if(el.id==="accountingPanel"||el.classList.contains("ac-v2"))return;
-      var t=(el.textContent||"").replace(/\\s+/g," ");
-      if(/حسابداری/.test(t)&&(/فروش|هزینه|تسویه|دفتر عملیات|سود\/زیان/.test(t)))el.remove();
-    });
-    var tabs=[].slice.call(document.querySelectorAll('.tab[data-tab="accounting"]'));
-    tabs.slice(1).forEach(function(x){x.remove()});
-  }
-  clean();
-  window.setTimeout(clean,0);
-  window.setTimeout(clean,500);
-})();
-boot();})();
+// Accounting is a detachable feature. No accounting DOM cleanup or legacy loader runs here.
+// This page owns the single Accounting entry point and loads V2 only on demand.
+boot().catch(function(error){
+  console.error("Layer reports boot failed:",error);
+  var s=document.getElementById("subtitle");
+  if(s)s.textContent="اطلاعات گزارش در حال حاضر قابل دریافت نیست؛ تب‌های گزارش مستقل هستند.";
+});
 </script><script id="layer-reports-v2-nav-js">document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".bottom-nav-item[data-nav]").forEach(function(b){b.addEventListener("click",function(){var target=b.getAttribute("data-nav");if(target==="reports.html")target="layer-reports.html"+location.search;else {var qs=new URLSearchParams(location.search).toString();target=target+(qs?"?"+qs:"")}location.href=target})})});</script></body></html>

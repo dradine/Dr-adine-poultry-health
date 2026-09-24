@@ -805,24 +805,32 @@ function normalizeText(
    Presentation-only layer. No data/calculation/navigation logic.
 ========================================================= */
 (function injectAdineLegalFooter(){
-    try {
-        if (document.querySelector(".legal-footer")) return;
+    function mount(){
+        try {
+            if (document.querySelector(".legal-footer")) return;
 
-        const footer = document.createElement("footer");
-        footer.className = "legal-footer";
-        footer.setAttribute("aria-label", "حقوق مالکیت فکری و شرایط استفاده");
+            const footer = document.createElement("footer");
+            footer.className = "legal-footer";
+            footer.setAttribute("aria-label", "حقوق مالکیت فکری و شرایط استفاده");
 
-        footer.innerHTML =
-            '<a href="settings.html#legal-rights">' +
-            '© 2026 Adine Poultry Health Center · حقوق مالکیت فکری محفوظ · شرایط استفاده' +
-            '</a>';
+            footer.innerHTML =
+                '<a href="settings.html#legal-rights">' +
+                '© 2026 Adine Poultry Health Center · حقوق مالکیت فکری محفوظ · شرایط استفاده' +
+                '</a>';
 
-        const host = document.querySelector(".app-shell") ||
-                     document.querySelector(".app") ||
-                     document.body;
+            const host = document.querySelector(".app-shell") ||
+                         document.querySelector(".app") ||
+                         document.body;
 
-        if (host) host.appendChild(footer);
-    } catch (error) {
-        console.warn("Legal footer layer was not loaded:", error);
+            if (host) host.appendChild(footer);
+        } catch (error) {
+            console.warn("Legal footer layer was not loaded:", error);
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", mount, { once:true });
+    } else {
+        mount();
     }
 })();

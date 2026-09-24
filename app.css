@@ -45,3 +45,9 @@ input,textarea{touch-action:manipulation}
     font-size:10px;
     opacity:.72;
 }
+
+/* DASHBOARD CONTROL HEADING — high-contrast final */
+.dashboard-page .dashboard-section-heading{padding:0 4px!important}
+.dashboard-page .dashboard-section-heading .section-eyebrow{display:block!important;color:#1f604b!important;font-size:11px!important;font-weight:900!important;letter-spacing:.15px!important;margin-bottom:4px!important}
+.dashboard-page .dashboard-section-heading h2{color:#0f3d30!important;font-size:21px!important;font-weight:900!important;line-height:1.55!important;text-shadow:none!important;margin:0 0 5px!important}
+.dashboard-page .dashboard-section-heading p{color:#48645a!important;font-size:12.5px!important;font-weight:650!important;line-height:1.85!important;text-shadow:none!important;margin:0!important}

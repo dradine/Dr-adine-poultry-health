@@ -73,20 +73,15 @@ input,textarea{touch-action:manipulation}
 .dashboard-page .menu-icon .adi-svg-icon svg{stroke-width:2.05}
 .dashboard-page .menu-icon .adi-svg-icon svg .icon-fill{fill-opacity:.12}
 
-/* DASHBOARD — CURATED EXTERNAL ICONS */
+/* DASHBOARD — CURATED EXTERNAL ICONS
+   Use real SVG image elements instead of cross-origin CSS masks.
+   This avoids Safari/iOS CORS/mask rendering failures. */
 .dashboard-page .adi-icon-external{
   display:block!important;
   width:42px!important;
   height:42px!important;
-  background:currentColor!important;
-  -webkit-mask-image:var(--adi-icon-url)!important;
-  mask-image:var(--adi-icon-url)!important;
-  -webkit-mask-repeat:no-repeat!important;
-  mask-repeat:no-repeat!important;
-  -webkit-mask-position:center!important;
-  mask-position:center!important;
-  -webkit-mask-size:contain!important;
-  mask-size:contain!important;
+  object-fit:contain!important;
+  flex:0 0 auto!important;
 }
 .dashboard-page .adi-icon-flock,
 .dashboard-page .adi-icon-mortality{

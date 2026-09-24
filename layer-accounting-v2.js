@@ -22,23 +22,26 @@ var flockId=null,flock=null,rows=[],ec=null,ic=null,tc=null;
 function cleanupLegacy(){
   var sels=[
     '#layerAccountingPanel','#layer-accounting-panel','#legacyAccountingPanel',
-    '[data-accounting-version="v1"]','.layer-accounting-v1','.accounting-v1','.legacy-accounting'
+    '[data-accounting-version="v1"]','.layer-accounting-v1','.accounting-v1','.legacy-accounting',
+    '[data-accounting="legacy"]'
   ];
   sels.forEach(function(sel){
-    document.querySelectorAll(sel).forEach(function(el){
-      if(el.id!=="accountingPanel") el.remove();
-    });
+    document.querySelectorAll(sel).forEach(function(el){if(el.id!=="accountingPanel")el.remove()});
   });
-  var ps=document.querySelectorAll('#accountingPanel');
+  var ps=[].slice.call(document.querySelectorAll('.ac-v2,#accountingPanel'));
   for(var i=1;i<ps.length;i++)ps[i].remove();
-  var tabs=document.querySelectorAll('.tab[data-tab="accounting"]');
-  for(var k=1;k<tabs.length;k++)tabs[k].remove();
+  document.querySelectorAll('.tab[data-tab="accounting"]').forEach(function(x,i){if(i>0)x.remove()});
+  document.querySelectorAll('section').forEach(function(el){
+    if(el.id==="accountingPanel"||el.classList.contains("ac-v2"))return;
+    var t=(el.textContent||"").replace(/\s+/g," ");
+    if(/حسابداری/.test(t)&&(/فروش|هزینه|تسویه|دفتر عملیات|سود\/زیان/.test(t)))el.remove();
+  });
 }
 function panel(){
  cleanupLegacy();
  if(document.getElementById("accountingPanel"))return;
  var p=document.getElementById("comparePanel"),s=document.createElement("section");s.id="accountingPanel";s.className="card panel ac-v2";
- s.innerHTML="<div class=\"ac-head\"><div><h2 class=\"ac-title\">حسابداری عملیاتی و سودآوری گله</h2><div class=\"ac-sub\">دفتر مالی مستقل Layer • فروش، هزینه، دریافت/پرداخت، مطالبات، بدهی و سود/زیان تا تاریخ انتخاب‌شده</div></div><div class=\"ac-badge\">Layer Accounting V2 • Jalali</div></div>"+
+ s.innerHTML="<div class=\"ac-head\"><div><h2 class=\"ac-title\">حسابداری عملیاتی و سودآوری گله</h2><div class=\"ac-sub\">دفتر مالی مستقل Layer • فروش، هزینه، دریافت/پرداخت، مطالبات، بدهی و سود/زیان تا تاریخ انتخاب‌شده</div></div><div class=\"ac-badge\">Layer Accounting V2 • Jalali • نسخه یکپارچه</div></div>"+
  "<div class=\"ac-filters\"><div class=\"ac-field\"><label>گله فعال</label><input id=\"acFlockName\" readonly></div><div class=\"ac-field\"><label>گزارش تا تاریخ (شمسی)</label><input id=\"acAsOfJalali\" inputmode=\"numeric\" placeholder=\"۱۴۰۵/۰۷/۰۲\"></div><div class=\"ac-field\"><label>سن گله در این تاریخ</label><input id=\"acAsOfAge\" readonly></div><button class=\"ac-btn\" id=\"acRefresh\">به‌روزرسانی</button></div>"+
  "<div class=\"ac-kpis\" id=\"acKpis\"></div>"+
  "<div class=\"ac-section\"><div class=\"ac-section-title\"><h3>ثبت عملیات مالی</h3><span>هر رکورد مستقیماً در جمع روزانه و تجمعی محاسبه می‌شود</span></div><div class=\"ac-entry\">"+

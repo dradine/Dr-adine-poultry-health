@@ -221,6 +221,15 @@ async function selectFarm(farmId) {
     const farm = farms.find(item => item.id === farmId);
     if (!farm) return;
     setCurrentSelection({ farmId: farm.id, houseId: null, flockId: null });
+
+    const params = new URLSearchParams(window.location.search);
+    const returnTarget = String(params.get("return") || "").toLowerCase();
+
+    if (returnTarget === "accounting") {
+        window.location.href = "accounting-v14.html?farm=" + encodeURIComponent(farm.id) + "&v=accounting6";
+        return;
+    }
+
     window.location.href = "flocks.html";
 }
 

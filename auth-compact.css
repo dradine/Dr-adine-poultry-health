@@ -133,3 +133,13 @@
   .auth-page input{min-height:45px!important}
 }
 @media(prefers-reduced-motion:reduce){.auth-page *{transition:none!important}}
+
+.auth-page .auth-ownership{
+  text-align:center!important;
+  color:#8a9991!important;
+  font-size:10.5px!important;
+  line-height:1.5!important;
+  font-weight:600!important;
+  margin:-4px 0 11px!important;
+  letter-spacing:0!important;
+}

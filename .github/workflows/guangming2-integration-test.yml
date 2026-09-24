@@ -1,0 +1,30 @@
+name: Guangming No.2 Integration Test
+
+on:
+  push:
+    paths:
+      - 'guangming2-integration-v1.js'
+      - 'tests/guangming2-integration-v1.test.js'
+      - 'standard-data.js'
+      - 'broiler-official-standards-v1.js'
+      - 'broiler-daily-standards-v1.js'
+      - '.github/workflows/guangming2-integration-test.yml'
+  pull_request:
+    paths:
+      - 'guangming2-integration-v1.js'
+      - 'tests/guangming2-integration-v1.test.js'
+      - 'standard-data.js'
+      - 'broiler-official-standards-v1.js'
+      - 'broiler-daily-standards-v1.js'
+      - '.github/workflows/guangming2-integration-test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --check guangming2-integration-v1.js
+      - run: node tests/guangming2-integration-v1.test.js

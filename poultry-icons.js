@@ -182,6 +182,13 @@
                 <path d="m15 24 6 6 13-14"/>
             </svg>`,
 
+        accounting: `
+            <svg viewBox="0 0 48 48">
+                <path class="icon-fill" d="M7 12h34v25H7z"/>
+                <path d="M7 12h34v25H7zM12 18h24M13 30h7M25 30h10M13 24h12"/>
+                <path d="m31 24 4-4 4 4"/>
+            </svg>`,
+
         user: `
             <svg viewBox="0 0 48 48">
                 <circle class="icon-fill" cx="24" cy="15" r="8"/>

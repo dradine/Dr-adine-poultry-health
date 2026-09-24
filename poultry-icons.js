@@ -82,9 +82,11 @@
 
         archive: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 10h34v8H7zM10 18h28v22H10z"/><path d="M7 10h34v8H7zM10 18h28v22H10zM18 25h12M18 31h12M19 6h10"/></svg>`,
 
-        health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 6 40 12v11c0 10-7 16-16 19C15 39 8 33 8 23V12z"/><path d="M24 6 40 12v11c0 10-7 16-16 19C15 39 8 33 8 23V12zM24 15v16M16 23h16"/></svg>`,
+        health: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11zM24 15v16M16 23h16"/></svg>`,
 
-        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M7 28c3-7 9-10 16-10s13 3 18 10v8H7z"/><circle class="icon-fill" cx="20" cy="14" r="6"/><path d="M7 36h34M20 8c-4 0-7 3-7 7s3 7 7 7M26 14l7 2-7 2M31 29l4-4 4 4"/></svg>`,
+        healthcare: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M24 5 40 11v12c0 10-7 17-16 20C15 40 8 33 8 23V11zM24 15v16M16 23h16"/><circle cx="34" cy="11" r="6"/><path d="M34 8v6M31 11h6"/></svg>`,
+
+        mortality: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 31c2-7 7-11 15-11s13 4 15 11v6H9z"/><circle class="icon-fill" cx="22" cy="13" r="7"/><path d="M9 37h30M22 6c-4 0-7 3-7 7s3 7 7 7M29 13l7 2-7 2"/><path d="M33 25v11M28 31h10"/></svg>`,
 
         calendar: `
             <svg viewBox="0 0 48 48">
@@ -125,7 +127,7 @@
 
         accounting: `<svg viewBox="0 0 48 48"><path class="icon-fill" d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3zM14 14h14M14 20h9M14 26h6M26 41V31h5v10M32 41V25h5v16M38 41V19h3v22M12 41h29"/></svg>`,
 
-        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="18" cy="15" r="7"/><path d="M7 40c1-8 5-12 11-12s10 4 11 12M18 8v14M11 15h14"/><path class="icon-fill" d="M30 24h9v16h-9z"/><path d="M33 24v-3a3 3 0 0 1 6 0v3M32 31h5M34.5 28.5v5"/></svg>`,
+        professionals: `<svg viewBox="0 0 48 48"><circle class="icon-fill" cx="16" cy="14" r="6"/><path d="M6 39c1-8 5-12 10-12s9 4 10 12"/><path d="M30 9h8a3 3 0 0 1 3 3v25H28V12a3 3 0 0 1 3-3z"/><path d="M33 9V6h3v3M31 18h9M31 24h9M31 30h6"/><path d="M20 19c4 1 6 4 6 8"/></svg>`,
 
         user: `
             <svg viewBox="0 0 48 48">

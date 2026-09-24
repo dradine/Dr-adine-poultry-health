@@ -64,6 +64,14 @@ const POULTRY_CATALOG = {
                 strains: [
                     "Arian"
                 ]
+            },
+
+            {
+                id: "guangming",
+                name: "Guangming / گوانگ‌مینگ",
+                strains: [
+                    "Guangming No.2"
+                ]
             }
 
         ]

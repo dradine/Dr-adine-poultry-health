@@ -20,7 +20,23 @@ function age(f,iso){if(!f||!f.placement_date||!iso)return null;return Math.max(0
 function label(type,key){var a=type==="sale"?INC:EXP;var x=a.find(function(z){return z[0]===key});return x?x[1]:key}
 function opts(type,selected){return (type==="sale"?INC:EXP).map(function(x){return "<option value=\""+esc(x[0])+"\" "+(x[0]===selected?"selected":"")+">"+esc(x[1])+"</option>"}).join("")}
 var flockId=null,flock=null,rows=[],ec=null,ic=null,tc=null;
-function cleanupLegacy(){
+function installAccountingGuard(){
+  if(window.__adineAccountingGuardInstalled)return;
+  window.__adineAccountingGuardInstalled=true;
+  var obs=new MutationObserver(function(){
+    var canonical=document.getElementById("accountingPanel");
+    if(canonical){
+      document.querySelectorAll(".ac-v2,#accountingPanel").forEach(function(el){if(el!==canonical)el.remove()});
+      document.querySelectorAll("section").forEach(function(el){
+        if(el===canonical)return;
+        var t=(el.textContent||"").replace(/\s+/g," ");
+        if(/حسابداری/.test(t)&&(/فروش|هزینه|تسویه|دفتر عملیات|سود\/زیان/.test(t)))el.remove();
+      });
+    }
+    document.querySelectorAll('.tab[data-tab="accounting"]').forEach(function(el,i){if(i>0)el.remove()});
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+}function cleanupLegacy(){
   var sels=[
     '#layerAccountingPanel','#layer-accounting-panel','#legacyAccountingPanel',
     '[data-accounting-version="v1"]','.layer-accounting-v1','.accounting-v1','.legacy-accounting',
@@ -39,6 +55,7 @@ function cleanupLegacy(){
   });
 }
 function panel(){
+ installAccountingGuard();
  cleanupLegacy();
  if(document.getElementById("accountingPanel"))return;
  var p=document.getElementById("comparePanel"),s=document.createElement("section");s.id="accountingPanel";s.className="card panel ac-v2";
@@ -89,6 +106,6 @@ function ledger(){document.getElementById("acLedgerBody").innerHTML=rows.length?
 async function economic(z,iso){var q=await supabaseClient.from("layer_daily_monitoring").select("record_date,egg_count,saleable_egg_count,egg_mass_g_hen_day,opening_birds").eq("flock_id",flockId).lte("record_date",iso),d=q.data||[],eggs=d.reduce(function(s,x){return s+n(x.egg_count)},0),sale=d.reduce(function(s,x){return s+n(x.saleable_egg_count)},0),mass=d.reduce(function(s,x){return s+n(x.egg_mass_g_hen_day)*n(x.opening_birds)/1000},0),cpe=eggs?z.expenses/eggs:0,cps=sale?z.expenses/sale:0,cpk=mass?z.expenses/(mass/1000):0,rpe=eggs?z.sales/eggs:0,mar=z.sales?z.profit/z.sales*100:0;document.getElementById("acEconomic").innerHTML=[["کل تخم ثبت‌شده",num(eggs)+" عدد"],["تخم قابل فروش",num(sale)+" عدد"],["Egg Mass ثبت‌شده",num(mass/1000,2)+" kg"],["هزینه هر تخم",money(cpe)],["هزینه هر تخم قابل فروش",money(cps)],["هزینه هر kg Egg Mass",money(cpk)],["درآمد هر تخم",money(rpe)],["حاشیه عملیاتی",num(mar,1)+"٪"],["سن گزارش",age(flock,iso)==null?"—":num(age(flock,iso))+" روز"]].map(function(x){return "<div class=\"ac-mini\"><small>"+x[0]+"</small><b>"+x[1]+"</b></div>"}).join("")}
 async function refresh(){if(!flockId)return;document.getElementById("acFlockName").value=flock&&flock.flock_name||"—";if(!document.getElementById("acAsOfJalali").value)document.getElementById("acAsOfJalali").value=todayJ();var iso=j2iso(document.getElementById("acAsOfJalali").value)||isoToday(),z=summary(rows.filter(function(x){return String(x.event_date)<=iso}));renderKpi(z,iso);charts(z);trend(z);daily(z,iso);ledger();await economic(z,iso)}
 async function save(){var date=j2iso(document.getElementById("acDateJalali").value),a=n(document.getElementById("acAmount").value);if(!date){alert("تاریخ عملیات معتبر نیست.");return}if(a<=0){alert("مبلغ عملیات باید بیشتر از صفر باشد.");return}var st=document.getElementById("acStatus").value,p=Math.min(a,n(document.getElementById("acPaid").value)),payload={flock_id:flockId,farm_id:flock.farm_id,house_id:flock.house_id||null,owner_id:flock.owner_id,event_date:date,transaction_type:document.getElementById("acType").value,category:document.getElementById("acCategory").value,transaction_code:document.getElementById("acCode").value.trim()||null,description:document.getElementById("acDescription").value.trim()||null,quantity:n(document.getElementById("acQty").value)||null,unit:document.getElementById("acUnit").value.trim()||null,unit_price:n(document.getElementById("acUnitPrice").value)||null,amount:a,currency:"IRT",counterparty:document.getElementById("acCounterparty").value.trim()||null,payment_status:st,paid_amount:st==="paid"?a:st==="cancelled"?0:p,due_date:j2iso(document.getElementById("acDueJalali").value)||null,reference_no:document.getElementById("acCode").value.trim()||null,notes:document.getElementById("acNote").value.trim()||null,source_module:"layer-accounting-v2"};var r=await supabaseClient.from("layer_accounting_transactions").insert(payload);if(r.error){alert("ثبت انجام نشد: "+r.error.message);return}reset();await load();await refresh()}
-async function init(id,f){cleanupLegacy();flockId=id;flock=f;panel();document.getElementById("acFlockName").value=f&&f.flock_name||"—";document.getElementById("acAsOfJalali").value=todayJ();document.getElementById("acDateJalali").value=todayJ();document.getElementById("acAsOfAge").value=age(f,isoToday())==null?"—":num(age(f,isoToday()))+" روز";document.getElementById("acType").onchange=cat;document.getElementById("acQty").oninput=calcAmount;document.getElementById("acUnitPrice").oninput=calcAmount;document.getElementById("acAmount").oninput=paid;document.getElementById("acStatus").onchange=paid;document.getElementById("acRefresh").onclick=refresh;document.getElementById("acAsOfJalali").onchange=refresh;document.getElementById("acSave").onclick=save;document.getElementById("acClear").onclick=reset;cat();load().then(refresh).catch(function(e){console.error("Layer accounting data load failed",e);var k=document.getElementById("acKpis");if(k)k.innerHTML="<div class=\"ac-kpi bad\"><small>وضعیت دفتر</small><b>خطا در دریافت داده</b><div class=\"hint\">فرم ثبت و تب‌های گزارش همچنان فعال هستند.</div></div>"});chartjs().then(function(ok){if(ok)refresh()}).catch(function(e){console.warn("Chart.js unavailable; accounting tables remain active",e)})}
+async function init(id,f){installAccountingGuard();cleanupLegacy();flockId=id;flock=f;panel();document.getElementById("acFlockName").value=f&&f.flock_name||"—";document.getElementById("acAsOfJalali").value=todayJ();document.getElementById("acDateJalali").value=todayJ();document.getElementById("acAsOfAge").value=age(f,isoToday())==null?"—":num(age(f,isoToday()))+" روز";document.getElementById("acType").onchange=cat;document.getElementById("acQty").oninput=calcAmount;document.getElementById("acUnitPrice").oninput=calcAmount;document.getElementById("acAmount").oninput=paid;document.getElementById("acStatus").onchange=paid;document.getElementById("acRefresh").onclick=refresh;document.getElementById("acAsOfJalali").onchange=refresh;document.getElementById("acSave").onclick=save;document.getElementById("acClear").onclick=reset;cat();load().then(refresh).catch(function(e){console.error("Layer accounting data load failed",e);var k=document.getElementById("acKpis");if(k)k.innerHTML="<div class=\"ac-kpi bad\"><small>وضعیت دفتر</small><b>خطا در دریافت داده</b><div class=\"hint\">فرم ثبت و تب‌های گزارش همچنان فعال هستند.</div></div>"});chartjs().then(function(ok){if(ok)refresh()}).catch(function(e){console.warn("Chart.js unavailable; accounting tables remain active",e)})}
 window.initLayerAccountingV2=init;
 })();

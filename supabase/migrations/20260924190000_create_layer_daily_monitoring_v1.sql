@@ -33,7 +33,7 @@ create table if not exists public.layer_daily_monitoring (
  health_status text, clinical_signs text, treatment_or_intervention text, feed_change text,
  vaccination_event text, equipment_issue text, notes text,
  created_by uuid references auth.users(id), created_at timestamptz not null default now(),
- updated_at timestamptz not null default now(), unique(flock_id,record_date)
+ haugh_unit numeric, albumen_height_mm numeric, egg_shell_strength_g numeric, egg_shell_thickness_mm numeric, egg_color_score numeric, egg_size_distribution jsonb, water_ph numeric, water_tds numeric, water_free_chlorine numeric, water_micro_status text,\n jalali_year integer, jalali_month integer, jalali_day integer, monitoring_week_no integer, monitoring_month_key text,\n updated_at timestamptz not null default now(), unique(flock_id,record_date)
 );
 create index if not exists idx_layer_daily_monitoring_flock_date on public.layer_daily_monitoring(flock_id,record_date);
 alter table public.layer_daily_monitoring enable row level security;

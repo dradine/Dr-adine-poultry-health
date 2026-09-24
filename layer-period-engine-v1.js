@@ -63,12 +63,12 @@ function baseAgg(rows){
     feed_per_egg_mass:totalEggMass>0?totalFeed*1000/totalEggMass:null,avg_body_weight_g:avg(rows,'body_weight_g'),
     avg_uniformity_10:avg(rows,'uniformity_10_percent'),avg_uniformity_15:avg(rows,'uniformity_15_percent'),avg_cv:avg(rows,'cv_percent'),
     avg_temperature_c:avg(rows,'house_temperature_c'),avg_humidity_pct:avg(rows,'humidity_percent'),
-    avg_ammonia_ppm:avg(rows,'ammonia_ppm'),avg_co2_ppm:avg(rows,'co2_ppm'),
+    avg_ammonia_ppm:avg(rows,'ammonia_ppm'),avg_co2_ppm:avg(rows,'co2_ppm'),avg_haugh_unit:avg(rows,'haugh_unit'),avg_albumen_height_mm:avg(rows,'albumen_height_mm'),avg_shell_strength_g:avg(rows,'egg_shell_strength_g'),avg_shell_thickness_mm:avg(rows,'egg_shell_thickness_mm'),avg_egg_color_score:avg(rows,'egg_color_score'),
     livability:last.livability_percent??null,health_status:last.health_status||null
   };
 }
 function welfareSummary(rows){
-  const keys=['manure_condition','feather_condition','keel_bone_score','locomotion_score','footpad_score','pecking_status','flock_activity_status','nest_use_status','egg_shell_quality_status','water_quality_status'];
+  const keys=['water_micro_status','manure_condition','feather_condition','keel_bone_score','locomotion_score','footpad_score','pecking_status','flock_activity_status','nest_use_status','egg_shell_quality_status','water_quality_status'];
   const o={};for(const k of keys){const vals=rows.map(r=>r[k]).filter(Boolean);if(vals.length)o[k]=vals.at(-1);}
   return o;
 }

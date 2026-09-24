@@ -213,6 +213,20 @@ const profiles={
     ]
   },
 
+  'Nick Chick':{
+    genetics:'h&n',sourceType:OFFICIAL,sourceYear:2025,
+    sourceLabel:'H&N Nick Chick Commercial Layer Performance Standards',
+    sourceUrl:'https://hn-int.com/wp-content/uploads/2025/02/HN_MG_Alternative_EN-NA_NickChick_01.23_V01-25_printX3_compressed.pdf',
+    records:[
+      {ageDays:133,bodyWeight:1300,dailyFeed:103},
+      {ageDays:210,bodyWeight:1597,dailyFeed:105,henDayProduction:95,eggWeight:59.5},
+      {ageDays:504,bodyWeight:1690,dailyFeed:107,henDayProduction:95,eggWeight:60.5},
+      {ageDays:630,bodyWeight:1710,dailyFeed:108,henDayProduction:90,eggWeight:61.6},
+      {ageDays:700,bodyWeight:1725,dailyFeed:108,henDayProduction:85,eggWeight:61.6}
+    ],
+    notes:'اعداد عملکردی بر پایه استاندارد رسمی H&N؛ مقادیر نقطه‌ای فقط در سنین/شاخص‌های مستند استفاده شده‌اند.'
+  },
+
   'TETRA Brown':{
     genetics:'tetra',sourceType:OFFICIAL,sourceYear:2009,
     sourceLabel:'Bábolna TETRA-SL Commercial Layer Management Guide',
@@ -263,7 +277,7 @@ function resolve(flock){
   'W-36','W-80','W-80 Plus','W-80 Pro','Brown',
   'ISA Brown','ISA White','Dekalb White','Dekalb Brown','Bovans White','Bovans Brown','Shaver White','Shaver Brown','Hisex White','Hisex Brown',
   'Lohmann Brown-Classic','Lohmann Brown-Lite','Lohmann Brown-Extra','Lohmann LSL-Classic','Lohmann LSL-Lite','Lohmann LSL-Extra','Lohmann Sandy','Lohmann Tradition',
-  'NOVOgen Brown','NOVOgen White','TETRA Brown'
+  'NOVOgen Brown','NOVOgen White','TETRA Brown','Nick Chick'
  ];
  const known=catalogStrains.find(k=>norm(k)===s);
  return {

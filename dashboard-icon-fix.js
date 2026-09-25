@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.84';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.85';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -195,7 +195,7 @@
 
     if(name==='accounting'){
       s.classList.add('adi-special-icon');
-      s.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="12" cy="10" r="3.2"/><path d="M6.5 22c.7-5.1 2.5-7.6 5.5-7.6s4.8 2.5 5.5 7.6"/><path d="M21 13h18a3 3 0 0 1 3 3v25H21z"/><rect x="25" y="18" width="10" height="5" rx="1"/><path d="M25 28h3M31 28h3M37 28h2M25 33h3M31 33h3M37 33h2M25 38h8M36 33h3"/></svg>';
+      s.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 7h23a3 3 0 0 1 3 3v25H9z"/><path d="M14 13h13M14 18h9M14 23h13"/><path d="M7 10h2M7 35h24"/><rect x="22" y="21" width="18" height="21" rx="2"/><rect x="26" y="24" width="10" height="4" rx="1"/><path d="M26 32h2M31 32h2M36 32h2M26 37h2M31 37h2M36 37h2"/><path d="M16 35 31 20l4 4-15 15-6 2z"/><path d="m30 21 4 4"/></svg>';
     }else if(name==='home'){
       s.classList.add('adi-special-icon');
       s.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 22 24 7l18 15"/><path d="M10 20v21h28V20"/><path d="M19 41V29h10v12"/><path d="M15 25h5M28 25h5"/></svg>';

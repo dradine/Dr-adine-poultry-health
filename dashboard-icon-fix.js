@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.80';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.81';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -40,8 +40,8 @@
       content:""!important;
       position:absolute!important;
       left:50%!important;
-      top:calc(50% + 2px)!important;
-      transform:translate(-50%,calc(-50% - 1px)) scale(var(--icon-scale))!important;
+      top:calc(50% + 4px)!important;
+      transform:translate(-50%,calc(-50% - 0px)) scale(var(--icon-scale))!important;
       transform-origin:center center!important;
       width:72px!important;
       height:72px!important;
@@ -66,10 +66,10 @@
     }
     .dashboard-page .adi-exact-icon.adi-special-icon::before{display:none!important}
     .dashboard-page .adi-exact-icon.adi-special-icon svg{
-      width:52px!important;
-      height:52px!important;
-      min-width:52px!important;
-      min-height:52px!important;
+      width:48px!important;
+      height:48px!important;
+      min-width:48px!important;
+      min-height:48px!important;
       display:block!important;
       overflow:visible!important;
       fill:none!important;
@@ -92,12 +92,12 @@
     .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.90!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="flock"]{--icon-scale:.90!important}
     @media(max-width:600px){
-      .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.74!important}
-      .dashboard-page .adi-exact-icon[data-exact-icon="flock"]{--icon-scale:.74!important}
+      .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.82!important}
+      .dashboard-page .adi-exact-icon[data-exact-icon="flock"]{--icon-scale:.82!important}
     }
     @media(max-width:380px){
-      .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.83!important}
-      .dashboard-page .adi-exact-icon[data-exact-icon="flock"]{--icon-scale:.83!important}
+      .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.90!important}
+      .dashboard-page .adi-exact-icon[data-exact-icon="flock"]{--icon-scale:.90!important}
     }
     .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0 0!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:-72px 0!important}

@@ -51,12 +51,10 @@
       background-position:0 0!important;
       background-color:transparent!important;
       pointer-events:none!important;
-      filter:brightness(0) saturate(100%) invert(46%) sepia(10%) saturate(700%) hue-rotate(167deg) brightness(92%) contrast(84%) drop-shadow(0 1px 3px rgba(54,72,88,.14))!important;
+      /* Adine slate-green: preserves the approved silhouettes while aligning
+         the icon family with the clinic's green health/management identity. */
+      filter:brightness(0) saturate(100%) invert(46%) sepia(13%) saturate(510%) hue-rotate(104deg) brightness(91%) contrast(84%) drop-shadow(0 1px 3px rgba(54,72,88,.13))!important;
     }
-    /* Only these two special icons use the approved inline artwork:
-       accounting = dedicated accounting/finance chart icon
-       home = dashboard home icon
-       All other approved icons remain on the exact sprite cells above. */
     .dashboard-page .adi-exact-icon.adi-special-icon{
       overflow:visible!important;
       display:flex!important;
@@ -77,8 +75,8 @@
       stroke-width:2.4!important;
       stroke-linecap:round!important;
       stroke-linejoin:round!important;
-      color:#71808a!important;
-      filter:drop-shadow(0 2px 4px rgba(54,72,88,.20))!important;
+      color:#5E786C!important;
+      filter:drop-shadow(0 2px 4px rgba(54,72,88,.16))!important;
     }
     .dashboard-page .bottom-nav button > .adi-exact-icon.adi-special-icon svg{
       width:30px!important;
@@ -87,8 +85,6 @@
       min-height:30px!important;
       stroke-width:2.5!important;
     }
-    /* Targeted visual sizing: keep farm at its approved size; enlarge flock slightly;
-       keep accounting compact and optically centered. */
     .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.90!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="flock"]{--icon-scale:.90!important}
     @media(max-width:600px){
@@ -152,8 +148,6 @@
     s.setAttribute('data-exact-icon',name);
     s.setAttribute('aria-hidden','true');
 
-    /* Targeted correction: only accounting and bottom-nav home use
-       dedicated approved inline artwork. No other icon is altered. */
     if(name==='accounting'){
       s.classList.add('adi-special-icon');
       s.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M15 14h13M15 20h9M15 26h6"/><path d="M25 41V31h5v10M32 41V25h5v16M39 41V19h3v22M12 41h30"/></svg>';

@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.71';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.77';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -17,7 +17,7 @@
   css.textContent = `
     .dashboard-page .adi-exact-icon{
       --icon-box:62px;
-      --icon-scale:.8611111111;
+      --icon-scale:.78;
       position:relative!important;
       display:block!important;
       width:var(--icon-box)!important;
@@ -51,7 +51,7 @@
       background-position:0 0!important;
       background-color:transparent!important;
       pointer-events:none!important;
-      filter:brightness(0) saturate(100%) invert(39%) sepia(12%) saturate(1035%) hue-rotate(167deg) brightness(91%) contrast(87%) drop-shadow(0 2px 4px rgba(54,72,88,.20))!important;
+      filter:brightness(0) saturate(100%) invert(46%) sepia(10%) saturate(700%) hue-rotate(167deg) brightness(92%) contrast(84%) drop-shadow(0 1px 3px rgba(54,72,88,.14))!important;
     }
     /* Only these two special icons use the approved inline artwork:
        accounting = dedicated accounting/finance chart icon
@@ -111,7 +111,7 @@
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{
         --icon-box:50px;
-        --icon-scale:.6944444444;
+        --icon-scale:.63;
         width:50px!important;
         height:50px!important;
         min-width:50px!important;
@@ -122,7 +122,7 @@
     @media(max-width:380px){
       .dashboard-page .adi-exact-icon{
         --icon-box:56px;
-        --icon-scale:.7777777778;
+        --icon-scale:.70;
         width:56px!important;
         height:56px!important;
         min-width:56px!important;

@@ -1,125 +1,38 @@
-/*
- * DASHBOARD APPROVED ICON RENDERER — FINAL
- *
- * Single source of truth: window.AdiPoultryIcons.ICON from poultry-icons.js.
- * No PNG sprite, no CSS mask, no external icon library, no replacement artwork.
- * The dashboard must render the exact approved SVG artwork already stored in
- * poultry-icons.js. This file only gives those SVGs a stable dashboard box and
- * re-renders them if another script replaces the dashboard DOM.
- */
-(function () {
-    'use strict';
-
-    var APPROVED = [
-        'accounting',
-        'professionals',
-        'farm',
-        'flock',
-        'weeklyReport',
-        'healthcare',
-        'mortality',
-        'report',
-        'archive',
-        'settings'
-    ];
-
-    function installStyle() {
-        if (document.getElementById('adine-dashboard-approved-icons-final')) return;
-
-        var style = document.createElement('style');
-        style.id = 'adine-dashboard-approved-icons-final';
-        style.textContent = '\n' +
-            '.dashboard-page .dashboard-grid .menu-icon{\n' +
-            '  width:72px!important;height:72px!important;min-width:72px!important;min-height:72px!important;\n' +
-            '  flex:0 0 72px!important;display:flex!important;align-items:center!important;justify-content:center!important;\n' +
-            '  box-sizing:border-box!important;padding:0!important;margin:0 0 10px!important;\n' +
-            '  overflow:hidden!important;position:relative!important;\n' +
-            '}\n' +
-            '.dashboard-page .dashboard-grid .menu-icon > .adi-svg-icon{\n' +
-            '  width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;\n' +
-            '  display:flex!important;align-items:center!important;justify-content:center!important;\n' +
-            '  flex:0 0 auto!important;line-height:0!important;\n' +
-            '}\n' +
-            '.dashboard-page .dashboard-grid .menu-icon > .adi-svg-icon > svg{\n' +
-            '  width:44px!important;height:44px!important;max-width:44px!important;max-height:44px!important;\n' +
-            '  min-width:0!important;min-height:0!important;display:block!important;\n' +
-            '  overflow:visible!important;preserve-aspect-ratio:xMidYMid meet;\n' +
-            '}\n' +
-            '@media(max-width:600px){\n' +
-            ' .dashboard-page .dashboard-grid .menu-icon{width:64px!important;height:64px!important;min-width:64px!important;min-height:64px!important;flex-basis:64px!important}\n' +
-            ' .dashboard-page .dashboard-grid .menu-icon > .adi-svg-icon > svg{width:40px!important;height:40px!important;max-width:40px!important;max-height:40px!important}\n' +
-            '}\n' +
-            '@media(max-width:380px){\n' +
-            ' .dashboard-page .dashboard-grid .menu-icon{width:56px!important;height:56px!important;min-width:56px!important;min-height:56px!important;flex-basis:56px!important}\n' +
-            ' .dashboard-page .dashboard-grid .menu-icon > .adi-svg-icon > svg{width:36px!important;height:36px!important;max-width:36px!important;max-height:36px!important}\n' +
-            '}';
-        document.head.appendChild(style);
-    }
-
-    function render(box) {
-        if (!box) return;
-
-        var name = box.getAttribute('data-icon');
-        if (APPROVED.indexOf(name) === -1) return;
-
-        var icons = window.AdiPoultryIcons && window.AdiPoultryIcons.ICON;
-        var source = icons && icons[name];
-        if (!source) return;
-
-        var current = box.querySelector('.adi-svg-icon');
-        if (current && current.getAttribute('data-dashboard-approved') === name) {
-            return;
-        }
-
-        /* Parse the exact approved SVG string; do not alter its artwork. */
-        var holder = document.createElement('div');
-        holder.innerHTML = source.trim();
-        var svg = holder.querySelector('svg');
-        if (!svg) return;
-
-        var wrapper = document.createElement('span');
-        wrapper.className = 'adi-svg-icon adi-dashboard-approved-svg';
-        wrapper.setAttribute('data-dashboard-approved', name);
-        wrapper.setAttribute('aria-hidden', 'true');
-        wrapper.appendChild(svg);
-
-        /* Preserve the source viewBox/fill/stroke/path attributes exactly. */
-        svg.removeAttribute('width');
-        svg.removeAttribute('height');
-        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        svg.style.display = 'block';
-        svg.style.overflow = 'visible';
-
-        box.replaceChildren(wrapper);
-        box.classList.add('adi-icon-ready');
-    }
-
-    function renderAll() {
-        if (!window.AdiPoultryIcons || !window.AdiPoultryIcons.ICON) return;
-        document.querySelectorAll('.dashboard-page .dashboard-grid .menu-icon[data-icon]').forEach(render);
-    }
-
-    function boot() {
-        installStyle();
-        renderAll();
-
-        var grid = document.querySelector('.dashboard-page .dashboard-grid');
-        if (grid && !grid.__adineApprovedIconObserver) {
-            var observer = new MutationObserver(function () {
-                renderAll();
-            });
-            observer.observe(grid, { childList: true, subtree: true });
-            grid.__adineApprovedIconObserver = observer;
-        }
-
-        [50, 150, 350, 700, 1200].forEach(function (delay) {
-            window.setTimeout(renderAll, delay);
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', boot, { once: true });
-    } else {
-        boot();
-    }
+/* DASHBOARD ICON FIX — EXACT APPROVED ARTWORK */
+(function(){
+  'use strict';
+  var pos={accounting:0,professionals:1,farm:2,flock:3,weeklyReport:4,healthcare:5,mortality:6,report:7,archive:8,settings:9};
+  function install(){
+    if(!window.ADI_DASHBOARD_ICON_SPRITE) return false;
+    if(document.getElementById('dashboard-exact-approved-icon-css')) return true;
+    var css=document.createElement('style'); css.id='dashboard-exact-approved-icon-css';
+    var sprite=window.ADI_DASHBOARD_ICON_SPRITE;
+    css.textContent=
+      '.dashboard-page .dashboard-grid .adi-exact-icon{--icon-box:72px!important;position:relative!important;display:block!important;width:var(--icon-box)!important;height:var(--icon-box)!important;min-width:var(--icon-box)!important;min-height:var(--icon-box)!important;flex:0 0 var(--icon-box)!important;margin:0 0 10px 0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;overflow:hidden!important;opacity:1!important;visibility:visible!important;line-height:0!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon::before{content:""!important;position:absolute!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;width:100%!important;height:77.5%!important;background-image:url("data:image/webp;base64,'+sprite+'");background-repeat:no-repeat!important;background-size:600% auto!important;background-color:transparent!important;pointer-events:none!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0% 0%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:20% 0%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="farm"]::before{background-position:40% 0%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="flock"]::before{background-position:60% 0%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:80% 0%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="healthcare"]::before{background-position:100% 0%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="mortality"]::before{background-position:0% 100%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="report"]::before{background-position:20% 100%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="archive"]::before{background-position:40% 100%!important}'+
+      '.dashboard-page .dashboard-grid .adi-exact-icon[data-exact-icon="settings"]::before{background-position:60% 100%!important}'+
+      '@media(max-width:600px){.dashboard-page .dashboard-grid .adi-exact-icon{--icon-box:64px!important;width:64px!important;height:64px!important;min-width:64px!important;min-height:64px!important;flex-basis:64px!important}}'+
+      '@media(max-width:380px){.dashboard-page .dashboard-grid .adi-exact-icon{--icon-box:56px!important;width:56px!important;height:56px!important;min-width:56px!important;height:56px!important;flex-basis:56px!important}}';
+    document.head.appendChild(css); return true;
+  }
+  function holder(name){var s=document.createElement('span');s.className='adi-exact-icon';s.setAttribute('data-exact-icon',name);s.setAttribute('aria-hidden','true');return s;}
+  function apply(){
+    if(!install()) return;
+    document.querySelectorAll('.dashboard-page .dashboard-grid .menu-icon[data-icon]').forEach(function(el){
+      var name=el.getAttribute('data-icon'); if(!Object.prototype.hasOwnProperty.call(pos,name)) return;
+      var current=el.querySelector('.adi-exact-icon'); if(current && current.getAttribute('data-exact-icon')===name) return;
+      el.replaceChildren(holder(name)); el.classList.add('adi-icon-ready');
+    });
+  }
+  function boot(){apply();[100,300,700,1200,2000].forEach(function(t){setTimeout(apply,t);});var grid=document.querySelector('.dashboard-page .dashboard-grid');if(grid&&!grid.__adiExactApprovedObserver){var observer=new MutationObserver(apply);observer.observe(grid,{childList:true,subtree:true});grid.__adiExactApprovedObserver=observer;}}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();

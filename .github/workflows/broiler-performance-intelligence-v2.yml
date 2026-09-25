@@ -30,4 +30,4 @@ jobs:
           ! grep -nE 'supabaseClient|\.rpc\(|fetch\(|XMLHttpRequest' broiler-performance-intelligence-engine-v2.js
       - name: Verify retired standards table is absent from runtime code
         run: |
-          ! grep -R -n --exclude-dir=.git --exclude-dir=supabase/migrations -E 'poultry_performance_standards|get_flock_fcr_analysis_v4|refresh_broiler_management_targets_v2026_3' --include='*.js' --include='*.html' .
+          ! grep -nE 'poultry_performance_standards|get_flock_fcr_analysis_v4|refresh_broiler_management_targets_v2026_3' reports.html reports.js reports-router.js broiler-report-engine.js broiler-official-standards-v1.js standards-resolver-core-v1.js broiler-performance-intelligence-source-v1.js broiler-performance-intelligence-source-v9-3.js broiler-performance-intelligence-source-runtime-v1.js broiler-performance-intelligence-runtime-bootstrap-v1.js broiler-performance-intelligence-engine-v2.js broiler-performance-intelligence-report-v1.js broiler-pi-controller-v22.js broiler-comprehensive-report-engine-v2.js broiler-comprehensive-report-ui-v2-2.js

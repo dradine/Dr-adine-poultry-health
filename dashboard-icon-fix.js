@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.82';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.83';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -78,7 +78,7 @@
       color:#5E786C!important;
       filter:drop-shadow(0 2px 4px rgba(54,72,88,.16))!important;
     }
-    .dashboard-page .bottom-nav button > .adi-exact-icon.adi-special-icon svg,
+    .dashboard-page .bottom-nav button > .adi-exact-icon.adi-special-icon svg{
       width:30px!important;
       height:30px!important;
       min-width:30px!important;

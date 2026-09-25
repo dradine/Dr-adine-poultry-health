@@ -58,9 +58,9 @@ for(const [strain,s] of Object.entries(R.strains)){
 }
 
 const ap=R.strains['Ross 308 AP'];
-assert.deepStrictEqual(ap.records[0],[7,214,.772]);
-assert.deepStrictEqual(ap.records[3],[28,1657,1.257]);
-assert.deepStrictEqual(ap.records[7],[56,4446,1.776]);
+assert.deepStrictEqual(Array.from(ap.records[0]),[7,214,.772]);
+assert.deepStrictEqual(Array.from(ap.records[3]),[28,1657,1.257]);
+assert.deepStrictEqual(Array.from(ap.records[7]),[56,4446,1.776]);
 const ap56=S.weeklyEvaluationStandard({production_type:'broiler',genetics:'Ross',strain:'Ross 308 AP'},{age_days:56});
 assert.strictEqual(ap56.weight,4446);
 assert.strictEqual(ap56.cumulativeFcr,1.776);
@@ -68,9 +68,9 @@ assert.strictEqual(ap56.weeklyFcr,2.520);
 
 const cobb800=R.strains.Cobb800;
 assert.strictEqual(cobb800.initialWeight,43);
-assert.deepStrictEqual(cobb800.records[0],[7,202,.825]);
-assert.deepStrictEqual(cobb800.records[1],[14,461,1.046]);
-assert.deepStrictEqual(cobb800.records[7],[56,4358,1.762]);
+assert.deepStrictEqual(Array.from(cobb800.records[0]),[7,202,.825]);
+assert.deepStrictEqual(Array.from(cobb800.records[1]),[14,461,1.046]);
+assert.deepStrictEqual(Array.from(cobb800.records[7]),[56,4358,1.762]);
 
 const r56=S.weeklyEvaluationStandard({production_type:'broiler',genetics:'Ross',strain:'Ross 308'},{age_days:56});
 assert.strictEqual(r56.weight,4318);

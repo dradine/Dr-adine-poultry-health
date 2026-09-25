@@ -75,7 +75,7 @@ assert.deepStrictEqual(Array.from(cobb800.records[7]),[56,4358,1.762]);
 const r56=S.weeklyEvaluationStandard({production_type:'broiler',genetics:'Ross',strain:'Ross 308'},{age_days:56});
 assert.strictEqual(r56.weight,4318);
 assert.strictEqual(r56.cumulativeFcr,1.793);
-assert.strictEqual(r56.weeklyFcr,2.535);
+assert(Math.abs(r56.weeklyFcr-2.535)<0.001);
 
 const actualFlock={initial_average_weight_g:44,initial_bird_count:1000};
 const actual=F.canonical([

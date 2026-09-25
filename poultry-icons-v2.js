@@ -5,7 +5,7 @@
     if(!window.AdiPoultryIcons) return;
     const I=window.AdiPoultryIcons.ICON;
     I.farm="<svg class=\"adi-farm-detailed\" viewBox=\"0 0 96 48\"><path d=\"M4 24 24 10l68 6v25H4z\"/><path d=\"M4 24 24 10l68 6\"/><path d=\"M24 10v31M24 16h68\"/><path d=\"M10 28h10v9H10zM30 28h10v9H30zM45 25h45v10H45z\"/><path d=\"M48 25v10M60 25v10M72 25v10M84 25v10\"/><path d=\"M8 41h84\"/><path d=\"M18 21v-5h6v5M35 16v-5h6v5M52 17v-5h6v5M69 18v-5h6v5M86 20v-5h6v5\"/><path d=\"M20 14h6v6h-6zM37 9h6v6h-6zM54 11h6v6h-6zM71 12h6v6h-6zM88 14h5v6h-5z\"/></svg>";
-    I.flock='<svg viewBox="0 0 48 48"><circle cx="18" cy="16" r="6"/><path d="M7 37c1-7 5-11 11-11s10 4 11 11M12 16c0-4 3-6 6-6s6 2 6 6M24 16l7 2-7 2"/><circle cx="34" cy="25" r="5"/><path d="M27 40c1-6 3-9 7-10M31 25l6 2-6 2M18 34v6M23 34v6"/></svg>';
+    I.flock="<svg viewBox=\"0 0 96 48\"><path d=\"M7 23 48 7l41 16M14 21v22M82 21v22M48 8v8\"/><path d=\"M22 25h52M22 25v16M74 25v16M22 41h52\"/><path d=\"M30 25v5M42 25v5M54 25v5M66 25v5\"/><path d=\"M36 32c0-5 3-8 7-8 4 0 7 3 7 8 0 4-3 7-7 7h-4l-3 2 1-4c-1-1-1-3-1-5z\"/><circle cx=\"45\" cy=\"28\" r=\"1\"/><path d=\"M50 30l5 2-5 2M39 38v3M47 38v3\"/><ellipse cx=\"77\" cy=\"37\" rx=\"4\" ry=\"5\"/><ellipse cx=\"86\" cy=\"37\" rx=\"4\" ry=\"5\"/><path d=\"M10 43h78\"/></svg>";
     I.weeklyReport='<svg viewBox="0 0 48 48"><path d="M13 6h20l7 7v29H13zM33 6v8h7M19 21h15M19 27h11M19 36l6-7 5 4 7-8"/></svg>';
     I.healthcare='<svg viewBox="0 0 48 48"><path d="M10 18h28v22H10zM16 18v-5a8 8 0 0 1 16 0v5M17 27h6M20 24v6M28 25h5M28 30h5M9 10h9M13.5 6v8"/></svg>';
     I.mortality='<svg viewBox="0 0 48 48"><circle cx="19" cy="16" r="6"/><path d="M8 37c1-7 5-11 11-11s10 4 11 11M13 16c0-4 2-6 6-6s6 2 6 6M25 16l7 2-7 2M34 6 44 23H24zM34 11v6M34 20h.01"/></svg>';

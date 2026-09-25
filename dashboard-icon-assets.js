@@ -11,8 +11,7 @@ window.ADI_DASHBOARD_ICON_SPRITE = "UklGRnSLAABXRUJQVlA4TGeLAAAvz0IuEFX5f///3S43
   style.id='adi-dashboard-exact-icon-style';
   style.textContent = 
     '.dashboard-page .adi-exact-icon{display:block!important;width:44px!important;height:44px!important;flex:0 0 44px!important;background-image:url("data:image/webp;base64,'+sprite+'");background-repeat:no-repeat!important;background-size:600% 200%!important;background-color:transparent!important;}'+
-    '.dashboard-page .adi-exact-icon[data-icon="farm"],.dashboard-page .adi-exact-icon[data-icon="flock"]{width:64px!important;flex-basis:64px!important;}'+
-    '@media(max-width:640px){.dashboard-page .adi-exact-icon{width:38px!important;height:38px!important;flex-basis:38px!important}.dashboard-page .adi-exact-icon[data-icon="farm"],.dashboard-page .adi-exact-icon[data-icon="flock"]{width:54px!important;flex-basis:54px!important}}';
+    '@media(max-width:640px){.dashboard-page .adi-exact-icon{width:38px!important;height:38px!important;flex-basis:38px!important}}';
   document.head.appendChild(style);
 
   function iconHtml(name){

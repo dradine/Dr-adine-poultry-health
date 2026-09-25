@@ -7,7 +7,7 @@ var SPRITE='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAABICAMAAABoQy9iAA
 var ICONS={accounting:1,professionals:1,farm:1,flock:1,weeklyReport:1,healthcare:1,mortality:1,report:1,archive:1,settings:1};
 
 function injectStyle(){
-  if(document.getElementById('adine-approved-dashboard-icons-v3')) return;
+  if(document.getElementById('adine-approved-dashboard-icons-v4')) return;
   var s=document.createElement('style');
   s.id='adine-approved-dashboard-icons-v3';
   s.textContent=`
@@ -48,7 +48,23 @@ function injectStyle(){
   document.head.appendChild(s);
 }
 function makeIcon(name){
- var e=document.createElement('span'); e.className='adine-approved-icon'; e.setAttribute('data-approved-icon',name); e.setAttribute('aria-hidden','true'); return e;
+ var e=document.createElement('span');
+ e.className='adine-approved-icon';
+ e.setAttribute('data-approved-icon',name);
+ e.setAttribute('aria-hidden','true');
+ var img=document.createElement('img');
+ img.className='adine-approved-sprite';
+ img.alt='';
+ img.draggable=false;
+ img.src=SPRITE;
+ var pos={
+  accounting:[0,0],professionals:[-36,0],farm:[-72,0],flock:[-108,0],weeklyReport:[-144,0],
+  healthcare:[0,-36],mortality:[-36,-36],report:[-72,-36],archive:[-108,-36],settings:[-144,-36]
+ }[name]||[0,0];
+ img.style.left=pos[0]+'px';
+ img.style.top=pos[1]+'px';
+ e.appendChild(img);
+ return e;
 }
 function apply(){
  document.querySelectorAll('.dashboard-page .dashboard-grid .menu-card .menu-icon[data-icon]').forEach(function(box){

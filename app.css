@@ -95,3 +95,22 @@ input,textarea{touch-action:manipulation}
 .dashboard-page .adi-icon-flock .adi-icon-external:nth-child(3){position:absolute!important;right:0;bottom:2px;width:27px!important;height:27px!important}
 .dashboard-page .adi-icon-mortality .adi-icon-external:first-child{position:absolute!important;left:2px;bottom:0;width:35px!important;height:35px!important}
 .dashboard-page .adi-icon-mortality .adi-icon-external:last-child{position:absolute!important;right:0;top:0;width:22px!important;height:22px!important}
+
+/* FINAL UNIFIED DASHBOARD ICON TREATMENT */
+.dashboard-page .menu-icon,
+.dashboard-page .menu-card:nth-child(1) .menu-icon,
+.dashboard-page .menu-card:nth-child(2) .menu-icon,
+.dashboard-page .menu-card:nth-child(3) .menu-icon,
+.dashboard-page .menu-card:nth-child(4) .menu-icon,
+.dashboard-page .menu-card:nth-child(5) .menu-icon,
+.dashboard-page .menu-card:nth-child(6) .menu-icon,
+.dashboard-page .menu-card:nth-child(7) .menu-icon,
+.dashboard-page .menu-card:nth-child(8) .menu-icon,
+.dashboard-page .menu-card:nth-child(9) .menu-icon,
+.dashboard-page .menu-card:nth-child(10) .menu-icon{color:#68736f!important}
+.dashboard-page .menu-icon .adi-svg-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:2.05!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+.dashboard-page .menu-icon[data-icon="farm"] .adi-farm-detailed{color:#68736f!important;stroke-width:2.05!important}
+.dashboard-page .bottom-nav button,
+.dashboard-page .bottom-nav button.active{color:#68736f!important}
+.dashboard-page .bottom-nav .adi-svg-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:2.05!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+.dashboard-page .bottom-nav button>span:first-child{color:inherit!important}

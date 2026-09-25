@@ -1,6 +1,6 @@
 /* =========================================================
    ADINE POULTRY HEALTH CENTER
-   PROFESSIONAL DUOTONE SVG ICON SYSTEM
+   PROFESSIONAL POULTRY LINE-ART SVG ICON SYSTEM
    No emoji / no external icon library.
    ========================================================= */
 

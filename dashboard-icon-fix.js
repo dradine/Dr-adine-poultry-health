@@ -1,19 +1,18 @@
-/* DASHBOARD ICON RENDERER — OUTLINE TEST
+/* DASHBOARD ICON RENDERER — WHITE FILL / DARK LINE TEST
    Keeps the approved dashboard concepts and navigation.
-   Uses the existing AdinePoultryIcons SVG artwork in line-art mode:
-   no filled bodies, one consistent stroke, same icon slots/sizing.
+   Uses the existing AdinePoultryIcons SVG artwork with white filled shapes and dark contrasting boundaries.
 */
 (function(){
   'use strict';
 
-  var VERSION = '20260925.72';
+  var VERSION = '20260925.73';
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
     healthcare:1, mortality:1, report:1, archive:1, settings:1
   };
 
   var css = document.createElement('style');
-  css.id = 'dashboard-outline-icon-css';
+  css.id = 'dashboard-contrast-icon-css';
   css.textContent = `
     .dashboard-page .adi-exact-icon{
       --icon-box:62px;
@@ -36,7 +35,7 @@
       opacity:1!important;
       visibility:visible!important;
       line-height:0!important;
-      color:#536879!important;
+      color:#17212b!important;
     }
 
     .dashboard-page .adi-exact-icon .adi-svg-icon{
@@ -47,7 +46,7 @@
       display:flex!important;
       align-items:center!important;
       justify-content:center!important;
-      color:#536879!important;
+      color:#17212b!important;
       line-height:0!important;
       filter:drop-shadow(0 1px 2px rgba(54,72,88,.14))!important;
     }
@@ -60,15 +59,35 @@
       display:block!important;
       overflow:visible!important;
       fill:none!important;
-      stroke:currentColor!important;
-      stroke-width:2.05!important;
+      stroke:#17212b!important;
+      stroke-width:1.75!important;
       stroke-linecap:round!important;
       stroke-linejoin:round!important;
-      color:#536879!important;
+      color:#17212b!important;
       vector-effect:non-scaling-stroke!important;
     }
 
-    /* The wide farm/flock drawings keep their own proportions inside the same box. */
+    /* Existing filled silhouette areas become white, with a dark boundary. */
+    .dashboard-page .adi-exact-icon .adi-svg-icon svg .icon-fill{
+      fill:#ffffff!important;
+      stroke:#17212b!important;
+      stroke-width:1.75!important;
+    }
+
+    /* Existing line/detail artwork remains dark and unfilled. */
+    .dashboard-page .adi-exact-icon .adi-svg-icon svg path:not(.icon-fill),
+    .dashboard-page .adi-exact-icon .adi-svg-icon svg circle:not(.icon-fill),
+    .dashboard-page .adi-exact-icon .adi-svg-icon svg rect:not(.icon-fill),
+    .dashboard-page .adi-exact-icon .adi-svg-icon svg line:not(.icon-fill),
+    .dashboard-page .adi-exact-icon .adi-svg-icon svg polyline:not(.icon-fill),
+    .dashboard-page .adi-exact-icon .adi-svg-icon svg polygon:not(.icon-fill){
+      fill:none!important;
+      stroke:#17212b!important;
+      stroke-width:1.75!important;
+      stroke-linecap:round!important;
+      stroke-linejoin:round!important;
+    }
+
     .dashboard-page .adi-exact-icon[data-exact-icon="farm"] .adi-svg-icon svg,
     .dashboard-page .adi-exact-icon[data-exact-icon="flock"] .adi-svg-icon svg{
       width:100%!important;
@@ -83,19 +102,19 @@
       min-height:30px!important;
       flex:0 0 30px!important;
       margin:0!important;
-      color:#536879!important;
+      color:#17212b!important;
     }
 
     .dashboard-page .bottom-nav button > .adi-exact-icon .adi-svg-icon{
       width:30px!important;
       height:30px!important;
-      color:#536879!important;
+      color:#17212b!important;
     }
 
     .dashboard-page .bottom-nav button > .adi-exact-icon .adi-svg-icon svg{
       width:30px!important;
       height:30px!important;
-      stroke-width:2.05!important;
+      stroke-width:1.75!important;
     }
 
     @media(max-width:600px){
@@ -178,10 +197,10 @@
     [100,300,700,1200,2000].forEach(function(t){setTimeout(repair,t);});
 
     var grid=document.querySelector('.dashboard-page .dashboard-grid');
-    if(grid && !grid.__adiOutlineIconObserver){
+    if(grid && !grid.__adiContrastIconObserver){
       var observer=new MutationObserver(repair);
       observer.observe(grid,{childList:true,subtree:true});
-      grid.__adiOutlineIconObserver=observer;
+      grid.__adiContrastIconObserver=observer;
     }
   }
 

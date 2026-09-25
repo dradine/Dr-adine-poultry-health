@@ -6,7 +6,7 @@ load("broiler-official-standards-v1.js",context);
 load("broiler-report-engine.js",context);
 assert.ok(context.BROILER_OFFICIAL_STANDARDS_V1,"canonical broiler standards engine must be exposed");
 assert.ok(context.broilerCanonicalMetricTarget,"canonical metric resolver must be exposed");
-assert.strictEqual(context.BROILER_OFFICIAL_STANDARDS_V1.version,"BROILER-CANONICAL-STANDARDS-V4");
+assert.strictEqual(context.BROILER_OFFICIAL_STANDARDS_V1.version,"BROILER-CANONICAL-STANDARDS-V4.1");
 assert.ok(context.AdineBroilerReportEngine,"broiler engine must register");
 const flock={production_type:"broiler",genetics:"Ross",strain:"Ross 308 AP",initial_average_weight_g:44};
 const rows=[

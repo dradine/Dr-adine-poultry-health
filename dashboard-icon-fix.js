@@ -1,157 +1,208 @@
-/* FINAL DASHBOARD ICON RENDERER
-   Uses the approved icon artwork, tightly cropped into a 5x2 square PNG sprite.
-   No CSS percentage background positioning, no WebP, no data-URI sprite.
-   This avoids the Safari/WebKit sprite-positioning problems. */
-(function(){
+/* DASHBOARD ICON RENDERER v11
+   Uses the existing approved inline SVG icon system.
+   No PNG sprite, no background-position, no external icon image.
+   This prevents Safari/WebKit clipping, blank icons and partial green-line rendering.
+*/
+(function () {
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-green.png?v=20260925.3';
-
-  var allowed = {
-    accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
-    healthcare:1, mortality:1, report:1, archive:1, settings:1
+  var MAP = {
+    accounting: 'accounting',
+    professionals: 'professionals',
+    farm: 'farm',
+    flock: 'flock',
+    weeklyReport: 'weeklyReport',
+    healthcare: 'healthcare',
+    mortality: 'mortality',
+    report: 'report',
+    archive: 'archive',
+    settings: 'settings'
   };
 
-  var css = document.createElement('style');
-  css.id = 'dashboard-exact-icon-css';
-  css.textContent = `
-    .dashboard-page .adi-exact-icon{
-      --icon-box:72px;
-      --icon-scale:2;
-      position:relative!important;
-      display:block!important;
-      width:var(--icon-box)!important;
-      height:var(--icon-box)!important;
-      min-width:var(--icon-box)!important;
-      min-height:var(--icon-box)!important;
-      flex:0 0 var(--icon-box)!important;
-      margin:0!important;
-      padding:0!important;
-      border:0!important;
-      border-radius:0!important;
-      box-shadow:none!important;
-      background:transparent!important;
-      overflow:hidden!important;
-      opacity:1!important;
-      visibility:visible!important;
-      line-height:0!important;
-    }
+  function installCSS() {
+    if (document.getElementById('dashboard-inline-svg-css')) return;
 
-    .dashboard-page .adi-exact-icon::before{
-      content:""!important;
-      position:absolute!important;
-      left:50%!important;
-      top:50%!important;
-      transform:translate(-50%,-50%) scale(var(--icon-scale))!important;
-      transform-origin:center center!important;
-      width:36px!important;
-      height:36px!important;
-      background-image:url("__SPRITE__")!important;
-      background-repeat:no-repeat!important;
-      background-size:180px 72px!important;
-      background-position:0 0!important;
-      background-color:transparent!important;
-      pointer-events:none!important;
-    }
-
-    .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0 0!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:-36px 0!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="farm"]::before{background-position:-72px 0!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="flock"]::before{background-position:-108px 0!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:-144px 0!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="healthcare"]::before{background-position:0 -36px!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="mortality"]::before{background-position:-36px -36px!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="report"]::before{background-position:-72px -36px!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="archive"]::before{background-position:-108px -36px!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="settings"]::before{background-position:-144px -36px!important}
-
-    .dashboard-page .bottom-nav button > .adi-exact-icon{
-      --icon-box:32px;
-      --icon-scale:.8888888889;
-      width:32px!important;
-      height:32px!important;
-      min-width:32px!important;
-      min-height:32px!important;
-      flex:0 0 32px!important;
-      margin:0!important;
-    }
-
-    @media(max-width:600px){
-      .dashboard-page .adi-exact-icon{
-        --icon-box:64px;
-        --icon-scale:1.7777777778;
-        width:64px!important;
-        height:64px!important;
-        min-width:64px!important;
-        min-height:64px!important;
-        flex-basis:64px!important;
+    var css = document.createElement('style');
+    css.id = 'dashboard-inline-svg-css';
+    css.textContent = `
+      /* Main dashboard cards */
+      .dashboard-page .menu-icon.adi-icon-ready {
+        width:72px !important;
+        height:72px !important;
+        min-width:72px !important;
+        min-height:72px !important;
+        flex:0 0 72px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        overflow:visible !important;
+        opacity:1 !important;
+        visibility:visible !important;
+        line-height:0 !important;
       }
-    }
 
-    @media(max-width:380px){
-      .dashboard-page .adi-exact-icon{
-        --icon-box:56px;
-        --icon-scale:1.5555555556;
-        width:56px!important;
-        height:56px!important;
-        min-width:56px!important;
-        min-height:56px!important;
-        flex-basis:56px!important;
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon {
+        width:68px !important;
+        height:68px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        flex:0 0 68px !important;
+        overflow:visible !important;
+        color:#55b95a !important;
+        opacity:1 !important;
+        visibility:visible !important;
       }
-    }
-  `.replace(/__SPRITE__/g, SRC);
 
-  document.head.appendChild(css);
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg {
+        width:68px !important;
+        height:68px !important;
+        min-width:68px !important;
+        min-height:68px !important;
+        max-width:none !important;
+        max-height:none !important;
+        display:block !important;
+        overflow:visible !important;
+        color:#55b95a !important;
+        stroke:currentColor !important;
+      }
 
-  function holder(name){
-    var s=document.createElement('span');
-    s.className='adi-exact-icon';
-    s.setAttribute('data-exact-icon',name);
-    s.setAttribute('aria-hidden','true');
-    return s;
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg path,
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg circle,
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg rect,
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg line,
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg polyline,
+      .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg polygon {
+        vector-effect:non-scaling-stroke;
+      }
+
+      /* Bottom navigation: use the same SVG family, smaller but crisp */
+      .dashboard-page .bottom-nav button .adi-svg-icon {
+        width:30px !important;
+        height:30px !important;
+        min-width:30px !important;
+        min-height:30px !important;
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        flex:0 0 30px !important;
+        overflow:visible !important;
+        color:#55b95a !important;
+        opacity:1 !important;
+        visibility:visible !important;
+      }
+
+      .dashboard-page .bottom-nav button .adi-svg-icon svg {
+        width:29px !important;
+        height:29px !important;
+        min-width:29px !important;
+        min-height:29px !important;
+        max-width:none !important;
+        max-height:none !important;
+        display:block !important;
+        overflow:visible !important;
+        color:currentColor !important;
+        stroke:currentColor !important;
+      }
+
+      @media(max-width:600px){
+        .dashboard-page .menu-icon.adi-icon-ready {
+          width:64px !important;
+          height:64px !important;
+          min-width:64px !important;
+          min-height:64px !important;
+          flex-basis:64px !important;
+        }
+        .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon,
+        .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg {
+          width:60px !important;
+          height:60px !important;
+          min-width:60px !important;
+          min-height:60px !important;
+        }
+      }
+
+      @media(max-width:380px){
+        .dashboard-page .menu-icon.adi-icon-ready {
+          width:56px !important;
+          height:56px !important;
+          min-width:56px !important;
+          min-height:56px !important;
+          flex-basis:56px !important;
+        }
+        .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon,
+        .dashboard-page .menu-icon.adi-icon-ready .adi-svg-icon svg {
+          width:52px !important;
+          height:52px !important;
+          min-width:52px !important;
+          min-height:52px !important;
+        }
+      }
+    `;
+    document.head.appendChild(css);
   }
 
-  function replaceMain(){
-    document.querySelectorAll('.dashboard-page .menu-icon[data-icon]').forEach(function(el){
-      var name=el.getAttribute('data-icon');
-      if(!allowed[name]) return;
-      if(el.querySelector('.adi-exact-icon')) return;
-      el.replaceChildren(holder(name));
+  function makeIcon(name, className) {
+    if (!window.AdiPoultryIcons || typeof window.AdiPoultryIcons.make !== 'function') {
+      return null;
+    }
+    try {
+      return window.AdiPoultryIcons.make(name, className || 'adi-menu-svg');
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function renderMain() {
+    document.querySelectorAll('.dashboard-page .menu-icon[data-icon]').forEach(function (el) {
+      var name = MAP[el.getAttribute('data-icon')];
+      if (!name) return;
+
+      var svg = makeIcon(name, 'adi-menu-svg');
+      if (!svg) return;
+
+      el.innerHTML = svg;
       el.classList.add('adi-icon-ready');
+      el.setAttribute('aria-hidden', 'true');
     });
   }
 
-  function replaceBottom(){
-    document.querySelectorAll('.dashboard-page .bottom-nav button').forEach(function(btn){
-      var nav=btn.getAttribute('data-nav')||'';
-      var name =
-        nav.indexOf('Farms.html')!==-1 ? 'farm' :
-        nav.indexOf('weekly.html')!==-1 ? 'weeklyReport' :
-        nav.indexOf('reports.html')!==-1 ? 'report' : null;
-      if(!name || btn.querySelector('.adi-exact-icon')) return;
-      var label=btn.querySelector('small');
-      var icon=holder(name);
-      btn.replaceChildren(icon);
-      if(label) btn.appendChild(label);
+  function renderBottom() {
+    document.querySelectorAll('.dashboard-page .bottom-nav button').forEach(function (btn) {
+      var nav = btn.getAttribute('data-nav') || '';
+      var name = nav.indexOf('Dashboard.html') !== -1 ? 'home' :
+                 nav.indexOf('Farms.html') !== -1 ? 'farm' :
+                 nav.indexOf('weekly.html') !== -1 ? 'scale' :
+                 nav.indexOf('reports.html') !== -1 ? 'report' : null;
+      if (!name) return;
+
+      var svg = makeIcon(name, 'adi-bottom-svg');
+      if (!svg) return;
+
+      var label = btn.querySelector('small');
+      btn.innerHTML = svg;
+      if (label) btn.appendChild(label);
       btn.classList.add('adi-icon-ready');
     });
   }
 
-  function repair(){
-    replaceMain();
-    replaceBottom();
+  function repair() {
+    installCSS();
+    renderMain();
+    renderBottom();
   }
 
-  function boot(){
+  function boot() {
     repair();
-    setTimeout(repair,100);
-    setTimeout(repair,500);
-    setTimeout(repair,1000);
+    setTimeout(repair, 100);
+    setTimeout(repair, 400);
+    setTimeout(repair, 1000);
+    setTimeout(repair, 2000);
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',boot,{once:true});
-  }else{
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
     boot();
   }
 })();

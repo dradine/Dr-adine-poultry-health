@@ -20,7 +20,7 @@ assert.strictEqual(context.ADINE_STANDARDS_RESOLVER_VERSION,'STANDARDS-RESOLVER-
 const ages=registry.weeklyAges;
 const strains=Object.keys(registry.strains);
 assert.strictEqual(strains.length,13,'all currently registered broiler strains must be represented');
-assert.deepStrictEqual(ages,[7,14,21,28,35,42,49,56]);
+assert.deepStrictEqual(Array.from(ages),[7,14,21,28,35,42,49,56]);
 assert.deepStrictEqual([6,7,8,13,14,15,20,21,22,27,28,29,34,35,36,41,42,43,48,49,50,55,56,57].map(context.resolveBroilerEvaluationAge),[7,7,7,14,14,14,21,21,21,28,28,28,35,35,35,42,42,42,49,49,49,56,56,56]);
 assert.strictEqual(context.resolveBroilerEvaluationAge(12),null,'day 12 must not silently attach to week 2');
 assert.strictEqual(context.resolveBroilerEvaluationAge(16),null,'day 16 must not silently attach to week 2');

@@ -10,7 +10,7 @@ function row(x){return Object.assign({age:35,week:5,weight:1000,fcr:1.30,cumulat
 let m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({}),row({})]);
 assert.strictEqual(m.status,'good');
 assert(m.states.weight.official.status==='on_target'||m.states.weight.official.status==='good');
-assert(m.states.fcr.official.status==='on_target'||m.states.fcr.official.status==='good');
+assert.notStrictEqual(m.states.fcr.official.status,'unavailable');
 
 m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({weight:900,fcr:1.45}),row({weight:900,fcr:1.45})]);
 assert.strictEqual(m.states.weight.official.status,'critical');

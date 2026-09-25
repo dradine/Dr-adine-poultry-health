@@ -67,7 +67,7 @@
 
     .dashboard-page .bottom-nav button > .adi-exact-icon{
       --icon-box:32px;
-      --icon-scale:.4444444444;
+      --icon-scale:.8888888889;
       width:32px!important;
       height:32px!important;
       min-width:32px!important;

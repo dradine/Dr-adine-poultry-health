@@ -63,11 +63,11 @@
     /* Bottom nav: keep خانه semantic home SVG from poultry-icons.
        Replace only فارم‌ها / هفتگی / گزارش with exact approved artwork. */
     .dashboard-page .bottom-nav .adi-exact-icon{
-      width:29px!important;
-      height:22.475px!important;
-      min-width:29px!important;
-      min-height:22.475px!important;
-      flex:0 0 29px!important;
+      width:32px!important;
+      height:32px!important;
+      min-width:32px!important;
+      min-height:32px!important;
+      flex:0 0 32px!important;
     }
     .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="farm"]{background-position:40% 0%!important}
     .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="weeklyReport"]{background-position:80% 0%!important}

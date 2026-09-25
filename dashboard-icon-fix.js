@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.77';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.78';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -40,8 +40,8 @@
       content:""!important;
       position:absolute!important;
       left:50%!important;
-      top:50%!important;
-      transform:translate(-50%,-50%) scale(var(--icon-scale))!important;
+      top:calc(50% + 3px)!important;
+      transform:translate(-50%,calc(-50% + 3px)) scale(var(--icon-scale))!important;
       transform-origin:center center!important;
       width:72px!important;
       height:72px!important;
@@ -66,10 +66,10 @@
     }
     .dashboard-page .adi-exact-icon.adi-special-icon::before{display:none!important}
     .dashboard-page .adi-exact-icon.adi-special-icon svg{
-      width:72px!important;
-      height:72px!important;
-      min-width:72px!important;
-      min-height:72px!important;
+      width:62px!important;
+      height:62px!important;
+      min-width:62px!important;
+      min-height:62px!important;
       display:block!important;
       overflow:visible!important;
       fill:none!important;
@@ -77,7 +77,7 @@
       stroke-width:2.4!important;
       stroke-linecap:round!important;
       stroke-linejoin:round!important;
-      color:#536879!important;
+      color:#71808a!important;
       filter:drop-shadow(0 2px 4px rgba(54,72,88,.20))!important;
     }
     .dashboard-page .bottom-nav button > .adi-exact-icon.adi-special-icon svg{

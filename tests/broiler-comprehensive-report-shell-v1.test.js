@@ -6,7 +6,7 @@ const ui=fs.readFileSync("broiler-comprehensive-report-ui-v2-2.js","utf8");
 const tabs=fs.readFileSync("broiler-comprehensive-performance-tabs-v1.js","utf8");
 const official=fs.readFileSync("broiler-official-standards-v1.js","utf8");
 const resolver=fs.readFileSync("standards-resolver-core-v1.js","utf8");
-for(const token of ["data-tab=\"weekly\"","data-tab=\"overall\"","data-tab=\"compare-empty\"","broiler-report-engine.js","reports.js","reports-router.js","broiler-comprehensive-report-engine-v2.js","broiler-comprehensive-report-ui-v2-2.js","broiler-official-standards-v1.js","standards-resolver-core-v1.js","bottom-navigation"])assert.ok(html.includes(token),`missing current shell token: ${token}`);
+for(const token of ["data-tab=\"weekly\"","data-tab=\"overall\"","data-tab=\"compare-empty\"","broiler-report-engine.js","reports.js","reports-router.js","broiler-comprehensive-report-engine-v2.js","broiler-comprehensive-report-ui-v2-2.js","broiler-official-standards-v1.js","standards-resolver-core-v1.js","bottom-nav"])assert.ok(html.includes(token),`missing current shell token: ${token}`);
 for(const forbidden of ["weekly.js","weekly-storage.js","weekly-engine.js","broiler-fcr-engine-v11.js","standards.js"])assert.ok(!html.includes(forbidden),`reports shell must not load ${forbidden}`);
 assert.ok(engine.includes("read-only")&&engine.includes("weekly_records"),"current comprehensive engine must remain read-only");
 assert.ok(ui.includes("never writes source data"),"current comprehensive UI must remain presentation-only");

@@ -1,6 +1,6 @@
 /* DASHBOARD ICON FIX — exact approved PNG sprite, aspect-ratio-safe renderer
    Sprite: 720x186 = 6 columns x 2 rows, each cell 120x93.
-   Never stretch the sprite vertically. Render one exact cell at 600% auto. */
+   Never stretch the sprite vertically. Render one exact cell at fixed pixel dimensions; never use percentage positioning. */
 (function(){
   'use strict';
 
@@ -15,7 +15,7 @@
   css.id = 'dashboard-exact-icon-css';
   css.textContent = `
     .dashboard-page .adi-exact-icon{
-      --icon-box:72px;
+      --icon-box:72px;\n      --icon-scale:1;
       position:relative!important;
       display:block!important;
       width:var(--icon-box)!important;
@@ -79,14 +79,14 @@
 
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{
-        --icon-box:64px;width:64px!important;height:64px!important;
+        --icon-box:64px;--icon-scale:.8888888889;width:64px!important;height:64px!important;
         min-width:64px!important;min-height:64px!important;flex-basis:64px!important;
       }
     }
 
     @media(max-width:380px){
       .dashboard-page .adi-exact-icon{
-        --icon-box:56px;width:56px!important;height:56px!important;
+        --icon-box:56px;--icon-scale:.7777777778;width:56px!important;height:56px!important;
         min-width:56px!important;min-height:56px!important;flex-basis:56px!important;
       }
     }

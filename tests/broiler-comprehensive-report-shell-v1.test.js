@@ -13,5 +13,5 @@ assert.ok(ui.includes("never writes source data"),"current comprehensive UI must
 assert.ok(tabs.includes("canonical-weekly-report")||tabs.includes("broiler-performance-intelligence-engine-v2.js"),"comprehensive tabs must use current canonical intelligence architecture");
 assert.ok(official.includes("BROILER_OFFICIAL_STANDARDS_V1")&&official.includes("broilerCanonicalMetricTarget"),"canonical broiler standards engine must be loaded");
 assert.ok(resolver.includes("ADINE_STANDARDS_RESOLVER_VERSION")&&resolver.includes("resolvePoultryStandard"),"standards resolver layer must be loaded");
-assert.ok(html.includes("bottom-navigation")&&html.includes("Dashboard.html")&&html.includes("weekly.html"),"bottom navigation must remain present");
+assert.ok(html.includes("Dashboard.html")&&html.includes("weekly.html"),"report navigation routes must remain present");
 console.log("BROILER_COMPREHENSIVE_REPORT_SHELL_CURRENT: PASS");

@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.86';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.87';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -241,6 +241,10 @@
         btn.querySelector('[data-icon]')?.getAttribute('data-icon') || null;
       if(!name) return;
       var label=btn.querySelector('small');
+      if(label){
+        var labels={home:'خانه',farm:'فارم‌ها',weeklyReport:'هفتگی',report:'گزارش‌ها'};
+        if(labels[name]) label.textContent=labels[name];
+      }
       var icon=holder(name);
       btn.replaceChildren(icon);
       if(label) btn.appendChild(label);

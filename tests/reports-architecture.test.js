@@ -22,7 +22,7 @@ assert.strictEqual(out.rows[0].standardCumulativeFcr,.772);
 assert.strictEqual(out.rows[1].standardCumulativeFcr,.995);
 assert.strictEqual(out.rows[0].standardWeeklyWeightGain,170);
 assert.strictEqual(out.rows[1].standardWeeklyWeightGain,326);
-const expectedWeek2=(.995*540-.772*214)/(540-326+326-214);
+const expectedWeek2=(.995*(540-44)-.772*(214-44))/(540-214);
 assert.ok(Math.abs(out.rows[1].standardWeeklyFcr-expectedWeek2)<1e-12);
 assert.ok(Math.abs(out.rows[1].standardWeeklyFcr-1.1112883436)<1e-9);
 assert.strictEqual(out.rows[0].mortalityTarget,1);

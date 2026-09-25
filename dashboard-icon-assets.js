@@ -38,6 +38,7 @@ window.ADI_DASHBOARD_ICON_SPRITE = "UklGRnSLAABXRUJQVlA4TGeLAAAvz0IuEFX5f///3S43
   const style = document.createElement("style");
   style.textContent = `
     .dashboard-page .adi-exact-icon{
+      --scale:.4333333333;
       position:relative!important;
       display:block!important;
       width:52px!important;
@@ -57,10 +58,12 @@ window.ADI_DASHBOARD_ICON_SPRITE = "UklGRnSLAABXRUJQVlA4TGeLAAAvz0IuEFX5f///3S43
     .dashboard-page .adi-exact-icon img{
       display:block!important;
       position:absolute!important;
-      width:312px!important;
+      width:calc(720px * var(--scale))!important;
       height:auto!important;
       max-width:none!important;
       min-width:0!important;
+      left:calc(-120px * var(--scale) * var(--ix))!important;
+      top:calc(-93px * var(--scale) * var(--iy))!important;
       margin:0!important;
       padding:0!important;
       border:0!important;
@@ -70,24 +73,22 @@ window.ADI_DASHBOARD_ICON_SPRITE = "UklGRnSLAABXRUJQVlA4TGeLAAAvz0IuEFX5f///3S43
       filter:none!important;
     }
     .dashboard-page .bottom-nav .adi-exact-icon{
+      --scale:.2416666667;
       width:29px!important;
       height:22.475px!important;
       min-width:29px!important;
       min-height:22.475px!important;
       flex:0 0 29px!important;
     }
-    .dashboard-page .bottom-nav .adi-exact-icon img{
-      width:174px!important;
-    }
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{
+        --scale:.3833333333;
         width:46px!important;
         height:35.65px!important;
         min-width:46px!important;
         min-height:35.65px!important;
         flex-basis:46px!important;
       }
-      .dashboard-page .adi-exact-icon img{width:276px!important}
     }
   `;
   document.head.appendChild(style);

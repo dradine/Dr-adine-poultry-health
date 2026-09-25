@@ -20,10 +20,10 @@
 <section id="weeklyPanel" class="entry-panel" role="tabpanel" hidden><iframe id="weeklyFrame" class="weekly-frame" src="weekly-router.html?v=20260924-layer-weekly-v2" title="پایش هفتگی گله"></iframe></section><section id="monthlyPanel" class="entry-panel" role="tabpanel" hidden><iframe id="monthlyFrame" class="weekly-frame" src="layer-monthly-core.html?v=20260924-layer-monthly-v1" title="پایش ماهانه گله"></iframe></section>
 </div>
 <nav class="bottom-nav" aria-label="ناوبری اصلی">
-  <button type="button" data-nav="Dashboard.html" aria-label="خانه"><span data-icon="home" aria-hidden="true"></span><small>خانه</small></button>
-  <button type="button" data-nav="Farms.html" aria-label="فارم‌ها"><span data-icon="farm" aria-hidden="true"></span><small>فارم‌ها</small></button>
-  <button type="button" class="active" data-nav="weekly.html" aria-label="هفتگی"><span data-icon="weeklyReport" aria-hidden="true"></span><small>هفتگی</small></button>
-  <button type="button" data-nav="reports.html" aria-label="گزارش‌ها"><span data-icon="report" aria-hidden="true"></span><small>گزارش‌ها</small></button>
+  <button type="button" data-nav="Dashboard.html" aria-label="خانه" onclick="window.location.href='Dashboard.html'"><span data-icon="home" aria-hidden="true"></span><small>خانه</small></button>
+  <button type="button" data-nav="Farms.html" aria-label="فارم‌ها" onclick="window.location.href='Farms.html'"><span data-icon="farm" aria-hidden="true"></span><small>فارم‌ها</small></button>
+  <button type="button" class="active" data-nav="weekly.html" aria-label="هفتگی" onclick="window.location.href='weekly.html'"><span data-icon="weeklyReport" aria-hidden="true"></span><small>هفتگی</small></button>
+  <button type="button" data-nav="reports.html" aria-label="گزارش‌ها" onclick="window.location.href='reports.html'"><span data-icon="report" aria-hidden="true"></span><small>گزارش‌ها</small></button>
 </nav>
 <script>
 const dailyTab=document.getElementById('dailyTab'),weeklyTab=document.getElementById('weeklyTab'),monthlyTab=document.getElementById('monthlyTab'),dailyPanel=document.getElementById('dailyPanel'),weeklyPanel=document.getElementById('weeklyPanel'),monthlyPanel=document.getElementById('monthlyPanel');

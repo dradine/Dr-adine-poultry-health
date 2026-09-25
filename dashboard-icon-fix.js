@@ -28,11 +28,11 @@
     .dashboard-page .adi-exact-icon{
       position:relative!important;
       display:block!important;
-      width:52px!important;
-      height:40.3px!important;
-      min-width:52px!important;
-      min-height:40.3px!important;
-      flex:0 0 52px!important;
+      width:58px!important;
+      height:58px!important;
+      min-width:58px!important;
+      min-height:58px!important;
+      flex:0 0 58px!important;
       margin:0!important;
       padding:0!important;
       border:0!important;
@@ -75,21 +75,21 @@
 
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{
-        width:46px!important;
-        height:35.65px!important;
-        min-width:46px!important;
-        min-height:35.65px!important;
-        flex-basis:46px!important;
+        width:52px!important;
+        height:52px!important;
+        min-width:52px!important;
+        min-height:52px!important;
+        flex-basis:52px!important;
       }
     }
 
     @media(max-width:380px){
       .dashboard-page .adi-exact-icon{
-        width:42px!important;
-        height:32.55px!important;
-        min-width:42px!important;
-        min-height:32.55px!important;
-        flex-basis:42px!important;
+        width:48px!important;
+        height:48px!important;
+        min-width:48px!important;
+        min-height:48px!important;
+        flex-basis:48px!important;
       }
     }
   `;

@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.85';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.86';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -144,6 +144,8 @@
       pointer-events:none!important;
       filter:brightness(0) saturate(100%) invert(46%) sepia(13%) saturate(510%) hue-rotate(104deg) brightness(91%) contrast(84%) drop-shadow(0 1px 3px rgba(54,72,88,.13))!important;
     }
+    .bottom-nav button{cursor:pointer!important;pointer-events:auto!important;-webkit-tap-highlight-color:transparent!important}
+    .bottom-nav button > .adi-exact-icon{color:#5E786C!important;-webkit-user-select:none!important;user-select:none!important}
     .bottom-nav button > .adi-exact-icon.adi-special-icon{
       overflow:visible!important;
       display:flex!important;
@@ -214,6 +216,20 @@
     });
   }
 
+  function installBottomNavigation(){
+    if(window.__ADI_BOTTOM_NAV_HANDLER__) return;
+    window.__ADI_BOTTOM_NAV_HANDLER__=true;
+    document.addEventListener('click',function(e){
+      var btn=e.target.closest ? e.target.closest('.bottom-nav button[data-nav]') : null;
+      if(!btn) return;
+      var target=btn.getAttribute('data-nav');
+      if(!target) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      window.location.assign(target);
+    },true);
+  }
+
   function replaceBottom(){
     document.querySelectorAll('.bottom-nav button').forEach(function(btn){
       var nav=btn.getAttribute('data-nav')||'';
@@ -238,6 +254,7 @@
   }
 
   function boot(){
+    installBottomNavigation();
     repair();
     [100,300,700,1200,2000].forEach(function(t){setTimeout(repair,t);});
     var grid=document.querySelector('.dashboard-page .dashboard-grid');

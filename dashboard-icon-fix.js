@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.50';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.60';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -16,8 +16,8 @@
   css.id = 'dashboard-exact-icon-css';
   css.textContent = `
     .dashboard-page .adi-exact-icon{
-      --icon-box:72px;
-      --icon-scale:1;
+      --icon-box:62px;
+      --icon-scale:.8611111111;
       position:relative!important;
       display:block!important;
       width:var(--icon-box)!important;
@@ -25,7 +25,7 @@
       min-width:var(--icon-box)!important;
       min-height:var(--icon-box)!important;
       flex:0 0 var(--icon-box)!important;
-      margin:0 0 10px 0!important;
+      margin:0 0 8px 0!important;
       padding:0!important;
       border:0!important;
       border-radius:0!important;
@@ -51,6 +51,7 @@
       background-position:0 0!important;
       background-color:transparent!important;
       pointer-events:none!important;
+      filter:brightness(0) saturate(100%) invert(74%) sepia(30%) saturate(760%) hue-rotate(61deg) brightness(93%) contrast(88%) drop-shadow(0 3px 5px rgba(55,105,61,.24))!important;
     }
     .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0 0!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:-72px 0!important}
@@ -64,24 +65,24 @@
     .dashboard-page .adi-exact-icon[data-exact-icon="settings"]::before{background-position:-288px -72px!important}
 
     .dashboard-page .bottom-nav button > .adi-exact-icon{
-      --icon-box:32px;
-      --icon-scale:.4444444444;
-      width:32px!important;
-      height:32px!important;
-      min-width:32px!important;
-      min-height:32px!important;
-      flex:0 0 32px!important;
+      --icon-box:30px;
+      --icon-scale:.4166666667;
+      width:30px!important;
+      height:30px!important;
+      min-width:30px!important;
+      min-height:30px!important;
+      flex:0 0 30px!important;
       margin:0!important;
     }
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{
-        --icon-box:64px;
-        --icon-scale:.8888888889;
-        width:64px!important;
-        height:64px!important;
-        min-width:64px!important;
-        min-height:64px!important;
-        flex-basis:64px!important;
+        --icon-box:50px;
+        --icon-scale:.6944444444;
+        width:50px!important;
+        height:50px!important;
+        min-width:50px!important;
+        min-height:50px!important;
+        flex-basis:50px!important;
       }
     }
     @media(max-width:380px){

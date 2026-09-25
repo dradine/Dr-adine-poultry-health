@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.60';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.70';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -51,7 +51,7 @@
       background-position:0 0!important;
       background-color:transparent!important;
       pointer-events:none!important;
-      filter:brightness(0) saturate(100%) invert(74%) sepia(30%) saturate(760%) hue-rotate(61deg) brightness(93%) contrast(88%) drop-shadow(0 3px 5px rgba(55,105,61,.24))!important;
+      filter:brightness(0) saturate(100%) invert(39%) sepia(12%) saturate(1035%) hue-rotate(167deg) brightness(91%) contrast(87%) drop-shadow(0 2px 4px rgba(54,72,88,.20))!important;
     }
     .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0 0!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:-72px 0!important}

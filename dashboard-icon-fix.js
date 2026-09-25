@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.70';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.71';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -52,6 +52,40 @@
       background-color:transparent!important;
       pointer-events:none!important;
       filter:brightness(0) saturate(100%) invert(39%) sepia(12%) saturate(1035%) hue-rotate(167deg) brightness(91%) contrast(87%) drop-shadow(0 2px 4px rgba(54,72,88,.20))!important;
+    }
+    /* Only these two special icons use the approved inline artwork:
+       accounting = dedicated accounting/finance chart icon
+       home = dashboard home icon
+       All other approved icons remain on the exact sprite cells above. */
+    .dashboard-page .adi-exact-icon.adi-special-icon{
+      overflow:visible!important;
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      background:transparent!important;
+    }
+    .dashboard-page .adi-exact-icon.adi-special-icon::before{display:none!important}
+    .dashboard-page .adi-exact-icon.adi-special-icon svg{
+      width:72px!important;
+      height:72px!important;
+      min-width:72px!important;
+      min-height:72px!important;
+      display:block!important;
+      overflow:visible!important;
+      fill:none!important;
+      stroke:currentColor!important;
+      stroke-width:2.4!important;
+      stroke-linecap:round!important;
+      stroke-linejoin:round!important;
+      color:#536879!important;
+      filter:drop-shadow(0 2px 4px rgba(54,72,88,.20))!important;
+    }
+    .dashboard-page .bottom-nav button > .adi-exact-icon.adi-special-icon svg{
+      width:30px!important;
+      height:30px!important;
+      min-width:30px!important;
+      min-height:30px!important;
+      stroke-width:2.5!important;
     }
     .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0 0!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:-72px 0!important}
@@ -105,6 +139,16 @@
     s.className='adi-exact-icon';
     s.setAttribute('data-exact-icon',name);
     s.setAttribute('aria-hidden','true');
+
+    /* Targeted correction: only accounting and bottom-nav home use
+       dedicated approved inline artwork. No other icon is altered. */
+    if(name==='accounting'){
+      s.classList.add('adi-special-icon');
+      s.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 7h23a3 3 0 0 1 3 3v31H12a3 3 0 0 1-3-3z"/><path d="M15 14h13M15 20h9M15 26h6"/><path d="M25 41V31h5v10M32 41V25h5v16M39 41V19h3v22M12 41h30"/></svg>';
+    }else if(name==='home'){
+      s.classList.add('adi-special-icon');
+      s.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 22 24 7l18 15"/><path d="M10 20v21h28V20"/><path d="M19 41V29h10v12"/><path d="M15 25h5M28 25h5"/></svg>';
+    }
     return s;
   }
 
@@ -123,10 +167,10 @@
     document.querySelectorAll('.dashboard-page .bottom-nav button').forEach(function(btn){
       var nav=btn.getAttribute('data-nav')||'';
       var name =
+        nav.indexOf('Dashboard.html')!==-1 ? 'home' :
         nav.indexOf('Farms.html')!==-1 ? 'farm' :
         nav.indexOf('weekly.html')!==-1 ? 'weeklyReport' :
-        nav.indexOf('reports.html')!==-1 ? 'report' :
-        nav.indexOf('Dashboard.html')!==-1 ? 'flock' : null;
+        nav.indexOf('reports.html')!==-1 ? 'report' : null;
       if(!name) return;
       var label=btn.querySelector('small');
       var icon=holder(name);

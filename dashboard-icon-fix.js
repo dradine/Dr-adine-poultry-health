@@ -87,6 +87,10 @@
       min-height:30px!important;
       stroke-width:2.5!important;
     }
+    /* Farm/registration-management icon keeps its approved original size. */
+    .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.8611111111!important}
+    @media(max-width:600px){.dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.6944444444!important}}
+    @media(max-width:380px){.dashboard-page .adi-exact-icon[data-exact-icon="farm"]{--icon-scale:.7777777778!important}}
     .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0 0!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:-72px 0!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="farm"]::before{background-position:-144px 0!important}

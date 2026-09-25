@@ -34,6 +34,63 @@ window.ADI_DASHBOARD_ICON_SPRITE = "UklGRnSLAABXRUJQVlA4TGeLAAAvz0IuEFX5f///3S43
       '</span>';
   }
 
+  const style = document.createElement("style");
+  style.textContent = `
+    .dashboard-page .adi-exact-icon{
+      position:relative!important;
+      display:block!important;
+      width:52px!important;
+      height:40.3px!important;
+      min-width:52px!important;
+      min-height:40.3px!important;
+      flex:0 0 52px!important;
+      overflow:hidden!important;
+      background:none!important;
+      border:0!important;
+      box-shadow:none!important;
+      border-radius:0!important;
+      padding:0!important;
+      margin:0!important;
+      opacity:1!important;
+    }
+    .dashboard-page .adi-exact-icon img{
+      display:block!important;
+      position:absolute!important;
+      width:312px!important;
+      height:auto!important;
+      max-width:none!important;
+      min-width:0!important;
+      margin:0!important;
+      padding:0!important;
+      border:0!important;
+      border-radius:0!important;
+      box-shadow:none!important;
+      opacity:1!important;
+      filter:none!important;
+    }
+    .dashboard-page .bottom-nav .adi-exact-icon{
+      width:29px!important;
+      height:22.475px!important;
+      min-width:29px!important;
+      min-height:22.475px!important;
+      flex:0 0 29px!important;
+    }
+    .dashboard-page .bottom-nav .adi-exact-icon img{
+      width:174px!important;
+    }
+    @media(max-width:600px){
+      .dashboard-page .adi-exact-icon{
+        width:46px!important;
+        height:35.65px!important;
+        min-width:46px!important;
+        min-height:35.65px!important;
+        flex-basis:46px!important;
+      }
+      .dashboard-page .adi-exact-icon img{width:276px!important}
+    }
+  `;
+  document.head.appendChild(style);
+
   function applyMain(){
     document.querySelectorAll(".dashboard-page .menu-icon[data-icon]").forEach(function(el){
       const name = el.getAttribute("data-icon");

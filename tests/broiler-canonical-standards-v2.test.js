@@ -12,7 +12,7 @@ vm.runInNewContext(fs.readFileSync('broiler-performance-intelligence-source-v1.j
 const registry=context.BROILER_OFFICIAL_STANDARDS_V1;
 const source=context.AdineBroilerPerformanceIntelligenceSourceV1;
 assert(registry,'canonical broiler registry must exist');
-assert.strictEqual(registry.version,'BROILER-CANONICAL-STANDARDS-V4');
+assert.strictEqual(registry.version,'BROILER-CANONICAL-STANDARDS-V4.1');
 assert(source&&source.version==='BROILER-PI-SOURCE-V9.3');
 assert.strictEqual(typeof context.getBroilerOfficialStandard,'function');
 assert.strictEqual(context.ADINE_STANDARDS_RESOLVER_VERSION,'STANDARDS-RESOLVER-V4');

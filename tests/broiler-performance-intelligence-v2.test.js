@@ -39,7 +39,7 @@ assert.strictEqual(m.states.weight.trend.movement,'closer');
 assert.strictEqual(m.states.weight.trend.direction,'improving');
 
 m=E.build({genetics:'Ross',strain:'Ross 308 AP'},[row({week:4,fcr:1.34,standardWeeklyFcr:1.30}),row({week:5,fcr:1.40,standardWeeklyFcr:1.30})]);
-assert.strictEqual(m.states.fcr.trend.movement,'farther');
+assert.strictEqual(m.states.fcr.trend.movement,'worse_farther');
 assert.strictEqual(m.states.fcr.trend.direction,'worsening');
 
 console.log('BROILER PERFORMANCE INTELLIGENCE V6.4 TESTS: PASS');

@@ -45,22 +45,22 @@
       height:77.5%!important;
       background-image:url("__SPRITE__")!important;
       background-repeat:no-repeat!important;
-      background-size:600% auto!important;
-      background-position:0% 0%!important;
+      background-size:432px 112px!important;\n      image-rendering:auto!important;
+      background-position:0 0!important;
       background-color:transparent!important;
       pointer-events:none!important;
     }
 
-    .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:20% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="farm"]::before{background-position:40% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="flock"]::before{background-position:60% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:80% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="healthcare"]::before{background-position:100% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="mortality"]::before{background-position:0% 100%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="report"]::before{background-position:20% 100%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="archive"]::before{background-position:40% 100%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="settings"]::before{background-position:60% 100%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0 0!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:-72px 0!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="farm"]::before{background-position:-144px 0!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="flock"]::before{background-position:-216px 0!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:-288px 0!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="healthcare"]::before{background-position:-360px 0!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="mortality"]::before{background-position:0 -56px!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="report"]::before{background-position:-72px -56px!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="archive"]::before{background-position:-144px -56px!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="settings"]::before{background-position:-216px -56px!important}
 
     .dashboard-page .bottom-nav button > .adi-exact-icon{
       --icon-box:32px;
@@ -70,12 +70,12 @@
     }
 
     .dashboard-page .bottom-nav .adi-exact-icon::before{
-      width:100%!important;height:77.5%!important;
+      width:32px!important;height:25px!important;
     }
 
-    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="farm"]::before{background-position:40% 0%!important}
-    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:80% 0%!important}
-    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="report"]::before{background-position:20% 100%!important}
+    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="farm"]::before{background-position:-144px 0!important}
+    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:-288px 0!important}
+    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="report"]::before{background-position:-72px -56px!important}
 
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{

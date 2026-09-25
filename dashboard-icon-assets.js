@@ -102,15 +102,30 @@ window.ADI_DASHBOARD_ICON_SPRITE = "UklGRnSLAABXRUJQVlA4TGeLAAAvz0IuEFX5f///3S43
   }
 
   function applyBottom(){
+    const mapping = {
+      "Dashboard.html":"flock",
+      "Farms.html":"farm",
+      "weekly.html":"weeklyReport",
+      "reports.html":"report"
+    };
+
     document.querySelectorAll(".dashboard-page .bottom-nav button").forEach(function(btn){
       const nav = btn.getAttribute("data-nav") || "";
       let name = null;
-      if(nav.indexOf("Farms.html") !== -1) name = "farm";
-      if(nav.indexOf("reports.html") !== -1) name = "report";
+
+      Object.keys(mapping).some(function(key){
+        if(nav.indexOf(key) !== -1){
+          name = mapping[key];
+          return true;
+        }
+        return false;
+      });
+
       if(!name) return;
-      const holder = btn.querySelector("[data-icon]");
-      if(!holder) return;
-      holder.outerHTML = iconMarkup(name);
+
+      const label = btn.querySelector("small");
+      const labelHtml = label ? label.outerHTML : "";
+      btn.innerHTML = iconMarkup(name) + labelHtml;
       btn.classList.add("adi-icon-ready");
     });
   }

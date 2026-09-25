@@ -1,98 +1,96 @@
-/* DASHBOARD ICON FIX — external PNG sprite, CSS background crop
-   Purpose: render the exact approved icon artwork without data-URI/WebP
-   and without subpixel <img> positioning. */
+/* DASHBOARD ICON FIX — exact approved PNG sprite, aspect-ratio-safe renderer
+   Sprite: 720x186 = 6 columns x 2 rows, each cell 120x93.
+   Never stretch the sprite vertically. Render one exact cell at 600% auto. */
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons.png?v=20260925.3';
+  var SRC = 'assets/dashboard-icons.png?v=20260925.4';
 
-  // Sprite: 6 columns x 2 rows, each cell 120x93.
-  // Main dashboard uses the first 10 approved assets.
   var pos = {
-    accounting: [0,0],
-    professionals: [20,0],
-    farm: [40,0],
-    flock: [60,0],
-    weeklyReport: [80,0],
-    healthcare: [100,0],
-    mortality: [0,100],
-    report: [20,100],
-    archive: [40,100],
-    settings: [60,100]
+    accounting:0, professionals:1, farm:2, flock:3, weeklyReport:4,
+    healthcare:5, mortality:6, report:7, archive:8, settings:9
   };
 
   var css = document.createElement('style');
   css.id = 'dashboard-exact-icon-css';
   css.textContent = `
-    /* Main icon holder: background crop, no nested image positioning. */
     .dashboard-page .adi-exact-icon{
+      --icon-box:72px;
       position:relative!important;
       display:block!important;
-      width:58px!important;
-      height:58px!important;
-      min-width:58px!important;
-      min-height:58px!important;
-      flex:0 0 58px!important;
-      margin:0!important;
+      width:var(--icon-box)!important;
+      height:var(--icon-box)!important;
+      min-width:var(--icon-box)!important;
+      min-height:var(--icon-box)!important;
+      flex:0 0 var(--icon-box)!important;
+      margin:0 0 10px 0!important;
       padding:0!important;
       border:0!important;
       border-radius:0!important;
       box-shadow:none!important;
-      background-color:transparent!important;
-      background-image:url("${SRC}")!important;
-      background-repeat:no-repeat!important;
-      background-size:600% 200%!important;
-      background-position:0% 0%!important;
+      background:transparent!important;
       overflow:hidden!important;
       opacity:1!important;
       visibility:visible!important;
       line-height:0!important;
     }
 
-    .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]{background-position:0% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]{background-position:20% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="farm"]{background-position:40% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="flock"]{background-position:60% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="weeklyReport"]{background-position:80% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="healthcare"]{background-position:100% 0%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="mortality"]{background-position:0% 100%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="report"]{background-position:20% 100%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="archive"]{background-position:40% 100%!important}
-    .dashboard-page .adi-exact-icon[data-exact-icon="settings"]{background-position:60% 100%!important}
-
-    /* Bottom nav: keep خانه semantic home SVG from poultry-icons.
-       Replace only فارم‌ها / هفتگی / گزارش with exact approved artwork. */
-    .dashboard-page .bottom-nav .adi-exact-icon{
-      width:32px!important;
-      height:32px!important;
-      min-width:32px!important;
-      min-height:32px!important;
-      flex:0 0 32px!important;
+    .dashboard-page .adi-exact-icon::before{
+      content:""!important;
+      position:absolute!important;
+      left:0!important;
+      top:50%!important;
+      transform:translateY(-50%)!important;
+      width:100%!important;
+      height:77.5%!important;
+      background-image:url("__SPRITE__")!important;
+      background-repeat:no-repeat!important;
+      background-size:600% auto!important;
+      background-position:0% 0%!important;
+      background-color:transparent!important;
+      pointer-events:none!important;
     }
-    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="farm"]{background-position:40% 0%!important}
-    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="weeklyReport"]{background-position:80% 0%!important}
-    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="report"]{background-position:20% 100%!important}
+
+    .dashboard-page .adi-exact-icon[data-exact-icon="accounting"]::before{background-position:0% 0%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="professionals"]::before{background-position:20% 0%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="farm"]::before{background-position:40% 0%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="flock"]::before{background-position:60% 0%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:80% 0%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="healthcare"]::before{background-position:100% 0%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="mortality"]::before{background-position:0% 100%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="report"]::before{background-position:20% 100%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="archive"]::before{background-position:40% 100%!important}
+    .dashboard-page .adi-exact-icon[data-exact-icon="settings"]::before{background-position:60% 100%!important}
+
+    .dashboard-page .bottom-nav button > .adi-exact-icon{
+      --icon-box:32px;
+      width:32px!important;height:32px!important;
+      min-width:32px!important;min-height:32px!important;
+      flex:0 0 32px!important;margin:0!important;
+    }
+
+    .dashboard-page .bottom-nav .adi-exact-icon::before{
+      width:100%!important;height:77.5%!important;
+    }
+
+    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="farm"]::before{background-position:40% 0%!important}
+    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:80% 0%!important}
+    .dashboard-page .bottom-nav .adi-exact-icon[data-exact-icon="report"]::before{background-position:20% 100%!important}
 
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{
-        width:52px!important;
-        height:52px!important;
-        min-width:52px!important;
-        min-height:52px!important;
-        flex-basis:52px!important;
+        --icon-box:64px;width:64px!important;height:64px!important;
+        min-width:64px!important;min-height:64px!important;flex-basis:64px!important;
       }
     }
 
     @media(max-width:380px){
       .dashboard-page .adi-exact-icon{
-        width:48px!important;
-        height:48px!important;
-        min-width:48px!important;
-        min-height:48px!important;
-        flex-basis:48px!important;
+        --icon-box:56px;width:56px!important;height:56px!important;
+        min-width:56px!important;min-height:56px!important;flex-basis:56px!important;
       }
     }
-  `;
+  `.replace(/__SPRITE__/g, SRC);
   document.head.appendChild(css);
 
   function holder(name){
@@ -122,7 +120,6 @@
         nav.indexOf('weekly.html')!==-1 ? 'weeklyReport' :
         nav.indexOf('reports.html')!==-1 ? 'report' : null;
 
-      // خانه intentionally stays on the semantic home icon.
       if(!name || btn.querySelector('.adi-exact-icon')) return;
 
       var label=btn.querySelector('small');
@@ -138,17 +135,16 @@
     replaceBottom();
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',function(){
-      repair();
-      setTimeout(repair,100);
-      setTimeout(repair,500);
-      setTimeout(repair,1000);
-    },{once:true});
-  }else{
+  function boot(){
     repair();
     setTimeout(repair,100);
     setTimeout(repair,500);
     setTimeout(repair,1000);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',boot,{once:true});
+  }else{
+    boot();
   }
 })();

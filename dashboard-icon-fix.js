@@ -23,7 +23,7 @@
       min-width:var(--icon-box)!important;
       min-height:var(--icon-box)!important;
       flex:0 0 var(--icon-box)!important;
-      margin:0 0 10px 0!important;
+      margin:0!important;
       padding:0!important;
       border:0!important;
       border-radius:0!important;

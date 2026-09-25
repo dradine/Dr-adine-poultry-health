@@ -21,20 +21,16 @@ function injectStyle(){
 .dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon{
   display:block!important;width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;
   flex:0 0 36px!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;
-  background-image:url(${SPRITE})!important;background-repeat:no-repeat!important;background-size:180px 72px!important;
-  background-color:transparent!important;transform:scale(1.72)!important;transform-origin:center center!important;
-  filter:drop-shadow(0 3px 3px rgba(17,82,62,.20))!important;opacity:1!important;
+  background:transparent!important;position:relative!important;overflow:hidden!important;
+  transform:scale(1.72)!important;transform-origin:center center!important;
+  box-shadow:none!important;filter:drop-shadow(0 3px 3px rgba(17,82,62,.20))!important;
 }
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="accounting"]{background-position:0 0!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="professionals"]{background-position:-36px 0!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="farm"]{background-position:-72px 0!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="flock"]{background-position:-108px 0!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="weeklyReport"]{background-position:-144px 0!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="healthcare"]{background-position:0 -36px!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="mortality"]{background-position:-36px -36px!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="report"]{background-position:-72px -36px!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="archive"]{background-position:-108px -36px!important}
-.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-icon[data-approved-icon="settings"]{background-position:-144px -36px!important}
+.dashboard-page .dashboard-grid .menu-card .menu-icon .adine-approved-sprite{
+  position:absolute!important;left:0;top:0;width:180px!important;height:72px!important;
+  max-width:none!important;max-height:none!important;display:block!important;padding:0!important;margin:0!important;
+  border:0!important;border-radius:0!important;object-fit:fill!important;
+  opacity:1!important;visibility:visible!important;pointer-events:none!important;
+}
 .dashboard-page .dashboard-grid .menu-card:hover .menu-icon{transform:translateY(-2px)!important;box-shadow:0 14px 30px rgba(16,58,46,.16),inset 0 1px 0 rgba(255,255,255,.98)!important}
 .dashboard-page .dashboard-grid .menu-card .menu-icon{transition:transform .18s ease,box-shadow .18s ease!important}
 @media(max-width:600px){

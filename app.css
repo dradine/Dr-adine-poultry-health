@@ -114,3 +114,31 @@ input,textarea{touch-action:manipulation}
 .dashboard-page .bottom-nav button.active{color:#68736f!important}
 .dashboard-page .bottom-nav .adi-svg-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:2.05!important;stroke-linecap:round!important;stroke-linejoin:round!important}
 .dashboard-page .bottom-nav button>span:first-child{color:inherit!important}
+
+
+/* DASHBOARD EXACT ICON BOX — final size override
+   The approved artwork renderer is intentionally larger than the legacy
+   58px icon box so the artwork has room to breathe without being clipped. */
+.dashboard-page .menu-icon{
+  width:72px!important;
+  height:72px!important;
+  min-width:72px!important;
+  min-height:72px!important;
+  overflow:hidden!important;
+}
+@media(max-width:600px){
+  .dashboard-page .menu-icon{
+    width:64px!important;
+    height:64px!important;
+    min-width:64px!important;
+    min-height:64px!important;
+  }
+}
+@media(max-width:380px){
+  .dashboard-page .menu-icon{
+    width:56px!important;
+    height:56px!important;
+    min-width:56px!important;
+    min-height:56px!important;
+  }
+}

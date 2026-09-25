@@ -21,19 +21,10 @@ function css(){
    No new SVG artwork, no emoji, no mixed icon families.
 */
 .dashboard-page .menu-card .menu-icon{
-  width:76px!important;
-  height:76px!important;
-  min-width:76px!important;
-  min-height:76px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  background:#fff!important;
-  border:1px solid rgba(31,96,75,.18)!important;
-  border-radius:20px!important;
-  box-shadow:
-    0 8px 20px rgba(15,61,48,.10),
-    inset 0 0 0 1px rgba(255,255,255,.95)!important;
+  width:76px!important;height:76px!important;min-width:76px!important;min-height:76px!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  background:#fff!important;border:1px solid rgba(31,96,75,.18)!important;
+  border-radius:20px!important;box-shadow:0 8px 20px rgba(15,61,48,.10)!important;
   overflow:hidden!important;
 }
 

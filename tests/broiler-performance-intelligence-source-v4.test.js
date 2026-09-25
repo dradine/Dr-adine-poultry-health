@@ -15,7 +15,7 @@ assert.strictEqual(out.canonicalTargets.cumulativeFcr,1.386,'PI cumulative FCR m
 assert.notStrictEqual(out.canonicalTargets.weight,1024,'row standard_weight must never override canonical target');
 assert.strictEqual(out.targetAuthority,'canonical-broiler-standards-engine');
 assert.strictEqual(out.targetResolver,'broilerCanonicalMetricTarget');
-assert.strictEqual(out.targetResolverVersion,'BROILER-CANONICAL-STANDARDS-V4');
+assert.strictEqual(out.targetResolverVersion,'BROILER-CANONICAL-STANDARDS-V4.1');
 assert.strictEqual(typeof R.enrich,'function');
 assert.strictEqual(typeof R.weeklyEvaluationStandard,'function');
 

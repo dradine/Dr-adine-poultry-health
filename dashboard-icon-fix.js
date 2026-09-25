@@ -5,7 +5,7 @@
 (function(){
   'use strict';
 
-  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.81';
+  var SRC = 'assets/dashboard-icons-tight.png?v=20260925.82';
 
   var allowed = {
     accounting:1, professionals:1, farm:1, flock:1, weeklyReport:1,
@@ -78,7 +78,7 @@
       color:#5E786C!important;
       filter:drop-shadow(0 2px 4px rgba(54,72,88,.16))!important;
     }
-    .dashboard-page .bottom-nav button > .adi-exact-icon.adi-special-icon svg{
+    .dashboard-page .bottom-nav button > .adi-exact-icon.adi-special-icon svg,
       width:30px!important;
       height:30px!important;
       min-width:30px!important;
@@ -106,16 +106,61 @@
     .dashboard-page .adi-exact-icon[data-exact-icon="archive"]::before{background-position:-216px -72px!important}
     .dashboard-page .adi-exact-icon[data-exact-icon="settings"]::before{background-position:-288px -72px!important}
 
-    .dashboard-page .bottom-nav button > .adi-exact-icon{
+    .bottom-nav button > .adi-exact-icon{
       --icon-box:30px;
       --icon-scale:.4166666667;
+      position:relative!important;
+      display:block!important;
       width:30px!important;
       height:30px!important;
       min-width:30px!important;
       min-height:30px!important;
       flex:0 0 30px!important;
       margin:0!important;
+      padding:0!important;
+      border:0!important;
+      border-radius:0!important;
+      box-shadow:none!important;
+      background:transparent!important;
+      overflow:hidden!important;
+      opacity:1!important;
+      visibility:visible!important;
+      line-height:0!important;
     }
+    .bottom-nav button > .adi-exact-icon::before{
+      content:""!important;
+      position:absolute!important;
+      left:50%!important;
+      top:50%!important;
+      transform:translate(-50%,-50%) scale(var(--icon-scale))!important;
+      transform-origin:center center!important;
+      width:72px!important;
+      height:72px!important;
+      background-image:url("__SPRITE__")!important;
+      background-repeat:no-repeat!important;
+      background-size:360px 144px!important;
+      background-position:0 0!important;
+      background-color:transparent!important;
+      pointer-events:none!important;
+      filter:brightness(0) saturate(100%) invert(46%) sepia(13%) saturate(510%) hue-rotate(104deg) brightness(91%) contrast(84%) drop-shadow(0 1px 3px rgba(54,72,88,.13))!important;
+    }
+    .bottom-nav button > .adi-exact-icon.adi-special-icon{
+      overflow:visible!important;
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+    }
+    .bottom-nav button > .adi-exact-icon.adi-special-icon::before{display:none!important}
+    .bottom-nav button > .adi-exact-icon.adi-special-icon svg{
+      width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;
+      display:block!important;fill:none!important;stroke:currentColor!important;
+      stroke-width:2.5!important;stroke-linecap:round!important;stroke-linejoin:round!important;
+      color:#5E786C!important;filter:drop-shadow(0 2px 4px rgba(54,72,88,.16))!important;
+    }
+    .bottom-nav button > .adi-exact-icon[data-exact-icon="home"]::before{display:none!important}
+    .bottom-nav button > .adi-exact-icon[data-exact-icon="farm"]::before{background-position:-144px 0!important}
+    .bottom-nav button > .adi-exact-icon[data-exact-icon="weeklyReport"]::before{background-position:-288px 0!important}
+    .bottom-nav button > .adi-exact-icon[data-exact-icon="report"]::before{background-position:-144px -72px!important}
     @media(max-width:600px){
       .dashboard-page .adi-exact-icon{
         --icon-box:50px;
@@ -170,13 +215,14 @@
   }
 
   function replaceBottom(){
-    document.querySelectorAll('.dashboard-page .bottom-nav button').forEach(function(btn){
+    document.querySelectorAll('.bottom-nav button').forEach(function(btn){
       var nav=btn.getAttribute('data-nav')||'';
       var name =
         nav.indexOf('Dashboard.html')!==-1 ? 'home' :
         nav.indexOf('Farms.html')!==-1 ? 'farm' :
         nav.indexOf('weekly.html')!==-1 ? 'weeklyReport' :
-        nav.indexOf('reports.html')!==-1 ? 'report' : null;
+        nav.indexOf('reports.html')!==-1 ? 'report' :
+        btn.querySelector('[data-icon]')?.getAttribute('data-icon') || null;
       if(!name) return;
       var label=btn.querySelector('small');
       var icon=holder(name);

@@ -26,11 +26,12 @@ window.ADI_DASHBOARD_ICON_SPRITE = "UklGRnSLAABXRUJQVlA4TGeLAAAvz0IuEFX5f///3S43
   function iconMarkup(name){
     const pos = names[name];
     if(!pos) return "";
-    const x = pos[0] * CELL_W;
-    const y = pos[1] * CELL_H;
+    const scale = 312 / W;
+    const x = pos[0] * CELL_W * scale;
+    const y = pos[1] * CELL_H * scale;
     return '<span class="adi-exact-icon" data-exact-icon="'+name+'" aria-hidden="true">' +
       '<img alt="" draggable="false" src="data:image/webp;base64,'+sprite+'" ' +
-      'style="position:absolute!important;left:'+(-x)+'px!important;top:'+(-y)+'px!important;width:'+W+'px!important;height:auto!important;max-width:none!important;">' +
+      'style="position:absolute!important;left:'+(-x)+'px!important;top:'+(-y)+'px!important;height:auto!important;">' +
       '</span>';
   }
 

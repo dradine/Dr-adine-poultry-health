@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const context={console};context.window=context;
 vm.runInNewContext(fs.readFileSync('broiler-comprehensive-report-engine-v2.js','utf8'),context);
 const E=context.AdineBroilerComprehensiveReportEngineV2;
-assert.ok(E&&E.version==='BROILER-COMPREHENSIVE-V2');
+assert.ok(E&&E.version==='BROILER-COMPREHENSIVE-V2.4');
 const flock={id:'test-flock',production_type:'broiler',strain:'Ross 308 AP',initial_bird_count:10000,initial_average_weight_g:44};
 const rows=[
  {week_number:1,age_days:7,average_weight_g:214,fcr:.78,cumulative_fcr:.772,mortality_count:20,live_birds:9980,cv:12,uniformity_10:75,uniformity_15:88,feed_total_kg:1200,weights:[200,210,215,220,225]},

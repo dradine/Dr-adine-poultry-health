@@ -47,7 +47,7 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
     const prevAge=i>0?A[i-1]:null,po=prevAge===null?null:rec(s.records,prevAge),pm=prevAge===null?null:rec(s.managementRecords,prevAge);
     const pw=n(po?.[1])??n(pm?.[1]),pcf=n(po?.[2])??n(pm?.[2]);
     const feed=w!==null&&cf!==null&&iw!==null?cf*(w-iw):null,prevFeed=prevAge===null?0:(pw!==null&&pcf!==null&&iw!==null?pcf*(pw-iw):null),gain=prevAge===null?(w!==null&&iw!==null?w-iw:null):(w!==null&&pw!==null?w-pw:null);
-    const weeklyFcr=feed!==null&&prevFeed!==null&&gain!==null&&gain>0?(feed-prevFeed)/gain:null,adg=gain!==null?gain/7:null,feedDay=feed!==null&&prevFeed!==null?(feed-prevFeed)/7:null,mi=A.indexOf(a);
+    let weeklyFcr=feed!==null&&prevFeed!==null&&gain!==null&&gain>0?(feed-prevFeed)/gain:null; if(weeklyFcr===null&&i===0&&cf!==null&&w!==null&&iw!==null&&w>iw) weeklyFcr=cf; const adg=gain!==null?gain/7:null,feedDay=feed!==null&&prevFeed!==null?(feed-prevFeed)/7:null,mi=A.indexOf(a);
     const managementMetric=k=>mi>=0?(M?.[k]?.[mi]??null):null;
     const officialWeight=n(o?.[1])!==null,officialCf=n(o?.[2])!==null,previousOfficial=prevAge===null||(n(po?.[1])!==null&&n(po?.[2])!==null),officialDerived=(officialWeight&&officialCf&&previousOfficial);
     const ret=(value,targetType,sourceType,label)=>value===null?null:{value,targetType,sourceType,sourceLabel:label,standardAgeDays:a,requestedAgeDays:requestedAge,evaluationWeek:i+1,windowMinDays:ageWindow[a].min,windowMaxDays:ageWindow[a].max};

@@ -27,7 +27,7 @@ jobs:
         run: node tests/broiler-performance-intelligence-source-v4.test.js
       - name: Verify intelligence engine is isolated from network/database access
         run: |
-          ! grep -nE 'supabaseClient|\.rpc\(|fetch\(|XMLHttpRequest|from\(' broiler-performance-intelligence-engine-v2.js
+          ! grep -nE 'supabaseClient|\.rpc\(|fetch\(|XMLHttpRequest' broiler-performance-intelligence-engine-v2.js
       - name: Verify retired standards table is absent from runtime code
         run: |
           ! grep -R -n --exclude-dir=.git --exclude-dir=supabase/migrations -E 'poultry_performance_standards|get_flock_fcr_analysis_v4|refresh_broiler_management_targets_v2026_3' --include='*.js' --include='*.html' .

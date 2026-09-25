@@ -14,6 +14,7 @@
     I.archive='<svg viewBox="0 0 48 48"><path d="M7 10h34v8H7zM10 18h28v22H10zM7 10V7h34v3M18 25h12M18 31h12M20 18v-4h8v4"/></svg>';
     I.settings='<svg viewBox="0 0 48 48"><path d="M20 7h8l1 5 5 2 4-2 4 7-4 3v5l4 3-4 7-4-2-5 2-1 5h-8l-1-5-5-2-4 2-4-7 4-3v-5l-4-3 4-7 4 2 5-2z"/><circle cx="24" cy="24" r="7"/><circle cx="24" cy="24" r="2"/></svg>';
     I.professionals='<svg viewBox="0 0 48 48"><circle cx="20" cy="14" r="7"/><path d="M8 39c1-8 6-13 12-13s11 5 12 13M14 14c0-4 3-7 6-7s6 3 6 7M30 24h9v15h-9zM34.5 27v9M31.5 31.5h6M34 18v6M31 21h6"/></svg>';
+    document.querySelectorAll(".menu-icon.adi-icon-ready").forEach(function(el){el.classList.remove("adi-icon-ready");});
     window.AdiPoultryIcons.scan();
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",apply,{once:true});

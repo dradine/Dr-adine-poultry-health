@@ -25,6 +25,7 @@ for(const strain of Object.keys(R.strains)){
   const flock={production_type:'broiler',genetics:s.family,strain};
   for(const age of R.weeklyAges){
     const row=S.enrich(flock,[{id:`${strain}-${age}`,age_days:age}])[0];
+    if(strain==='Efficiency Plus' && age===7) console.log('DEBUG_EFFICIENCY_PLUS_D7',JSON.stringify(row.canonicalTargets),JSON.stringify(row));
     assert(row.canonicalTargets.weight>0,`${strain} day ${age}: weight target missing`);
     assert(row.canonicalTargets.fcr>0,`${strain} day ${age}: weekly FCR target missing`);
     assert(row.canonicalTargets.cumulativeFcr>0,`${strain} day ${age}: cumulative FCR target missing`);

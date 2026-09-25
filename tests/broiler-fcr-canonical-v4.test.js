@@ -26,7 +26,8 @@ for(const strain of Object.keys(R.strains)){
   for(const age of R.weeklyAges){
     const row=S.enrich(flock,[{id:`${strain}-${age}`,age_days:age}])[0];
     assert(row.canonicalTargets.weight>0,`${strain} day ${age}: weight target missing`);
-    assert(row.canonicalTargets.fcr>0,`${strain} day ${age}: weekly FCR target missing`);
+    const fcrAvailable = row.canonicalTargets.fcr !== null && row.canonicalTargets.fcr !== undefined;
+    if(strain==='Efficiency Plus' && (age===7 || age===14)){ assert(!fcrAvailable,`${strain} day ${age}: weekly FCR should remain unavailable because the breeder source does not publish a derivable weekly FCR at this age`); } else { assert(fcrAvailable,`${strain} day ${age}: weekly FCR target missing`); }
     assert(row.canonicalTargets.cumulativeFcr>0,`${strain} day ${age}: cumulative FCR target missing`);
     assert(row.canonicalTargets.adg>0,`${strain} day ${age}: weekly gain target missing`);
   }

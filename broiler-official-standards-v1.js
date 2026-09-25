@@ -27,7 +27,7 @@ const BROILER_OFFICIAL_STANDARDS_V1=Object.freeze({
 });
 (function(g){
   const R=BROILER_OFFICIAL_STANDARDS_V1,A=R.weeklyAges,M=R.managementProfile;
-  const n=v=>{const x=Number(v);return Number.isFinite(x)?x:null};
+  const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(v);return Number.isFinite(x)?x:null};
   const rec=(a,age)=>Array.isArray(a)?a.find(r=>n(r?.[0])===n(age))||null:null;
   /* A broiler measurement belongs to a weekly evaluation point when it is
      within +/-1 day of the catalogue age. This is intentionally centralized

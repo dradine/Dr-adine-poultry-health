@@ -58,16 +58,16 @@ input,textarea{touch-action:manipulation}
 /* =========================================================
    DASHBOARD ICON SYSTEM — MODERN SEMANTIC PALETTE
    ========================================================= */
-.dashboard-page .menu-card:nth-child(1) .menu-icon{color:#68736f;background:linear-gradient(145deg,#effaf4,#dff3e8)}
-.dashboard-page .menu-card:nth-child(2) .menu-icon{color:#68736f;background:linear-gradient(145deg,#f1f7fc,#e4eef7)}
-.dashboard-page .menu-card:nth-child(3) .menu-icon{color:#68736f;background:linear-gradient(145deg,#f1f8f4,#e3f1ea)}
-.dashboard-page .menu-card:nth-child(4) .menu-icon{color:#68736f;background:linear-gradient(145deg,#f4f5fa,#e8ebf3)}
-.dashboard-page .menu-card:nth-child(5) .menu-icon{color:#68736f;background:linear-gradient(145deg,#fbf7ef,#f2ead9)}
-.dashboard-page .menu-card:nth-child(6) .menu-icon{color:#68736f;background:linear-gradient(145deg,#effaf5,#dcefe8)}
-.dashboard-page .menu-card:nth-child(7) .menu-icon{color:#68736f;background:linear-gradient(145deg,#fff3f3,#f8e2e4)}
-.dashboard-page .menu-card:nth-child(8) .menu-icon{color:#68736f;background:linear-gradient(145deg,#f1f7fb,#e3edf4)}
-.dashboard-page .menu-card:nth-child(9) .menu-icon{color:#68736f;background:linear-gradient(145deg,#f4f7f1,#e7ede2)}
-.dashboard-page .menu-card:nth-child(10) .menu-icon{color:#68736f;background:linear-gradient(145deg,#f3f5fb,#e7eaf4)}
+.dashboard-page .menu-card:nth-child(1) .menu-icon,
+.dashboard-page .menu-card:nth-child(2) .menu-icon,
+.dashboard-page .menu-card:nth-child(3) .menu-icon,
+.dashboard-page .menu-card:nth-child(4) .menu-icon,
+.dashboard-page .menu-card:nth-child(5) .menu-icon,
+.dashboard-page .menu-card:nth-child(6) .menu-icon,
+.dashboard-page .menu-card:nth-child(7) .menu-icon,
+.dashboard-page .menu-card:nth-child(8) .menu-icon,
+.dashboard-page .menu-card:nth-child(9) .menu-icon,
+.dashboard-page .menu-card:nth-child(10) .menu-icon{color:#536879!important;background:linear-gradient(145deg,#f6f8fa,#e9eef2)!important;}
 .dashboard-page .menu-icon{transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
 .dashboard-page .menu-card:hover .menu-icon{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 8px 18px rgba(23,63,53,.13)}
 .dashboard-page .menu-icon .adi-svg-icon svg{stroke-width:2.05}
@@ -107,11 +107,11 @@ input,textarea{touch-action:manipulation}
 .dashboard-page .menu-card:nth-child(7) .menu-icon,
 .dashboard-page .menu-card:nth-child(8) .menu-icon,
 .dashboard-page .menu-card:nth-child(9) .menu-icon,
-.dashboard-page .menu-card:nth-child(10) .menu-icon{color:#68736f!important}
+.dashboard-page .menu-card:nth-child(10) .menu-icon{color:#536879!important}
 .dashboard-page .menu-icon .adi-svg-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:2.05!important;stroke-linecap:round!important;stroke-linejoin:round!important}
-.dashboard-page .menu-icon[data-icon="farm"] .adi-farm-detailed{color:#68736f!important;stroke-width:2.05!important}
+.dashboard-page .menu-icon[data-icon="farm"] .adi-farm-detailed{color:#536879!important;stroke-width:2.05!important}
 .dashboard-page .bottom-nav button,
-.dashboard-page .bottom-nav button.active{color:#68736f!important}
+.dashboard-page .bottom-nav button.active{color:#536879!important}
 .dashboard-page .bottom-nav .adi-svg-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:2.05!important;stroke-linecap:round!important;stroke-linejoin:round!important}
 .dashboard-page .bottom-nav button>span:first-child{color:inherit!important}
 

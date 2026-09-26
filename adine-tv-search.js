@@ -1,6 +1,7 @@
 (() => {
   const ENDPOINT = 'https://vzcczkavlopznljnnehp.supabase.co/functions/v1/video-search';
-  const LIVE_CONFIG = {enabled:false,provider:'youtube',url:'',title:'شبکه سلامت طیور',description:'پخش زنده برنامه‌ها، وبینارها و رویدادهای تخصصی صنعت طیور.'};
+  const LIVE_CONFIG = {enabled:false,provider:'embed',url:'',embedUrl:'',title:'شبکه سلامت طیور',description:'پخش زنده برنامه‌ها، وبینارها و رویدادهای تخصصی صنعت طیور.',posterUrl:''};
+  let liveHls = null;
 
   const curated = [
     {source:'youtube',platform:'YouTube',curated:true,title:'اصول تهویه در پرورش مرغ گوشتی — جانمایی تجهیزات در سالن مرغداری',description:'ویدئوی آموزشی تخصصی درباره تهویه و تجهیزات سالن مرغ گوشتی.',url:'https://www.youtube.com/watch?v=NzcVK_hUhs8',embedUrl:'https://www.youtube.com/embed/NzcVK_hUhs8',thumbnail:'https://i.ytimg.com/vi/NzcVK_hUhs8/hqdefault.jpg',queryTerms:['تهویه','مرغ گوشتی','فن','اینلت','ventilation','broiler']},
@@ -109,34 +110,75 @@
   }
 
 
-  function initLive(){
+  function normalizeLive(row){
+    if(!row)return null;
+    const provider=String(row.provider||'embed').toLowerCase();
+    const sourceUrl=String(row.source_url||'').trim();
+    const embedUrl=String(row.embed_url||'').trim();
+    return {
+      enabled:row.is_live===true,
+      provider,
+      url:sourceUrl,
+      embedUrl,
+      title:String(row.title||'شبکه سلامت طیور'),
+      description:String(row.description||'پخش زنده برنامه‌ها، وبینارها و رویدادهای تخصصی صنعت طیور.'),
+      posterUrl:String(row.poster_url||'')
+    };
+  }
+
+  function clearLivePlayer(){
     const player=document.getElementById('tv-live-player');
-    const status=document.getElementById('tv-live-status');
+    if(liveHls){try{liveHls.destroy()}catch(_){} liveHls=null;}
+    if(player)player.innerHTML='<div class="live-placeholder"><span class="live-dot"></span><strong>در حال حاضر برنامه زنده‌ای روی شبکه نیست</strong><small>هر زمان منبع پخش زنده متصل شود، پخش از همین بخش انجام می‌شود.</small></div>';
+  }
+
+  function setLiveStatus(text){
+    const el=document.getElementById('tv-live-status'); if(el)el.textContent=text;
+  }
+
+  async function initLive(){
+    const player=document.getElementById('tv-live-player');
     const title=document.getElementById('tv-live-title');
     const desc=document.getElementById('tv-live-description');
-    if(!player||!status)return;
-    if(title)title.textContent=LIVE_CONFIG.title||'شبکه سلامت طیور';
-    if(desc)desc.textContent=LIVE_CONFIG.description||'پخش زنده برنامه‌های تخصصی صنعت طیور.';
-    const raw=String(LIVE_CONFIG.url||'').trim();
-    if(!LIVE_CONFIG.enabled||!raw){
-      status.textContent='پخش زنده فعال نیست';
-      return;
-    }
-    let embed='';
-    const yt=raw.match(/(?:youtube\.com\/(?:watch\?v=|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
-    if(yt) embed='https://www.youtube.com/embed/'+yt[1]+'?autoplay=1';
-    else if(/^https?:\/\/.*\.(?:m3u8)(?:\?.*)?$/i.test(raw)){
-      player.innerHTML='<video controls autoplay playsinline class="live-video" src="'+esc(raw)+'"></video>';
-      status.textContent='در حال پخش زنده';
-      return;
-    } else if(/^https?:\/\//i.test(raw)){
-      embed=raw;
-    }
-    if(embed){
-      player.innerHTML='<iframe class="live-iframe" src="'+esc(embed)+'" title="پخش زنده شبکه سلامت طیور" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
-      status.textContent='در حال پخش زنده';
-    } else {
-      status.textContent='منبع پخش قابل شناسایی نیست';
+    if(!player)return;
+    try{
+      if(!window.supabaseClient?.from)throw new Error('SUPABASE_NOT_READY');
+      const {data,error}=await window.supabaseClient.from('tv_live_streams')
+        .select('id,title,description,provider,source_url,embed_url,poster_url,is_live,starts_at,ends_at,sort_order')
+        .eq('is_live',true).order('sort_order',{ascending:true}).order('starts_at',{ascending:false}).limit(1).maybeSingle();
+      if(error)throw error;
+      const cfg=normalizeLive(data);
+      if(!cfg?.enabled){clearLivePlayer();setLiveStatus('پخش زنده فعال نیست');return;}
+      if(title)title.textContent=cfg.title;
+      if(desc)desc.textContent=cfg.description;
+      if(cfg.posterUrl)player.style.backgroundImage='url("'+esc(cfg.posterUrl)+'")';
+      const raw=cfg.embedUrl||cfg.url;
+      if(cfg.provider==='youtube'){
+        const m=raw.match(/(?:youtube\\.com\\/(?:watch\\?v=|live\\/)|youtu\\.be\\/)([A-Za-z0-9_-]{6,})/i);
+        if(!m)throw new Error('YOUTUBE_URL_INVALID');
+        player.innerHTML='<iframe class="live-iframe" src="https://www.youtube.com/embed/'+m[1]+'?autoplay=1&rel=0" title="پخش زنده شبکه سلامت طیور" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+      }else if(cfg.provider==='aparat'){
+        player.innerHTML='<iframe class="live-iframe" src="'+esc(raw)+'" title="پخش زنده شبکه سلامت طیور" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+      }else if(cfg.provider==='hls'){
+        player.innerHTML='<video class="live-video" controls playsinline poster="'+esc(cfg.posterUrl||'')+'"></video>';
+        const video=player.querySelector('video');
+        if(video.canPlayType('application/vnd.apple.mpegurl')){
+          video.src=raw;
+          video.addEventListener('error',()=>setLiveStatus('خطا در دریافت پخش زنده'));
+        }else if(window.Hls&&window.Hls.isSupported()){
+          liveHls=new Hls({enableWorker:true,lowLatencyMode:true});
+          liveHls.loadSource(raw); liveHls.attachMedia(video);
+          liveHls.on(Hls.Events.ERROR,(_,data)=>{if(data?.fatal)setLiveStatus('خطا در دریافت پخش زنده');});
+        }else{throw new Error('HLS_NOT_SUPPORTED');}
+        try{await video.play();}catch(_){setLiveStatus('برای شروع پخش، دکمه پخش را بزنید');return;}
+      }else{
+        player.innerHTML='<iframe class="live-iframe" src="'+esc(raw)+'" title="پخش زنده شبکه سلامت طیور" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+      }
+      setLiveStatus('در حال پخش زنده');
+    }catch(e){
+      console.warn('LIVE LOAD',e);
+      clearLivePlayer();
+      setLiveStatus('پخش زنده در دسترس نیست');
     }
   }
 

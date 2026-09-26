@@ -35,7 +35,7 @@
   const statusEl=document.getElementById('tv-search-status');
   const countEl=document.getElementById('tv-result-count');
   const moreBtn=document.getElementById('tv-search-more');
-  let allResults=[], nextPageToken='', activeSource='all', lastQuery='';
+  let allResults=[], nextPageToken='', nextWebPage=0, activeSource='all', lastQuery='';
 
   const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const matches=(item,q)=>{
@@ -69,11 +69,11 @@
     moreBtn.hidden=true;
     try{
       const params=new URLSearchParams({q,order:order.value,maxResults:'12'});
-      if(append && nextPageToken) params.set('pageToken',nextPageToken);
+      if(append){ if(nextPageToken) params.set('pageToken',nextPageToken); params.set('page',String(nextWebPage)); }
       const res=await fetch(ENDPOINT+'?'+params.toString(),{headers:{Accept:'application/json'}});
       const data=await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.message||'search_failed');
-      const incoming=(data.results||[]).map(x=>({...x,source:'youtube',live:true}));
+      const incoming=(data.results||[]).map(x=>({...x,source:x.source||'youtube',live:true}));
       if(!append) {
         const extras=curated.filter(x=>matches(x,q));
         allResults=[...incoming,...extras];
@@ -81,10 +81,10 @@
         const ids=new Set(allResults.map(x=>x.id||x.url));
         allResults=[...allResults,...incoming.filter(x=>!ids.has(x.id||x.url))];
       }
-      nextPageToken=data.nextPageToken||'';
+      nextPageToken=data.nextPageToken||''; nextWebPage=Number(data.nextPage||0);
       lastQuery=q;
       statusEl.textContent=data.live?'نتایج زنده دریافت شد':'نمایش منابع منتخب';
-      moreBtn.hidden=!nextPageToken;
+      moreBtn.hidden=!(nextPageToken||nextWebPage);
       render();
       document.getElementById('video-search').scrollIntoView({behavior:'smooth',block:'start'});
     }catch(err){

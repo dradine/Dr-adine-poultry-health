@@ -1,0 +1,18 @@
+{
+  "name": "مرکز تخصصی سلامت طیور آدینه",
+  "short_name": "آدینه طیور",
+  "description": "سامانه و خدمات تخصصی سلامت، پایش و مدیریت گله‌های طیور",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f3b2c",
+  "icons": [
+    {
+      "src": "/IMG_4309.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

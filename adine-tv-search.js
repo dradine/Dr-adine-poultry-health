@@ -74,7 +74,8 @@
       const data=await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.message||'search_failed');
       const incoming=(data.results||[]).map(x=>({...x,source:x.source||'youtube',live:true}));
-      if(!append) {\n        nextWebPage=0;
+      if(!append) {
+        nextWebPage=0;
         const extras=curated.filter(x=>matches(x,q));
         allResults=[...incoming,...extras];
       } else {

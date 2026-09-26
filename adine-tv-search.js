@@ -35,12 +35,27 @@
   const statusEl=document.getElementById('tv-search-status');
   const countEl=document.getElementById('tv-result-count');
   const moreBtn=document.getElementById('tv-search-more');
+  const categoriesEl=document.getElementById('categories');
   let allResults=[], nextPageToken='', nextWebPage=0, activeSource='all', lastQuery='', searching=false;
 
   const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const normalize=(s='')=>String(s).toLocaleLowerCase('fa').replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[ۀة]/g,'ه').replace(/[‌]/g,' ').replace(/\s+/g,' ').trim();
   const matches=(item,q)=>{
-    const hay=(item.title+' '+item.description+' '+(item.queryTerms||[]).join(' ')).toLocaleLowerCase('fa');
-    return q.trim().toLocaleLowerCase('fa').split(/\s+/).filter(Boolean).some(x=>hay.includes(x));
+    const hay=normalize(item.title+' '+item.description+' '+(item.queryTerms||[]).join(' '));
+    const tokens=normalize(q).split(/\s+/).filter(x=>x.length>1);
+    return tokens.length>0 && tokens.every(x=>hay.includes(x));
+  };
+  const rankResults=(items,q)=>{
+    const tokens=normalize(q).split(/\s+/).filter(x=>x.length>1);
+    return items.map(item=>{
+      const title=normalize(item.title||''), hay=normalize((item.title||'')+' '+(item.description||'')+' '+(item.channelTitle||''));
+      let score=0;
+      const phrase=normalize(q);
+      if(phrase && title.includes(phrase)) score+=12;
+      if(phrase && hay.includes(phrase)) score+=5;
+      tokens.forEach(t=>{if(title.includes(t))score+=4;else if(hay.includes(t))score+=1;});
+      return {...item,_score:score};
+    }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).map(({_score,...item})=>item);
   };
   const filtered=()=>activeSource==='all'?allResults:activeSource==='curated'?allResults.filter(x=>x.curated):allResults.filter(x=>x.source===activeSource);
 
@@ -81,16 +96,17 @@
       if(!append) {
         nextWebPage=0;
         const extras=curated.filter(x=>matches(x,q));
-        allResults=[...incoming,...extras];
+        allResults=rankResults([...incoming,...extras],q);
       } else {
         const ids=new Set(allResults.map(x=>x.id||x.url));
-        allResults=[...allResults,...incoming.filter(x=>!ids.has(x.id||x.url))];
+        allResults=rankResults([...allResults,...incoming.filter(x=>!ids.has(x.id||x.url))],q);
       }
       nextPageToken=data.nextPageToken||''; nextWebPage=Number(data.nextPage||0);
       lastQuery=q;
       statusEl.textContent=data.live?'نتایج زنده دریافت شد':'نمایش منابع منتخب';
       moreBtn.hidden=!(nextPageToken||nextWebPage);
       render();
+      if(categoriesEl) categoriesEl.hidden=true;
       if(!allResults.length){
         const yt='https://www.youtube.com/results?search_query='+encodeURIComponent(q+' مرغداری');
         resultsEl.innerHTML='<div class="search-empty search-no-results"><strong>نتیجه مستقیمی از منابع زنده دریافت نشد.</strong><span>برای ادامه، جستجوی همین موضوع در YouTube را باز کن.</span><a class="video-open" href="'+yt+'" target="_blank" rel="noopener noreferrer">جستجوی «'+esc(q)+'» در YouTube ↗</a></div>';
@@ -99,8 +115,9 @@
       document.getElementById('video-search').scrollIntoView({behavior:'smooth',block:'start'});
     }catch(err){
       const extras=curated.filter(x=>matches(x,q));
-      allResults=extras;
+      allResults=rankResults(extras,q);
       nextPageToken='';
+      if(categoriesEl) categoriesEl.hidden=true;
       statusEl.textContent=extras.length?'اتصال زنده در دسترس نبود؛ منابع منتخب نمایش داده شد':'اتصال جستجوی زنده برقرار نشد';
       render();
     } finally {
@@ -112,6 +129,9 @@
   }
 
   form.addEventListener('submit',e=>{e.preventDefault();search(input.value,false);});
+  input.addEventListener('input',()=>{
+    if(!searching && input.value.trim().length>0) statusEl.textContent='برای جستجو دکمه «جستجو» را بزنید';
+  });
   document.querySelectorAll('[data-query]').forEach(b=>b.addEventListener('click',()=>{input.value=b.dataset.query;search(b.dataset.query,false);}));
   document.querySelectorAll('.source-pill').forEach(b=>b.addEventListener('click',()=>{
     document.querySelectorAll('.source-pill').forEach(x=>x.classList.remove('active'));

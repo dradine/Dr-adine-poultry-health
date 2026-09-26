@@ -1,1 +1,69 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مدیریت پخش زنده | سلامت طیور TV</title></head><body><main><h1>مدیریت پخش زنده — سلامت طیور TV</h1><p>این صفحه برای مدیریت منبع پخش زنده استفاده می‌شود.</p></main></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مدیریت پخش زنده | سلامت طیور TV</title>
+<link rel="icon" href="/favicon.png">
+<style>
+:root{color-scheme:dark;--bg:#0b1713;--panel:#12241d;--line:#244236;--text:#edf6f0;--muted:#9eb3a8;--accent:#7bdc91;--danger:#ff7c7c}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#09130f,#10231b);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:1050px;margin:auto;padding:28px 16px 60px}header{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:20px}h1{margin:0;font-size:1.5rem}h2{font-size:1.05rem;margin:0 0 14px}p{color:var(--muted);line-height:1.8}.panel{background:rgba(18,36,29,.94);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 12px 35px #0003}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.full{grid-column:1/-1}label{display:grid;gap:7px;color:#cfe0d6;font-size:.88rem}input,select,textarea{width:100%;border:1px solid #2d5142;background:#0b1914;color:var(--text);border-radius:11px;padding:11px;font:inherit}textarea{min-height:85px;resize:vertical}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}button,.button{border:1px solid #35634f;background:#18372a;color:var(--text);padding:10px 14px;border-radius:11px;cursor:pointer;font:inherit;text-decoration:none}button.primary{background:#2b7140;border-color:#3f9557}button.danger{background:#4a2020;border-color:#743b3b}button:disabled{opacity:.5;cursor:not-allowed}.status{padding:10px 12px;border-radius:10px;background:#0d1d17;color:var(--muted);margin-bottom:12px}.status.ok{color:var(--accent)}.status.err{color:#ffaaaa}.stream{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;background:#0d1d17}.stream.live{border-color:#3d8151}.stream-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.badge{font-size:.76rem;border-radius:999px;padding:4px 9px;background:#273a31;color:#c8d8d0}.badge.live{background:#64332f;color:#ffd1ca}.meta{color:var(--muted);font-size:.85rem;word-break:break-all}.hidden{display:none!important}@media(max-width:700px){.grid{grid-template-columns:1fr}.full{grid-column:auto}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<main>
+<header><div><h1>مدیریت پخش زنده — سلامت طیور TV</h1><p>کنترل امن منبع پخش زنده؛ این صفحه فقط تنظیمات پخش را نگه می‌دارد و هیچ Stream Key عمومی نمی‌کند.</p></div><a class="button" href="adine-tv.html">بازگشت به TV</a></header>
+<div id="status" class="status">در حال بررسی دسترسی…</div>
+<section id="app" class="hidden">
+<div class="panel">
+<h2>افزودن / ویرایش پخش</h2>
+<form id="stream-form">
+<input type="hidden" id="id">
+<div class="grid">
+<label>عنوان<input id="title" required maxlength="160" placeholder="مثلاً برنامه زنده سلامت طیور"></label>
+<label>ارائه‌دهنده
+<select id="provider"><option value="youtube">YouTube Live</option><option value="aparat">Aparat</option><option value="hls">HLS / M3U8</option><option value="embed">Embed</option></select></label>
+<label class="full">Source URL<input id="source_url" type="url" required placeholder="https://..."></label>
+<label class="full">Embed / Playback URL <span class="meta">برای HLS همان URL پخش HLS را وارد کنید؛ برای YouTube/Aparat در صورت نیاز URL embed را وارد کنید.</span><input id="embed_url" type="url" placeholder="https://..."></label>
+<label>پوستر<input id="poster_url" type="url" placeholder="https://..."></label>
+<label>ترتیب<input id="sort_order" type="number" value="0"></label>
+<label>شروع<input id="starts_at" type="datetime-local"></label>
+<label>پایان<input id="ends_at" type="datetime-local"></label>
+<label class="full">توضیحات<textarea id="description" maxlength="1000" placeholder="توضیح کوتاه برنامه"></textarea></label>
+</div>
+<div class="actions"><button class="primary" type="submit">ذخیره</button><button type="button" id="reset">فرم جدید</button></div>
+</form>
+</div>
+<div class="panel"><h2>پخش‌های ثبت‌شده</h2><div id="list">در حال بارگذاری…</div></div>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(()=>{const sb=window.supabaseClient, statusEl=document.getElementById('status'), app=document.getElementById('app'), list=document.getElementById('list'), form=document.getElementById('stream-form');
+const $=id=>document.getElementById(id); const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function status(t,ok=false){statusEl.textContent=t;statusEl.className='status '+(ok?'ok':'err')}
+function val(id){return $(id).value.trim()}
+function reset(){form.reset();$('id').value='';$('sort_order').value='0'}
+function iso(v){return v?new Date(v).toISOString():null}
+async function ensureOwner(){const {data:{user}}=await sb.auth.getUser();if(!user){status('ابتدا وارد سامانه شوید.');return false}
+const {data:p,error}=await sb.from('profiles').select('role,status,is_active').eq('id',user.id).maybeSingle();
+if(error||!p||p.role!=='owner'||p.status!=='active'||p.is_active!==true){status('دسترسی این صفحه فقط برای مالک فعال سامانه است.');return false}
+app.classList.remove('hidden');status('دسترسی تأیید شد.',true);return true}
+async function load(){const {data,error}=await sb.from('tv_live_streams').select('*').order('sort_order').order('starts_at',{ascending:false});if(error){list.textContent='خطا در دریافت داده‌ها: '+error.message;return}
+if(!data?.length){list.innerHTML='<p>هنوز منبعی ثبت نشده است.</p>';return}
+list.innerHTML=data.map(r=>'<article class="stream '+(r.is_live?'live':'')+'"><div class="stream-top"><strong>'+esc(r.title)+'</strong><span class="badge '+(r.is_live?'live':'')+'">'+(r.is_live?'LIVE':'خاموش')+'</span></div><p>'+esc(r.description||'')+'</p><div class="meta">'+esc(r.provider)+' · '+esc(r.source_url)+'</div><div class="actions"><button data-edit="'+r.id+'">ویرایش</button><button data-toggle="'+r.id+'">'+(r.is_live?'خاموش کردن':'فعال کردن')+'</button><button class="danger" data-delete="'+r.id+'">حذف</button></div></article>').join('')}
+async function save(e){e.preventDefault();const {data:{user}}=await sb.auth.getUser();if(!user){status('جلسه ورود معتبر نیست.');return}
+const payload={title:val('title'),description:val('description')||null,provider:val('provider'),source_url:val('source_url'),embed_url:val('embed_url')||null,poster_url:val('poster_url')||null,sort_order:Number(val('sort_order')||0),starts_at:iso(val('starts_at')),ends_at:iso(val('ends_at')),created_by:user.id};
+const id=val('id');const result=id?await sb.from('tv_live_streams').update(payload).eq('id',id):await sb.from('tv_live_streams').insert(payload);if(result.error){status('ذخیره نشد: '+result.error.message);return}status('پخش ذخیره شد.',true);reset();await load()}
+list.addEventListener('click',async e=>{const edit=e.target.closest('[data-edit]'),toggle=e.target.closest('[data-toggle]'),del=e.target.closest('[data-delete]');if(edit){const {data,error}=await sb.from('tv_live_streams').select('*').eq('id',edit.dataset.edit).single();if(error){status(error.message);return}
+['id','title','description','provider','source_url','embed_url','poster_url','sort_order'].forEach(k=>$(k).value=data[k]??'');
+$('starts_at').value=data.starts_at?new Date(data.starts_at).toISOString().slice(0,16):'';$('ends_at').value=data.ends_at?new Date(data.ends_at).toISOString().slice(0,16):'';window.scrollTo({top:0,behavior:'smooth'});return}
+if(toggle){const {error}=await sb.from('tv_live_streams').update({is_live:e.target.textContent.includes('فعال کردن')}).eq('id',toggle.dataset.toggle);if(error)status(error.message);else{status('وضعیت به‌روزرسانی شد.',true);await load()}return}
+if(del&&confirm('این منبع پخش حذف شود؟')){const {error}=await sb.from('tv_live_streams').delete().eq('id',del.dataset.delete);if(error)status(error.message);else{status('منبع حذف شد.',true);await load()}}});
+form.addEventListener('submit',save);$('reset').addEventListener('click',reset);
+(async()=>{if(await ensureOwner())await load()})()
+})();
+</script>
+</main>
+</body>
+</html>

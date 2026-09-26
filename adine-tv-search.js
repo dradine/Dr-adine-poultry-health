@@ -159,6 +159,18 @@
         player.innerHTML='<iframe class="live-iframe" src="https://www.youtube.com/embed/'+m[1]+'?autoplay=1&rel=0" title="پخش زنده شبکه سلامت طیور" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
       }else if(cfg.provider==='aparat'){
         player.innerHTML='<iframe class="live-iframe" src="'+esc(raw)+'" title="پخش زنده شبکه سلامت طیور" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+      }else if(cfg.provider==='cloudflare'){
+        const playback=raw||cfg.embedUrl;
+        if(!playback)throw new Error('CLOUDFLARE_PLAYBACK_URL_MISSING');
+        if(/\\.m3u8(?:\\?|$)/i.test(playback)){
+          player.innerHTML='<video class="live-video" controls playsinline poster="'+esc(cfg.posterUrl||'')+'"></video>';
+          const video=player.querySelector('video');
+          if(video.canPlayType('application/vnd.apple.mpegurl')){video.src=playback;video.play().catch(()=>{});}
+          else if(window.Hls?.isSupported()){liveHls=new Hls({enableWorker:true,lowLatencyMode:true});liveHls.loadSource(playback);liveHls.attachMedia(video);liveHls.on(Hls.Events.MANIFEST_PARSED,()=>video.play().catch(()=>{}));}
+          else throw new Error('HLS_NOT_SUPPORTED');
+        }else{
+          player.innerHTML='<iframe class="live-iframe" src="'+esc(playback)+'" title="پخش زنده شبکه سلامت طیور" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+        }
       }else if(cfg.provider==='hls'){
         player.innerHTML='<video class="live-video" controls playsinline poster="'+esc(cfg.posterUrl||'')+'"></video>';
         const video=player.querySelector('video');

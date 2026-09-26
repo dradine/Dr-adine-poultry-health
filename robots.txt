@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /Dashboard.html
+Disallow: /Farms.html
+Disallow: /weekly.html
+Disallow: /reports.html
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /reset-password.html
+Sitemap: https://app.adinepoultryhealth.ir/sitemap.xml

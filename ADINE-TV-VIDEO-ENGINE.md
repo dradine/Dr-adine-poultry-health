@@ -3,15 +3,16 @@
 ## معماری
 - Frontend: `adine-tv.html` + `adine-tv-search.js`
 - Backend: Supabase Edge Function `video-search`
-- Live provider in V1: YouTube Data API v3
+- Live providers: YouTube Data API v3 + optional Brave Video Search federation
 - Curated fallback: selected ITPNews, Aparat, Aviagen entries
 - Video files are never downloaded or stored by the application.
 
 ## Production secret
-The Edge Function expects:
-`YOUTUBE_API_KEY`
+The Edge Function supports two optional live providers:
+- `YOUTUBE_API_KEY` — official YouTube Data API v3 for direct YouTube results.
+- `BRAVE_VIDEO_API_KEY` — Brave Video Search for multi-source web video discovery across indexed platforms/sites.
 
-Set it in Supabase Edge Function Secrets before enabling live search. Do not place the key in GitHub or browser JavaScript.
+Set either or both in Supabase Edge Function Secrets. For the full multi-source experience, configure both. Never place keys in GitHub or browser JavaScript. Do not place the key in GitHub or browser JavaScript.
 
 ## Safety / quota controls
 - Query length capped at 80 characters.

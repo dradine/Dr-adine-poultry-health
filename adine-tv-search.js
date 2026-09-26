@@ -1,5 +1,7 @@
 (() => {
   const ENDPOINT = 'https://vzcczkavlopznljnnehp.supabase.co/functions/v1/video-search';
+  const LIVE_CONFIG = {enabled:false,provider:'youtube',url:'',title:'شبکه سلامت طیور',description:'پخش زنده برنامه‌ها، وبینارها و رویدادهای تخصصی صنعت طیور.'};
+
   const curated = [
     {source:'youtube',platform:'YouTube',curated:true,title:'اصول تهویه در پرورش مرغ گوشتی — جانمایی تجهیزات در سالن مرغداری',description:'ویدئوی آموزشی تخصصی درباره تهویه و تجهیزات سالن مرغ گوشتی.',url:'https://www.youtube.com/watch?v=NzcVK_hUhs8',embedUrl:'https://www.youtube.com/embed/NzcVK_hUhs8',thumbnail:'https://i.ytimg.com/vi/NzcVK_hUhs8/hqdefault.jpg',queryTerms:['تهویه','مرغ گوشتی','فن','اینلت','ventilation','broiler']},
     {source:'aparat',platform:'Aparat',curated:true,title:'وبینار بررسی اهمیت امگا ۳ در مزارع مرغ مادر',description:'نسخه آپارات همان وبینار تخصصی مرغ مادر.',url:'https://aparat.com/v/baKml',thumbnail:'',queryTerms:['مرغ مادر','تغذیه','امگا','omega','breeder','poultry']}
@@ -33,7 +35,7 @@
 
   function card(v){
     const thumb=v.thumbnail?'<img loading="lazy" src="'+esc(v.thumbnail)+'" alt="">':'<div class="video-thumb-fallback"><span>▶</span></div>';
-    const play=v.embedUrl?'<button type="button" class="video-play" data-play="'+esc(v.embedUrl)+'" data-title="'+esc(v.title)+'">پخش در آدینه TV</button>':'';
+    const play=v.embedUrl?'<button type="button" class="video-play" data-play="'+esc(v.embedUrl)+'" data-title="'+esc(v.title)+'">پخش در سلامت طیور TV</button>':'';
     return '<article class="video-result-card">'+
       '<div class="video-thumb-wrap"><a class="video-thumb" href="'+esc(v.url)+'" target="_blank" rel="noopener noreferrer" aria-label="'+esc(v.title)+'">'+thumb+'</a></div>'+
       '<div class="video-result-body"><div class="video-meta"><span>'+esc(v.platform||sourceLabel(v.source))+'</span><small>'+ (v.curated?'منتخب':'زنده') +'</small></div>'+
@@ -106,6 +108,38 @@
     }
   }
 
+
+  function initLive(){
+    const player=document.getElementById('tv-live-player');
+    const status=document.getElementById('tv-live-status');
+    const title=document.getElementById('tv-live-title');
+    const desc=document.getElementById('tv-live-description');
+    if(!player||!status)return;
+    if(title)title.textContent=LIVE_CONFIG.title||'شبکه سلامت طیور';
+    if(desc)desc.textContent=LIVE_CONFIG.description||'پخش زنده برنامه‌های تخصصی صنعت طیور.';
+    const raw=String(LIVE_CONFIG.url||'').trim();
+    if(!LIVE_CONFIG.enabled||!raw){
+      status.textContent='پخش زنده فعال نیست';
+      return;
+    }
+    let embed='';
+    const yt=raw.match(/(?:youtube\.com\/(?:watch\?v=|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/i);
+    if(yt) embed='https://www.youtube.com/embed/'+yt[1]+'?autoplay=1';
+    else if(/^https?:\/\/.*\.(?:m3u8)(?:\?.*)?$/i.test(raw)){
+      player.innerHTML='<video controls autoplay playsinline class="live-video" src="'+esc(raw)+'"></video>';
+      status.textContent='در حال پخش زنده';
+      return;
+    } else if(/^https?:\/\//i.test(raw)){
+      embed=raw;
+    }
+    if(embed){
+      player.innerHTML='<iframe class="live-iframe" src="'+esc(embed)+'" title="پخش زنده شبکه سلامت طیور" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+      status.textContent='در حال پخش زنده';
+    } else {
+      status.textContent='منبع پخش قابل شناسایی نیست';
+    }
+  }
+
   function openPlayer(url,title){
     let modal=document.getElementById('tv-player-modal');
     if(!modal){
@@ -142,4 +176,5 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closePlayer();});
 
   render();
+  initLive();
 })();

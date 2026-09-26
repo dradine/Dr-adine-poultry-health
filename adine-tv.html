@@ -24,8 +24,8 @@
 <body>
 <header class="tv-header">
 <a class="tv-brand" href="/" aria-label="مرکز تخصصی سلامت طیور آدینه">
-<img src="/favicon.png" alt="لوگوی مرکز تخصصی سلامت طیور آدینه">
-<span><strong>مرکز تخصصی سلامت طیور آدینه</strong><small>آدینه‌تی‌وی · کتابخانه تخصصی صنعت طیور</small></span>
+<span class="brand-mark" aria-hidden="true"><span></span><i></i></span>
+<span class="tv-brand-copy"><strong>مرکز تخصصی سلامت طیور آدینه</strong><small>دکتر سعید ادینه وند · متخصص بهداشت و بیماری‌های طیور</small></span>
 </a>
 <div class="tv-actions">
 <a class="tv-phone" href="tel:+989131278085">۰۹۱۳۱۲۷۸۰۸۵</a>
@@ -36,60 +36,61 @@
 <main>
 <section class="tv-hero">
 <div class="hero-copy">
-<div class="kicker">ADINEH TV / POULTRY KNOWLEDGE HUB</div>
-<h1>آدینه‌تی‌وی</h1>
+<div class="kicker">ADINE TV</div>
+<h1>آدینه <b>TV</b></h1>
 <h2>تلویزیون تخصصی سلامت و صنعت طیور</h2>
-<p>یک کتابخانه حرفه‌ای برای پیدا کردن ویدئو، وبینار و منابع تصویری مرتبط با پرورش، سلامت، مدیریت، تجهیزات و فناوری صنعت طیور؛ با اولویت منابع فارسی و ایرانی و استفاده از منابع معتبر بین‌المللی برای موضوعات تخصصی و به‌روز.</p>
+<div class="tv-search" role="search">
+<span aria-hidden="true">⌕</span>
+<input id="tvSearch" type="search" placeholder="جست‌وجو در آدینه TV..." aria-label="جست‌وجو در آدینه TV">
+<button id="clearSearch" type="button" aria-label="پاک کردن جست‌وجو">×</button>
+</div>
 <div class="hero-actions">
-<a href="#categories" class="primary">مشاهده دسته‌بندی‌ها</a>
+<a href="#categories" class="primary">دسته‌بندی‌ها</a>
 <a href="#sources" class="secondary">منابع منتخب</a>
 </div>
 </div>
-<div class="hero-panel">
-<div class="hero-stat"><strong>01</strong><span>مدیریت و پرورش</span></div>
-<div class="hero-stat"><strong>02</strong><span>سلامت و بیماری</span></div>
-<div class="hero-stat"><strong>03</strong><span>تجهیزات و فناوری</span></div>
-<div class="hero-stat"><strong>04</strong><span>وبینار و آموزش</span></div>
+<div class="hero-side">
+<div class="signal"><span></span><small>ADINE TV</small></div>
+<p>محتوای تخصصی طیور، در یک مسیر ساده و قابل جست‌وجو.</p>
 </div>
 </section>
 
 <section class="section" id="categories">
-<div class="section-head"><div><span class="eyebrow">ADINEH TV</span><h2>چهار مسیر اصلی</h2></div><p>آدینه‌تی‌وی عمداً جمع‌وجور طراحی شده؛ ابتدا موضوع اصلی را انتخاب کنید، سپس وارد لایه تخصصی آن شوید.</p></div>
-<div class="tv-grid tv-grid-4">
-<a class="tv-card tv-card-large" href="adine-tv-breeding.html"><span class="num">01</span><h3>پرورش</h3><p>گوشتی، تخمگذار، مادر، پولت و جوجه‌کشی؛ آموزش‌های مرحله‌به‌مرحله و محتوای تصویری فارم.</p><b>ورود به پرورش ←</b></a>
-<a class="tv-card tv-card-large" href="poultry-diseases.html"><span class="num">02</span><h3>سلامت و بیماری</h3><p>بیماری‌ها، تشخیص، واکسیناسیون، امنیت زیستی و محتوای کاربردی سلامت گله.</p><b>ورود به سلامت ←</b></a>
-<a class="tv-card tv-card-large" href="broiler-fcr-monitoring.html"><span class="num">03</span><h3>تغذیه و عملکرد</h3><p>تغذیه، آب، FCR، رشد، یکنواختی، شاخص‌های عملکرد و مدیریت اقتصادی گله.</p><b>ورود به عملکرد ←</b></a>
-<a class="tv-card tv-card-large" href="#sources"><span class="num">04</span><h3>تجهیزات و فناوری</h3><p>تهویه، تجهیزات سالن، اتوماسیون، سنسورها، جوجه‌کشی و فناوری‌های نوین صنعت طیور.</p><b>مشاهده منابع ←</b></a>
+<div class="section-head"><div><span class="eyebrow">ADINE TV</span><h2>مسیرهای اصلی</h2></div></div>
+<div class="tv-grid tv-grid-4" id="categoryGrid">
+<a class="tv-card tv-card-large" data-search="پرورش مرغ گوشتی تخمگذار مادر پولت جوجه کشی آموزش فارم" href="adine-tv-breeding.html"><span class="num">01</span><h3>پرورش</h3><p>گوشتی، تخمگذار، مادر، پولت و جوجه‌کشی.</p><b>ورود به پرورش ←</b></a>
+<a class="tv-card tv-card-large" data-search="سلامت بیماری تشخیص واکسیناسیون امنیت زیستی سلامت گله" href="poultry-diseases.html"><span class="num">02</span><h3>سلامت و بیماری</h3><p>بیماری‌ها، تشخیص، واکسیناسیون و امنیت زیستی.</p><b>ورود به سلامت ←</b></a>
+<a class="tv-card tv-card-large" data-search="تغذیه عملکرد آب خوراک FCR رشد یکنواختی اقتصاد گله" href="broiler-fcr-monitoring.html"><span class="num">03</span><h3>تغذیه و عملکرد</h3><p>تغذیه، آب، FCR، رشد و شاخص‌های عملکرد.</p><b>ورود به عملکرد ←</b></a>
+<a class="tv-card tv-card-large" data-search="تجهیزات فناوری تهویه اتوماسیون سنسور جوجه کشی فناوری نوین" href="#sources"><span class="num">04</span><h3>تجهیزات و فناوری</h3><p>تهویه، تجهیزات سالن، اتوماسیون و فناوری‌های نوین.</p><b>مشاهده منابع ←</b></a>
 </div>
-</section>
-
-<section class="feature" id="broiler">
-<div><span class="eyebrow">نمونه محتوای تصویری</span><h2>تهویه مرغ گوشتی</h2><p>برای تست نسخه اول، یک محتوای فارسی تخصصی درباره جانمایی تجهیزات و اصول تهویه سالن قرار گرفته است.</p><a class="source-link" href="https://www.youtube.com/watch?v=NzcVK_hUhs8" target="_blank" rel="noopener noreferrer">مشاهده در YouTube ↗</a></div>
-<div class="video-frame"><iframe src="https://www.youtube.com/embed/NzcVK_hUhs8" title="اصول تهویه در پرورش مرغ گوشتی - جانمایی تجهیزات در سالن مرغداری" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+<p class="no-results" id="noResults" hidden>موردی برای این جست‌وجو پیدا نشد.</p>
 </section>
 
 <section class="section compact" id="sources">
-<div class="section-head"><div><span class="eyebrow">CURATED SOURCES</span><h2>منابع منتخب صنعت طیور</h2></div><p>اولویت با منابع تخصصی ایرانی و سپس منابع رسمی و علمی بین‌المللی است.</p></div>
+<div class="section-head"><div><span class="eyebrow">CURATED SOURCES</span><h2>منابع منتخب صنعت طیور</h2></div></div>
 <div class="source-grid">
-<article class="source-card"><span class="source-type">ایران · رسانه تخصصی</span><h3>ITPNews</h3><p>شبکه خبری، اطلاع‌رسانی و تصویری صنعت مرغداری ایران؛ شامل وبینار، ویدئو، پادکست و محتوای تخصصی. نمونه‌های وبیناری آن موضوعاتی مانند تولید اقتصادی طیور، جوجه‌کشی و تحلیل صنعت را پوشش می‌دهند.</p><a href="https://www.itpnews.com/" target="_blank" rel="noopener noreferrer">ورود به ITPNews ↗</a></article>
-<article class="source-card"><span class="source-type">ایران · ویدئو</span><h3>آپارات</h3><p>برای ویدئوهای فارسی و محتوای عملی بازار ایران، به‌خصوص معرفی تجهیزات، فارم و فناوری‌های اجرایی، منبع مناسبی برای پایش محتوای جدید است. در آدینه‌تی‌وی فقط ویدئوهای مرتبط و قابل اتکا انتخاب خواهند شد.</p><a href="https://www.aparat.com/" target="_blank" rel="noopener noreferrer">ورود به آپارات ↗</a></article>
-<article class="source-card"><span class="source-type">بین‌المللی · رسمی</span><h3>Aviagen</h3><p>منبع رسمی handbook، راهنماهای مدیریتی و مجموعه‌ای از ویدئوهای تخصصی درباره broiler، breeder، hatchery، uniformity، crop fill و biosecurity.</p><a href="https://www.aviagen.com/" target="_blank" rel="noopener noreferrer">مرکز فنی Aviagen ↗</a></article>
-<article class="source-card"><span class="source-type">بین‌المللی · وبینار</span><h3>Teagasc Poultry</h3><p>آرشیو وبینارهای صنعت طیور درباره biosecurity، آنفلوانزای پرندگان، foot pad dermatitis، مدیریت لایه و موضوعات جدید بخش طیور.</p><a href="https://teagasc.ie/rural-economy/rural-development/poultry/webinars/" target="_blank" rel="noopener noreferrer">آرشیو وبینارها ↗</a></article>
-<article class="source-card"><span class="source-type">بین‌المللی · Breeder</span><h3>NOVUS</h3><p>مجموعه وبینارهای on-demand درباره مدیریت و تغذیه مرغ مادر با مشارکت متخصصان دانشگاهی و صنعتی.</p><a href="https://www.novusint.com/resources/breeder-management-nutrition-webinar-series/" target="_blank" rel="noopener noreferrer">مشاهده وبینارها ↗</a></article>
-<article class="source-card"><span class="source-type">بین‌المللی · Hatchery</span><h3>Pas Reform</h3><p>وبینارهای تخصصی جوجه‌کشی و شروع دوره، از جمله مدیریت کیفیت جوجه و انتقال صحیح مدیریت از hatchery به farm.</p><a href="https://www.pasreform.com/en/webinars/35/hatchery-talks-r-providing-an-optimum-start-at-the-broiler-farm" target="_blank" rel="noopener noreferrer">Hatchery Talks ↗</a></article>
+<article class="source-card" data-search="ITPNews ایران رسانه تخصصی مرغداری وبینار ویدئو"><span class="source-type">ایران</span><h3>ITPNews</h3><a href="https://www.itpnews.com/" target="_blank" rel="noopener noreferrer">ورود ↗</a></article>
+<article class="source-card" data-search="آپارات ایران ویدئو فارسی فارم تجهیزات"><span class="source-type">ایران</span><h3>آپارات</h3><a href="https://www.aparat.com/" target="_blank" rel="noopener noreferrer">ورود ↗</a></article>
+<article class="source-card" data-search="Aviagen رسمی علمی broiler breeder hatchery"><span class="source-type">بین‌المللی</span><h3>Aviagen</h3><a href="https://www.aviagen.com/" target="_blank" rel="noopener noreferrer">ورود ↗</a></article>
+<article class="source-card" data-search="Teagasc Poultry وبینار امنیت زیستی آنفلوانزا"><span class="source-type">بین‌المللی</span><h3>Teagasc Poultry</h3><a href="https://teagasc.ie/rural-economy/rural-development/poultry/webinars/" target="_blank" rel="noopener noreferrer">ورود ↗</a></article>
+<article class="source-card" data-search="NOVUS breeder management nutrition webinar"><span class="source-type">بین‌المللی</span><h3>NOVUS</h3><a href="https://www.novusint.com/resources/breeder-management-nutrition-webinar-series/" target="_blank" rel="noopener noreferrer">ورود ↗</a></article>
+<article class="source-card" data-search="Pas Reform hatchery جوجه کشی hatchery talks"><span class="source-type">بین‌المللی</span><h3>Pas Reform</h3><a href="https://www.pasreform.com/en/webinars/35/hatchery-talks-r-providing-an-optimum-start-at-the-broiler-farm" target="_blank" rel="noopener noreferrer">ورود ↗</a></article>
 </div>
 </section>
 
-<section class="section topic-band">
-<div><span class="eyebrow">EDITORIAL STANDARD</span><h2>استاندارد انتخاب محتوا</h2><p>آدینه‌تی‌وی قرار نیست آرشیو انبوه لینک باشد. هر ویدئو باید موضوع مشخص، ارزش آموزشی یا فنی روشن و منبع قابل شناسایی داشته باشد. برای محتوای تجاری یا تبلیغاتی، ماهیت تبلیغاتی آن باید مشخص بماند؛ برای منابع علمی، منبع اصلی حفظ می‌شود.</p></div>
-<div class="standard-list"><span>✓ منبع مشخص</span><span>✓ موضوع تخصصی</span><span>✓ اولویت محتوای فارسی</span><span>✓ منابع رسمی و علمی</span><span>✓ عدم کپی‌کردن ویدئو</span><span>✓ لینک به منبع اصلی</span></div>
-</section>
-
 <section class="section cta">
-<h2>از ویدئو به دانش عملی</h2><p>ویدئو فقط نقطه شروع است؛ هر موضوع مهم در آدینه‌تی‌وی به مقاله، منبع تخصصی و در صورت ارتباط به ابزارهای پایش و مدیریت گله آدینه متصل می‌شود.</p>
+<h2>دانش تخصصی آدینه</h2>
 <div><a href="poultry-health-articles.html">مقالات تخصصی طیور</a><a href="poultry-management-app.html">سامانه مدیریت گله</a><a href="poultry-diseases.html">دانشنامه بیماری‌ها</a></div>
 </section>
 </main>
-<footer class="tv-footer">© ۲۰۲۶ مرکز تخصصی سلامت طیور آدینه · آدینه‌تی‌وی</footer>
+<footer class="tv-footer">© ۲۰۲۶ مرکز تخصصی سلامت طیور آدینه · آدینه TV</footer>
+<script>
+(function(){
+ const input=document.getElementById('tvSearch'), clear=document.getElementById('clearSearch'), cards=[...document.querySelectorAll('[data-search]')], noResults=document.getElementById('noResults');
+ function norm(s){return (s||'').toLowerCase().replace(/[يى]/g,'ی').replace(/ك/g,'ک').replace(/[‌]/g,' ').trim();}
+ function run(){const q=norm(input.value);let shown=0;cards.forEach(el=>{const ok=!q||norm(el.dataset.search+' '+el.textContent).includes(q);el.hidden=!ok;if(ok)shown++;});noResults.hidden=shown>0||!q;document.getElementById('sources').hidden=!!q&&shown===0;}
+ input.addEventListener('input',run);clear.addEventListener('click',()=>{input.value='';run();input.focus();});
+})();
+</script>
 </body>
 </html>

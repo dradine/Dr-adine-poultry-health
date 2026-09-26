@@ -35,7 +35,7 @@
   const statusEl=document.getElementById('tv-search-status');
   const countEl=document.getElementById('tv-result-count');
   const moreBtn=document.getElementById('tv-search-more');
-  let allResults=[], nextPageToken='', nextWebPage=0, activeSource='all', lastQuery='';
+  let allResults=[], nextPageToken='', nextWebPage=0, activeSource='all', lastQuery='', searching=false;
 
   const esc=(s='')=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const matches=(item,q)=>{
@@ -65,7 +65,11 @@
   async function search(q, append=false){
     q=q.trim();
     if(q.length<2){statusEl.textContent='حداقل ۲ کاراکتر وارد کن';return;}
-    statusEl.textContent='در حال جستجو...';
+    searching=true;
+    statusEl.textContent='در حال جستجو…';
+    if(form){ form.classList.add('is-searching'); }
+    const submitBtn=form?.querySelector('button[type="submit"]');
+    if(submitBtn){ submitBtn.disabled=true; submitBtn.setAttribute('aria-busy','true'); submitBtn.dataset.originalText=submitBtn.textContent; submitBtn.textContent='در حال جستجو…'; }
     moreBtn.hidden=true;
     try{
       const params=new URLSearchParams({q,order:order.value,maxResults:'12'});
@@ -87,13 +91,23 @@
       statusEl.textContent=data.live?'نتایج زنده دریافت شد':'نمایش منابع منتخب';
       moreBtn.hidden=!(nextPageToken||nextWebPage);
       render();
+      if(!allResults.length){
+        const yt='https://www.youtube.com/results?search_query='+encodeURIComponent(q+' مرغداری');
+        resultsEl.innerHTML='<div class="search-empty search-no-results"><strong>نتیجه مستقیمی از منابع زنده دریافت نشد.</strong><span>برای ادامه، جستجوی همین موضوع در YouTube را باز کن.</span><a class="video-open" href="'+yt+'" target="_blank" rel="noopener noreferrer">جستجوی «'+esc(q)+'» در YouTube ↗</a></div>';
+        statusEl.textContent='جستجو انجام شد؛ نتیجه مستقیمی پیدا نشد';
+      }
       document.getElementById('video-search').scrollIntoView({behavior:'smooth',block:'start'});
     }catch(err){
       const extras=curated.filter(x=>matches(x,q));
       allResults=extras;
       nextPageToken='';
-      statusEl.textContent='جستجوی زنده موقتاً در دسترس نیست؛ منابع منتخب نمایش داده شد';
+      statusEl.textContent=extras.length?'اتصال زنده در دسترس نبود؛ منابع منتخب نمایش داده شد':'اتصال جستجوی زنده برقرار نشد';
       render();
+    } finally {
+      searching=false;
+      if(form){ form.classList.remove('is-searching'); }
+      const submitBtn=form?.querySelector('button[type="submit"]');
+      if(submitBtn){ submitBtn.disabled=false; submitBtn.removeAttribute('aria-busy'); submitBtn.textContent=submitBtn.dataset.originalText||'جستجو'; }
     }
   }
 

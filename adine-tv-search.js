@@ -2,32 +2,34 @@
   const ENDPOINT = 'https://vzcczkavlopznljnnehp.supabase.co/functions/v1/video-search';
   const curated = [
     {
-      source:'youtube', platform:'YouTube', curated:true, title:'اصول تهویه در پرورش مرغ گوشتی — جانمایی تجهیزات در سالن مرغداری',
-      description:'محتوای فارسی آموزشی درباره تهویه و جانمایی تجهیزات سالن مرغ گوشتی.',
+      source:'youtube', platform:'YouTube', curated:true,
+      title:'اصول تهویه در پرورش مرغ گوشتی — جانمایی تجهیزات در سالن مرغداری',
+      description:'ویدئوی آموزشی تخصصی درباره تهویه و تجهیزات سالن مرغ گوشتی.',
       url:'https://www.youtube.com/watch?v=NzcVK_hUhs8', thumbnail:'https://i.ytimg.com/vi/NzcVK_hUhs8/hqdefault.jpg',
-      queryTerms:['تهویه','مرغ گوشتی','فن','اینلت','ventilation']
+      queryTerms:['تهویه','مرغ گوشتی','فن','اینلت','ventilation','broiler']
     },
     {
-      source:'web', platform:'Aparat', curated:true, title:'اهمیت امگا ۳ و استراتژی‌های استفاده از آن در مزارع مرغ مادر',
-      description:'نمونه وبینار تخصصی صنعت طیور با میزبانی آپارات و معرفی‌شده توسط ITPNews.',
+      source:'web', platform:'ITPNews', curated:true,
+      title:'وبینار بررسی اهمیت امگا ۳ و استراتژی‌های استفاده از آن در مزارع مرغ مادر',
+      description:'وبینار تخصصی صنعت طیور؛ صفحه مشاهده معرفی‌شده توسط ITPNews.',
+      url:'https://www.itpnews.com/home/show/share/39112', thumbnail:'',
+      queryTerms:['مرغ مادر','تغذیه','امگا','omega','breeder','poultry']
+    },
+    {
+      source:'web', platform:'Aparat', curated:true,
+      title:'وبینار بررسی اهمیت امگا ۳ در مزارع مرغ مادر',
+      description:'نسخه آپارات همان وبینار تخصصی مرغ مادر.',
       url:'https://aparat.com/v/baKml', thumbnail:'',
-      queryTerms:['مرغ مادر','تغذیه','امگا','omega','breeder']
+      queryTerms:['مرغ مادر','تغذیه','امگا','omega','breeder','poultry']
     },
     {
-      source:'web', platform:'ITPNews', curated:true, title:'مدیریت جوجه‌کشی',
-      description:'نمونه محتوای آموزشی ITPNews درباره مدیریت جوجه‌کشی.',
-      url:'https://www.itpnews.com/webinar/90', thumbnail:'',
-      queryTerms:['جوجه کشی','جوجه‌کشی','هچری','ستر','هچر','hatchery','incubation']
-    },
-    {
-      source:'web', platform:'Aviagen', curated:true, title:'منابع تصویری و آموزشی مدیریت مرغ گوشتی',
-      description:'مسیر رسمی منابع فنی Aviagen برای مدیریت broiler و موضوعات عملکردی.',
-      url:'https://aviagen.com/technical-center/',
-      thumbnail:'',
-      queryTerms:['مرغ گوشتی','broiler','عملکرد','تهویه','سلامت']
+      source:'web', platform:'ICAR-CARI India', curated:true,
+      title:'Poultry Farming — محتوای آموزشی مرکز تحقیقات طیور هند',
+      description:'محتوای ویدئویی رسمی ICAR-CARI درباره تولید و مدیریت طیور.',
+      url:'https://www.cari.res.in/gallery?tab=video', thumbnail:'',
+      queryTerms:['طیور','مرغ','poultry','broiler','layer','india']
     }
   ];
-
   const form=document.getElementById('tv-video-search-form');
   const input=document.getElementById('tv-video-query');
   const order=document.getElementById('tv-video-order');
@@ -57,7 +59,7 @@
       return {...item,_score:score};
     }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).map(({_score,...item})=>item);
   };
-  const filtered=()=>activeSource==='all'?allResults:activeSource==='curated'?allResults.filter(x=>x.curated):allResults.filter(x=>x.source===activeSource);
+  const filtered=()=>activeSource==='all'?allResults:activeSource==='curated'?allResults.filter(x=>x.curated):allResults.filter(x=>activeSource==='web'?x.source==='web':x.source===activeSource);
 
   function render(){
     const list=filtered();
@@ -92,7 +94,7 @@
       const res=await fetch(ENDPOINT+'?'+params.toString(),{headers:{Accept:'application/json'}});
       const data=await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.message||'search_failed');
-      const incoming=(data.results||[]).map(x=>({...x,source:x.source||'youtube',live:true}));
+      const incoming=(data.results||[]).map(x=>({...x,source:x.source||'youtube',live:true,platform:x.platform||x.source||'منبع تخصصی'}));
       if(!append) {
         nextWebPage=0;
         const extras=curated.filter(x=>matches(x,q));
@@ -103,7 +105,7 @@
       }
       nextPageToken=data.nextPageToken||''; nextWebPage=Number(data.nextPage||0);
       lastQuery=q;
-      statusEl.textContent=data.live?'نتایج زنده دریافت شد':'نمایش منابع منتخب';
+      statusEl.textContent=data.live?'نتایج زنده از منابع تخصصی دریافت شد':'نمایش منابع منتخب';
       moreBtn.hidden=!(nextPageToken||nextWebPage);
       render();
       if(categoriesEl) categoriesEl.hidden=true;

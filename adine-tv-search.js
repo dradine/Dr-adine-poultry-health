@@ -2,25 +2,25 @@
   const ENDPOINT = 'https://vzcczkavlopznljnnehp.supabase.co/functions/v1/video-search';
   const curated = [
     {
-      source:'curated', platform:'YouTube', title:'اصول تهویه در پرورش مرغ گوشتی — جانمایی تجهیزات در سالن مرغداری',
+      source:'youtube', platform:'YouTube', curated:true, title:'اصول تهویه در پرورش مرغ گوشتی — جانمایی تجهیزات در سالن مرغداری',
       description:'محتوای فارسی آموزشی درباره تهویه و جانمایی تجهیزات سالن مرغ گوشتی.',
       url:'https://www.youtube.com/watch?v=NzcVK_hUhs8', thumbnail:'https://i.ytimg.com/vi/NzcVK_hUhs8/hqdefault.jpg',
       queryTerms:['تهویه','مرغ گوشتی','فن','اینلت','ventilation']
     },
     {
-      source:'curated', platform:'Aparat', title:'اهمیت امگا ۳ و استراتژی‌های استفاده از آن در مزارع مرغ مادر',
+      source:'web', platform:'Aparat', curated:true, title:'اهمیت امگا ۳ و استراتژی‌های استفاده از آن در مزارع مرغ مادر',
       description:'نمونه وبینار تخصصی صنعت طیور با میزبانی آپارات و معرفی‌شده توسط ITPNews.',
       url:'https://aparat.com/v/baKml', thumbnail:'',
       queryTerms:['مرغ مادر','تغذیه','امگا','omega','breeder']
     },
     {
-      source:'curated', platform:'ITPNews', title:'مدیریت جوجه‌کشی',
+      source:'web', platform:'ITPNews', curated:true, title:'مدیریت جوجه‌کشی',
       description:'نمونه محتوای آموزشی ITPNews درباره مدیریت جوجه‌کشی.',
       url:'https://www.itpnews.com/webinar/90', thumbnail:'',
       queryTerms:['جوجه کشی','جوجه‌کشی','هچری','ستر','هچر','hatchery','incubation']
     },
     {
-      source:'curated', platform:'Aviagen', title:'منابع تصویری و آموزشی مدیریت مرغ گوشتی',
+      source:'web', platform:'Aviagen', curated:true, title:'منابع تصویری و آموزشی مدیریت مرغ گوشتی',
       description:'مسیر رسمی منابع فنی Aviagen برای مدیریت broiler و موضوعات عملکردی.',
       url:'https://aviagen.com/technical-center/',
       thumbnail:'',
@@ -42,7 +42,7 @@
     const hay=(item.title+' '+item.description+' '+(item.queryTerms||[]).join(' ')).toLocaleLowerCase('fa');
     return q.trim().toLocaleLowerCase('fa').split(/\s+/).filter(Boolean).some(x=>hay.includes(x));
   };
-  const filtered=()=>activeSource==='all'?allResults:allResults.filter(x=>x.source===activeSource);
+  const filtered=()=>activeSource==='all'?allResults:activeSource==='curated'?allResults.filter(x=>x.curated):allResults.filter(x=>x.source===activeSource);
 
   function render(){
     const list=filtered();
@@ -74,7 +74,7 @@
       const data=await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.message||'search_failed');
       const incoming=(data.results||[]).map(x=>({...x,source:x.source||'youtube',live:true}));
-      if(!append) {
+      if(!append) {\n        nextWebPage=0;
         const extras=curated.filter(x=>matches(x,q));
         allResults=[...incoming,...extras];
       } else {

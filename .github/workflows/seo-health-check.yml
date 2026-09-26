@@ -1,0 +1,41 @@
+name: SEO site health check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate sitemap XML
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          ET.parse("sitemap.xml")
+          print("sitemap.xml: valid XML")
+          PY
+      - name: Validate sitemap URLs
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          root=ET.parse("sitemap.xml").getroot()
+          ns={"sm":"http://www.sitemaps.org/schemas/sitemap/0.9"}
+          urls=[x.text.strip() for x in root.findall("sm:url/sm:loc",ns)]
+          assert len(urls) >= 16, f"Expected at least 16 sitemap URLs, found {len(urls)}"
+          assert len(urls) == len(set(urls)), "Duplicate sitemap URLs detected"
+          for u in urls:
+              assert u.startswith("https://app.adinepoultryhealth.ir/"), u
+          print(f"sitemap.xml: {len(urls)} unique URLs")
+          PY
+      - name: Validate public SEO files
+        run: |
+          test -f index.html
+          test -f robots.txt
+          test -f googled8b2a4b8f9bc43ee.html
+          test -f doctor-profile.html
+          test -f poultry-health-articles.html
+          echo "Core SEO files: present"

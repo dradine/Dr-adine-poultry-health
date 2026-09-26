@@ -9,26 +9,12 @@
       queryTerms:['تهویه','مرغ گوشتی','فن','اینلت','ventilation','broiler']
     },
     {
-      source:'web', platform:'ITPNews', curated:true,
-      title:'وبینار بررسی اهمیت امگا ۳ و استراتژی‌های استفاده از آن در مزارع مرغ مادر',
-      description:'وبینار تخصصی صنعت طیور؛ صفحه مشاهده معرفی‌شده توسط ITPNews.',
-      url:'https://www.itpnews.com/home/show/share/39112', thumbnail:'',
-      queryTerms:['مرغ مادر','تغذیه','امگا','omega','breeder','poultry']
-    },
-    {
       source:'web', platform:'Aparat', curated:true,
       title:'وبینار بررسی اهمیت امگا ۳ در مزارع مرغ مادر',
       description:'نسخه آپارات همان وبینار تخصصی مرغ مادر.',
       url:'https://aparat.com/v/baKml', thumbnail:'',
       queryTerms:['مرغ مادر','تغذیه','امگا','omega','breeder','poultry']
     },
-    {
-      source:'web', platform:'ICAR-CARI India', curated:true,
-      title:'Poultry Farming — محتوای آموزشی مرکز تحقیقات طیور هند',
-      description:'محتوای ویدئویی رسمی ICAR-CARI درباره تولید و مدیریت طیور.',
-      url:'https://www.cari.res.in/gallery?tab=video', thumbnail:'',
-      queryTerms:['طیور','مرغ','poultry','broiler','layer','india']
-    }
   ];
   const form=document.getElementById('tv-video-search-form');
   const input=document.getElementById('tv-video-query');
@@ -48,14 +34,18 @@
     return tokens.length>0 && tokens.every(x=>hay.includes(x));
   };
   const rankResults=(items,q)=>{
-    const tokens=normalize(q).split(/\s+/).filter(x=>x.length>1);
+    const phrase=normalize(q);
+    const tokens=phrase.split(/\s+/).filter(x=>x.length>1);
     return items.map(item=>{
       const title=normalize(item.title||''), hay=normalize((item.title||'')+' '+(item.description||'')+' '+(item.channelTitle||''));
       let score=0;
-      const phrase=normalize(q);
-      if(phrase && title.includes(phrase)) score+=12;
-      if(phrase && hay.includes(phrase)) score+=5;
-      tokens.forEach(t=>{if(title.includes(t))score+=4;else if(hay.includes(t))score+=1;});
+      if(phrase && title===phrase) score+=180;
+      else if(phrase && title.startsWith(phrase)) score+=155;
+      else if(phrase && title.includes(phrase)) score+=135;
+      if(phrase && hay.includes(phrase)) score+=25;
+      const titleMatched=tokens.filter(t=>title.includes(t)).length;
+      if(tokens.length) score+=Math.round(titleMatched/tokens.length*55);
+      tokens.forEach(t=>{if(title.includes(t))score+=10;else if(hay.includes(t))score+=2;});
       return {...item,_score:score};
     }).filter(x=>x._score>0).sort((a,b)=>b._score-a._score).map(({_score,...item})=>item);
   };
@@ -89,7 +79,7 @@
     if(submitBtn){ submitBtn.disabled=true; submitBtn.setAttribute('aria-busy','true'); submitBtn.dataset.originalText=submitBtn.textContent; submitBtn.textContent='در حال جستجو…'; }
     moreBtn.hidden=true;
     try{
-      const params=new URLSearchParams({q,order:order.value,maxResults:'12'});
+      const params=new URLSearchParams({q,order:order.value,maxResults:'24'});
       if(append){ if(nextPageToken) params.set('pageToken',nextPageToken); params.set('page',String(nextWebPage)); }
       const res=await fetch(ENDPOINT+'?'+params.toString(),{headers:{Accept:'application/json'}});
       const data=await res.json().catch(()=>({}));

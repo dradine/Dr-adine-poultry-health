@@ -154,7 +154,7 @@
       if(cfg.posterUrl)player.style.backgroundImage='url("'+esc(cfg.posterUrl)+'")';
       const raw=cfg.embedUrl||cfg.url;
       if(cfg.provider==='youtube'){
-        const m=raw.match(/(?:youtube\\.com\\/(?:watch\\?v=|live\\/)|youtu\\.be\\/)([A-Za-z0-9_-]{6,})/i);
+        const m=raw.match(/(?:youtube\.com\\/(?:watch\\?v=|live\\/)|youtu\.be\\/)([A-Za-z0-9_-]{6,})/i);
         if(!m)throw new Error('YOUTUBE_URL_INVALID');
         player.innerHTML='<iframe class="live-iframe" src="https://www.youtube.com/embed/'+m[1]+'?autoplay=1&rel=0" title="پخش زنده شبکه سلامت طیور" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
       }else if(cfg.provider==='aparat'){

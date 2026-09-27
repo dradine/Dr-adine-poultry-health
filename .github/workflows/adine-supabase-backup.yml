@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   backup:
@@ -22,7 +22,6 @@ jobs:
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
-      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Verify required secrets
@@ -33,15 +32,15 @@ jobs:
           test -n "${BACKUP_ENCRYPTION_KEY}" || { echo "::error::Missing GitHub secret BACKUP_ENCRYPTION_KEY"; exit 1; }
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           fetch-depth: 1
 
       - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
-          version: latest
+          version: 2.84.2
 
       - name: Create logical backup
         shell: bash
@@ -126,61 +125,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
-
-      - name: Create weekly/monthly encrypted archive
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          today="$(date -u +%F)"
-          weekday="$(date -u +%u)"
-          monthday="$(date -u +%d)"
-
-          if [ "$weekday" = "7" ]; then
-            tag="db-backup-weekly-${today}"
-            title="Adine database backup — weekly — ${today}"
-            gh release create "$tag" \
-              backup.tar.gz.enc \
-              backup.tar.gz.enc.hmac \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "${title}" \
-              --notes "Encrypted Supabase database backup. Generated automatically on ${today}. Backup contents are not readable without the private BACKUP_ENCRYPTION_KEY." \
-              --prerelease \
-              --latest=false
-
-            gh release list \
-              --repo "${GITHUB_REPOSITORY}" \
-              --limit 100 \
-              --json tagName \
-              --jq '.[] | select(.tagName | startswith("db-backup-weekly-")) | .tagName' \
-              | tail -n +5 \
-              | while read -r old_tag; do
-                  [ -z "${old_tag}" ] || gh release delete "${old_tag}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
-                done
-          fi
-
-          if [ "$monthday" = "01" ]; then
-            tag="db-backup-monthly-${today:0:7}"
-            title="Adine database backup — monthly — ${today:0:7}"
-            gh release create "$tag" \
-              backup.tar.gz.enc \
-              backup.tar.gz.enc.hmac \
-              --repo "${GITHUB_REPOSITORY}" \
-              --title "${title}" \
-              --notes "Encrypted Supabase database backup. Generated automatically on ${today}. Backup contents are not readable without the private BACKUP_ENCRYPTION_KEY." \
-              --prerelease \
-              --latest=false
-
-            gh release list \
-              --repo "${GITHUB_REPOSITORY}" \
-              --limit 100 \
-              --json tagName \
-              --jq '.[] | select(.tagName | startswith("db-backup-monthly-")) | .tagName' \
-              | tail -n +7 \
-              | while read -r old_tag; do
-                  [ -z "${old_tag}" ] || gh release delete "${old_tag}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
-                done
-          fi
 
       - name: Verify encrypted artifact exists
         shell: bash

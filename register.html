@@ -35,8 +35,7 @@
     >
 
     <style>
-      .checkbox-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}.role-option{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid #dfe6e2;border-radius:10px;background:#fafcfb}.hidden{display:none!important}
-     .legal-consent{margin:4px 0 14px;padding:10px 11px;border:1px solid #d9e7df;border-radius:13px;background:#f7fbf9}.legal-consent-label{display:flex!important;align-items:flex-start;gap:9px;margin:0!important;font-size:11px!important;line-height:1.8;color:#52665d!important;font-weight:500!important;cursor:pointer}.legal-consent-label input{width:18px!important;height:18px!important;min-height:18px!important;flex:0 0 18px;margin:2px 0 0!important;accent-color:#17603f;cursor:pointer}.legal-consent-label a{color:#17603f;font-weight:800;text-decoration:underline}.auth-page select{width:100%!important;min-height:46px!important;box-sizing:border-box!important;font-size:16px!important;border:1px solid var(--auth-line)!important;border-radius:13px!important;background:#fbfdfc!important;color:var(--auth-text)!important;padding:0 13px!important;outline:none!important}.auth-page select:focus{border-color:#5a9a7b!important;background:#fff!important;box-shadow:0 0 0 3px rgba(31,96,69,.10)!important}@media(max-width:480px){.legal-consent{padding:9px 10px}.legal-consent-label{font-size:10.5px!important}.auth-page select{min-height:45px!important}} 
+.checkbox-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:8px}.role-option{display:flex;align-items:center;gap:7px;min-width:0;min-height:38px;box-sizing:border-box;padding:7px 9px;border:1px solid #d9e7df;border-radius:10px;background:linear-gradient(180deg,#fbfdfc,#f5faf7);color:#274b3b;font-size:11.5px;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}.role-option:hover{border-color:#9fc4af;background:#f0f8f4}.role-option:has(input:checked){border-color:#5a9a7b;background:#eaf6f0;box-shadow:0 0 0 2px rgba(31,96,69,.07)}.role-option input{width:15px!important;height:15px!important;min-height:15px!important;flex:0 0 15px!important;margin:0!important;accent-color:#1f6045;cursor:pointer}.hidden{display:none!important}.legal-consent{margin:4px 0 14px;padding:10px 11px;border:1px solid #d9e7df;border-radius:13px;background:#f7fbf9}.legal-consent-label{display:flex!important;align-items:flex-start;gap:9px;margin:0!important;font-size:11px!important;line-height:1.8;color:#52665d!important;font-weight:500!important;cursor:pointer}.legal-consent-label input{width:18px!important;height:18px!important;min-height:18px!important;flex:0 0 18px;margin:2px 0 0!important;accent-color:#17603f;cursor:pointer}.legal-consent-label a{color:#17603f;font-weight:800;text-decoration:underline}.auth-page select{width:100%!important;min-height:46px!important;box-sizing:border-box!important;font-size:15px!important;border:1px solid var(--auth-line)!important;border-radius:13px!important;background:#fbfdfc!important;color:var(--auth-text)!important;padding:0 13px!important;outline:none!important}.auth-page select:focus{border-color:#5a9a7b!important;background:#fff!important;box-shadow:0 0 0 3px rgba(31,96,69,.10)!important}.auth-page .password-field{position:relative!important}.auth-page .password-field input{padding-inline-start:72px!important;padding-inline-end:13px!important}.auth-page .password-toggle{left:7px!important;right:auto!important;top:50%!important;transform:translateY(-50%)!important;min-height:34px!important;padding:0 9px!important;border:0!important;border-radius:9px!important;background:var(--auth-mint)!important;color:var(--auth-green)!important;font-size:11px!important;font-weight:700!important;z-index:2!important}@media(max-width:700px){.checkbox-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.legal-consent{padding:9px 10px}.legal-consent-label{font-size:10.5px!important}.auth-page select{min-height:45px!important}.checkbox-grid{grid-template-columns:1fr 1fr;gap:6px}.role-option{min-height:37px;padding:6px 8px;font-size:11px}}
 </style>
 
 </head>
@@ -114,14 +113,14 @@
                     <label for="userType">نوع کاربری خود را انتخاب کنید</label>
                     <select id="userType" required>
                         <option value="">انتخاب کنید</option>
-                        <option value="veterinarian">🩺 دامپزشک</option>
-                        <option value="technical_veterinarian">🩺 دامپزشک مسئول فنی</option>
-                        <option value="poultry_operator">🐔 بهره‌بردار واحد طیور</option>
-                        <option value="poultry_manager">👨‍💼 مدیر واحد طیور</option>
-                        <option value="veterinary_lab">🔬 آزمایشگاه تشخیص دامپزشکی</option>
-                        <option value="poultry_technical_expert">📊 کارشناس فنی طیور</option>
-                        <option value="organization_manager">🏢 مدیر / نماینده مجموعه</option>
-                        <option value="other">سایر</option>
+                        <option value="veterinarian">⚕ دامپزشک</option>
+                        <option value="technical_veterinarian">✦ دامپزشک مسئول فنی</option>
+                        <option value="poultry_operator">◈ بهره‌بردار واحد طیور</option>
+                        <option value="poultry_manager">▣ مدیر واحد طیور</option>
+                        <option value="veterinary_lab">⬡ آزمایشگاه تشخیص دامپزشکی</option>
+                        <option value="poultry_technical_expert">◌ کارشناس فنی طیور</option>
+                        <option value="organization_manager">⌘ مدیر / نماینده مجموعه</option>
+                        <option value="other">• سایر</option>
                     </select>
                 </div>
 

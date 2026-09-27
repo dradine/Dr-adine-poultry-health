@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>در حال انتقال… | مرکز تخصصی سلامت طیور آدینه</title>
+<meta name="robots" content="noindex,nofollow">
+<script>
+(function () {
+  var path = window.location.pathname || "";
+  var search = window.location.search || "";
+  var hash = window.location.hash || "";
+  var params = new URLSearchParams(search + (hash ? "&" + hash.slice(1) : ""));
+  var type = params.get("type");
+  var target = "";
+
+  if (type === "recovery" || params.has("access_token") || params.has("refresh_token")) {
+    target = "update-password.html";
+  } else if (type === "signup" || params.has("confirmation_token") || params.has("token_hash")) {
+    target = "login.html";
+  } else if (/reset-password|update-password/i.test(path)) {
+    target = "update-password.html";
+  } else {
+    target = "login.html";
+  }
+
+  var base = window.location.origin + "/";
+  var url = new URL(target, base);
+  url.search = search;
+  url.hash = hash;
+  window.location.replace(url.href);
+})();
+</script>
+</head>
+<body>
+<p style="font-family:sans-serif;text-align:center;margin-top:20vh">در حال انتقال به سامانه…</p>
+</body>
+</html>

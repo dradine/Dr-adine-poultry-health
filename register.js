@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderRole(){const cfg=options[userType.value];activityTypes.innerHTML="";if(!cfg){roleSpecific.classList.add("hidden");return}roleSpecific.classList.remove("hidden");roleSpecificLabel.textContent=cfg.label;cfg.items.forEach((x,i)=>{const id="activity_"+i;activityTypes.insertAdjacentHTML("beforeend",`<label class="role-option"><input type="checkbox" value="${x.replaceAll('"','&quot;')}"> ${x}</label>`)});}
     userType.addEventListener("change",renderRole);
     togglePassword.addEventListener("click",()=>{const h=passwordInput.type==="password";passwordInput.type=h?"text":"password";togglePassword.textContent=h?"پنهان":"نمایش"});
+    let confirmationEmail="";
     let resendConfirmationButton=null;
     let resendCooldownTimer=null;
     const redirectUrl="https://app.adinepoultryhealth.ir/login.html";
@@ -32,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try{
           const {error}=await supabaseClient.auth.resend({
             type:"signup",
-            email:emailInput.value.trim().toLowerCase(),
+            email:confirmationEmail,
             options:{emailRedirectTo:redirectUrl}
           });
           if(error)throw error;
@@ -72,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     successOk.addEventListener("click",()=>{successModal.hidden=true;});
     successModal.addEventListener("click",e=>{if(e.target===successModal)successModal.hidden=true});
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!successModal.hidden)successModal.hidden=true});
-    form.addEventListener("submit",async e=>{e.preventDefault();message.classList.add("hidden");const fullName=fullNameInput.value.trim(),email=emailInput.value.trim().toLowerCase(),phone=phoneInput.value.trim(),role=userType.value,password=passwordInput.value,confirm=confirmPasswordInput.value,activities=[...activityTypes.querySelectorAll('input:checked')].map(x=>x.value);if(fullName.length<2)return showMessage("نام و نام خانوادگی را کامل وارد کنید.");if(phone.length<7)return showMessage("شماره تماس الزامی است.");if(!role)return showMessage("نوع کاربری را انتخاب کنید.");if(!email)return showMessage("ایمیل را وارد کنید.");if(!legalConsent?.checked)return showMessage("برای ایجاد حساب، تأیید شرایط استفاده و حقوق مالکیت فکری الزامی است.");if(password.length<8)return showMessage("رمز عبور باید حداقل ۸ کاراکتر باشد.");if(password!==confirm)return showMessage("تکرار رمز عبور یکسان نیست.");button.disabled=true;button.textContent="در حال ثبت‌نام...";try{const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:fullName,phone,user_type:role,activity_types:activities},emailRedirectTo:redirectUrl}});if(error)throw error;if(!data?.user)throw new Error("ثبت‌نام انجام نشد.");
+    form.addEventListener("submit",async e=>{e.preventDefault();message.classList.add("hidden");const fullName=fullNameInput.value.trim(),email=emailInput.value.trim().toLowerCase(),phone=phoneInput.value.trim(),role=userType.value,password=passwordInput.value,confirm=confirmPasswordInput.value,activities=[...activityTypes.querySelectorAll('input:checked')].map(x=>x.value);if(fullName.length<2)return showMessage("نام و نام خانوادگی را کامل وارد کنید.");if(phone.length<7)return showMessage("شماره تماس الزامی است.");if(!role)return showMessage("نوع کاربری را انتخاب کنید.");if(!email)return showMessage("ایمیل را وارد کنید.");if(!legalConsent?.checked)return showMessage("برای ایجاد حساب، تأیید شرایط استفاده و حقوق مالکیت فکری الزامی است.");if(password.length<8)return showMessage("رمز عبور باید حداقل ۸ کاراکتر باشد.");if(password!==confirm)return showMessage("تکرار رمز عبور یکسان نیست.");button.disabled=true;button.textContent="در حال ثبت‌نام...";confirmationEmail=email;try{const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:fullName,phone,user_type:role,activity_types:activities},emailRedirectTo:redirectUrl}});if(error)throw error;if(!data?.user)throw new Error("ثبت‌نام انجام نشد.");
 const createdAt=data.user.created_at?Date.parse(data.user.created_at):Date.now();
 const isUnconfirmed=data.user.confirmed_at==null;
 const looksLikeExistingUnconfirmed=isUnconfirmed && Number.isFinite(createdAt) && (Date.now()-createdAt>90000);

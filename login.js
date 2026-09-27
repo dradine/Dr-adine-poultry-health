@@ -463,10 +463,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================= */
 
                 const result =
-                    await window.supabaseClient.auth.signInWithPassword({
-                        email: email,
-                        password: password
-                    });
+                    await Promise.race([
+                        window.supabaseClient.auth.signInWithPassword({
+                            email: email,
+                            password: password
+                        }),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("LOGIN_TIMEOUT")), 15000)
+                        )
+                    ]);
 
 
                 const data =

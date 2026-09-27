@@ -164,3 +164,8 @@
     padding:0 12px!important;
   }
 }
+
+
+/* Login errors: clear red alert */
+.auth-page.auth-login-page #message.message.error{display:flex!important;align-items:center!important;gap:8px!important;box-sizing:border-box!important;width:100%!important;min-height:40px!important;margin:0 0 12px!important;padding:9px 11px!important;border:1px solid #f1b8b8!important;border-radius:11px!important;background:#fff1f1!important;color:#b42318!important;font-size:12.5px!important;font-weight:800!important;line-height:1.7!important;text-align:right!important;}
+.auth-page.auth-login-page #message.message.error::before{content:"⚠"!important;flex:0 0 auto!important;width:20px!important;height:20px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:50%!important;background:#d92d20!important;color:#fff!important;font-size:12px!important;font-weight:900!important;line-height:1!important;}

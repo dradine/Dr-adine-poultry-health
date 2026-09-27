@@ -7,14 +7,14 @@
   <title>تأیید لینک | آدینه</title>
   <link rel="stylesheet" href="../../style.css">
 </head>
-<body class="auth-page">
-  <main class="auth-wrapper">
-    <section class="auth-card" aria-labelledby="authConfirmTitle">
-      <h1 id="authConfirmTitle">در حال تأیید لینک...</h1>
-      <div id="message" class="message info" role="status" aria-live="polite">لطفاً چند لحظه صبر کنید.</div>
-    </section>
-  </main>
-
+<body aria-busy="true">
+<script>
+(function(){
+  var p=new URLSearchParams(location.search);
+  var type=p.get("type");
+  document.title=type==="recovery"?"":"";
+})();
+</script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../config.js"></script>
   <script>
@@ -85,5 +85,4 @@
       }
     })();
   </script>
-</body>
-</html>
+</body></html>

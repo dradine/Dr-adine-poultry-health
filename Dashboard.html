@@ -666,11 +666,12 @@ document.addEventListener(
             try {
                 const auth = await AdineAuth.requireAuth();
                 if (!auth) return;
-                const type = String(auth.profile?.user_type || '').trim().toLowerCase();
+                const rawType = String(auth.profile?.user_type || '').trim().toLowerCase();
+                const type = ({poultry_operator:'farm_operator',poultry_manager:'farm_manager',veterinary_lab:'diagnostic_lab',organization_manager:'company_manager'})[rawType] || rawType;
                 const role = String(auth.profile?.role || '').trim().toLowerCase();
                 const mainFarmTypes = [
-                    'poultry_operator',
-                    'poultry_manager',
+                    'farm_operator',
+                    'farm_manager',
                     'poultry_technical_expert'
                 ];
                 if (!mainFarmTypes.includes(type) && !['owner','admin'].includes(role)) {

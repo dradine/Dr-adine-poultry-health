@@ -134,16 +134,6 @@
 }
 @media(prefers-reduced-motion:reduce){.auth-page *{transition:none!important}}
 
-.auth-page .auth-ownership{
-  text-align:center!important;
-  color:#8a9991!important;
-  font-size:10.5px!important;
-  line-height:1.5!important;
-  font-weight:600!important;
-  margin:-4px 0 11px!important;
-  letter-spacing:0!important;
-}
-
 
 
 .auth-page.auth-login-page .auth-wrapper{
@@ -161,19 +151,6 @@
   transform:translate(-50%,-50%)!important;
   width:min(calc(100% - 32px),410px)!important;
   margin:0!important;
-}
-.auth-page.auth-login-page .auth-ownership{
-  position:absolute!important;
-  z-index:2!important;
-  left:0!important;
-  right:0!important;
-  bottom:18px!important;
-  width:100%!important;
-  margin:0!important;
-  padding:0 16px!important;
-  box-sizing:border-box!important;
-  text-align:center!important;
-  transform:none!important;
 }
 @media(max-width:480px){
   .auth-page.auth-login-page .auth-wrapper{

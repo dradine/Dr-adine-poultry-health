@@ -10,6 +10,7 @@ const farmsList = document.getElementById("farmsList");
 
 let currentUser = null;
 let ownerViewTarget = null;
+let ownerViewFarm = null;
 let ownerViewReadOnly = false;
 let farms = [];
 
@@ -48,6 +49,8 @@ async function initializeFarms() {
                 throw new Error("فقط مالک یا مدیر سامانه می‌تواند سامانه کاربر را مشاهده کند.");
             }
             ownerViewTarget = requestedOwner;
+            const requestedFarm = params.get("farm_view");
+            if (requestedFarm && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestedFarm)) ownerViewFarm = requestedFarm;
             ownerViewReadOnly = true;
             document.body.classList.add("owner-readonly-view");
         }
@@ -68,6 +71,7 @@ async function loadFarms() {
 
     if (ownerViewTarget) {
         farmQuery = farmQuery.eq("owner_id", ownerViewTarget);
+        if (ownerViewFarm) farmQuery = farmQuery.eq("id", ownerViewFarm);
     } else if (!["owner", "admin"].includes(profileRole)) {
         farmQuery = farmQuery.eq("owner_id", currentUser.id);
     }

@@ -309,6 +309,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =====================================================
+       EMAIL CONFIRMATION SUCCESS
+    ===================================================== */
+
+    try {
+        const hash = String(window.location.hash || "");
+        const params = new URLSearchParams(hash.replace(/^#/, ""));
+        const authType = params.get("type");
+        const hasAccessToken = !!params.get("access_token");
+
+        if (hasAccessToken && authType === "signup") {
+            showMessage(
+                "ایمیل شما با موفقیت تأیید شد. اکنون رمز عبور خود را وارد کنید و روی «ورود» بزنید.",
+                "success"
+            );
+
+            if (window.history?.replaceState) {
+                window.history.replaceState(
+                    {},
+                    document.title,
+                    window.location.pathname + window.location.search
+                );
+            }
+        }
+    } catch (error) {
+        console.warn("Email confirmation message:", error);
+    }
+
+    /* =====================================================
        LOGIN
     ===================================================== */
 

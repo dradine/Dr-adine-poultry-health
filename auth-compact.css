@@ -160,10 +160,38 @@
   width:100%!important;
   margin:0!important;
 }
+
+.auth-page.auth-login-page .auth-wrapper{
+  min-height:100dvh!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  box-sizing:border-box!important;
+  padding:24px 16px!important;
+  position:relative!important;
+}
+.auth-page.auth-login-page .auth-card{
+  order:1!important;
+  flex:0 0 auto!important;
+  width:min(100%,410px)!important;
+  margin:0 auto!important;
+}
 .auth-page.auth-login-page .auth-ownership{
-  grid-column:1!important;
-  grid-row:2!important;
-  width:100%!important;
-  margin:0!important;
+  order:2!important;
+  flex:0 0 auto!important;
+  width:min(100%,410px)!important;
+  box-sizing:border-box!important;
+  margin:10px auto 0!important;
   text-align:center!important;
+  align-self:center!important;
+}
+@media(max-width:480px){
+  .auth-page.auth-login-page .auth-wrapper{
+    padding:16px 12px!important;
+  }
+  .auth-page.auth-login-page .auth-card,
+  .auth-page.auth-login-page .auth-ownership{
+    width:min(100%,390px)!important;
+  }
 }

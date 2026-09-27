@@ -3,11 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const options={
       veterinarian:{label:"نوع فعالیت",items:["مرغ گوشتی","مرغ تخمگذار","مرغ مادر","پولت","کارخانه جوجه‌کشی","سایر"]},
       technical_veterinarian:{label:"نوع فعالیت",items:["مرغ گوشتی","مرغ تخمگذار","مرغ مادر","پولت","کارخانه جوجه‌کشی","سایر"]},
-      poultry_operator:{label:"نوع واحد تحت مدیریت",items:["واحد گوشتی","واحد تخمگذار","واحد مادر","واحد پرورش پولت","جوجه‌کشی","سایر"]},
-      poultry_manager:{label:"نوع واحد تحت مدیریت",items:["واحد گوشتی","واحد تخمگذار","واحد مادر","واحد پرورش پولت","جوجه‌کشی","سایر"]},
-      veterinary_lab:{label:"حوزه فعالیت آزمایشگاه",items:["سرولوژی و تیتر آنتی‌بادی","PCR و مولکولی","باکتری‌شناسی و کشت","آنتی‌بیوگرام","مایکوتوکسین","کالبدگشایی و آسیب‌شناسی","سایر"]},
+      farm_operator:{label:"نوع واحد تحت مدیریت",items:["واحد گوشتی","واحد تخمگذار","واحد مادر","واحد پرورش پولت","جوجه‌کشی","سایر"]},
+      farm_manager:{label:"نوع واحد تحت مدیریت",items:["واحد گوشتی","واحد تخمگذار","واحد مادر","واحد پرورش پولت","جوجه‌کشی","سایر"]},
+      diagnostic_lab:{label:"حوزه فعالیت آزمایشگاه",items:["سرولوژی و تیتر آنتی‌بادی","PCR و مولکولی","باکتری‌شناسی و کشت","آنتی‌بیوگرام","مایکوتوکسین","کالبدگشایی و آسیب‌شناسی","سایر"]},
       poultry_technical_expert:{label:"نوع فعالیت",items:["مرغ گوشتی","مرغ تخمگذار","مرغ مادر","پولت","جوجه‌کشی","سایر"]},
-      organization_manager:{label:"حوزه مجموعه",items:["مرغ گوشتی","مرغ تخمگذار","مرغ مادر","پولت","جوجه‌کشی","آزمایشگاه","سایر"]},
+      company_manager:{label:"حوزه مجموعه",items:["مرغ گوشتی","مرغ تخمگذار","مرغ مادر","پولت","جوجه‌کشی","آزمایشگاه","سایر"]},
       other:{label:"نوع فعالیت",items:["مرغ گوشتی","مرغ تخمگذار","مرغ مادر","پولت","جوجه‌کشی","سایر"]}
     };
     function showMessage(text,type="error"){if(type==="success"){successText.textContent=text;successModal.hidden=false;successOk.focus();return}message.textContent=text;message.className="message "+type;message.classList.remove("hidden")}
@@ -81,5 +81,5 @@ if(looksLikeExistingUnconfirmed){
   const {error:resendError}=await supabaseClient.auth.resend({type:"signup",email,options:{emailRedirectTo:redirectUrl}});
   if(resendError)console.warn("existing signup resend:",resendError);
 }
-try{await supabaseClient.rpc("complete_profile_registration",{p_full_name:fullName,p_phone:phone,p_user_type:role,p_activity_types:activities})}catch(rpcError){console.warn("profile completion:",rpcError)}form.reset();renderRole();ensureResendButton();showMessage(role==="veterinarian"||role==="technical_veterinarian"||role==="veterinary_lab"?"ثبت‌نام انجام شد. پس از تأیید ایمیل و فعال‌سازی حساب، کد حرفه‌ای ۴ رقمی شما اختصاص داده می‌شود.":"ثبت‌نام انجام شد. پس از تأیید ایمیل، حساب شما باید توسط مالک فعال شود.","success")}catch(err){console.error(err);showMessage(err.message||"ثبت‌نام انجام نشد.")}finally{button.disabled=false;button.textContent="ثبت‌نام"}});
+try{await supabaseClient.rpc("complete_profile_registration",{p_full_name:fullName,p_phone:phone,p_user_type:role,p_activity_types:activities})}catch(rpcError){console.warn("profile completion:",rpcError)}form.reset();renderRole();ensureResendButton();showMessage(role==="veterinarian"||role==="technical_veterinarian"||role==="diagnostic_lab"?"ثبت‌نام انجام شد. پس از تأیید ایمیل و فعال‌سازی حساب، کد حرفه‌ای ۴ رقمی شما اختصاص داده می‌شود.":"ثبت‌نام انجام شد. پس از تأیید ایمیل، حساب شما باید توسط مالک فعال شود.","success")}catch(err){console.error(err);showMessage(err.message||"ثبت‌نام انجام نشد.")}finally{button.disabled=false;button.textContent="ثبت‌نام"}});
 });

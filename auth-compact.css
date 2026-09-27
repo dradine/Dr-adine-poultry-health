@@ -143,3 +143,14 @@
   margin:-4px 0 11px!important;
   letter-spacing:0!important;
 }
+
+.auth-page.auth-login-page .auth-wrapper{
+  flex-direction:column!important;
+}
+.auth-page.auth-login-page .auth-card{
+  flex:0 0 auto!important;
+}
+.auth-page.auth-login-page .auth-ownership{
+  flex:0 0 auto!important;
+  margin:10px 0 0!important;
+}

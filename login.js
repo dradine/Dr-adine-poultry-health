@@ -718,17 +718,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 const farmTypes = [
-                    "poultry_operator",
-                    "poultry_manager",
+                    "farm_operator",
+                    "farm_manager",
                     "poultry_technical_expert"
                 ];
 
                 const professionalTypes = [
                     "veterinarian",
                     "technical_veterinarian",
-                    "veterinary_lab",
                     "diagnostic_lab",
-                    "organization_manager",
+                    "company_manager",
                     "other"
                 ];
 

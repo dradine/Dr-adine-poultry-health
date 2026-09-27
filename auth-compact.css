@@ -145,12 +145,25 @@
 }
 
 .auth-page.auth-login-page .auth-wrapper{
-  flex-direction:column!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,410px)!important;
+  grid-template-rows:auto auto!important;
+  align-content:center!important;
+  justify-content:center!important;
+  align-items:start!important;
+  justify-items:stretch!important;
+  gap:10px!important;
 }
 .auth-page.auth-login-page .auth-card{
-  flex:0 0 auto!important;
+  grid-column:1!important;
+  grid-row:1!important;
+  width:100%!important;
+  margin:0!important;
 }
 .auth-page.auth-login-page .auth-ownership{
-  flex:0 0 auto!important;
-  margin:10px 0 0!important;
+  grid-column:1!important;
+  grid-row:2!important;
+  width:100%!important;
+  margin:0!important;
+  text-align:center!important;
 }

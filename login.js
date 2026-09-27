@@ -519,6 +519,34 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
+                // Always re-read the authenticated user from Supabase after
+                // password sign-in. This prevents a stale local session/user
+                // object from affecting the routing decision.
+                let authenticatedUser = data.user;
+                try {
+                    const verifiedUser =
+                        await window.supabaseClient.auth.getUser();
+
+                    if (verifiedUser?.error || !verifiedUser?.data?.user) {
+                        await window.supabaseClient.auth.signOut();
+                        showMessage(
+                            "جلسه ورود از سامانه دریافت نشد. لطفاً دوباره تلاش کنید.",
+                            "error"
+                        );
+                        return;
+                    }
+
+                    authenticatedUser = verifiedUser.data.user;
+                } catch (userCheckError) {
+                    console.error("LOGIN USER VERIFICATION:", userCheckError);
+                    await window.supabaseClient.auth.signOut();
+                    showMessage(
+                        "تأیید جلسه ورود ناموفق بود. لطفاً دوباره تلاش کنید.",
+                        "error"
+                    );
+                    return;
+                }
+
 
                 /* =================================================
                    PROFILE
@@ -542,7 +570,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const profile =
                     await window.AdineAuth.getProfile(
-                        data.user.id
+                        authenticatedUser.id
                     );
 
 
@@ -594,24 +622,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
                 /* =================================================
-                   COMPLETE ROLE PROFILE IF EMAIL CONFIRMATION
-                   PREVENTED REGISTRATION RPC FROM RUNNING
-                ================================================= */
-                if (profile && profile.profile_completed !== true && window.supabaseClient?.rpc) {
-                    try {
-                        const md = data.user.user_metadata || {};
-                        await window.supabaseClient.rpc("complete_profile_registration", {
-                            p_full_name: md.full_name || profile.full_name || "",
-                            p_phone: md.phone || profile.phone || "",
-                            p_user_type: md.user_type || profile.user_type || "other",
-                            p_activity_types: md.activity_types || profile.activity_types || []
-                        });
-                    } catch (profileCompletionError) {
-                        console.warn("PROFILE COMPLETION:", profileCompletionError);
-                    }
-                }
-
-                /* =================================================
                    UPDATE ACTIVITY
                 ================================================= */
 
@@ -657,21 +667,42 @@ document.addEventListener("DOMContentLoaded", function () {
                         .trim()
                         .toLowerCase();
 
-                const mainFarmTypes = [
+                // مسیر ورود بر اساس نقش/نوع کاربری:
+                // مالک/مدیر سامانه → پنل مالک
+                // بهره‌بردار/مدیر واحد/کارشناس فنی طیور → داشبورد فارم
+                // دامپزشک/مسئول فنی/آزمایشگاه/سایر متخصصان → پنل متخصصان
+                if (role === "owner" || role === "admin") {
+                    window.location.replace("owner.html");
+                    return;
+                }
+
+                const farmTypes = [
                     "poultry_operator",
                     "poultry_manager",
                     "poultry_technical_expert"
                 ];
 
-                // سه گروه اصلی وارد برنامه مرغداری می‌شوند؛ مالک وارد مدیریت می‌شود؛
-                // سایر حساب‌ها وارد مرکز مدیریت متخصصان/سایر کاربران می‌شوند.
-                if (role === "owner" || role === "admin") {
-                    window.location.replace("owner.html");
-                } else if (mainFarmTypes.includes(userType)) {
+                const professionalTypes = [
+                    "veterinarian",
+                    "technical_veterinarian",
+                    "veterinary_lab",
+                    "diagnostic_lab",
+                    "organization_manager",
+                    "other"
+                ];
+
+                if (farmTypes.includes(userType)) {
                     window.location.replace("Dashboard.html");
-                } else {
-                    window.location.replace("professional.html");
+                    return;
                 }
+
+                if (professionalTypes.includes(userType)) {
+                    window.location.replace("professional.html");
+                    return;
+                }
+
+                // هر نوع ناشناخته، به‌صورت امن وارد پنل متخصصان می‌شود.
+                window.location.replace("professional.html");
 
 
             } catch (error) {

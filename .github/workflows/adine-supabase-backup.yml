@@ -1,6 +1,10 @@
 name: Supabase Database Backup
 
 on:
+  # TEMPORARY VERIFICATION: explicit push trigger forces a real runner job for end-to-end testing.
+  push:
+    branches:
+      - main
   schedule:
     # TEMPORARY VERIFICATION: run every 5 minutes so the current workflow can be tested end-to-end.
     - cron: "*/5 * * * *"

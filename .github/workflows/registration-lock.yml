@@ -1,0 +1,42 @@
+name: Registration Page Lock
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - register.html
+      - register.js
+      - auth-compact.css
+  push:
+    branches: [main]
+    paths:
+      - register.html
+      - register.js
+      - auth-compact.css
+
+permissions:
+  contents: read
+
+jobs:
+  registration-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Reject unauthorized registration changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git log -1 --pretty=%B | grep -Fq "ALLOW-REGISTRATION-CHANGE"; then
+            echo "Explicit registration-change authorization marker detected."
+            exit 0
+          fi
+
+          echo "::error::Registration page is locked."
+          echo "::error::register.html, register.js and auth-compact.css must not be changed unless the user explicitly requested a registration-page change."
+          echo "::error::For an explicitly requested change, the implementing commit must contain ALLOW-REGISTRATION-CHANGE."
+          exit 1

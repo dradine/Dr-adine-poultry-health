@@ -1,0 +1,22 @@
+name: Adine Actions Diagnostic
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Runner diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GitHub Actions runner reached successfully."
+          echo "SHA=\${GITHUB_SHA}"
+          echo "REF=\${GITHUB_REF}"

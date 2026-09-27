@@ -1,0 +1,46 @@
+name: Lock authentication entry pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  protect-auth-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Protect stable authentication pages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          changed="$(git diff-tree --no-commit-id --name-only -r HEAD || true)"
+          protected_changed=0
+
+          while IFS= read -r file; do
+            case "$file" in
+              login.html|login.js|reset-password.html|reset-password.js|register.html|register.js|auth-compact.css)
+                protected_changed=1
+                echo "::error file=$file::Stable authentication page is locked. Explicit authorization is required."
+                ;;
+            esac
+          done <<< "$changed"
+
+          if [ "$protected_changed" -eq 1 ]; then
+            if ! git log -1 --pretty=%B | grep -Fq "ALLOW-AUTH-PAGES-CHANGE"; then
+              echo "::error::Login, password-recovery, and registration files are locked. Changes require an explicit request and the commit marker ALLOW-AUTH-PAGES-CHANGE."
+              exit 1
+            fi
+            echo "Explicit authentication-page change authorization detected."
+          else
+            echo "Stable authentication pages unchanged."
+          fi

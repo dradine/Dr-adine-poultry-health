@@ -570,7 +570,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const profile =
                     await window.AdineAuth.getProfile(
-                        authenticatedUser.id
+                        authenticatedUser.id,
+                        { force: true }
                     );
 
 
@@ -658,12 +659,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================= */
 
                 const role =
-                    String(profile.role || "")
+                    String(
+                        profile.role ||
+                        authenticatedUser.user_metadata?.role ||
+                        ""
+                    )
                         .trim()
                         .toLowerCase();
 
                 const userType =
-                    String(profile.user_type || "")
+                    String(
+                        profile.user_type ||
+                        authenticatedUser.user_metadata?.user_type ||
+                        authenticatedUser.user_metadata?.userType ||
+                        ""
+                    )
                         .trim()
                         .toLowerCase();
 

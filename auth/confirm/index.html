@@ -4,17 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#123b2a">
-  <title>تأیید لینک | آدینه</title>
+  <meta name="description" content="تأیید ایمیل حساب کاربری | مرکز تخصصی سلامت طیور آدینه">
+  <title>تأیید ایمیل | آدینه</title>
   <link rel="stylesheet" href="../../style.css">
+  <style>
+    .confirm-card{text-align:center}
+    .confirm-logo{width:92px;height:92px;margin:0 auto 18px;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 8px 24px rgba(18,59,42,.12)}
+    .confirm-logo img{display:block;width:100%;height:100%;object-fit:cover;border-radius:22px}
+    .confirm-card h1{margin:0 0 8px;color:#173f2e;font-size:25px;line-height:1.5}
+    .confirm-card .message{margin-top:14px;padding:13px 15px;border-radius:13px;line-height:1.9}
+    .confirm-card .message.error{background:#fff1f0;color:#9b3b34}
+    .confirm-card .message.success{background:#edf8f1;color:#277044}
+    .confirm-login{display:none;margin-top:16px;width:100%;min-height:50px;border:0;border-radius:13px;background:#245d43;color:#fff;font-size:15px;font-weight:800;text-decoration:none;align-items:center;justify-content:center;box-sizing:border-box}
+    .confirm-login.show{display:flex}
+    @media(max-width:480px){.confirm-logo{width:78px;height:78px;border-radius:18px}.confirm-logo img{border-radius:18px}.confirm-card h1{font-size:22px}}
+  </style>
 </head>
 <body class="auth-page">
   <main class="auth-wrapper">
-    <section class="auth-card" aria-labelledby="authConfirmTitle">
-      <div class="auth-logo">
+    <section class="auth-card confirm-card" aria-labelledby="authConfirmTitle">
+      <div class="confirm-logo">
         <img src="../../IMG_4309.png" alt="لوگوی مرکز تخصصی سلامت طیور آدینه">
       </div>
-      <h1 id="authConfirmTitle">در حال تأیید لینک...</h1>
+      <h1 id="authConfirmTitle">تأیید ایمیل حساب کاربری</h1>
       <div id="message" class="message info" role="status" aria-live="polite">لطفاً چند لحظه صبر کنید.</div>
+      <a id="loginButton" class="confirm-login" href="../../login.html">ورود به سامانه</a>
     </section>
   </main>
 
@@ -23,45 +37,54 @@
   <script>
     (async () => {
       const message = document.getElementById("message");
+      const loginButton = document.getElementById("loginButton");
       const params = new URLSearchParams(window.location.search);
       const tokenHash = params.get("token_hash");
-      const type = params.get("type");
+      const rawType = params.get("type");
       const requestedNext = params.get("next");
 
+      // Supabase verifyOtp expects `signup` for an email confirmation token.
+      // `email` is accepted only as a compatibility alias for older/custom templates.
+      const verifyType = rawType === "email" ? "signup" : rawType;
       const allowedNext = {
         recovery: "/update-password.html",
+        signup: "/login.html",
         email: "/login.html"
       };
 
       const next = requestedNext && requestedNext.startsWith("/") && !requestedNext.startsWith("//")
         ? requestedNext
-        : allowedNext[type];
+        : allowedNext[rawType];
 
       const labels = {
         recovery: {
           title: "تأیید بازیابی رمز عبور",
           loading: "در حال تأیید لینک بازیابی رمز عبور...",
-          invalid: "لینک بازیابی رمز عبور ناقص یا نامعتبر است. لطفاً دوباره درخواست بازیابی رمز عبور کنید.",
           expired: "لینک بازیابی رمز عبور معتبر نیست یا منقضی شده است. لطفاً دوباره درخواست بازیابی کنید.",
           error: "در تأیید لینک بازیابی خطایی رخ داد. لطفاً دوباره درخواست بازیابی کنید."
+        },
+        signup: {
+          title: "تأیید ایمیل حساب کاربری",
+          loading: "در حال تأیید ایمیل حساب کاربری...",
+          expired: "لینک تأیید ایمیل معتبر نیست یا منقضی شده است. لطفاً دوباره درخواست تأیید ایمیل کنید.",
+          error: "در تأیید ایمیل خطایی رخ داد. لطفاً دوباره درخواست تأیید ایمیل کنید."
         },
         email: {
           title: "تأیید ایمیل حساب کاربری",
           loading: "در حال تأیید ایمیل حساب کاربری...",
-          invalid: "لینک تأیید ایمیل ناقص یا نامعتبر است. لطفاً دوباره ثبت‌نام یا درخواست تأیید ایمیل کنید.",
           expired: "لینک تأیید ایمیل معتبر نیست یا منقضی شده است. لطفاً دوباره درخواست تأیید ایمیل کنید.",
           error: "در تأیید ایمیل خطایی رخ داد. لطفاً دوباره درخواست تأیید ایمیل کنید."
         }
       };
 
-      const label = labels[type];
-
+      const label = labels[rawType];
       const fail = (text) => {
         message.textContent = text;
         message.className = "message error";
+        loginButton.classList.remove("show");
       };
 
-      if (!label || !tokenHash || !next) {
+      if (!label || !tokenHash || !next || !verifyType) {
         fail("لینک تأیید ناقص یا نامعتبر است. لطفاً دوباره درخواست ارسال کنید.");
         return;
       }
@@ -72,12 +95,19 @@
       try {
         const { error } = await supabaseClient.auth.verifyOtp({
           token_hash: tokenHash,
-          type
+          type: verifyType
         });
 
         if (error) {
           console.error("AUTH CONFIRM VERIFY ERROR:", error);
           fail(error.message || label.expired);
+          return;
+        }
+
+        if (verifyType === "signup") {
+          message.textContent = "ایمیل شما با موفقیت تأیید شد. اکنون می‌توانید وارد سامانه شوید.";
+          message.className = "message success";
+          loginButton.classList.add("show");
           return;
         }
 

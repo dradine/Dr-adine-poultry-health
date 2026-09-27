@@ -324,13 +324,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 "success"
             );
 
-            if (window.history?.replaceState) {
-                window.history.replaceState(
-                    {},
-                    document.title,
-                    window.location.pathname + window.location.search
-                );
-            }
+            // Do not remove the auth hash until Supabase has had a chance
+            // to consume the confirmation token and establish the session.
+            setTimeout(async function () {
+                try {
+                    const sessionResult =
+                        await window.supabaseClient.auth.getSession();
+
+                    if (sessionResult?.data?.session && window.history?.replaceState) {
+                        window.history.replaceState(
+                            {},
+                            document.title,
+                            window.location.pathname + window.location.search
+                        );
+                    }
+                } catch (sessionError) {
+                    console.warn("Email confirmation session check:", sessionError);
+                }
+            }, 700);
         }
     } catch (error) {
         console.warn("Email confirmation message:", error);

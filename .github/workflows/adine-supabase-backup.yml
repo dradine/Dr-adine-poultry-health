@@ -1,4 +1,4 @@
-name: Adine — Automated Supabase Database Backup
+name: Supabase Database Backup
 
 on:
   schedule:

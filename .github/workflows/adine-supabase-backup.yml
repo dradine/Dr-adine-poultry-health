@@ -1,0 +1,191 @@
+name: Adine — Automated Supabase Database Backup
+
+on:
+  schedule:
+    # Daily at 02:17 UTC. Avoiding :00 reduces GitHub schedule congestion.
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: adine-supabase-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    name: Backup Supabase database
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Verify required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_DB_URL}" || { echo "::error::Missing GitHub secret SUPABASE_DB_URL"; exit 1; }
+          test -n "${BACKUP_ENCRYPTION_KEY}" || { echo "::error::Missing GitHub secret BACKUP_ENCRYPTION_KEY"; exit 1; }
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Create logical backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+
+          rm -rf backup
+          mkdir -p backup
+
+          echo "Creating roles dump..."
+          supabase db dump \
+            --db-url "${SUPABASE_DB_URL}" \
+            -f backup/roles.sql \
+            --role-only
+
+          echo "Creating schema dump..."
+          supabase db dump \
+            --db-url "${SUPABASE_DB_URL}" \
+            -f backup/schema.sql
+
+          echo "Creating data dump..."
+          supabase db dump \
+            --db-url "${SUPABASE_DB_URL}" \
+            -f backup/data.sql \
+            --data-only \
+            --use-copy \
+            -x "storage.buckets_vectors" \
+            -x "storage.vector_indexes"
+
+          cat > backup/README.txt <<'EOF'
+          Adine Poultry Health — Supabase database backup
+
+          Contents:
+          - roles.sql   : database roles
+          - schema.sql  : schema, functions, triggers, policies, etc.
+          - data.sql    : application/auth data exported by Supabase CLI
+
+          Storage API file objects are NOT included in a database dump.
+          This backup is encrypted before it leaves the GitHub runner.
+          EOF
+
+          tar -czf backup.tar.gz -C backup .
+          sha256sum backup.tar.gz > backup.tar.gz.sha256
+
+          echo "Logical backup size:"
+          du -h backup.tar.gz
+
+      - name: Encrypt backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+
+          # AES-256-CTR + PBKDF2. A separate HMAC below provides integrity/authentication.
+          openssl enc -aes-256-ctr \
+            -pbkdf2 \
+            -iter 200000 \
+            -salt \
+            -in backup.tar.gz \
+            -out backup.tar.gz.enc \
+            -pass env:BACKUP_ENCRYPTION_KEY
+
+          openssl dgst -sha256 \
+            -hmac "${BACKUP_ENCRYPTION_KEY}" \
+            -out backup.tar.gz.enc.hmac \
+            backup.tar.gz.enc
+
+          # Do not leave plaintext database contents in the runner workspace.
+          rm -rf backup backup.tar.gz backup.tar.gz.sha256
+
+          echo "Encrypted backup size:"
+          du -h backup.tar.gz.enc
+
+      - name: Upload short-term recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: adine-supabase-backup-${{ github.run_id }}
+          path: |
+            backup.tar.gz.enc
+            backup.tar.gz.enc.hmac
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+
+      - name: Create weekly/monthly encrypted archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          today="$(date -u +%F)"
+          weekday="$(date -u +%u)"
+          monthday="$(date -u +%d)"
+
+          if [ "$weekday" = "7" ]; then
+            tag="db-backup-weekly-${today}"
+            title="Adine database backup — weekly — ${today}"
+            gh release create "$tag" \
+              backup.tar.gz.enc \
+              backup.tar.gz.enc.hmac \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${title}" \
+              --notes "Encrypted Supabase database backup. Generated automatically on ${today}. Backup contents are not readable without the private BACKUP_ENCRYPTION_KEY." \
+              --prerelease \
+              --latest=false
+
+            gh release list \
+              --repo "${GITHUB_REPOSITORY}" \
+              --limit 100 \
+              --json tagName \
+              --jq '.[] | select(.tagName | startswith("db-backup-weekly-")) | .tagName' \
+              | tail -n +5 \
+              | while read -r old_tag; do
+                  [ -z "${old_tag}" ] || gh release delete "${old_tag}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
+                done
+          fi
+
+          if [ "$monthday" = "01" ]; then
+            tag="db-backup-monthly-${today:0:7}"
+            title="Adine database backup — monthly — ${today:0:7}"
+            gh release create "$tag" \
+              backup.tar.gz.enc \
+              backup.tar.gz.enc.hmac \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${title}" \
+              --notes "Encrypted Supabase database backup. Generated automatically on ${today}. Backup contents are not readable without the private BACKUP_ENCRYPTION_KEY." \
+              --prerelease \
+              --latest=false
+
+            gh release list \
+              --repo "${GITHUB_REPOSITORY}" \
+              --limit 100 \
+              --json tagName \
+              --jq '.[] | select(.tagName | startswith("db-backup-monthly-")) | .tagName' \
+              | tail -n +7 \
+              | while read -r old_tag; do
+                  [ -z "${old_tag}" ] || gh release delete "${old_tag}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag --yes
+                done
+          fi
+
+      - name: Verify encrypted artifact exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s backup.tar.gz.enc
+          test -s backup.tar.gz.enc.hmac
+          echo "Backup artifact generated successfully."

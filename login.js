@@ -658,30 +658,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================= */
 
                 try {
-
-                    const activityResult =
-                        await window.supabaseClient.rpc(
-                            "update_my_activity"
-                        );
-
-
-                    if (
-                        activityResult?.error
-                    ) {
-
-                        console.warn(
-                            "ACTIVITY UPDATE ERROR:",
-                            activityResult.error
-                        );
-                    }
-
+                    await Promise.race([
+                        window.supabaseClient.rpc("update_my_activity"),
+                        new Promise(resolve => setTimeout(resolve, 3000))
+                    ]);
                 } catch (activityError) {
-
-                    console.warn(
-                        "ACTIVITY UPDATE EXCEPTION:",
-                        activityError
-                    );
-
+                    // ثبت آخرین فعالیت نباید مانع ورود و مسیریابی شود.
+                    console.warn("ACTIVITY UPDATE EXCEPTION:", activityError);
                 }
 
 
@@ -698,7 +681,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         .trim()
                         .toLowerCase();
 
-                const userType =
+                const rawUserType =
                     String(
                         profile.user_type ||
                         authenticatedUser.user_metadata?.user_type ||
@@ -708,40 +691,50 @@ document.addEventListener("DOMContentLoaded", function () {
                         .trim()
                         .toLowerCase();
 
-                // مسیر ورود بر اساس نقش/نوع کاربری:
+                // نام‌های قدیمی ثبت‌نام را فقط در لایه مسیریابی به نام‌های
+                // استاندارد فعلی تبدیل می‌کنیم؛ داده حساب را دست نمی‌زنیم.
+                const typeAliases = {
+                    poultry_operator: "farm_operator",
+                    poultry_manager: "farm_manager",
+                    veterinary_lab: "diagnostic_lab",
+                    organization_manager: "company_manager"
+                };
+                const userType = typeAliases[rawUserType] || rawUserType;
+
+                // مسیر ورود قطعی و مستقل هر گروه:
                 // مالک/مدیر سامانه → پنل مالک
-                // بهره‌بردار/مدیر واحد/کارشناس فنی طیور → داشبورد فارم
-                // دامپزشک/مسئول فنی/آزمایشگاه/سایر متخصصان → پنل متخصصان
+                // بهره‌بردار/مدیر واحد/کارشناس فنی طیور → اپلیکیشن اصلی فارم
+                // آزمایشگاه → پنل اختصاصی آزمایشگاه
+                // دامپزشک/مسئول فنی/مدیر مجموعه/سایر → مرکز متخصصان
                 if (role === "owner" || role === "admin") {
                     window.location.replace("owner.html");
                     return;
                 }
 
-                const farmTypes = [
+                if ([
                     "farm_operator",
                     "farm_manager",
                     "poultry_technical_expert"
-                ];
-
-                const professionalTypes = [
-                    "veterinarian",
-                    "technical_veterinarian",
-                    "diagnostic_lab",
-                    "company_manager",
-                    "other"
-                ];
-
-                if (farmTypes.includes(userType)) {
+                ].includes(userType)) {
                     window.location.replace("Dashboard.html");
                     return;
                 }
 
-                if (professionalTypes.includes(userType)) {
+                if (userType === "diagnostic_lab") {
+                    window.location.replace("laboratory.html");
+                    return;
+                }
+
+                if ([
+                    "veterinarian",
+                    "technical_veterinarian",
+                    "company_manager",
+                    "other"
+                ].includes(userType)) {
                     window.location.replace("professional.html");
                     return;
                 }
 
-                // هر نوع ناشناخته، به‌صورت امن وارد پنل متخصصان می‌شود.
                 window.location.replace("professional.html");
 
 

@@ -24,6 +24,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Protect registration page
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ] && git rev-parse HEAD^ >/dev/null 2>&1; then
+            changed="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          else
+            changed="$(git diff-tree --no-commit-id --name-only -r HEAD)"
+          fi
+
+          protected_changed=0
+          while IFS= read -r file; do
+            case "$file" in
+              register.html|register.js|auth-compact.css)
+                protected_changed=1
+                echo "::error file=$file::Registration page is locked. Changes require explicit user authorization."
+                ;;
+            esac
+          done <<< "$changed"
+
+          if [ "$protected_changed" -eq 1 ]; then
+            if ! git log -1 --pretty=%B | grep -Fq "ALLOW-REGISTRATION-CHANGE"; then
+              echo "::error::Registration files are locked. Do not deploy changes to register.html, register.js, or auth-compact.css unless the user explicitly requested a registration-page change and the commit is marked ALLOW-REGISTRATION-CHANGE."
+              exit 1
+            fi
+            echo "Explicit registration-change authorization marker detected."
+          else
+            echo "Registration page unchanged."
+          fi
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 

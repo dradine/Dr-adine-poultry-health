@@ -1,13 +1,9 @@
-name: Adine Supabase Database Backup (v2)
+name: Supabase Database Backup
 
 on:
-  # TEMPORARY VERIFICATION: explicit push trigger forces a real runner job for end-to-end testing.
-  push:
-    branches:
-      - main
   schedule:
-    # TEMPORARY VERIFICATION: run every 5 minutes so the current workflow can be tested end-to-end.
-    - cron: "*/5 * * * *"
+    # Daily at 02:17 UTC. Avoiding :00 reduces GitHub schedule congestion.
+    - cron: "17 2 * * *"
   workflow_dispatch:
 
 concurrency:

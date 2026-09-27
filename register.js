@@ -14,8 +14,71 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderRole(){const cfg=options[userType.value];activityTypes.innerHTML="";if(!cfg){roleSpecific.classList.add("hidden");return}roleSpecific.classList.remove("hidden");roleSpecificLabel.textContent=cfg.label;cfg.items.forEach((x,i)=>{const id="activity_"+i;activityTypes.insertAdjacentHTML("beforeend",`<label class="role-option"><input type="checkbox" value="${x.replaceAll('"','&quot;')}"> ${x}</label>`)});}
     userType.addEventListener("change",renderRole);
     togglePassword.addEventListener("click",()=>{const h=passwordInput.type==="password";passwordInput.type=h?"text":"password";togglePassword.textContent=h?"پنهان":"نمایش"});
+    let resendConfirmationButton=null;
+    let resendCooldownTimer=null;
+    const redirectUrl="https://app.adinepoultryhealth.ir/login.html";
+    function ensureResendButton(){
+      if(resendConfirmationButton)return resendConfirmationButton;
+      resendConfirmationButton=document.createElement("button");
+      resendConfirmationButton.type="button";
+      resendConfirmationButton.className="registration-modal-button";
+      resendConfirmationButton.style.marginTop="9px";
+      resendConfirmationButton.style.background="#eef7f2";
+      resendConfirmationButton.style.color="#1f6045";
+      resendConfirmationButton.textContent="ارسال مجدد ایمیل تأیید";
+      resendConfirmationButton.addEventListener("click",async()=>{
+        resendConfirmationButton.disabled=true;
+        resendConfirmationButton.textContent="در حال ارسال...";
+        try{
+          const {error}=await supabaseClient.auth.resend({
+            type:"signup",
+            email:emailInput.value.trim().toLowerCase(),
+            options:{emailRedirectTo:redirectUrl}
+          });
+          if(error)throw error;
+          resendConfirmationButton.textContent="ایمیل تأیید دوباره ارسال شد";
+        }catch(error){
+          console.error("RESEND SIGNUP CONFIRM ERROR:",error);
+          const text=String(error?.message||"");
+          if(/60|second|rate|too many/i.test(text)){
+            resendConfirmationButton.textContent="لطفاً چند لحظه صبر کنید";
+            startResendCooldown(60);
+          }else{
+            resendConfirmationButton.disabled=false;
+            resendConfirmationButton.textContent="ارسال مجدد ایمیل تأیید";
+          }
+        }
+      });
+      successOk.parentElement.appendChild(resendConfirmationButton);
+      return resendConfirmationButton;
+    }
+    function startResendCooldown(seconds=60){
+      const btn=ensureResendButton();
+      btn.disabled=true;
+      let left=seconds;
+      btn.textContent="ارسال مجدد ("+left+" ثانیه)";
+      clearInterval(resendCooldownTimer);
+      resendCooldownTimer=setInterval(()=>{
+        left--;
+        if(left<=0){
+          clearInterval(resendCooldownTimer);
+          btn.disabled=false;
+          btn.textContent="ارسال مجدد ایمیل تأیید";
+        }else{
+          btn.textContent="ارسال مجدد ("+left+" ثانیه)";
+        }
+      },1000);
+    }
     successOk.addEventListener("click",()=>{successModal.hidden=true;});
     successModal.addEventListener("click",e=>{if(e.target===successModal)successModal.hidden=true});
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!successModal.hidden)successModal.hidden=true});
-    form.addEventListener("submit",async e=>{e.preventDefault();message.classList.add("hidden");const fullName=fullNameInput.value.trim(),email=emailInput.value.trim().toLowerCase(),phone=phoneInput.value.trim(),role=userType.value,password=passwordInput.value,confirm=confirmPasswordInput.value,activities=[...activityTypes.querySelectorAll('input:checked')].map(x=>x.value);if(fullName.length<2)return showMessage("نام و نام خانوادگی را کامل وارد کنید.");if(phone.length<7)return showMessage("شماره تماس الزامی است.");if(!role)return showMessage("نوع کاربری را انتخاب کنید.");if(!email)return showMessage("ایمیل را وارد کنید.");if(!legalConsent?.checked)return showMessage("برای ایجاد حساب، تأیید شرایط استفاده و حقوق مالکیت فکری الزامی است.");if(password.length<8)return showMessage("رمز عبور باید حداقل ۸ کاراکتر باشد.");if(password!==confirm)return showMessage("تکرار رمز عبور یکسان نیست.");button.disabled=true;button.textContent="در حال ثبت‌نام...";try{const redirectUrl="https://app.adinepoultryhealth.ir/login.html";const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:fullName,phone,user_type:role,activity_types:activities},emailRedirectTo:redirectUrl}});if(error)throw error;if(!data?.user)throw new Error("ثبت‌نام انجام نشد.");try{await supabaseClient.rpc("complete_profile_registration",{p_full_name:fullName,p_phone:phone,p_user_type:role,p_activity_types:activities})}catch(rpcError){console.warn("profile completion:",rpcError)}form.reset();renderRole();showMessage(role==="veterinarian"||role==="technical_veterinarian"||role==="veterinary_lab"?"ثبت‌نام انجام شد. پس از تأیید ایمیل و فعال‌سازی حساب، کد حرفه‌ای ۴ رقمی شما اختصاص داده می‌شود.":"ثبت‌نام انجام شد. پس از تأیید ایمیل، حساب شما باید توسط مالک فعال شود.","success")}catch(err){console.error(err);showMessage(err.message||"ثبت‌نام انجام نشد.")}finally{button.disabled=false;button.textContent="ثبت‌نام"}});
+    form.addEventListener("submit",async e=>{e.preventDefault();message.classList.add("hidden");const fullName=fullNameInput.value.trim(),email=emailInput.value.trim().toLowerCase(),phone=phoneInput.value.trim(),role=userType.value,password=passwordInput.value,confirm=confirmPasswordInput.value,activities=[...activityTypes.querySelectorAll('input:checked')].map(x=>x.value);if(fullName.length<2)return showMessage("نام و نام خانوادگی را کامل وارد کنید.");if(phone.length<7)return showMessage("شماره تماس الزامی است.");if(!role)return showMessage("نوع کاربری را انتخاب کنید.");if(!email)return showMessage("ایمیل را وارد کنید.");if(!legalConsent?.checked)return showMessage("برای ایجاد حساب، تأیید شرایط استفاده و حقوق مالکیت فکری الزامی است.");if(password.length<8)return showMessage("رمز عبور باید حداقل ۸ کاراکتر باشد.");if(password!==confirm)return showMessage("تکرار رمز عبور یکسان نیست.");button.disabled=true;button.textContent="در حال ثبت‌نام...";try{const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{full_name:fullName,phone,user_type:role,activity_types:activities},emailRedirectTo:redirectUrl}});if(error)throw error;if(!data?.user)throw new Error("ثبت‌نام انجام نشد.");
+const createdAt=data.user.created_at?Date.parse(data.user.created_at):Date.now();
+const isUnconfirmed=data.user.confirmed_at==null;
+const looksLikeExistingUnconfirmed=isUnconfirmed && Number.isFinite(createdAt) && (Date.now()-createdAt>90000);
+if(looksLikeExistingUnconfirmed){
+  const {error:resendError}=await supabaseClient.auth.resend({type:"signup",email,options:{emailRedirectTo:redirectUrl}});
+  if(resendError)console.warn("existing signup resend:",resendError);
+}
+try{await supabaseClient.rpc("complete_profile_registration",{p_full_name:fullName,p_phone:phone,p_user_type:role,p_activity_types:activities})}catch(rpcError){console.warn("profile completion:",rpcError)}form.reset();renderRole();ensureResendButton();showMessage(role==="veterinarian"||role==="technical_veterinarian"||role==="veterinary_lab"?"ثبت‌نام انجام شد. پس از تأیید ایمیل و فعال‌سازی حساب، کد حرفه‌ای ۴ رقمی شما اختصاص داده می‌شود.":"ثبت‌نام انجام شد. پس از تأیید ایمیل، حساب شما باید توسط مالک فعال شود.","success")}catch(err){console.error(err);showMessage(err.message||"ثبت‌نام انجام نشد.")}finally{button.disabled=false;button.textContent="ثبت‌نام"}});
 });

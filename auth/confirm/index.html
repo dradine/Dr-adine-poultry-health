@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#123b2a">
+  <title>تأیید بازیابی رمز عبور | آدینه</title>
+  <link rel="stylesheet" href="../../style.css">
+</head>
+<body class="auth-page">
+  <main class="auth-wrapper">
+    <section class="auth-card" aria-labelledby="authConfirmTitle">
+      <div class="auth-logo">
+        <img src="../../IMG_4309.png" alt="لوگوی مرکز تخصصی سلامت طیور آدینه">
+      </div>
+      <h1 id="authConfirmTitle">تأیید بازیابی رمز عبور</h1>
+      <div id="message" class="message info" role="status" aria-live="polite">در حال تأیید لینک بازیابی...</div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../config.js"></script>
+  <script>
+    (async () => {
+      const message = document.getElementById("message");
+      const params = new URLSearchParams(window.location.search);
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+      const next = params.get("next") || "../../update-password.html";
+
+      const fail = (text) => {
+        message.textContent = text;
+        message.className = "message error";
+      };
+
+      if (!tokenHash || type !== "recovery") {
+        fail("لینک بازیابی رمز عبور ناقص یا نامعتبر است. لطفاً دوباره درخواست بازیابی رمز عبور کنید.");
+        return;
+      }
+
+      try {
+        const { error } = await supabaseClient.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "recovery"
+        });
+
+        if (error) {
+          console.error("RECOVERY VERIFY ERROR:", error);
+          fail("لینک بازیابی رمز عبور معتبر نیست یا منقضی شده است. لطفاً دوباره درخواست بازیابی کنید.");
+          return;
+        }
+
+        window.location.replace(next);
+      } catch (error) {
+        console.error("RECOVERY CONFIRM ERROR:", error);
+        fail("در تأیید لینک بازیابی خطایی رخ داد. لطفاً دوباره درخواست بازیابی کنید.");
+      }
+    })();
+  </script>
+</body>
+</html>

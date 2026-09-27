@@ -6,13 +6,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   const auth = await AdineAuth.requireAuth();
   if(!auth) return;
   const p = auth.profile || {};
-  const type = String(p.user_type || '').trim().toLowerCase();
-  const mainTypes = ['poultry_operator','poultry_manager','poultry_technical_expert'];
-  if(mainTypes.includes(type) && !['owner','admin'].includes(String(p.role||'').toLowerCase())){
-    location.replace('Dashboard.html'); return;
-  }
+  const rawType = String(p.user_type || '').trim().toLowerCase();
+  const typeAliases = {
+    poultry_operator:'farm_operator',
+    poultry_manager:'farm_manager',
+    veterinary_lab:'diagnostic_lab',
+    organization_manager:'company_manager'
+  };
+  const type = typeAliases[rawType] || rawType;
   if(['owner','admin'].includes(String(p.role||'').toLowerCase())){
     location.replace('owner.html'); return;
+  }
+  if(['farm_operator','farm_manager','poultry_technical_expert'].includes(type)){
+    location.replace('Dashboard.html'); return;
+  }
+  if(type === 'diagnostic_lab'){
+    location.replace('laboratory.html'); return;
   }
 
   let rows=[];

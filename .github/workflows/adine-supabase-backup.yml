@@ -95,7 +95,6 @@ jobs:
           set -euo pipefail
           umask 077
 
-          # AES-256-CTR + PBKDF2. A separate HMAC below provides integrity/authentication.
           openssl enc -aes-256-ctr \
             -pbkdf2 \
             -iter 200000 \
@@ -156,30 +155,15 @@ jobs:
             exit 0
           fi
 
-          test -n "${DROPBOX_APP_KEY}" || {
-            echo "::error::Dropbox backup is due today but DROPBOX_APP_KEY is not configured."
-            exit 1
-          }
-          test -n "${DROPBOX_APP_SECRET}" || {
-            echo "::error::Dropbox backup is due today but DROPBOX_APP_SECRET is not configured."
-            exit 1
-          }
-          test -n "${DROPBOX_REFRESH_TOKEN}" || {
-            echo "::error::Dropbox backup is due today but DROPBOX_REFRESH_TOKEN is not configured."
-            exit 1
-          }
+          test -n "${DROPBOX_APP_KEY}" || { echo "::error::Missing DROPBOX_APP_KEY"; exit 1; }
+          test -n "${DROPBOX_APP_SECRET}" || { echo "::error::Missing DROPBOX_APP_SECRET"; exit 1; }
+          test -n "${DROPBOX_REFRESH_TOKEN}" || { echo "::error::Missing DROPBOX_REFRESH_TOKEN"; exit 1; }
 
           mkdir -p .dropbox-runtime
           npm install --prefix .dropbox-runtime --no-save --no-package-lock dropbox@10.46.0 >/dev/null 2>&1
 
           cat > .dropbox-runtime/backup.mjs <<'NODE'
-          import {
-            Dropbox,
-            DropboxAuth,
-            DropboxFileUploader,
-            fileUpload,
-          } from "dropbox";
-
+          import { Dropbox, DropboxAuth, DropboxFileUploader, fileUpload } from "dropbox";
           import fs from "node:fs";
           import path from "node:path";
           import { execFile } from "node:child_process";
@@ -194,6 +178,9 @@ jobs:
           const WEEKLY = `${ROOT}/weekly`;
           const MONTHLY = `${ROOT}/monthly`;
           const DATE = new Date().toISOString().slice(0, 10);
+
+          // Keep at least 15% of the Dropbox quota free after each upload.
+          const MAX_USAGE_RATIO = 0.85;
 
           const auth = new DropboxAuth({
             clientId: APP_KEY,
@@ -226,35 +213,58 @@ jobs:
             return out.filter(x => x[".tag"] === "file");
           }
 
-          async function enforceRetention(folder, prefix, keep) {
-            const entries = (await listAll(folder))
-              .filter(x => x.name.startsWith(prefix) && x.name.endsWith(".tar"))
-              .sort((a, b) => a.name.localeCompare(b.name));
-
-            const old = entries.slice(0, Math.max(0, entries.length - keep));
-            for (const entry of old) {
-              await dbx.filesDeleteV2({ path: entry.path_lower ?? entry.path_display });
-              console.log(`Deleted old Dropbox backup: ${entry.name}`);
-            }
+          async function allManagedBackups() {
+            const weekly = await listAll(WEEKLY);
+            const monthly = await listAll(MONTHLY);
+            return [
+              ...weekly
+                .filter(x => x.name.startsWith("adine-supabase-weekly-") && x.name.endsWith(".tar"))
+                .map(x => ({ ...x, bucket: "weekly" })),
+              ...monthly
+                .filter(x => x.name.startsWith("adine-supabase-monthly-") && x.name.endsWith(".tar"))
+                .map(x => ({ ...x, bucket: "monthly" })),
+            ].sort((a, b) => {
+              const ta = Date.parse(a.server_modified ?? "") || 0;
+              const tb = Date.parse(b.server_modified ?? "") || 0;
+              return ta - tb;
+            });
           }
 
-          async function ensureQuota(payloadBytes) {
+          async function getUsage() {
             const usage = (await dbx.usersGetSpaceUsage()).result;
-            if (usage.allocation?.[".tag"] !== "individual") return;
-
-            const used = Number(usage.used ?? 0);
-            const allocated = Number(usage.allocation.allocated ?? 0);
-            const projected = used + payloadBytes;
-            const safetyLimit = Math.floor(allocated * 0.90);
-
-            console.log(`Dropbox usage: ${used}/${allocated} bytes; projected: ${projected}`);
-
-            if (projected > safetyLimit) {
-              throw new Error(
-                "Dropbox backup stopped before exceeding the 90% safety limit. " +
-                "Retention was already applied; no unrelated Dropbox files are deleted."
-              );
+            if (usage.allocation?.[".tag"] !== "individual") {
+              throw new Error("Dropbox account is not an individual storage allocation; automatic quota policy stopped.");
             }
+            return {
+              used: Number(usage.used ?? 0),
+              allocated: Number(usage.allocation.allocated ?? 0),
+            };
+          }
+
+          async function makeRoom(payloadBytes) {
+            let usage = await getUsage();
+            const limit = Math.floor(usage.allocated * MAX_USAGE_RATIO);
+
+            console.log(`Dropbox usage before cleanup: ${usage.used}/${usage.allocated} bytes`);
+            console.log(`Safe usage ceiling: ${limit} bytes (85%; 15% free)`);
+
+            if (usage.used + payloadBytes <= limit) return;
+
+            const backups = await allManagedBackups();
+
+            for (const entry of backups) {
+              // Only delete backups created by this workflow.
+              await dbx.filesDeleteV2({ path: entry.path_lower ?? entry.path_display });
+              console.log(`Deleted oldest managed Dropbox backup to make room: ${entry.name}`);
+
+              usage = await getUsage();
+              if (usage.used + payloadBytes <= limit) return;
+            }
+
+            throw new Error(
+              "Dropbox quota is too small for the next backup even after deleting all managed old backups. " +
+              "No unrelated Dropbox files were deleted."
+            );
           }
 
           async function upload(localFile, destination) {
@@ -275,16 +285,14 @@ jobs:
           ]);
 
           const payloadBytes = fs.statSync(payload).size;
-          console.log(`Dropbox payload size: ${payloadBytes} bytes`);
+          console.log(`Dropbox backup payload size: ${payloadBytes} bytes`);
 
           await ensureFolder(ROOT);
           await ensureFolder(WEEKLY);
           await ensureFolder(MONTHLY);
 
-          // Retention is intentionally small so Dropbox Basic remains viable.
-          await enforceRetention(WEEKLY, "adine-supabase-weekly-", 4);
-          await enforceRetention(MONTHLY, "adine-supabase-monthly-", 3);
-          await ensureQuota(payloadBytes);
+          // Oldest-first cleanup only when needed; no unrelated Dropbox content is touched.
+          await makeRoom(payloadBytes);
 
           if (process.env.SHOULD_WEEKLY === "true") {
             await upload(payload, `${WEEKLY}/adine-supabase-weekly-${DATE}.tar`);
@@ -294,7 +302,13 @@ jobs:
             await upload(payload, `${MONTHLY}/adine-supabase-monthly-${DATE}.tar`);
           }
 
-          // Verify each upload by listing it and comparing exact file size.
+          // Final quota check and upload verification.
+          const finalUsage = await getUsage();
+          const finalLimit = Math.floor(finalUsage.allocated * MAX_USAGE_RATIO);
+          if (finalUsage.used > finalLimit) {
+            throw new Error("Dropbox backup completed but the account is above the 85% safety ceiling.");
+          }
+
           for (const [folder, prefix, enabled] of [
             [WEEKLY, "adine-supabase-weekly-", process.env.SHOULD_WEEKLY === "true"],
             [MONTHLY, "adine-supabase-monthly-", process.env.SHOULD_MONTHLY === "true"],
@@ -305,19 +319,14 @@ jobs:
             const name = `${prefix}${DATE}.tar`;
             const found = entries.find(x => x.name === name);
 
-            if (!found) {
-              throw new Error(`Dropbox verification failed: ${name} not found`);
-            }
-
+            if (!found) throw new Error(`Dropbox verification failed: ${name} not found`);
             if (Number(found.size ?? -1) !== payloadBytes) {
-              throw new Error(
-                `Dropbox verification failed: ${name} size mismatch ${found.size} != ${payloadBytes}`
-              );
+              throw new Error(`Dropbox verification failed: ${name} size mismatch`);
             }
 
             console.log(`Verified Dropbox backup: ${name} (${found.size} bytes)`);
           }
-          NODE
+        NODE
 
           SHOULD_WEEKLY="${SHOULD_WEEKLY}" SHOULD_MONTHLY="${SHOULD_MONTHLY}" \
             DROPBOX_APP_KEY="${DROPBOX_APP_KEY}" \

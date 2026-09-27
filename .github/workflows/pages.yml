@@ -27,10 +27,21 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Verify production entry points
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f index.html
+          test -f login.html
+          test -f confirmed.html
+          test -f CNAME
+          test "$(tr -d '\r\n' < CNAME)" = "app.adinepoultryhealth.ir"
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
+          jekyll: false
 
       - name: Deploy to GitHub Pages
         id: deployment

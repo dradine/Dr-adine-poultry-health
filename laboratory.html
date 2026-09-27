@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<title>مرکز آزمایشگاه | مرکز تخصصی سلامت طیور آدینه</title>
+<style>
+:root{--bg:#f3f7f4;--card:#fff;--ink:#173f35;--muted:#718079;--line:#dfe9e3;--accent:#a8d65e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#213b31;font-family:Tahoma,Arial,sans-serif}.wrap{width:min(1100px,calc(100% - 24px));margin:auto}.top{background:var(--ink);color:#fff;padding:14px 0;box-shadow:0 4px 18px #0002}.topin{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{display:flex;align-items:center;gap:10px}.brand img{width:44px;height:44px;border-radius:12px;object-fit:cover}.brand strong{display:block;font-size:16px}.brand small{display:block;font-size:10px;opacity:.72;margin-top:3px}.btn{border:0;border-radius:10px;padding:10px 14px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.btn.out{background:#ffffff16;color:#fff;border:1px solid #ffffff25}.main{padding:18px 0 35px}.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 22px #173f3510}.hero{padding:18px;margin-bottom:12px}.hero h1{margin:0;color:var(--ink);font-size:21px}.hero p{margin:8px 0 0;color:var(--muted);font-size:12px;line-height:2}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{padding:15px}.card h2{font-size:14px;color:var(--ink);margin:0 0 7px}.card p{font-size:11px;line-height:1.9;color:var(--muted);margin:0}.badge{display:inline-block;margin-top:10px;padding:5px 9px;border-radius:20px;background:#edf6e5;color:#42651f;font-size:10px;font-weight:800}.notice{margin-top:12px;padding:12px;border-radius:12px;background:#edf4f0;color:#315448;font-size:11px;line-height:1.9}@media(max-width:700px){.wrap{width:calc(100% - 16px)}.grid{grid-template-columns:1fr}.hero h1{font-size:18px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap topin"><div class="brand"><img src="IMG_4309.png" alt="آدینه"><div><strong>مرکز آزمایشگاه</strong><small>مرکز تخصصی سلامت طیور آدینه</small></div></div><button id="logout" class="btn out" type="button">خروج</button></div></header>
+<main class="wrap main">
+<section class="hero"><h1 id="welcome">مرکز اختصاصی آزمایشگاه تشخیص</h1><p>این صفحه مسیر اختصاصی حساب‌های آزمایشگاهی است؛ اطلاعات نمونه، نتایج تشخیصی و ارتباط آن با پرونده سلامت گله در همین بخش توسعه داده می‌شود.</p><span class="badge">حساب آزمایشگاهی فعال</span></section>
+<section class="grid">
+<article class="card"><h2>پرونده نمونه‌ها</h2><p>محل اختصاصی برای ثبت نمونه، نوع نمونه، تاریخ دریافت، شرایط ارسال و شناسه پرونده.</p></article>
+<article class="card"><h2>نتایج آزمایش</h2><p>ثبت و مشاهده نتایج PCR، ELISA، کشت و سایر بررسی‌های تشخیصی همراه با وضعیت بررسی.</p></article>
+<article class="card"><h2>ارتباط با پرونده گله</h2><p>اتصال نتیجه آزمایش به فارم، سالن، گله و رخداد سلامت برای تفسیر یکپارچه و قابل پیگیری.</p></article>
+</section>
+<div class="notice">این صفحه عمداً از داشبورد بهره‌بردار و مرکز متخصصان جداست تا نوع دسترسی از همان لحظه ورود مشخص باشد.</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded',async()=>{
+  const a=await AdineAuth.requireAuth();if(!a)return;
+  const p=a.profile||{};const t=String(p.user_type||'').toLowerCase();
+  const aliases={poultry_operator:'farm_operator',poultry_manager:'farm_manager',veterinary_lab:'diagnostic_lab',organization_manager:'company_manager'};
+  const type=aliases[t]||t;
+  if(['owner','admin'].includes(String(p.role||'').toLowerCase())){location.replace('owner.html');return}
+  if(['farm_operator','farm_manager','poultry_technical_expert'].includes(type)){location.replace('Dashboard.html');return}
+  if(type!=='diagnostic_lab'){location.replace('professional.html');return}
+  document.getElementById('welcome').textContent='مرکز آزمایشگاه | '+(p.full_name||'کاربر آزمایشگاه');
+  document.getElementById('logout').onclick=()=>AdineAuth.signOut();
+});
+</script>
+</body>
+</html>

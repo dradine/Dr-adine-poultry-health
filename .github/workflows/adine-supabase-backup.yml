@@ -2,8 +2,8 @@ name: Supabase Database Backup
 
 on:
   schedule:
-    # Daily at 02:17 UTC. Avoiding :00 reduces GitHub schedule congestion.
-    - cron: "17 2 * * *"
+    # TEMPORARY VERIFICATION: run every 5 minutes so the current workflow can be tested end-to-end.
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 concurrency:

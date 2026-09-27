@@ -1,3 +1,15 @@
+(function(){
+    try {
+        if (window.location.hostname === "dradine.github.io") {
+            const target = "https://app.adinepoultryhealth.ir/login.html" + window.location.search + window.location.hash;
+            window.location.replace(target);
+            return;
+        }
+    } catch (e) {
+        console.warn("Canonical login host redirect:", e);
+    }
+})();
+
 document.addEventListener("DOMContentLoaded", function () {
 
     "use strict";
@@ -519,33 +531,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
-                // Always re-read the authenticated user from Supabase after
-                // password sign-in. This prevents a stale local session/user
-                // object from affecting the routing decision.
-                let authenticatedUser = data.user;
-                try {
-                    const verifiedUser =
-                        await window.supabaseClient.auth.getUser();
-
-                    if (verifiedUser?.error || !verifiedUser?.data?.user) {
-                        await window.supabaseClient.auth.signOut();
-                        showMessage(
-                            "جلسه ورود از سامانه دریافت نشد. لطفاً دوباره تلاش کنید.",
-                            "error"
-                        );
-                        return;
-                    }
-
-                    authenticatedUser = verifiedUser.data.user;
-                } catch (userCheckError) {
-                    console.error("LOGIN USER VERIFICATION:", userCheckError);
-                    await window.supabaseClient.auth.signOut();
-                    showMessage(
-                        "تأیید جلسه ورود ناموفق بود. لطفاً دوباره تلاش کنید.",
-                        "error"
-                    );
-                    return;
-                }
+                // signInWithPassword already returned the authenticated user.
+                // Do not perform a second auth round-trip here; it can race with
+                // session persistence on static GitHub Pages and make a valid login
+                // look like a failed one.
+                const authenticatedUser = data.user;
 
 
                 /* =================================================
@@ -568,11 +558,55 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
 
-                const profile =
-                    await window.AdineAuth.getProfile(
-                        authenticatedUser.id,
-                        { force: true }
-                    );
+                // Load the required access profile directly. The professional
+                // extension is optional for authentication, so a transient failure there
+                // must not invalidate an otherwise valid login.
+                let profile = null;
+                try {
+                    const profileResult = await Promise.race([
+                        window.supabaseClient
+                            .from("profiles")
+                            .select("id,full_name,email,phone,role,status,is_active,approved_at,approved_by,last_seen_at,created_at,updated_at")
+                            .eq("id", authenticatedUser.id)
+                            .maybeSingle(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_TIMEOUT")), 7000))
+                    ]);
+                    if (profileResult?.error) throw profileResult.error;
+                    profile = profileResult?.data || null;
+                } catch (profileError) {
+                    console.error("LOGIN PROFILE LOAD:", profileError);
+                }
+
+                // Fetch professional metadata separately. It is used only for routing.
+                // If it is unavailable, Auth metadata remains a safe routing fallback.
+                if (profile) {
+                    try {
+                        const professionalResult = await Promise.race([
+                            window.supabaseClient
+                                .from("professional_profiles")
+                                .select("user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified")
+                                .eq("user_id", authenticatedUser.id)
+                                .maybeSingle(),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error("PROFESSIONAL_PROFILE_TIMEOUT")), 5000))
+                        ]);
+                        if (!professionalResult?.error && professionalResult?.data) {
+                            profile = { ...profile, ...professionalResult.data };
+                        } else if (professionalResult?.error) {
+                            console.warn("LOGIN PROFESSIONAL PROFILE LOAD:", professionalResult.error);
+                        }
+                    } catch (professionalError) {
+                        console.warn("LOGIN PROFESSIONAL PROFILE EXCEPTION:", professionalError);
+                    }
+                }
+
+                // Keep role/type metadata as a fallback for routing if the extension row
+                // is temporarily unavailable.
+                if (profile) {
+                    profile.role = profile.role || authenticatedUser.user_metadata?.role || "";
+                    profile.user_type = profile.user_type ||
+                        authenticatedUser.user_metadata?.user_type ||
+                        authenticatedUser.user_metadata?.userType || "";
+                }
 
 
                 /* =================================================
@@ -580,14 +614,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================= */
 
                 if (!profile) {
-
-                    await window.supabaseClient.auth.signOut();
-
                     showMessage(
-                        "حساب شما در سامانه ثبت نشده است. لطفاً با مالک سامانه تماس بگیرید.",
+                        "ورود شما توسط سامانه تأیید شد، اما اطلاعات پروفایل دریافت نشد. لطفاً یک‌بار دیگر تلاش کنید.",
                         "error"
                     );
-
+                    console.error("LOGIN PROFILE NOT AVAILABLE:", authenticatedUser.id);
                     return;
                 }
 

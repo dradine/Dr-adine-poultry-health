@@ -173,7 +173,8 @@ jobs:
           npm install --prefix .dropbox-runtime --no-save --no-package-lock dropbox@10.46.0 >/dev/null 2>&1
 
           cat > .dropbox-runtime/backup.mjs <<'NODE'
-          import { Dropbox, DropboxAuth, DropboxFileUploader, fileUpload } from "dropbox";
+          import dropboxSdk from "dropbox";
+          const { Dropbox, DropboxAuth, DropboxFileUploader, fileUpload } = dropboxSdk;
           import fs from "node:fs";
           import path from "node:path";
           import { execFile } from "node:child_process";

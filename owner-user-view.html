@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<title>واحدهای تحت مدیریت | مرکز تخصصی سلامت طیور آدینه</title>
+<style>
+html,body{margin:0;background:#f4f7f5;color:#20362d;font-family:Tahoma,Arial,sans-serif;font-size:14px}
+*{box-sizing:border-box}.page{min-height:100vh}.top{background:#173f35;color:#fff}.topin,.main{width:min(1050px,calc(100% - 20px));margin:auto}.topin{padding:13px 0;display:flex;justify-content:space-between;align-items:center;gap:10px}.title{font-size:18px;font-weight:900}.sub{font-size:11px;opacity:.78;margin-top:4px}.btn{border:0;border-radius:10px;padding:9px 12px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.btn-light{background:#eaf1ed;color:#173f35}.btn-main{background:#173f35;color:#fff}.main{padding:14px 0 30px}.card{background:#fff;border:1px solid #e1e9e5;border-radius:15px;box-shadow:0 5px 18px #173f3510;margin-bottom:12px}.profile{padding:14px}.profile-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.name{font-size:18px;font-weight:900;color:#173f35}.meta{font-size:11px;color:#6f7d76;margin-top:5px}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}.chip{background:#edf4f0;color:#315c4b;border-radius:20px;padding:5px 9px;font-size:10px;font-weight:800}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px}.toolbar h2{margin:0;font-size:14px;color:#173f35}.toolbar p{margin:4px 0 0;color:#74817b;font-size:10px}.group{padding:0 14px 12px}.group-title{font-size:12px;font-weight:900;color:#365448;margin:8px 0}.unit{border:1px solid #e2e9e6;border-radius:12px;padding:11px;margin-top:8px;background:#fbfcfb}.unit-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.unit-name{font-weight:900;color:#173f35;font-size:13px}.unit-meta{font-size:10px;color:#7b8782;margin-top:5px;line-height:1.8}.unit-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.empty{padding:25px;text-align:center;color:#75827c;font-size:12px}.notice{padding:10px 12px;border-radius:10px;background:#edf4fb;color:#2c608c;font-size:11px;line-height:1.8;margin-bottom:12px}@media(max-width:600px){.profile-head{align-items:flex-start;flex-direction:column}.topin{width:calc(100% - 16px)}.main{width:calc(100% - 16px)}.toolbar{align-items:flex-start;flex-direction:column}.toolbar .btn{width:100%}}
+</style>
+</head>
+<body class="page">
+<header class="top"><div class="topin"><div><div class="title">واحدهای تحت مدیریت</div><div class="sub">نمای مالک سامانه · فقط مشاهده</div></div><button id="backBtn" class="btn btn-light" type="button">بازگشت به کاربران</button></div></header>
+<main class="main">
+<section class="card profile">
+  <div class="profile-head"><div><div id="userName" class="name">در حال بارگذاری...</div><div id="userMeta" class="meta">—</div></div><button id="systemViewBtn" class="btn btn-main" type="button" hidden>مشاهده سامانه</button></div>
+  <div id="userChips" class="chips"></div>
+</section>
+<div class="notice">این صفحه مخصوص مالک سامانه است. اطلاعات این کاربر و واحدهای مرتبط فقط برای مشاهده نمایش داده می‌شود و هیچ عملیات ثبت، ویرایش یا حذف از اینجا انجام نمی‌شود.</div>
+<section class="card">
+ <div class="toolbar"><div><h2>واحدهای تحت مدیریت</h2><p>ابتدا شخص انتخاب می‌شود؛ فرم‌ها و اطلاعات هر واحد در لایه بعدی باز می‌شوند.</p></div><span id="count" class="chip">۰ واحد</span></div>
+ <div id="groups"></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="owner-user-view.js?v=owner-user-view-v1"></script>
+</body>
+</html>

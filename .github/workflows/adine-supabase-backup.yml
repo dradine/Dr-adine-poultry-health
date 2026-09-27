@@ -121,7 +121,7 @@ jobs:
             backup.tar.gz.enc
             backup.tar.gz.enc.hmac
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 15
           compression-level: 0
 
       - name: Verify encrypted artifact exists
@@ -149,6 +149,12 @@ jobs:
 
           if [ "${DOW}" = "7" ]; then SHOULD_WEEKLY="true"; fi
           if [ "${DOM}" = "01" ]; then SHOULD_MONTHLY="true"; fi
+          
+          # If the first day of the month is also Sunday, keep one Dropbox copy only.
+          # The monthly snapshot serves as that week's off-site snapshot too.
+          if [ "${SHOULD_MONTHLY}" = "true" ]; then
+            SHOULD_WEEKLY="false"
+          fi
 
           if [ "${SHOULD_WEEKLY}" != "true" ] && [ "${SHOULD_MONTHLY}" != "true" ]; then
             echo "Not a weekly/monthly backup day; Dropbox upload skipped."

@@ -1,0 +1,356 @@
+name: Adine Supabase Database Backup (v2)
+
+on:
+  # TEMPORARY VERIFICATION: explicit push trigger forces a real runner job for end-to-end testing.
+  push:
+    branches:
+      - main
+  schedule:
+    # TEMPORARY VERIFICATION: run every 5 minutes so the current workflow can be tested end-to-end.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: adine-supabase-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Backup Supabase database
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+
+    steps:
+      - name: Verify required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_DB_URL}" || { echo "::error::Missing GitHub secret SUPABASE_DB_URL"; exit 1; }
+          test -n "${BACKUP_ENCRYPTION_KEY}" || { echo "::error::Missing GitHub secret BACKUP_ENCRYPTION_KEY"; exit 1; }
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+
+      - name: Create logical backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+
+          rm -rf backup
+          mkdir -p backup
+
+          echo "Creating roles dump..."
+          supabase db dump \
+            --db-url "${SUPABASE_DB_URL}" \
+            -f backup/roles.sql \
+            --role-only
+
+          echo "Creating schema dump..."
+          supabase db dump \
+            --db-url "${SUPABASE_DB_URL}" \
+            -f backup/schema.sql
+
+          echo "Creating data dump..."
+          supabase db dump \
+            --db-url "${SUPABASE_DB_URL}" \
+            -f backup/data.sql \
+            --data-only \
+            --use-copy \
+            -x "storage.buckets_vectors" \
+            -x "storage.vector_indexes"
+
+          cat > backup/README.txt <<'EOF'
+          Adine Poultry Health — Supabase database backup
+
+          Contents:
+          - roles.sql   : database roles
+          - schema.sql  : schema, functions, triggers, policies, etc.
+          - data.sql    : application/auth data exported by Supabase CLI
+
+          Storage API file objects are NOT included in a database dump.
+          This backup is encrypted before it leaves the GitHub runner.
+          EOF
+
+          tar -czf backup.tar.gz -C backup .
+          sha256sum backup.tar.gz > backup.tar.gz.sha256
+
+          echo "Logical backup size:"
+          du -h backup.tar.gz
+
+      - name: Encrypt backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+
+          openssl enc -aes-256-ctr \
+            -pbkdf2 \
+            -iter 200000 \
+            -salt \
+            -in backup.tar.gz \
+            -out backup.tar.gz.enc \
+            -pass env:BACKUP_ENCRYPTION_KEY
+
+          openssl dgst -sha256 \
+            -hmac "${BACKUP_ENCRYPTION_KEY}" \
+            -out backup.tar.gz.enc.hmac \
+            backup.tar.gz.enc
+
+          rm -rf backup backup.tar.gz backup.tar.gz.sha256
+
+          echo "Encrypted backup size:"
+          du -h backup.tar.gz.enc
+
+      - name: Upload short-term recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: adine-supabase-backup-${{ github.run_id }}
+          path: |
+            backup.tar.gz.enc
+            backup.tar.gz.enc.hmac
+          if-no-files-found: error
+          retention-days: 15
+          compression-level: 0
+
+      - name: Verify encrypted artifact exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s backup.tar.gz.enc
+          test -s backup.tar.gz.enc.hmac
+          echo "Backup artifact generated successfully."
+
+      - name: Dropbox off-site backup (weekly/monthly only)
+        shell: bash
+        env:
+          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+          DROPBOX_APP_SECRET: ${{ secrets.DROPBOX_APP_SECRET }}
+          DROPBOX_REFRESH_TOKEN: ${{ secrets.DROPBOX_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          DOW="$(date -u +%u)"
+          DOM="$(date -u +%d)"
+          SHOULD_WEEKLY="false"
+          SHOULD_MONTHLY="false"
+
+          if [ "${DOW}" = "7" ]; then SHOULD_WEEKLY="true"; fi
+          if [ "${DOM}" = "01" ]; then SHOULD_MONTHLY="true"; fi
+          
+          # If the first day of the month is also Sunday, keep one Dropbox copy only.
+          # The monthly snapshot serves as that week's off-site snapshot too.
+          if [ "${SHOULD_MONTHLY}" = "true" ]; then
+            SHOULD_WEEKLY="false"
+          fi
+
+          if [ "${SHOULD_WEEKLY}" != "true" ] && [ "${SHOULD_MONTHLY}" != "true" ]; then
+            echo "Not a weekly/monthly backup day; Dropbox upload skipped."
+            exit 0
+          fi
+
+          test -n "${DROPBOX_APP_KEY}" || { echo "::error::Missing DROPBOX_APP_KEY"; exit 1; }
+          test -n "${DROPBOX_APP_SECRET}" || { echo "::error::Missing DROPBOX_APP_SECRET"; exit 1; }
+          test -n "${DROPBOX_REFRESH_TOKEN}" || { echo "::error::Missing DROPBOX_REFRESH_TOKEN"; exit 1; }
+
+          mkdir -p .dropbox-runtime
+          npm install --prefix .dropbox-runtime --no-save --no-package-lock dropbox@10.46.0 >/dev/null 2>&1
+
+          cat > .dropbox-runtime/backup.mjs <<'NODE'
+          import { Dropbox, DropboxAuth, DropboxFileUploader, fileUpload } from "dropbox";
+          import fs from "node:fs";
+          import path from "node:path";
+          import { execFile } from "node:child_process";
+          import { promisify } from "node:util";
+
+          const execFileAsync = promisify(execFile);
+          const APP_KEY = process.env.DROPBOX_APP_KEY;
+          const APP_SECRET = process.env.DROPBOX_APP_SECRET;
+          const REFRESH_TOKEN = process.env.DROPBOX_REFRESH_TOKEN;
+
+          const ROOT = "/Adine-Supabase-Backups";
+          const WEEKLY = `${ROOT}/weekly`;
+          const MONTHLY = `${ROOT}/monthly`;
+          const DATE = new Date().toISOString().slice(0, 10);
+
+          // Keep at least 15% of the Dropbox quota free after each upload.
+          const MAX_USAGE_RATIO = 0.85;
+
+          const auth = new DropboxAuth({
+            clientId: APP_KEY,
+            clientSecret: APP_SECRET,
+            refreshToken: REFRESH_TOKEN,
+          });
+
+          await auth.refreshAccessToken();
+          const dbx = new Dropbox({ auth });
+
+          async function ensureFolder(folder) {
+            try {
+              await dbx.filesCreateFolderV2({ path: folder, autorename: false });
+            } catch (e) {
+              const summary = e?.error?.error_summary ?? e?.message ?? String(e);
+              if (!summary.includes("conflict")) {
+                throw new Error(`Cannot create/check Dropbox folder ${folder}: ${summary}`);
+              }
+            }
+          }
+
+          async function listAll(folder) {
+            const out = [];
+            let page = await dbx.filesListFolder({ path: folder, recursive: false });
+            out.push(...page.result.entries);
+            while (page.result.has_more) {
+              page = await dbx.filesListFolderContinue({ cursor: page.result.cursor });
+              out.push(...page.result.entries);
+            }
+            return out.filter(x => x[".tag"] === "file");
+          }
+
+          async function allManagedBackups() {
+            const weekly = await listAll(WEEKLY);
+            const monthly = await listAll(MONTHLY);
+            return [
+              ...weekly
+                .filter(x => x.name.startsWith("adine-supabase-weekly-") && x.name.endsWith(".tar"))
+                .map(x => ({ ...x, bucket: "weekly" })),
+              ...monthly
+                .filter(x => x.name.startsWith("adine-supabase-monthly-") && x.name.endsWith(".tar"))
+                .map(x => ({ ...x, bucket: "monthly" })),
+            ].sort((a, b) => {
+              const ta = Date.parse(a.server_modified ?? "") || 0;
+              const tb = Date.parse(b.server_modified ?? "") || 0;
+              return ta - tb;
+            });
+          }
+
+          async function getUsage() {
+            const usage = (await dbx.usersGetSpaceUsage()).result;
+            if (usage.allocation?.[".tag"] !== "individual") {
+              throw new Error("Dropbox account is not an individual storage allocation; automatic quota policy stopped.");
+            }
+            return {
+              used: Number(usage.used ?? 0),
+              allocated: Number(usage.allocation.allocated ?? 0),
+            };
+          }
+
+          async function makeRoom(payloadBytes) {
+            let usage = await getUsage();
+            const limit = Math.floor(usage.allocated * MAX_USAGE_RATIO);
+
+            console.log(`Dropbox usage before cleanup: ${usage.used}/${usage.allocated} bytes`);
+            console.log(`Safe usage ceiling: ${limit} bytes (85%; 15% free)`);
+
+            if (usage.used + payloadBytes <= limit) return;
+
+            const backups = await allManagedBackups();
+
+            for (const entry of backups) {
+              // Only delete backups created by this workflow.
+              await dbx.filesDeleteV2({ path: entry.path_lower ?? entry.path_display });
+              console.log(`Deleted oldest managed Dropbox backup to make room: ${entry.name}`);
+
+              usage = await getUsage();
+              if (usage.used + payloadBytes <= limit) return;
+            }
+
+            throw new Error(
+              "Dropbox quota is too small for the next backup even after deleting all managed old backups. " +
+              "No unrelated Dropbox files were deleted."
+            );
+          }
+
+          async function upload(localFile, destination) {
+            const uploader = new DropboxFileUploader(dbx);
+            await uploader.upload(
+              await fileUpload(localFile),
+              { path: destination, mode: { ".tag": "overwrite" } }
+            );
+            console.log(`Uploaded ${localFile} -> ${destination}`);
+          }
+
+          const payload = path.resolve("dropbox-backup.tar");
+          await execFileAsync("tar", [
+            "-cf",
+            payload,
+            "backup.tar.gz.enc",
+            "backup.tar.gz.enc.hmac",
+          ]);
+
+          const payloadBytes = fs.statSync(payload).size;
+          console.log(`Dropbox backup payload size: ${payloadBytes} bytes`);
+
+          await ensureFolder(ROOT);
+          await ensureFolder(WEEKLY);
+          await ensureFolder(MONTHLY);
+
+          // Oldest-first cleanup only when needed; no unrelated Dropbox content is touched.
+          await makeRoom(payloadBytes);
+
+          if (process.env.SHOULD_WEEKLY === "true") {
+            await upload(payload, `${WEEKLY}/adine-supabase-weekly-${DATE}.tar`);
+          }
+
+          if (process.env.SHOULD_MONTHLY === "true") {
+            await upload(payload, `${MONTHLY}/adine-supabase-monthly-${DATE}.tar`);
+          }
+
+          // Final quota check and upload verification.
+          const finalUsage = await getUsage();
+          const finalLimit = Math.floor(finalUsage.allocated * MAX_USAGE_RATIO);
+          if (finalUsage.used > finalLimit) {
+            throw new Error("Dropbox backup completed but the account is above the 85% safety ceiling.");
+          }
+
+          for (const [folder, prefix, enabled] of [
+            [WEEKLY, "adine-supabase-weekly-", process.env.SHOULD_WEEKLY === "true"],
+            [MONTHLY, "adine-supabase-monthly-", process.env.SHOULD_MONTHLY === "true"],
+          ]) {
+            if (!enabled) continue;
+
+            const entries = await listAll(folder);
+            const name = `${prefix}${DATE}.tar`;
+            const found = entries.find(x => x.name === name);
+
+            if (!found) throw new Error(`Dropbox verification failed: ${name} not found`);
+            if (Number(found.size ?? -1) !== payloadBytes) {
+              throw new Error(`Dropbox verification failed: ${name} size mismatch`);
+            }
+
+            console.log(`Verified Dropbox backup: ${name} (${found.size} bytes)`);
+          }
+        NODE
+
+          SHOULD_WEEKLY="${SHOULD_WEEKLY}" SHOULD_MONTHLY="${SHOULD_MONTHLY}" \
+            DROPBOX_APP_KEY="${DROPBOX_APP_KEY}" \
+            DROPBOX_APP_SECRET="${DROPBOX_APP_SECRET}" \
+            DROPBOX_REFRESH_TOKEN="${DROPBOX_REFRESH_TOKEN}" \
+            node .dropbox-runtime/backup.mjs
+
+          rm -rf .dropbox-runtime dropbox-backup.tar
+
+      - name: Cleanup sensitive workspace files
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          rm -rf backup backup.tar.gz backup.tar.gz.sha256
+          rm -f backup.tar.gz.enc backup.tar.gz.enc.hmac dropbox-backup.tar
+          rm -rf .dropbox-runtime

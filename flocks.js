@@ -751,54 +751,42 @@ function selectHouse(
 async function deleteHouse(
     houseId
 ) {
+    const house = houses.find(item => item.id === houseId);
+    if (!house) return;
 
-    const confirmed =
-        confirm(
-            "آیا از حذف این سالن مطمئن هستید؟"
-        );
+    const warning = confirm(
+        "⚠️ هشدار بسیار مهم\n\nحذف سالن «" + house.name + "» دائمی است.\n\nاطلاعات وابسته به این سالن ممکن است طبق وابستگی‌های پایگاه داده حذف شوند.\nاین عملیات قابل بازگشت نیست.\n\nآیا برای ادامه آماده هستید؟"
+    );
+    if (!warning) return;
 
-
-    if (!confirmed) {
-
+    const phrase = "حذف سالن " + house.name;
+    const typed = prompt(
+        "برای حذف قطعی سالن، عبارت زیر را دقیقاً وارد کنید:\n\n" + phrase + "\n\nاین عملیات قابل بازگشت نیست."
+    );
+    if (typed === null) return;
+    if (typed.trim() !== phrase) {
+        alert("عبارت تأیید صحیح نیست؛ حذف سالن لغو شد.");
         return;
-
     }
 
-
-    const {
-        error
-    } =
-        await supabaseClient
-            .from("houses")
-            .delete()
-            .eq(
-                "id",
-                houseId
-            );
-
+    const { error } = await supabaseClient
+        .from("houses")
+        .delete()
+        .eq("id", houseId)
+        .eq("farm_id", selectedFarm.id);
 
     if (error) {
-
-        alert(
-            "حذف سالن انجام نشد:\n" +
-            error.message
-        );
-
+        alert("حذف سالن انجام نشد:\n" + error.message);
         return;
-
     }
 
-
+    const selection = getCurrentSelection();
+    if (selection.houseId === houseId) {
+        setCurrentSelection({ farmId: selectedFarm.id, houseId: null, flockId: null });
+    }
     await loadHouses();
-
-
-    alert(
-        "سالن حذف شد."
-    );
-
+    alert("سالن «" + house.name + "» با موفقیت حذف شد.");
 }
-
-
 /* =========================================================
    GENETICS
 ========================================================= */
@@ -1426,72 +1414,42 @@ function selectFlock(
 async function deleteFlock(
     flockId
 ) {
+    const flock = flocks.find(item => item.id === flockId);
+    if (!flock) return;
 
-    const confirmed =
-        confirm(
-            "آیا از حذف این گله مطمئن هستید؟"
-        );
+    const warning = confirm(
+        "⚠️ هشدار بسیار مهم\n\nحذف گله «" + flock.flock_name + "» دائمی است.\n\nسوابق و اطلاعات وابسته به این گله ممکن است طبق وابستگی‌های پایگاه داده حذف شوند.\nاین عملیات قابل بازگشت نیست.\n\nآیا برای ادامه آماده هستید؟"
+    );
+    if (!warning) return;
 
-
-    if (!confirmed) {
-
+    const phrase = "حذف گله " + flock.flock_name;
+    const typed = prompt(
+        "برای حذف قطعی گله، عبارت زیر را دقیقاً وارد کنید:\n\n" + phrase + "\n\nاین عملیات قابل بازگشت نیست."
+    );
+    if (typed === null) return;
+    if (typed.trim() !== phrase) {
+        alert("عبارت تأیید صحیح نیست؛ حذف گله لغو شد.");
         return;
-
     }
 
-
-    const {
-        error
-    } =
-        await supabaseClient
-            .from("flocks")
-            .delete()
-            .eq(
-                "id",
-                flockId
-            );
-
+    const { error } = await supabaseClient
+        .from("flocks")
+        .delete()
+        .eq("id", flockId)
+        .eq("farm_id", selectedFarm.id);
 
     if (error) {
-
-        alert(
-            "حذف گله انجام نشد:\n" +
-            error.message
-        );
-
+        alert("حذف گله انجام نشد:\n" + error.message);
         return;
-
     }
 
-
-    const selection =
-        getCurrentSelection();
-
-
-    if (
-        selection.flockId ===
-        flockId
-    ) {
-
-        setCurrentSelection({
-
-            flockId: null
-
-        });
-
+    const selection = getCurrentSelection();
+    if (selection.flockId === flockId) {
+        setCurrentSelection({ farmId: selectedFarm.id, houseId: null, flockId: null });
     }
-
-
     await loadFlocks();
-
-
-    alert(
-        "گله حذف شد."
-    );
-
+    alert("گله «" + flock.flock_name + "» با موفقیت حذف شد.");
 }
-
-
 /* =========================================================
    DISABLE
 ========================================================= */

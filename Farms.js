@@ -241,8 +241,20 @@ async function deleteFarm(farmId) {
     const farm = farms.find(item => item.id === farmId);
     if (!farm) return;
 
-    const confirmed = confirm(`آیا از حذف فارم «${farm.name}» مطمئن هستید؟\n\nتمام اطلاعات وابسته به آن نیز ممکن است حذف شود.`);
-    if (!confirmed) return;
+    const warning = confirm(
+        "⚠️ هشدار بسیار مهم\n\nحذف فارم «" + farm.name + "» دائمی است.\n\nتمام اطلاعات وابسته به این فارم نیز ممکن است طبق وابستگی‌های پایگاه داده حذف شوند.\nاین عملیات قابل بازگشت نیست.\n\nآیا برای ادامه آماده هستید؟"
+    );
+    if (!warning) return;
+
+    const phrase = "حذف فارم " + farm.name;
+    const typed = prompt(
+        "برای حذف قطعی فارم، عبارت زیر را دقیقاً وارد کنید:\n\n" + phrase + "\n\nاین عملیات قابل بازگشت نیست."
+    );
+    if (typed === null) return;
+    if (typed.trim() !== phrase) {
+        alert("عبارت تأیید صحیح نیست؛ حذف فارم لغو شد.");
+        return;
+    }
 
     const { error } = await supabaseClient
         .from("farms")
@@ -259,9 +271,8 @@ async function deleteFarm(farmId) {
     const selection = getCurrentSelection();
     if (selection.farmId === farmId) clearCurrentSelection();
     await loadFarms();
-    alert("فارم با موفقیت حذف شد.");
+    alert("فارم «" + farm.name + "» با موفقیت حذف شد.");
 }
-
 function getValue(id) {
     const element = document.getElementById(id);
     return element ? String(element.value || "").trim() : "";

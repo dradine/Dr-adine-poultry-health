@@ -128,9 +128,21 @@ function renderHistory(){
     btn.addEventListener('click',async()=>{
       const row=records.find(x=>String(x.id)===String(btn.dataset.id));
       if(!row)return;
-      if(!confirm('رکورد روز '+isoToJalali(row.record_date)+' حذف شود؟'))return;
+      const displayDate=isoToJalali(row.record_date);
+      if(!confirm('⚠️ هشدار بسیار مهم\n\nپایش روز '+displayDate+' به‌صورت دائمی حذف خواهد شد.\n\nاین عملیات قابل بازگشت نیست و روی تحلیل‌ها و روندهای گله اثر می‌گذارد.\n\nآیا برای ادامه آماده هستید؟'))return;
+      const phrase='حذف روز '+displayDate;
+      const typed=prompt('برای حذف قطعی پایش روزانه تخم‌گذار، عبارت زیر را دقیقاً وارد کنید:\n\n'+phrase+'\n\nاین عملیات قابل بازگشت نیست.');
+      if(typed===null)return;
+      if(typed.trim()!==phrase){
+        alert('عبارت تأیید صحیح نیست؛ حذف پایش روزانه لغو شد.');
+        return;
+      }
+      btn.disabled=true;
+      btn.textContent='در حال حذف...';
       const del=await supabaseClient.from('layer_daily_monitoring').delete().eq('id',row.id).eq('flock_id',flock.id);
       if(del.error){
+        btn.disabled=false;
+        btn.textContent='حذف';
         alert('حذف رکورد انجام نشد: '+del.error.message);
         return;
       }

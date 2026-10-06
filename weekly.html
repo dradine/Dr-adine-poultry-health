@@ -17,7 +17,7 @@
 <div class="weekly-entry-shell">
 <nav class="entry-tabs" role="tablist" aria-label="نوع پایش">
 <button id="dailyTab" class="entry-tab active" type="button" role="tab" aria-selected="true" aria-controls="dailyPanel">پایش روزانه گله</button>
-<button id="weeklyTab" class="entry-tab" type="button" role="tab" aria-selected="false" aria-controls="weeklyPanel">پایش هفتگی گله</button><button id="monthlyTab" class="entry-tab" type="button" role="tab" aria-selected="false" aria-controls="monthlyPanel">پایش ماهانه گله</button>
+<button id="weeklyTab" class="entry-tab" type="button" role="tab" aria-selected="false" aria-controls="weeklyPanel">پایش هفتگی گله</button><button id="monthlyTab" class="entry-tab" type="button" role="tab" aria-selected="false" aria-controls="monthlyPanel" hidden>پایش ماهانه گله</button>
 </nav>
 <section id="dailyPanel" class="entry-panel active" role="tabpanel"><iframe id="dailyFrame" class="daily-frame" src="daily-router.html?v=20260924-layer-router-v1" title="پایش روزانه گله"></iframe></section>
 <section id="weeklyPanel" class="entry-panel" role="tabpanel" hidden><iframe id="weeklyFrame" class="weekly-frame" src="weekly-router.html?v=20260924-layer-weekly-v2" title="پایش هفتگی گله"></iframe></section><section id="monthlyPanel" class="entry-panel" role="tabpanel" hidden><iframe id="monthlyFrame" class="weekly-frame" src="layer-monthly-core.html?v=20260924-layer-monthly-v1" title="پایش ماهانه گله"></iframe></section>
@@ -32,6 +32,36 @@
 const dailyTab=document.getElementById('dailyTab'),weeklyTab=document.getElementById('weeklyTab'),monthlyTab=document.getElementById('monthlyTab'),dailyPanel=document.getElementById('dailyPanel'),weeklyPanel=document.getElementById('weeklyPanel'),monthlyPanel=document.getElementById('monthlyPanel');
 function showPanel(p){const d=p==='daily',w=p==='weekly',m=p==='monthly';dailyTab.classList.toggle('active',d);weeklyTab.classList.toggle('active',w);monthlyTab.classList.toggle('active',m);dailyTab.setAttribute('aria-selected',String(d));weeklyTab.setAttribute('aria-selected',String(w));monthlyTab.setAttribute('aria-selected',String(m));dailyPanel.classList.toggle('active',d);weeklyPanel.classList.toggle('active',w);monthlyPanel.classList.toggle('active',m);dailyPanel.hidden=!d;weeklyPanel.hidden=!w;monthlyPanel.hidden=!m;window.scrollTo({top:0,behavior:'smooth'});}
 dailyTab.onclick=()=>showPanel('daily');weeklyTab.onclick=()=>showPanel('weekly');monthlyTab.onclick=()=>showPanel('monthly');
+async function applyMonthlyTabVisibility(){
+  try{
+    var selection=(typeof getCurrentSelection==='function'?getCurrentSelection():{})||{};
+    var flockId=selection.flockId||selection.flock_id||'';
+    if(!flockId){
+      try{
+        var q=new URLSearchParams(location.search);
+        flockId=q.get('flock_id')||q.get('flockId')||'';
+      }catch(_){}
+    }
+    if(!flockId){
+      for(var i=0;i<2&&!flockId;i++){
+        try{
+          var raw=localStorage.getItem(['adine_poultry_current_selection','adine_selected_flock'][i]);
+          if(raw){var obj=JSON.parse(raw);flockId=obj?.flockId||obj?.flock_id||'';}
+        }catch(_){}
+      }
+    }
+    if(!flockId)return;
+    if(typeof supabaseClient==='undefined')return;
+    var r=await supabaseClient.from('flocks').select('production_type').eq('id',flockId).maybeSingle();
+    var t=String(r.data?.production_type||'').normalize('NFKC').trim().toLowerCase();
+    var monthlyAllowed=['layer','breeder','pullet','تخمگذار','تخم گذار','تخم‌گذار','مادر','مرغ مادر','پولت'];
+    var show=monthlyAllowed.indexOf(t)!==-1;
+    monthlyTab.hidden=!show;
+    monthlyPanel.hidden=!show;
+    if(!show && monthlyTab.classList.contains('active'))showPanel('daily');
+  }catch(e){console.warn('Monthly monitoring tab visibility:',e);}
+}
+applyMonthlyTabVisibility();
 function loadDailyCalendar(frame,doc){const existing=doc.getElementById('daily-date-system-loader');if(existing)return;const dateScript=doc.createElement('script');dateScript.id='daily-date-system-loader';dateScript.src='date-system.js';dateScript.onload=()=>{const cal=doc.createElement('script');cal.id='daily-shared-calendar-loader';cal.src='shared-jalali-calendar-v1.js';doc.head.appendChild(cal);};doc.head.appendChild(dateScript);}
 function applyDailyDayOneOnly(doc){try{const root=doc.getElementById('dailyRoot');if(!root)return;const status=doc.getElementById('dayStatus');const text=status?String(status.textContent||''):'';const m=text.match(/(?:روز\s*)([۰-۹0-9]+)/);let day=m?Number(m[1].replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776))):null;if(!Number.isFinite(day)){const p=new URLSearchParams(doc.defaultView?.location?.search||'');day=Number(p.get('day'))||null;}const isDay1=day===1;root.classList.toggle('daily-day1-active',isDay1);root.classList.toggle('daily-day2plus',!isDay1);const styleId='daily-day1-parent-enforcement';if(!doc.getElementById(styleId)){const s=doc.createElement('style');s.id=styleId;s.textContent='.daily-day2plus .daily-day1-only-accordion{display:none!important}.daily-day2plus .daily-day1-only-node{display:none!important}';doc.head.appendChild(s)}const headings=[...doc.querySelectorAll('.daily-accordion-head')];headings.forEach(h=>{const t=String(h.textContent||'').replace(/[+−]/g,'').trim();if(t.includes('پر بودن چینه‌دان')||t.includes('مشاهده کیفیت جوجه و مشاهدات مرغدار')){h.classList.add('daily-day1-only-accordion');const p=h.nextElementSibling;if(p&&p.classList.contains('daily-accordion-panel'))p.classList.add('daily-day1-only-accordion')}});const ids=['crop2','crop4','crop8','crop12','crop24','chickObservation'];ids.forEach(id=>{const el=doc.getElementById(id);if(!el)return;const node=el.closest('.form-grid')||el.closest('.group');if(node)node.classList.add('daily-day1-only-node')});const observerKey='dailyDayOneObserverAttached';if(!root.dataset[observerKey]){root.dataset[observerKey]='1';const mo=new MutationObserver(()=>{const s2=doc.getElementById('dayStatus');const tx=String(s2?.textContent||'');const mm=tx.match(/(?:روز\s*)([۰-۹0-9]+)/);let d=mm?Number(mm[1].replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776))):null;if(!Number.isFinite(d))d=Number(new URLSearchParams(doc.defaultView?.location?.search||'').get('day'))||null;const day1=d===1;root.classList.toggle('daily-day1-active',day1);root.classList.toggle('daily-day2plus',!day1)});mo.observe(status||root,{childList:true,subtree:true,characterData:true});}}catch(e){console.warn('Daily day-one enforcement skipped',e)}}
 function setupDailyAccordion(frame){try{const doc=frame.contentDocument;if(!doc||!doc.body)return;const form=doc.getElementById('dailyForm');if(!form)return;if(!doc.getElementById('daily-accordion-style')){const s=doc.createElement('style');s.id='daily-accordion-style';s.textContent='.daily-accordion-head{display:flex!important;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;background:#f8fafc;border:1px solid #e5eaf0;border-radius:12px;padding:13px 15px!important;margin:16px 0 0!important;border-bottom:1px solid #e5eaf0!important;transition:.15s ease}.daily-accordion-head:hover{background:#f1f5f9}.daily-accordion-head[aria-expanded="true"]{background:#f1f5f9;border-color:#d6dee8}.daily-accordion-icon{width:28px;height:28px;min-width:28px;border-radius:50%;background:#fff;border:1px solid #d7dde5;display:inline-flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;color:#1d3557}.daily-accordion-icon::before{content:"+"}.daily-accordion-head[aria-expanded="true"] .daily-accordion-icon::before{content:"−"}.daily-accordion-panel{overflow:hidden;padding-top:12px}.daily-accordion-panel[hidden]{display:none!important}';doc.head.appendChild(s)}if(form.dataset.accordionReady!=='1'){form.dataset.accordionReady='1';const headings=[...form.querySelectorAll('.sub')].filter(h=>/^\s*[۱-۷1-7][)）]/.test(h.textContent));headings.forEach((heading,index)=>{heading.textContent=heading.textContent.replace(/^\s*[۱-۷1-7][)）]\s*/,'');heading.classList.add('daily-accordion-head');heading.setAttribute('role','button');heading.setAttribute('tabindex','0');heading.setAttribute('aria-expanded',index===0?'true':'false');const icon=doc.createElement('span');icon.className='daily-accordion-icon';icon.setAttribute('aria-hidden','true');heading.appendChild(icon);const panel=doc.createElement('div');panel.className='daily-accordion-panel';panel.hidden=index!==0;panel.id='dailyAccordionPanel'+(index+1);heading.setAttribute('aria-controls',panel.id);let next=heading.nextSibling;while(next){const candidate=next.nextSibling;if(next.nodeType===1&&next.classList&&next.classList.contains('sub'))break;panel.appendChild(next);next=candidate;}heading.parentNode.insertBefore(panel,heading.nextSibling);const toggle=()=>{const open=heading.getAttribute('aria-expanded')==='true';heading.setAttribute('aria-expanded',String(!open));panel.hidden=open;};heading.addEventListener('click',toggle);heading.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}});});}applyDailyDayOneOnly(doc);loadDailyCalendar(frame,doc);}catch(e){console.warn('Daily accordion setup skipped',e)}}
@@ -39,4 +69,4 @@ document.getElementById('dailyFrame').addEventListener('load',function(){try{con
 document.getElementById('monthlyFrame').addEventListener('load',function(){try{const n=this.contentDocument.getElementById('bottomNavigation');if(n)n.style.display='none';this.contentDocument.body.style.paddingBottom='0';}catch(e){}});document.getElementById('weeklyFrame').addEventListener('load',function(){try{const n=this.contentDocument.getElementById('bottomNavigation');if(n)n.style.display='none';this.contentDocument.body.style.paddingBottom='0';}catch(e){}});
 </script>
 <script src="shared-jalali-calendar-v1.js"></script>
-<script src="dashboard-icon-assets.js?v=20260925.50"></script><script src="dashboard-icon-fix.js?v=20260925.87"></script></body></html>
+<script src="dashboard-icon-assets.js?v=20260925.50"></script><script src="dashboard-icon-fix.js?v=20261006.3"></script></body></html>

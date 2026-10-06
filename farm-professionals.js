@@ -3,8 +3,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const auth = await AdineAuth.requireAuth();
     if (!auth) return;
     const p = auth.profile || {};
-    const role = String(p.user_type || p.role || '').trim().toLowerCase();
-    if (!['poultry_operator','poultry_manager','organization_manager','owner','admin'].includes(role)) {
+    const rawRole = String(p.user_type || p.role || '').trim().toLowerCase();
+    const role = ({poultry_operator:'farm_operator',poultry_manager:'farm_manager',organization_manager:'company_manager',farm_operator:'farm_operator',farm_manager:'farm_manager',company_manager:'company_manager'})[rawRole] || rawRole;
+    if (!['farm_operator','farm_manager','company_manager','owner','admin'].includes(role)) {
         alert('این بخش برای بهره‌بردار و مدیر واحد است.');
         location.href = 'Dashboard.html';
         return;

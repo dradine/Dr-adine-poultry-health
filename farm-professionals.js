@@ -96,7 +96,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const codeInput = document.getElementById(`code-${farm}`);
             const typeInput = document.getElementById(`type-${farm}`);
             const preview = document.getElementById(`preview-${farm}`);
-            const code = codeInput ? codeInput.value.trim() : '';
+            const rawCode = codeInput ? codeInput.value.trim() : '';
+            const code = rawCode.replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
             const professionalType = typeInput ? typeInput.value : '';
 
             if (!/^\\d{4}$/.test(code)) {

@@ -37,7 +37,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <option value="poultry_technical_expert">کارشناس فنی طیور</option>
                             <option value="diagnostic_lab">آزمایشگاه تشخیص دامپزشکی</option>
                         </select>
-                        <button class="btn btn-primary" data-add="${f.id}">ارسال درخواست اتصال</button>
+                        <button class="btn btn-primary" data-add="${f.id}">بررسی و انتخاب متخصص</button>
+                        <div id="preview-${f.id}" class="muted" style="margin-top:8px;line-height:1.8" hidden></div>
                     </div>
                 </div>
                 <div id="pro-${f.id}" style="margin-top:12px">در حال بارگذاری...</div>
@@ -65,18 +66,69 @@ document.addEventListener('DOMContentLoaded', async () => {
             const farm = add.dataset.add;
             const code = document.getElementById(`code-${farm}`).value.trim();
             const professionalType = document.getElementById(`type-${farm}`).value;
+            const preview = document.getElementById(`preview-${farm}`);
             if (!/^\d{4}$/.test(code)) return alert('کد حرفه‌ای باید دقیقاً ۴ رقم باشد.');
+
             add.disabled = true;
+            if (preview) {
+                preview.hidden = false;
+                preview.textContent = 'در حال بررسی کد حرفه‌ای…';
+            }
+
+            const lookup = await supabaseClient.rpc('preview_professional_access_by_code', {
+                p_farm_id: farm,
+                p_access_code: code,
+                p_professional_type: professionalType
+            });
+
+            if (lookup.error) {
+                add.disabled = false;
+                if (preview) preview.textContent = '';
+                return alert(lookup.error.message);
+            }
+
+            const professional = lookup.data?.[0];
+            if (!professional) {
+                add.disabled = false;
+                if (preview) preview.textContent = '';
+                return alert('متخصصی با این کد پیدا نشد یا نوع متخصص با کد واردشده مطابقت ندارد.');
+            }
+
+            const verifiedText = professional.is_verified ? 'پروفایل حرفه‌ای تأییدشده' : 'پروفایل حرفه‌ای ثبت‌شده';
+            if (preview) {
+                preview.innerHTML = '<strong>متخصص پیدا شد:</strong> ' +
+                    AdineAccess.esc(professional.professional_name || 'بدون نام') +
+                    ' — ' + typeLabel(professional.professional_type) +
+                    ' (' + verifiedText + ')';
+            }
+
+            const confirmed = confirm(
+                'کد حرفه‌ای واردشده متعلق به «' +
+                (professional.professional_name || 'بدون نام') +
+                '» است.\n\nنوع متخصص: ' + typeLabel(professional.professional_type) +
+                '\n' + verifiedText +
+                '\n\nآیا تأیید می‌کنید که همین متخصص را برای این فارم انتخاب کرده‌اید؟'
+            );
+
+            if (!confirmed) {
+                add.disabled = false;
+                return;
+            }
+
             const { error } = await supabaseClient.rpc('request_professional_access_by_code', {
                 p_farm_id: farm,
                 p_access_code: code,
                 p_professional_type: professionalType
             });
+
             add.disabled = false;
             if (error) alert(error.message);
-            else { alert('درخواست برای متخصص ارسال شد. پس از تأیید، دسترسی فعال می‌شود.'); document.getElementById(`code-${farm}`).value=''; await renderProfessionals(farm); }
-            return;
-        }
+            else {
+                alert('متخصص «' + (professional.professional_name || 'بدون نام') + '» انتخاب شد. درخواست برای او ارسال شد و پس از تأیید وی، دسترسی فعال می‌شود.');
+                document.getElementById(`code-${farm}`).value='';
+                if (preview) preview.hidden = true;
+                await renderProfessionals(farm);
+            }
 
         const revoke = e.target.closest('[data-revoke]');
         if (revoke) {

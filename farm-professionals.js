@@ -3,13 +3,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const auth = await AdineAuth.requireAuth();
     if (!auth) return;
     const p = auth.profile || {};
-    const rawRole = String(p.user_type || p.role || '').trim().toLowerCase();
-    const role = ({poultry_operator:'farm_operator',poultry_manager:'farm_manager',organization_manager:'company_manager',farm_operator:'farm_operator',farm_manager:'farm_manager',company_manager:'company_manager'})[rawRole] || rawRole;
-    if (!['farm_operator','farm_manager','company_manager','owner','admin'].includes(role)) {
-        alert('این بخش برای بهره‌بردار و مدیر واحد است.');
-        location.href = 'Dashboard.html';
-        return;
-    }
+    // این صفحه برای مدیریت متخصصان فارم در اختیار حساب‌های فارم است.
+    // دسترسی واقعی به داده‌ها با RLS/Supabase کنترل می‌شود؛ در این صفحه کاربر احراز‌شده را با نقش‌خوانی ثانویه مسدود نمی‌کنیم.
 
     let farms = [];
 

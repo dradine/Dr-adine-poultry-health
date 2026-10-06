@@ -97,10 +97,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const typeInput = document.getElementById(`type-${farm}`);
             const preview = document.getElementById(`preview-${farm}`);
             const rawCode = codeInput ? codeInput.value.trim() : '';
-            const code = rawCode.replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+            const code = String(rawCode || '')
+                .normalize('NFKC')
+                .replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+                .replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+                .replace(/[\u200c\u200d\u200e\u200f\ufeff]/g, '')
+                .replace(/\s/g, '');
             const professionalType = typeInput ? typeInput.value : '';
 
-            if (!/^\d{4}$/.test(code)) {
+            if (code.length !== 4 || !/^[0-9]{4}$/.test(code)) {
                 alert('کد حرفه‌ای باید دقیقاً ۴ رقم باشد.');
                 return;
             }

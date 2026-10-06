@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <h3>${AdineAccess.esc(f.name)}</h3>
                 <p class="muted">${AdineAccess.esc(f.farm_type||'نوع نامشخص')} | ${AdineAccess.esc(f.farm_code||'بدون کد')}</p>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px">
-                    <a class="btn btn-secondary" href="professional-messages.html?farm=${f.id}">
+                    <a class="btn btn-secondary" href="professional-messages.html?farm=${f.id}&pv=20261006.3">
                         💬 پیام‌های متخصصان این فارم
                         ${unread ? `<span class="unread-badge" aria-label="${unread} پیام خوانده‌نشده">${unread}</span>` : ''}
                     </a>

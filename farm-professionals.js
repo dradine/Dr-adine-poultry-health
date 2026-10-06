@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const auth = await AdineAuth.requireAuth();
     if (!auth) return;
     const p = auth.profile || {};
+    const role = String(p.user_type || p.role || '').trim().toLowerCase();
     // این صفحه برای مدیریت متخصصان فارم در اختیار حساب‌های فارم است.
     // دسترسی واقعی به داده‌ها با RLS/Supabase کنترل می‌شود؛ در این صفحه کاربر احراز‌شده را با نقش‌خوانی ثانویه مسدود نمی‌کنیم.
 

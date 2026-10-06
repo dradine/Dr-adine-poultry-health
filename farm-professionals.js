@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const code = rawCode.replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
             const professionalType = typeInput ? typeInput.value : '';
 
-            if (!/^\\d{4}$/.test(code)) {
+            if (!/^\d{4}$/.test(code)) {
                 alert('کد حرفه‌ای باید دقیقاً ۴ رقم باشد.');
                 return;
             }

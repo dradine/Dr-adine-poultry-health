@@ -4,8 +4,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!auth) return;
     const p = auth.profile || {};
     const role = String(p.user_type || p.role || '').trim().toLowerCase();
-    // این صفحه برای مدیریت متخصصان فارم در اختیار حساب‌های فارم است.
-    // دسترسی واقعی به داده‌ها با RLS/Supabase کنترل می‌شود؛ در این صفحه کاربر احراز‌شده را با نقش‌خوانی ثانویه مسدود نمی‌کنیم.
 
     let farms = [];
 
@@ -19,18 +17,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function loadFarms() {
         const q = supabaseClient.from('farms').select('id,name,farm_code,farm_type').order('created_at',{ascending:false});
-        const { data, error } = role === 'owner' || role === 'admin' ? await q : await q.eq('owner_id', p.id);
-        if (error) { document.getElementById('farms').textContent = error.message; return; }
+        const { data, error } = role === 'owner' || role === 'admin'
+            ? await q
+            : await q.eq('owner_id', p.id);
+
+        if (error) {
+            document.getElementById('farms').textContent = error.message;
+            return;
+        }
+
         farms = data || [];
 
-        document.getElementById('farms').innerHTML = farms.map(f => `
+        // فقط برای نمایش نشان پیام؛ هیچ تغییری در منطق دسترسی پیام‌ها ایجاد نمی‌شود.
+        const unreadByFarm = {};
+        const unreadResult = await supabaseClient
+            .from('professional_messages')
+            .select('farm_id')
+            .eq('recipient_id', p.id)
+            .is('read_at', null);
+
+        if (!unreadResult.error) {
+            (unreadResult.data || []).forEach(m => {
+                if (m.farm_id) unreadByFarm[m.farm_id] = (unreadByFarm[m.farm_id] || 0) + 1;
+            });
+        }
+
+        document.getElementById('farms').innerHTML = farms.map(f => {
+            const unread = unreadByFarm[f.id] || 0;
+            return `
             <div class="box">
                 <h3>${AdineAccess.esc(f.name)}</h3>
                 <p class="muted">${AdineAccess.esc(f.farm_type||'نوع نامشخص')} | ${AdineAccess.esc(f.farm_code||'بدون کد')}</p>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px"><a class="btn btn-secondary" href="professional-messages.html?farm=${f.id}">💬 پیام‌های متخصصان این فارم</a></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 12px">
+                    <a class="btn btn-secondary" href="professional-messages.html?farm=${f.id}">
+                        💬 پیام‌های متخصصان این فارم
+                        ${unread ? `<span class="unread-badge" aria-label="${unread} پیام خوانده‌نشده">${unread}</span>` : ''}
+                    </a>
+                </div>
                 <div class="professional-add-grid">
                     <div>
-                        <input id="code-${f.id}" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="کد حرفه‌ای ۴ رقمی">
+                        <input id="code-${f.id}" type="text" inputmode="numeric" autocomplete="off" maxlength="4" pattern="[0-9]{4}" placeholder="کد حرفه‌ای ۴ رقمی" aria-label="کد حرفه‌ای ۴ رقمی">
                         <select id="type-${f.id}">
                             <option value="veterinarian">دامپزشک</option>
                             <option value="technical_veterinarian">دامپزشک مسئول فنی</option>
@@ -42,7 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
                 <div id="pro-${f.id}" style="margin-top:12px">در حال بارگذاری...</div>
-            </div>`).join('') || 'فارمی ثبت نشده است.';
+            </div>`;
+        }).join('') || 'فارمی ثبت نشده است.';
 
         for (const f of farms) await renderProfessionals(f.id);
     }
@@ -51,6 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const { data, error } = await supabaseClient.rpc('get_farm_professionals',{p_farm_id:farmId});
         const el = document.getElementById('pro-'+farmId);
         if (error) { el.textContent = error.message; return; }
+
         el.innerHTML = (data||[]).map(x => `
             <div class="box">
                 <strong>${AdineAccess.esc(x.professional_name || 'بدون نام')}</strong>
@@ -62,12 +90,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.addEventListener('click', async e => {
         const add = e.target.closest('[data-add]');
+
         if (add) {
             const farm = add.dataset.add;
-            const code = document.getElementById(`code-${farm}`).value.trim();
-            const professionalType = document.getElementById(`type-${farm}`).value;
+            const codeInput = document.getElementById(`code-${farm}`);
+            const typeInput = document.getElementById(`type-${farm}`);
             const preview = document.getElementById(`preview-${farm}`);
-            if (!/^\d{4}$/.test(code)) return alert('کد حرفه‌ای باید دقیقاً ۴ رقم باشد.');
+            const code = codeInput ? codeInput.value.trim() : '';
+            const professionalType = typeInput ? typeInput.value : '';
+
+            if (!/^\\d{4}$/.test(code)) {
+                alert('کد حرفه‌ای باید دقیقاً ۴ رقم باشد.');
+                return;
+            }
 
             add.disabled = true;
             if (preview) {
@@ -84,19 +119,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (lookup.error) {
                 add.disabled = false;
                 if (preview) preview.textContent = '';
-                return alert(lookup.error.message);
+                alert(lookup.error.message);
+                return;
             }
 
             const professional = lookup.data?.[0];
             if (!professional) {
                 add.disabled = false;
                 if (preview) preview.textContent = '';
-                return alert('متخصصی با این کد پیدا نشد یا نوع متخصص با کد واردشده مطابقت ندارد.');
+                alert('متخصصی با این کد پیدا نشد یا نوع متخصص با کد واردشده مطابقت ندارد.');
+                return;
             }
 
-            const verifiedText = professional.is_verified ? 'پروفایل حرفه‌ای تأییدشده' : 'پروفایل حرفه‌ای ثبت‌شده';
+            const verifiedText = professional.is_verified
+                ? 'پروفایل حرفه‌ای تأییدشده'
+                : 'پروفایل حرفه‌ای ثبت‌شده';
+
             if (preview) {
-                preview.innerHTML = '<strong>متخصص پیدا شد:</strong> ' +
+                preview.innerHTML =
+                    '<strong>متخصص پیدا شد:</strong> ' +
                     AdineAccess.esc(professional.professional_name || 'بدون نام') +
                     ' — ' + typeLabel(professional.professional_type) +
                     ' (' + verifiedText + ')';
@@ -105,9 +146,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const confirmed = confirm(
                 'کد حرفه‌ای واردشده متعلق به «' +
                 (professional.professional_name || 'بدون نام') +
-                '» است.\n\nنوع متخصص: ' + typeLabel(professional.professional_type) +
-                '\n' + verifiedText +
-                '\n\nآیا تأیید می‌کنید که همین متخصص را برای این فارم انتخاب کرده‌اید؟'
+                '» است.\\n\\nنوع متخصص: ' + typeLabel(professional.professional_type) +
+                '\\n' + verifiedText +
+                '\\n\\nآیا تأیید می‌کنید که همین متخصص را برای این فارم انتخاب کرده‌اید؟'
             );
 
             if (!confirmed) {
@@ -115,27 +156,41 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const { error } = await supabaseClient.rpc('request_professional_access_by_code', {
+            const request = await supabaseClient.rpc('request_professional_access_by_code', {
                 p_farm_id: farm,
                 p_access_code: code,
                 p_professional_type: professionalType
             });
 
             add.disabled = false;
-            if (error) alert(error.message);
-            else {
-                alert('متخصص «' + (professional.professional_name || 'بدون نام') + '» انتخاب شد. درخواست برای او ارسال شد و پس از تأیید وی، دسترسی فعال می‌شود.');
-                document.getElementById(`code-${farm}`).value='';
-                if (preview) preview.hidden = true;
-                await renderProfessionals(farm);
+
+            if (request.error) {
+                alert(request.error.message);
+                return;
             }
+
+            alert(
+                'متخصص «' + (professional.professional_name || 'بدون نام') +
+                '» انتخاب شد. درخواست برای او ارسال شد و پس از تأیید وی، دسترسی فعال می‌شود.'
+            );
+
+            if (codeInput) codeInput.value = '';
+            if (preview) preview.hidden = true;
+            await renderProfessionals(farm);
+        }
 
         const revoke = e.target.closest('[data-revoke]');
         if (revoke) {
             if (!confirm('آیا مطمئن هستید دسترسی این متخصص به این فارم قطع شود؟ پس از قطع، دیگر اطلاعات فارم را مشاهده نخواهد کرد.')) return;
-            const { error } = await supabaseClient.rpc('revoke_professional_access', { p_access_id: revoke.dataset.revoke, p_reason:'قطع دسترسی توسط مالک فارم' });
+
+            const { error } = await supabaseClient.rpc('revoke_professional_access', {
+                p_access_id: revoke.dataset.revoke,
+                p_reason:'قطع دسترسی توسط مالک فارم'
+            });
+
             if (error) alert(error.message);
             else alert('دسترسی متخصص قطع شد.');
+
             await loadFarms();
         }
     });

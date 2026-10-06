@@ -1,9 +1,5 @@
 (function(){'use strict';document.addEventListener('DOMContentLoaded',async()=>{
  const auth=await AdineAuth.requireAuth();if(!auth)return;
- const rawType=String(auth.profile?.user_type||'').toLowerCase();
- const typeAliases={poultry_operator:'farm_operator',poultry_manager:'farm_manager'};
- const type=typeAliases[rawType]||rawType;
- if(!['farm_operator','farm_manager','poultry_technical_expert'].includes(type)){location.replace('Dashboard.html');return;}
  const params=new URLSearchParams(location.search), farmFilter=params.get('farm');
  const esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML};
  async function load(){

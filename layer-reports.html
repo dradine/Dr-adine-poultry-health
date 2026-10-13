@@ -1,11 +1,271 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>گزارش‌های تخم‌گذار | مرکز تخصصی سلامت طیور آدینه</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="auth.js"></script><script src="app-core.js"></script><script src="layer-calculation-engine-v1.js"></script><script src="layer-daily-standards-v1.js"></script><script src="layer-period-engine-v1.js"></script><style>*{box-sizing:border-box}body{margin:0;background:#f3f6f4;color:#17251f;font-family:Tahoma,Arial,sans-serif;padding:16px 0 40px}.wrap{width:min(1220px,94%);margin:auto}.card{background:#fff;border:1px solid #dfe8e2;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 5px 20px rgba(15,60,35,.055)}.hero{background:linear-gradient(135deg,#163d2b,#245b3f);color:#fff;border:0}.identity,.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pill,.metric{border-radius:12px;padding:10px}.pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15)}.metric{border:1px solid #e1e9e4;background:#fafcfb}.metric small{color:#66756d}.metric b{display:block;font-size:18px;margin-top:5px}.tabs,.subtabs{display:flex;gap:8px;overflow:auto}.tab,.subtab{border:1px solid #d5e0d9;background:#f7faf8;border-radius:11px;padding:10px 14px;font:800 13px Tahoma;cursor:pointer;white-space:nowrap}.tab.active{background:#1f6b45;color:#fff}.subtab.active{background:#e8f1eb;color:#1f6b45;border-color:#1f6b45}.controls{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}.group label{display:block;font-size:12px;font-weight:700;color:#52625a;margin-bottom:6px}.group select{width:100%;border:1px solid #d5e0d9;border-radius:11px;padding:11px;background:#fff;font:14px Tahoma}.btn{border:0;border-radius:12px;padding:12px 18px;font:800 13px Tahoma;cursor:pointer;background:#1f6b45;color:#fff}.panel{display:none}.panel.active{display:block}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px;border-bottom:1px solid #edf1ee;text-align:right}.table th{background:#f7faf8}.note{padding:12px;border-radius:12px;background:#f7faf8;font-size:12px;line-height:1.9}@media(max-width:760px){.identity,.grid{grid-template-columns:1fr 1fr}.controls{grid-template-columns:1fr}.table{display:block;overflow:auto;white-space:nowrap}}@media(max-width:460px){.identity,.grid{grid-template-columns:1fr}}</style><style id="layer-reports-v2-ui">body{padding-bottom:92px!important;background:#eef3f0!important}.bottom-navigation{position:fixed!important;left:0!important;right:0!important;bottom:0!important;height:76px!important;background:#fff!important;border-top:1px solid #dce6e0!important;display:grid!important;grid-template-columns:repeat(4,1fr)!important;z-index:99999!important;box-shadow:0 -8px 24px rgba(21,54,39,.08)!important}.bottom-nav-item{border:0!important;background:transparent!important;color:#6b7d74!important;font:700 11px Tahoma,Arial,sans-serif!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;cursor:pointer!important}.bottom-nav-item.active{color:#236b49!important}.bottom-nav-icon,.bottom-nav-icon svg{width:24px!important;height:24px!important}.bottom-nav-icon svg{fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}.card,.metric{background:#fff!important;border:1px solid #d8e2dc!important;box-shadow:0 5px 18px rgba(25,56,42,.07)!important}.hero{background:linear-gradient(135deg,#173d2d,#245b43)!important;color:#fff!important;border:0!important}.identity .metric{background:#f3f7f4!important;color:#1c3026!important;border-color:#d8e5de!important}.tabs .tab{background:#e9f0ec!important;color:#355247!important;border:1px solid #d2dfd8!important}.tabs .tab.active{background:#286b4b!important;color:#fff!important;border-color:#286b4b!important}.grid .metric{background:#f8faf9!important;color:#21352b!important}.metric b{color:#183328!important}.metric small{color:#687c72!important}.table th{background:#edf3ef!important;color:#304d40!important}.table td{background:#fff!important;border-color:#e2e9e5!important;color:#23382e!important}@media(max-width:600px){.bottom-navigation{height:72px!important}.bottom-nav-item{font-size:10px!important}}</style></head><body><main class="wrap"><section class="card hero"><h1>گزارش‌های تخم‌گذار</h1><div id="subtitle">گزارش‌های روزانه، هفتگی و ماهانه از داده‌های ذخیره‌شده تخم‌گذار به‌صورت خودکار به‌روزرسانی می‌شوند.</div><div id="identity" class="identity" style="margin-top:14px"></div></section><section class="card"><nav class="tabs"><button class="tab active" data-tab="daily">گزارش روزانه</button><button class="tab" data-tab="weekly">گزارش هفتگی</button><button class="tab" data-tab="monthly">گزارش ماهانه</button><button class="tab" data-tab="overall">گزارش جامع عملکرد گله</button><button class="tab" data-tab="compare">گزارش مقایسه‌ای</button></nav></section><section id="periodNav" class="card"><nav class="subtabs"><button class="subtab active" data-period="daily">گزارش روزانه</button><button class="subtab" data-period="weekly">گزارش هفتگی</button><button class="subtab" data-period="monthly">گزارش ماهانه</button></nav></section><section id="dailyPanel" class="card panel active"><div class="controls"><div class="group"><label>روز گزارش — تمام روزها</label><select id="day"></select></div><button class="btn" onclick="window.print()">چاپ</button></div><div class="grid" id="dailyMetrics" style="margin-top:14px"></div></section><section id="weeklyPanel" class="card panel"><div class="controls"><div class="group"><label>هفته گزارش</label><select id="week"></select></div><button class="btn" onclick="window.print()">چاپ</button></div><div class="grid" id="weeklyMetrics" style="margin-top:14px"></div></section><section id="monthlyPanel" class="card panel"><div class="controls"><div class="group"><label>ماه گزارش</label><select id="month"></select></div><button class="btn" onclick="window.print()">چاپ</button></div><div class="grid" id="monthlyMetrics" style="margin-top:14px"></div></section><section id="overallPanel" class="card panel"><div class="grid" id="overallMetrics"></div><div class="note" id="overallNote" style="margin-top:12px"></div></section><section id="comparePanel" class="card panel"><div class="controls"><div class="group"><label>هفته مقایسه</label><select id="compareWeek"></select></div></div><table class="table" style="margin-top:14px"><thead><tr><th>سویه</th><th>هفته</th><th>تولید %</th><th>دان g</th><th>آب ml</th><th>وزن تخم g</th><th>Feed/Egg Mass</th></tr></thead><tbody id="compareBody"></tbody></table></section><nav class="bottom-navigation" id="bottomNavigation" aria-label="ناوبری اصلی"><button type="button" class="bottom-nav-item" data-nav="Dashboard.html" aria-label="خانه"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5"></path><path d="M5 9.5V21h14V9.5"></path><path d="M9 21v-6h6v6"></path></svg></span><span>خانه</span></button><button type="button" class="bottom-nav-item" data-nav="Farms.html" aria-label="فارم‌ها"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"></path><path d="M7 21v-7h10v7"></path><path d="M9 10h6"></path><path d="M12 7v3"></path></svg></span><span>فارم‌ها</span></button><button type="button" class="bottom-nav-item" data-nav="layer-weekly-core.html" aria-label="ثبت هفتگی"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19V5"></path><path d="M4 5h17"></path><path d="M6.5 15l4-4 3 2 5-6"></path><circle cx="6.5" cy="15" r="1"></circle><circle cx="10.5" cy="11" r="1"></circle><circle cx="13.5" cy="13" r="1"></circle><circle cx="18.5" cy="7" r="1"></circle></svg></span><span>ثبت هفتگی</span></button><button type="button" class="bottom-nav-item active" data-nav="layer-reports.html" aria-label="گزارش‌ها"><span class="bottom-nav-icon"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"></path><path d="M15 3v5h5"></path><path d="M9 12h6"></path><path d="M9 16h6"></path><path d="M9 8h2"></path></svg></span><span>گزارش‌ها</span></button></nav></main><script>
-(async function(){let flockId,flock,daily=[],weekly=[],monthly=[];const $=id=>document.getElementById(id),q=new URLSearchParams(location.search),fmt=(v,d=1)=>v==null||!Number.isFinite(Number(v))?'—':Number(v).toFixed(d),esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));const cards=a=>a.map(x=>'<div class="metric"><small>'+esc(x[0])+'</small><b>'+esc(x[1])+'</b></div>').join('');
-function show(name){var names=['daily','weekly','monthly','overall','compare'];names.forEach(function(x){var el=$(x+'Panel');if(el)el.classList.toggle('active',x===name)});document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('active',x.dataset.tab===name)});var p=['daily','weekly','monthly'].includes(name);var pn=$('periodNav');if(pn)pn.style.display=p?'block':'none';document.querySelectorAll('.subtab').forEach(function(x){x.classList.toggle('active',x.dataset.period===name)})}
-function renderDaily(){const r=daily.find(x=>x.record_date===$('day').value)||daily.at(-1);if(!r)return;$('dailyMetrics').innerHTML=cards([['تاریخ',r.record_date],['سن گله',r.age_days+' روز'],['تولید Hen-Day',fmt(r.hen_day_production_percent)+'٪'],['تولید Hen-Housed',fmt(r.hen_housed_production_percent)+'٪'],['FCR دان/جرم تخم',fmt(r.feed_per_egg_mass,3)],['دان/مرغ',fmt(r.feed_per_hen_g)+' g'],['آب/مرغ',fmt(r.water_per_hen_ml)+' ml'],['Egg Mass',fmt(r.egg_mass_g_hen_day)+' g'],['وزن تخم',fmt(r.average_egg_weight_g)+' g'],['تلفات',fmt(r.mortality_count,0)+' قطعه'],['قابل فروش',fmt(r.saleable_egg_percent)+'٪'],['معیوب',fmt(r.egg_defect_percent)+'٪'],['وضعیت پایش',r.daily_monitoring_status||'—'],['دلیل',r.daily_status_reason||'—']]);}
-function renderWeekly(){const r=weekly.find(x=>Number(x.week_no)===Number($('week').value))||weekly.at(-1);if(!r)return;$('weeklyMetrics').innerHTML=cards([['هفته',r.week_no],['سن',r.age_start_days+'–'+r.age_end_days+' روز'],['تولید Hen-Day',fmt(r.avg_hen_day_production)+'٪'],['تولید Hen-Housed',fmt(r.avg_hen_housed_production)+'٪'],['دان/مرغ',fmt(r.avg_feed_per_hen_g)+' g'],['آب/مرغ',fmt(r.avg_water_per_hen_ml)+' ml'],['وزن تخم',fmt(r.avg_egg_weight_g)+' g'],['Egg Mass',fmt(r.avg_egg_mass_g)+' g'],['Feed/Egg Mass',fmt(r.feed_per_egg_mass,3)],['تلفات',fmt(r.mortality_count,0)+' قطعه'],['وضعیت',r.health_status||'—']]);}
-function renderMonthly(){const r=monthly.find(x=>x.jalali_month_key===$('month').value)||monthly.at(-1);if(!r)return;$('monthlyMetrics').innerHTML=cards([['ماه',r.jalali_month_label||r.jalali_month_key],['سن',r.age_start_days+'–'+r.age_end_days+' روز'],['تولید Hen-Day',fmt(r.avg_hen_day_production)+'٪'],['تولید Hen-Housed',fmt(r.avg_hen_housed_production)+'٪'],['دان/مرغ',fmt(r.avg_feed_per_hen_g)+' g'],['آب/مرغ',fmt(r.avg_water_per_hen_ml)+' ml'],['وزن تخم',fmt(r.avg_egg_weight_g)+' g'],['Egg Mass',fmt(r.avg_egg_mass_g)+' g'],['Feed/Egg Mass',fmt(r.feed_per_egg_mass,3)],['تلفات',fmt(r.mortality_count,0)+' قطعه'],['زنده‌مانی',fmt(r.livability)+'٪']]);}
-function renderOverall(){const av=(a,k)=>{const v=a.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?fmt(v.reduce((x,y)=>x+y,0)/v.length):'—'};$('overallMetrics').innerHTML=cards([['روزهای ثبت‌شده',daily.length],['هفته‌های ثبت‌شده',weekly.length],['ماه‌های ثبت‌شده',monthly.length],['میانگین تولید روزانه',av(daily,'hen_day_production_percent')+'٪'],['میانگین تولید هفتگی',av(weekly,'avg_hen_day_production')+'٪'],['میانگین تولید ماهانه',av(monthly,'avg_hen_day_production')+'٪'],['میانگین وزن تخم',av(daily,'average_egg_weight_g')+' g'],['تلفات کل',daily.reduce((s,x)=>s+(Number(x.mortality_count)||0),0)+' قطعه']]);$('overallNote').textContent='گزارش جامع عملکرد گله از سه لایه روزانه، هفتگی و ماهانه داده می‌گیرد.';}
-async function renderCompare(){const w=Number($('compareWeek').value);const fs=(await supabaseClient.from('flocks').select('id,strain,flock_name').eq('production_type','layer')).data||[];const map=new Map(fs.map(x=>[x.id,x]));const d=(await supabaseClient.from('layer_weekly_monitoring').select('flock_id,week_no,avg_hen_day_production,avg_feed_per_hen_g,avg_water_per_hen_ml,avg_egg_weight_g,feed_per_egg_mass').eq('week_no',w)).data||[];$('compareBody').innerHTML=d.map(r=>{const f=map.get(r.flock_id);return f?'<tr><td>'+esc(f.strain||f.flock_name)+'</td><td>'+r.week_no+'</td><td>'+fmt(r.avg_hen_day_production)+'</td><td>'+fmt(r.avg_feed_per_hen_g)+'</td><td>'+fmt(r.avg_water_per_hen_ml)+'</td><td>'+fmt(r.avg_egg_weight_g)+'</td><td>'+fmt(r.feed_per_egg_mass,3)+'</td></tr>':''}).join('');}
-document.querySelectorAll('.tab').forEach(function(b){b.onclick=function(){if(b.dataset.tab==='accounting')openAccounting();else show(b.dataset.tab)}});document.querySelectorAll('.subtab').forEach(function(b){b.onclick=function(){show(b.dataset.period)}});async function boot(){const access=await checkUserAccess();if(!access?.authenticated){location.href='login.html';return}const sessionResult=await supabaseClient.auth.getSession();const reportUser=sessionResult.data?.session?.user;if(sessionResult.error||!reportUser){location.href='login.html';return}const s=typeof getCurrentSelection==='function'?getCurrentSelection()||{}:{};flockId=s.flockId||q.get('flock_id')||q.get('flockId');if(!flockId){$('subtitle').textContent='گله فعال پیدا نشد.';return}const f=await supabaseClient.from('flocks').select('*').eq('id',flockId).maybeSingle();if(f.error)throw new Error('خطا در دریافت اطلاعات گله: '+f.error.message);if(!f.data)throw new Error('گله انتخاب‌شده پیدا نشد.');flock=f.data;if(String(flock.production_type).toLowerCase()!=='layer'){$('subtitle').textContent='این صفحه فقط برای گله‌های تخم‌گذار است؛ مسیر گزارش این گله تغییر داده نشد.';return}$('identity').innerHTML=cards([['گله',flock.flock_name],['سویه',flock.strain||'—'],['نوع','تخم‌گذار'],['استاندارد','Layer Standards V1']]);const dailyResult=await supabaseClient.from('layer_daily_monitoring').select('*').eq('flock_id',flockId).order('record_date',{ascending:true});if(dailyResult.error)throw new Error('خواندن پایش روزانه ناموفق بود: '+dailyResult.error.message);daily=(dailyResult.data||[]).slice().sort((x,y)=>String(x.record_date).localeCompare(String(y.record_date)));if(!window.ADINE_LAYER_PERIOD_ENGINE_V1?.sync)throw new Error('موتور مستقل همگام‌سازی گزارش تخم‌گذار بارگذاری نشده است.');await window.ADINE_LAYER_PERIOD_ENGINE_V1.sync(flock,reportUser,supabaseClient,daily);const [a2,a3]=await Promise.all([supabaseClient.from('layer_weekly_monitoring').select('*').eq('flock_id',flockId).order('week_no',{ascending:true}),supabaseClient.from('layer_monthly_monitoring').select('*').eq('flock_id',flockId).order('jalali_year').order('jalali_month')]);if(a2.error)throw new Error('خواندن پایش هفتگی ناموفق بود: '+a2.error.message);if(a3.error)throw new Error('خواندن پایش ماهانه ناموفق بود: '+a3.error.message);weekly=(a2.data||[]).slice().sort((x,y)=>Number(x.week_no)-Number(y.week_no));monthly=(a3.data||[]).slice().sort((x,y)=>String(x.jalali_month_key).localeCompare(String(y.jalali_month_key)));$('day').innerHTML=daily.length?daily.map(x=>'<option value="'+esc(x.record_date)+'">روز '+esc(x.age_days)+' • '+esc(x.record_date)+'</option>').join(''):'<option value="">هنوز رکورد روزانه‌ای ثبت نشده است</option>';$('week').innerHTML=weekly.length?weekly.map(x=>'<option value="'+x.week_no+'">هفته '+x.week_no+' • سن '+x.age_start_days+' تا '+x.age_end_days+'</option>').join(''):'<option value="">هنوز داده‌ای برای گزارش هفتگی نیست</option>';$('month').innerHTML=monthly.length?monthly.map(x=>'<option value="'+x.jalali_month_key+'">'+(x.jalali_month_label||x.jalali_month_key)+' • سن '+x.age_start_days+' تا '+x.age_end_days+'</option>').join(''):'<option value="">هنوز داده‌ای برای گزارش ماهانه نیست</option>';$('compareWeek').innerHTML=weekly.map(x=>'<option value="'+x.week_no+'">هفته '+x.week_no+'</option>').join('');if(q.get('day')&&daily.some(x=>String(x.record_date)===String(q.get('day'))))$('day').value=q.get('day');else if(daily.length)$('day').value=daily[daily.length-1].record_date;if(q.get('week'))$('week').value=q.get('week');if(q.get('month'))$('month').value=q.get('month');renderDaily();renderWeekly();renderMonthly();renderOverall();renderCompare();if(q.get('period'))show(q.get('period'));$('day').onchange=renderDaily;$('week').onchange=()=>{renderWeekly();renderCompare()};$('month').onchange=renderMonthly;$('compareWeek').onchange=renderCompare;}boot().catch(function(error){console.error('Layer reports boot failed:',error);var s=document.getElementById('subtitle');if(s)s.textContent='به‌روزرسانی گزارش‌های تخم‌گذار انجام نشد: '+(error?.message||'خطای نامشخص');});
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173f35">
+<meta name="description" content="گزارش‌های تخصصی و خودکار گله‌های تخم‌گذار؛ مرکز تخصصی سلامت طیور آدینه">
+<title>گزارش‌های تخم‌گذار | مرکز تخصصی سلامت طیور آدینه</title>
+<link rel="stylesheet" href="app.css?v=20260925.11">
+<link rel="icon" type="image/png" href="/IMG_4309.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/IMG_4309.png">
+<link rel="manifest" href="/manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
+<script src="app-core.js"></script>
+<script src="layer-calculation-engine-v1.js"></script>
+<script src="layer-daily-standards-v1.js"></script>
+<script src="layer-period-engine-v1.js"></script>
+<script src="dashboard-icon-assets.js?v=20260925.50"></script>
+<script src="dashboard-icon-fix.js?v=20261006.2"></script>
+<style>
+:root{--lr-green:#173f35;--lr-green-2:#28634f;--lr-ink:#19342a;--lr-muted:#718079;--lr-line:#e2ebe6;--lr-soft:#f4f8f5;--lr-white:#fff;--lr-warn:#9a5a08;--lr-red:#a23838}
+body.layer-report-body{background:linear-gradient(180deg,#eef4f0 0,#f7f9f7 360px,#f4f7f5 100%);color:var(--lr-ink)}
+.layer-report-page{padding-top:20px;padding-bottom:32px}
+.layer-report-page .container{max-width:1100px}
+.layer-report-hero{position:relative;overflow:hidden;border-radius:24px;padding:24px 24px 22px;background:linear-gradient(130deg,#153d30,#28644d 70%,#3b795e);color:#fff;box-shadow:0 14px 35px rgba(23,63,53,.16);margin-bottom:15px}
+.layer-report-hero:after{content:"";position:absolute;width:230px;height:230px;border:1px solid rgba(255,255,255,.12);border-radius:50%;left:-70px;top:-110px;box-shadow:0 0 0 28px rgba(255,255,255,.035),0 0 0 58px rgba(255,255,255,.025);pointer-events:none}
+.lr-eyebrow{font-size:10px;font-weight:800;letter-spacing:1px;color:#d3e8dc;margin-bottom:8px}
+.layer-report-hero h1{font-size:clamp(21px,4vw,30px);line-height:1.6;margin:0 0 6px;font-weight:900}
+.layer-report-hero p{font-size:12px;line-height:2;color:#e2eee7;max-width:680px;margin:0}
+.lr-hero-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px}
+.lr-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff}
+.lr-dot{width:7px;height:7px;border-radius:50%;background:#a6e5bc;display:inline-block}
+.lr-panel{background:#fff;border:1px solid var(--lr-line);border-radius:20px;padding:17px;margin-bottom:14px;box-shadow:0 5px 18px rgba(23,63,53,.045)}
+.lr-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.lr-panel-title{font-size:14px;font-weight:900;color:var(--lr-green);margin:0}
+.lr-panel-subtitle{font-size:11px;line-height:1.8;color:var(--lr-muted);margin-top:4px}
+.lr-flock-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+.lr-field label{display:block;font-size:11px;font-weight:800;color:#52655b;margin-bottom:7px}
+.lr-field select{width:100%;min-height:46px;border:1px solid #d7e3dc;border-radius:12px;background:#fbfdfb;color:var(--lr-green);font:700 13px Tahoma,Arial,sans-serif;padding:10px 12px;outline:none}
+.lr-field select:focus{border-color:#6b9b81;box-shadow:0 0 0 3px rgba(40,100,77,.1)}
+.lr-btn{border:0;border-radius:12px;padding:12px 15px;font:800 12px Tahoma,Arial,sans-serif;cursor:pointer;min-height:44px}
+.lr-btn-primary{background:var(--lr-green);color:#fff}
+.lr-btn-light{background:#edf4ef;color:var(--lr-green)}
+.lr-status{font-size:11px;color:var(--lr-muted);line-height:1.8;margin-top:10px}
+.lr-flock-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.lr-tag{padding:6px 9px;border:1px solid #e0e9e3;background:#f7faf8;border-radius:9px;font-size:10px;color:#53685d}
+.lr-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-bottom:14px}
+.lr-tab{border:1px solid #dfe9e3;background:#fff;color:#52675b;border-radius:12px;padding:12px 6px;font:800 11px Tahoma,Arial,sans-serif;cursor:pointer;transition:background .15s,border-color .15s}
+.lr-tab.active{background:#e4f0e8;border-color:#a9cbb6;color:#17523a;box-shadow:inset 0 0 0 1px rgba(40,100,77,.06)}
+.lr-view{display:none}.lr-view.active{display:block}
+.lr-metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.lr-metric{min-width:0;background:linear-gradient(180deg,#fff,#fbfdfb);border:1px solid #e2ebe5;border-radius:15px;padding:13px}
+.lr-metric-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.lr-metric-label{font-size:10px;color:#718178;line-height:1.7}
+.lr-metric-mark{width:7px;height:7px;border-radius:50%;background:#5c9874;flex:0 0 7px}
+.lr-metric-value{font-size:clamp(17px,2vw,22px);font-weight:900;color:#1a4a35;line-height:1.5;margin-top:7px;overflow-wrap:anywhere}
+.lr-metric-unit{font-size:10px;font-weight:700;color:#78877f;margin-right:3px}
+.lr-metric-foot{font-size:10px;color:#849188;line-height:1.7;margin-top:4px}
+.lr-empty{padding:24px 15px;text-align:center;border:1px dashed #cbdcd1;background:#f8fbf9;border-radius:15px}
+.lr-empty strong{display:block;font-size:13px;color:#294e3c;margin-bottom:7px}
+.lr-empty p{font-size:11px;color:#6c7e73;line-height:2;margin:0 auto 13px;max-width:520px}
+.lr-alert{border-radius:13px;padding:12px 14px;font-size:11px;line-height:2;background:#f2f7f3;border:1px solid #dce9df;color:#4c6556;margin-top:13px}
+.lr-alert.warn{background:#fff8ed;border-color:#f0dfc4;color:#85540f}
+.lr-period-head{display:flex;align-items:end;gap:12px;justify-content:space-between;margin-bottom:14px}
+.lr-period-head .lr-field{width:min(100%,440px)}
+.lr-table-wrap{width:100%;overflow-x:auto;border:1px solid #e2ebe5;border-radius:13px}
+.lr-table{border-collapse:separate;border-spacing:0;width:100%;min-width:690px;font-size:11px;background:#fff}
+.lr-table th{background:#f0f6f2;color:#3b5949;font-weight:900;white-space:nowrap}
+.lr-table th,.lr-table td{padding:12px 11px;text-align:right;border-bottom:1px solid #e7eee9}
+.lr-table tbody tr:last-child td{border-bottom:0}
+.lr-table td{color:#3d5548;white-space:nowrap}
+.lr-table .num{font-variant-numeric:tabular-nums;font-weight:800}
+.lr-trend-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(210px,.8fr);gap:14px}
+.lr-chart-card{border:1px solid #e1ebe5;border-radius:16px;padding:15px;background:#fff;min-width:0}
+.lr-chart-title{font-size:12px;font-weight:900;color:#2b4d3b}
+.lr-chart-note{font-size:10px;line-height:1.8;color:#77877e;margin-top:4px}
+#productionChart{width:100%;height:auto;display:block;min-height:180px;margin-top:8px}
+.lr-chart-summary{display:grid;gap:9px;align-content:start}
+.lr-chart-stat{background:#f6faf7;border:1px solid #e2ebe5;border-radius:12px;padding:12px}
+.lr-chart-stat small{display:block;color:#718078;font-size:10px}
+.lr-chart-stat b{display:block;color:#1d5238;font-size:19px;margin-top:5px}
+.lr-chart-stat span{font-size:10px;color:#77877e}
+.lr-footnote{font-size:10px;line-height:2;color:#78867e;margin-top:12px}
+.lr-hidden{display:none!important}
+body.layer-report-body .bottom-nav{z-index:10000}
+@media(max-width:760px){
+ .layer-report-page{padding:13px 11px 24px}
+ .layer-report-hero{padding:20px 17px;border-radius:20px}
+ .lr-panel{padding:13px;border-radius:17px}
+ .lr-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .lr-tabs{grid-template-columns:repeat(5,minmax(78px,1fr));overflow-x:auto;padding-bottom:4px}
+ .lr-tab{white-space:nowrap;padding:11px 8px}
+ .lr-flock-row{grid-template-columns:1fr}
+ .lr-flock-row .lr-btn{width:100%}
+ .lr-period-head{align-items:stretch;flex-direction:column}
+ .lr-period-head .lr-field{width:100%}
+ .lr-trend-layout{grid-template-columns:1fr}
+ .lr-chart-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .lr-chart-stat{padding:10px}
+}
+@media(max-width:390px){.lr-chart-summary{grid-template-columns:1fr}.lr-metric{padding:11px}.lr-metric-value{font-size:18px}}
+@media print{
+ body.layer-report-body{background:#fff!important;padding-bottom:0!important}
+ .topbar,.bottom-nav,.lr-tabs,.lr-btn,.lr-field select{display:none!important}
+ .layer-report-page{padding:0!important}
+ .layer-report-hero{box-shadow:none!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .lr-panel,.lr-metric,.lr-chart-card{break-inside:avoid;box-shadow:none!important}
+ .lr-view{display:block!important;break-inside:avoid}
+}
+</style>
+</head>
+<body class="dashboard-page layer-report-body">
+<div class="app-shell">
+<header class="topbar dashboard-topbar">
+ <div class="brand dashboard-brand">
+  <div class="brand-logo-wrap"><img src="IMG_4309.png" alt="لوگوی مرکز تخصصی سلامت طیور آدینه" class="brand-logo"></div>
+  <div class="brand-text dashboard-brand-text"><strong>مرکز تخصصی سلامت طیور آدینه</strong><small>گزارش تخصصی گله‌های تخم‌گذار</small></div>
+ </div>
+ <button id="logoutButton" class="logout-btn" type="button" aria-label="خروج از حساب کاربری"><span data-icon="logout"></span><span>خروج</span></button>
+</header>
+<main class="page layer-report-page">
+<div class="container">
+<section class="layer-report-hero">
+ <div class="lr-eyebrow">LAYER PERFORMANCE CENTER</div>
+ <h1>گزارش‌های تخصصی گله تخم‌گذار</h1>
+ <p>نمای یکپارچه از تولید، وزن تخم، مصرف خوراک و آب، تلفات و روند عملکرد گله؛ گزارش‌ها از پایش‌های ذخیره‌شده روزانه، هفتگی و ماهانه به‌صورت خودکار به‌روزرسانی می‌شوند.</p>
+ <div class="lr-hero-meta"><span class="lr-chip"><i class="lr-dot"></i> همگام‌سازی خودکار</span><span class="lr-chip" id="lastSyncChip">در انتظار دریافت داده‌ها</span></div>
+</section>
+<section class="lr-panel" aria-labelledby="flockSelectTitle">
+ <div class="lr-panel-head"><div><h2 class="lr-panel-title" id="flockSelectTitle">گله مورد بررسی</h2><div class="lr-panel-subtitle">فقط گله‌های تخم‌گذار در این بخش نمایش داده می‌شوند.</div></div><button class="lr-btn lr-btn-light" id="refreshBtn" type="button">به‌روزرسانی گزارش</button></div>
+ <div class="lr-flock-row"><div class="lr-field"><label for="flockSelect">انتخاب فارم / گله تخم‌گذار</label><select id="flockSelect"><option value="">در حال دریافت فهرست گله‌ها…</option></select></div><button class="lr-btn lr-btn-primary" id="printBtn" type="button">چاپ گزارش انتخابی</button></div>
+ <div class="lr-flock-tags" id="flockTags"></div><div class="lr-status" id="loadStatus" role="status" aria-live="polite">در حال آماده‌سازی گزارش اختصاصی تخم‌گذار…</div>
+</section>
+<section class="lr-tabs" role="tablist" aria-label="بخش‌های گزارش تخم‌گذار">
+ <button type="button" class="lr-tab active" data-view="overview" role="tab" aria-selected="true">خلاصه عملکرد</button>
+ <button type="button" class="lr-tab" data-view="daily" role="tab" aria-selected="false">روزانه</button>
+ <button type="button" class="lr-tab" data-view="weekly" role="tab" aria-selected="false">هفتگی</button>
+ <button type="button" class="lr-tab" data-view="monthly" role="tab" aria-selected="false">ماهانه</button>
+ <button type="button" class="lr-tab" data-view="trend" role="tab" aria-selected="false">روند تولید</button>
+</section>
+<section class="lr-view active" id="view-overview" role="tabpanel">
+ <div class="lr-panel"><div class="lr-panel-head"><div><h2 class="lr-panel-title">نمای سریع عملکرد</h2><div class="lr-panel-subtitle" id="overviewSubtitle">آخرین وضعیت ثبت‌شده برای گله انتخابی</div></div></div><div id="overviewMetrics" class="lr-metric-grid"></div><div id="overviewAlert" class="lr-alert">پس از انتخاب گله، خلاصه خودکار عملکرد نمایش داده می‌شود.</div></div>
+ <div class="lr-trend-layout">
+  <div class="lr-chart-card"><div class="lr-chart-title">روند تولید روزانه (Hen-Day)</div><div class="lr-chart-note">آخرین ۱۴ رکورد روزانه موجود؛ فقط داده‌های ثبت‌شده نمایش داده می‌شوند.</div><svg id="productionChart" viewBox="0 0 620 250" role="img" aria-label="نمودار روند تولید روزانه"></svg></div>
+  <div class="lr-chart-card"><div class="lr-chart-title">پوشش داده‌ها</div><div class="lr-chart-note">تعداد رکوردهای ذخیره‌شده پس از همگام‌سازی خودکار</div><div class="lr-chart-summary" id="coverageMetrics" style="margin-top:12px"></div></div>
+ </div>
+</section>
+<section class="lr-view" id="view-daily" role="tabpanel">
+ <div class="lr-panel"><div class="lr-period-head"><div><h2 class="lr-panel-title">گزارش روزانه</h2><div class="lr-panel-subtitle">شاخص‌های روز انتخابی از پایش روزانه ذخیره‌شده</div></div><div class="lr-field"><label for="daySelect">روز گزارش</label><select id="daySelect"><option value="">داده‌ای موجود نیست</option></select></div></div><div id="dailyMetrics" class="lr-metric-grid"></div><div id="dailyEmpty" class="lr-empty lr-hidden"><strong>هنوز پایش روزانه‌ای برای این گله ثبت نشده است.</strong><p>پس از ثبت پایش روزانه، شاخص‌ها و گزارش روزانه در این صفحه به‌صورت خودکار نمایش داده می‌شوند.</p><button type="button" class="lr-btn lr-btn-primary" id="openDailyBtn">رفتن به پایش روزانه</button></div></div>
+ <div class="lr-panel"><div class="lr-panel-head"><div><h2 class="lr-panel-title">آخرین رکوردهای روزانه</h2><div class="lr-panel-subtitle">جدول تاریخ‌محور برای مرور سریع داده‌ها</div></div></div><div class="lr-table-wrap"><table class="lr-table"><thead><tr><th>تاریخ</th><th>سن گله</th><th>تولید Hen-Day</th><th>وزن تخم</th><th>دان/مرغ</th><th>آب/مرغ</th><th>تلفات</th></tr></thead><tbody id="dailyTable"></tbody></table></div></div>
+</section>
+<section class="lr-view" id="view-weekly" role="tabpanel">
+ <div class="lr-panel"><div class="lr-period-head"><div><h2 class="lr-panel-title">گزارش هفتگی</h2><div class="lr-panel-subtitle">خلاصه دوره‌ای ساخته‌شده از پایش روزانه همان گله</div></div><div class="lr-field"><label for="weekSelect">هفته گزارش</label><select id="weekSelect"><option value="">داده‌ای موجود نیست</option></select></div></div><div id="weeklyMetrics" class="lr-metric-grid"></div><div id="weeklyEmpty" class="lr-empty lr-hidden"><strong>هنوز داده‌ای برای گزارش هفتگی وجود ندارد.</strong><p>با ذخیره رکوردهای روزانه، موتور مستقل تخم‌گذار خلاصه هفتگی را به‌صورت خودکار می‌سازد.</p></div></div>
+ <div class="lr-panel"><div class="lr-panel-head"><div><h2 class="lr-panel-title">تاریخچه هفتگی</h2><div class="lr-panel-subtitle">تمام هفته‌های موجود برای گله انتخاب‌شده</div></div></div><div class="lr-table-wrap"><table class="lr-table"><thead><tr><th>هفته</th><th>بازه سن</th><th>تولید Hen-Day</th><th>تولید Hen-Housed</th><th>دان/مرغ</th><th>آب/مرغ</th><th>وزن تخم</th><th>Feed/Egg Mass</th></tr></thead><tbody id="weeklyTable"></tbody></table></div></div>
+</section>
+<section class="lr-view" id="view-monthly" role="tabpanel">
+ <div class="lr-panel"><div class="lr-period-head"><div><h2 class="lr-panel-title">گزارش ماهانه</h2><div class="lr-panel-subtitle">خلاصه ماهانه از داده‌های روزانه ذخیره‌شده؛ ماه ناقص با وضعیت خودش نمایش داده می‌شود</div></div><div class="lr-field"><label for="monthSelect">ماه گزارش</label><select id="monthSelect"><option value="">داده‌ای موجود نیست</option></select></div></div><div id="monthlyMetrics" class="lr-metric-grid"></div><div id="monthlyEmpty" class="lr-empty lr-hidden"><strong>هنوز داده‌ای برای گزارش ماهانه وجود ندارد.</strong><p>با ثبت داده‌های روزانه، خلاصه ماهانه به‌صورت خودکار محاسبه و ذخیره می‌شود.</p></div></div>
+ <div class="lr-panel"><div class="lr-panel-head"><div><h2 class="lr-panel-title">تاریخچه ماهانه</h2><div class="lr-panel-subtitle">مقایسه روند ماه‌ها با یکدیگر</div></div></div><div class="lr-table-wrap"><table class="lr-table"><thead><tr><th>ماه</th><th>بازه سن</th><th>تولید Hen-Day</th><th>تولید Hen-Housed</th><th>دان/مرغ</th><th>وزن تخم</th><th>Feed/Egg Mass</th><th>زنده‌مانی</th></tr></thead><tbody id="monthlyTable"></tbody></table></div></div>
+</section>
+<section class="lr-view" id="view-trend" role="tabpanel">
+ <div class="lr-panel"><div class="lr-panel-head"><div><h2 class="lr-panel-title">روند تولید گله</h2><div class="lr-panel-subtitle">نمای روند بر اساس مقادیر واقعی ثبت‌شده، بدون جایگزینی داده‌های مفقود با صفر</div></div></div><div class="lr-trend-layout"><div class="lr-chart-card"><div class="lr-chart-title">تولید روزانه Hen-Day</div><svg id="productionChartLarge" viewBox="0 0 620 250" role="img" aria-label="نمودار بزرگ روند تولید"></svg></div><div class="lr-chart-summary" id="trendSummary"></div></div><div class="lr-footnote">نمودار برای پایش روند است؛ تفسیر افت یا انحراف باید با سن گله، سویه، وضعیت سلامت، مصرف خوراک و آب و شرایط فارم انجام شود.</div></div>
+</section>
+</div>
+</main>
+<nav class="bottom-nav" aria-label="ناوبری اصلی">
+ <button type="button" data-nav="Dashboard.html" aria-label="خانه" onclick="window.location.href='Dashboard.html'"><span data-icon="home" aria-hidden="true"></span><small>خانه</small></button>
+ <button type="button" data-nav="Farms.html" aria-label="فارم‌ها" onclick="window.location.href='Farms.html'"><span data-icon="farm" aria-hidden="true"></span><small>فارم‌ها</small></button>
+ <button type="button" data-nav="layer-weekly-core.html" aria-label="هفتگی" onclick="window.location.href='layer-weekly-core.html'"><span data-icon="weeklyReport" aria-hidden="true"></span><small>هفتگی</small></button>
+ <button type="button" class="active" data-nav="layer-reports.html" aria-label="گزارش‌ها" onclick="window.location.href='layer-reports.html'"><span data-icon="report" aria-hidden="true"></span><small>گزارش‌ها</small></button>
+</nav>
+</div>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const q=new URLSearchParams(location.search);
+let flockId=null,flock=null,reportUser=null,flocks=[],daily=[],weekly=[],monthly=[];
+const n=v=>{if(v===null||v===undefined||v==='')return null;const x=Number(String(v).replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,''));return Number.isFinite(x)?x:null};
+const fmt=(v,d=1)=>{const x=n(v);return x===null?'—':x.toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d})};
+const fmtInt=v=>{const x=n(v);return x===null?'—':Math.round(x).toLocaleString('fa-IR')};
+const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const metrics=a=>a.map(m=>'<article class="lr-metric"><div class="lr-metric-top"><span class="lr-metric-label">'+esc(m[0])+'</span><i class="lr-metric-mark"></i></div><div class="lr-metric-value">'+esc(m[1])+(m[2]?'<span class="lr-metric-unit">'+esc(m[2])+'</span>':'')+'</div>'+(m[3]?'<div class="lr-metric-foot">'+esc(m[3])+'</div>':'')+'</article>').join('');
+const val=(row,key)=>row&&row[key]!==undefined?row[key]:null;
+function setStatus(message,warning=false){$('loadStatus').textContent=message;$('loadStatus').style.color=warning?'#9a5a08':'';}
+function showView(name){document.querySelectorAll('.lr-tab').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});document.querySelectorAll('.lr-view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));q.set('section',name);history.replaceState(null,'',location.pathname+'?'+q.toString());}
+function addOptions(select,rows,valueFn,labelFn,emptyText){select.innerHTML='';if(!rows.length){const o=document.createElement('option');o.value='';o.textContent=emptyText;select.appendChild(o);select.disabled=true;return;}select.disabled=false;rows.forEach(r=>{const o=document.createElement('option');o.value=valueFn(r);o.textContent=labelFn(r);select.appendChild(o);});}
+function metricRowDaily(r){return [['تولید Hen-Day',fmt(r.hen_day_production_percent)+'٪'],['تولید Hen-Housed',fmt(r.hen_housed_production_percent)+'٪'],['وزن تخم',fmt(r.average_egg_weight_g)+' گرم'],['جرم تخم/مرغ/روز',fmt(r.egg_mass_g_hen_day)+' گرم'],['دان/مرغ',fmt(r.feed_per_hen_g)+' گرم'],['آب/مرغ',fmt(r.water_per_hen_ml)+' میلی‌لیتر'],['Feed/Egg Mass',fmt(r.feed_per_egg_mass,3)],['تلفات',fmtInt(r.mortality_count)+' قطعه'],['تخم قابل فروش',fmt(r.saleable_egg_percent)+'٪'],['تخم معیوب',fmt(r.egg_defect_percent)+'٪'],['تخم کل',fmtInt(r.total_eggs)],['وضعیت پایش',r.daily_monitoring_status||'—']];}
+function metricRowPeriod(r,monthlyMode=false){return [['تولید Hen-Day',fmt(r.avg_hen_day_production)+'٪'],['تولید Hen-Housed',fmt(r.avg_hen_housed_production)+'٪'],['وزن تخم',fmt(r.avg_egg_weight_g)+' گرم'],['جرم تخم/مرغ/روز',fmt(r.avg_egg_mass_g)+' گرم'],['دان/مرغ',fmt(r.avg_feed_per_hen_g)+' گرم'],['آب/مرغ',fmt(r.avg_water_per_hen_ml)+' میلی‌لیتر'],['Feed/Egg Mass',fmt(r.feed_per_egg_mass,3)],['تلفات',fmtInt(r.mortality_count)+' قطعه'],['زنده‌مانی',fmt(r.livability)+'٪'],...(monthlyMode?[['روزهای منبع',fmtInt(r.source_daily_count)+' روز'],['وضعیت دوره',r.is_complete?'ماه کامل':'ماه در حال تکمیل']]:[['وضعیت سلامت',r.health_status||'—']])];}
+function drawChart(svg,rows){if(!svg)return;if(!rows.length){svg.innerHTML='<text x="310" y="120" text-anchor="middle" font-size="14" fill="#7a8a81">برای رسم روند، داده روزانه لازم است</text>';return;}const w=620,h=250,left=45,right=18,top=18,bottom=44,values=rows.map(r=>n(r.hen_day_production_percent)).filter(v=>v!==null);if(!values.length){svg.innerHTML='<text x="310" y="120" text-anchor="middle" font-size="14" fill="#7a8a81">در رکوردهای موجود مقدار تولید ثبت نشده است</text>';return;}let min=Math.max(0,Math.floor(Math.min(...values)/10)*10-5),max=Math.min(105,Math.ceil(Math.max(...values)/10)*10+5);if(max-min<10){min=Math.max(0,min-5);max=Math.min(105,max+5);}const usable=rows.map((r,i)=>({r,i,v:n(r.hen_day_production_percent)})).filter(x=>x.v!==null);const x=i=>left+(rows.length<2?(w-left-right)/2:i*(w-left-right)/(rows.length-1));const y=v=>top+(max-v)*(h-top-bottom)/(max-min);let grid='';for(let v=Math.ceil(min/10)*10;v<=max;v+=10){const yy=y(v);grid+='<line x1="'+left+'" y1="'+yy+'" x2="'+(w-right)+'" y2="'+yy+'" stroke="#e6eee8" stroke-width="1"/><text x="'+(left-9)+'" y="'+(yy+4)+'" text-anchor="end" font-size="10" fill="#809087">'+esc(fmt(v,0))+'</text>';}const points=usable.map(o=>x(o.i)+','+y(o.v)).join(' ');const line='<polyline points="'+points+'" fill="none" stroke="#26704a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>';const dots=usable.map(o=>'<circle cx="'+x(o.i)+'" cy="'+y(o.v)+'" r="4" fill="#fff" stroke="#26704a" stroke-width="2"><title>'+esc(o.r.record_date)+' • '+esc(fmt(o.v))+'٪</title></circle>').join('');const labels=rows.map((r,i)=>{if(rows.length>7&&i%Math.ceil(rows.length/6)!==0&&i!==rows.length-1)return '';return '<text x="'+x(i)+'" y="'+(h-17)+'" text-anchor="middle" font-size="9" fill="#78877e">'+esc(String(r.record_date||'').slice(5))+'</text>';}).join('');svg.innerHTML=grid+line+dots+labels;}
+function renderTables(){
+ $('dailyTable').innerHTML=daily.slice().reverse().slice(0,20).map(r=>'<tr><td>'+esc(r.record_date||'—')+'</td><td class="num">'+esc(fmtInt(r.age_days))+'</td><td class="num">'+esc(fmt(r.hen_day_production_percent))+'٪</td><td class="num">'+esc(fmt(r.average_egg_weight_g))+' g</td><td class="num">'+esc(fmt(r.feed_per_hen_g))+' g</td><td class="num">'+esc(fmt(r.water_per_hen_ml))+' ml</td><td class="num">'+esc(fmtInt(r.mortality_count))+'</td></tr>').join('')||'<tr><td colspan="7">هنوز رکورد روزانه‌ای ثبت نشده است.</td></tr>';
+ $('weeklyTable').innerHTML=weekly.slice().reverse().map(r=>'<tr><td>'+esc(fmtInt(r.week_no))+'</td><td>'+esc(fmtInt(r.age_start_days))+' تا '+esc(fmtInt(r.age_end_days))+' روز</td><td>'+esc(fmt(r.avg_hen_day_production))+'٪</td><td>'+esc(fmt(r.avg_hen_housed_production))+'٪</td><td>'+esc(fmt(r.avg_feed_per_hen_g))+' g</td><td>'+esc(fmt(r.avg_water_per_hen_ml))+' ml</td><td>'+esc(fmt(r.avg_egg_weight_g))+' g</td><td>'+esc(fmt(r.feed_per_egg_mass,3))+'</td></tr>').join('')||'<tr><td colspan="8">هنوز خلاصه هفتگی ساخته نشده است.</td></tr>';
+ $('monthlyTable').innerHTML=monthly.slice().reverse().map(r=>'<tr><td>'+esc(r.jalali_month_label||r.jalali_month_key||'—')+'</td><td>'+esc(fmtInt(r.age_start_days))+' تا '+esc(fmtInt(r.age_end_days))+' روز</td><td>'+esc(fmt(r.avg_hen_day_production))+'٪</td><td>'+esc(fmt(r.avg_hen_housed_production))+'٪</td><td>'+esc(fmt(r.avg_feed_per_hen_g))+' g</td><td>'+esc(fmt(r.avg_egg_weight_g))+' g</td><td>'+esc(fmt(r.feed_per_egg_mass,3))+'</td><td>'+esc(fmt(r.livability))+'٪</td></tr>').join('')||'<tr><td colspan="8">هنوز خلاصه ماهانه ساخته نشده است.</td></tr>';
+}
+function render(){
+ const latest=daily[daily.length-1]||null;
+ $('overviewMetrics').innerHTML=metrics(latest?[
+ ['آخرین تولید Hen-Day',fmt(latest.hen_day_production_percent),'٪',latest.record_date||'آخرین رکورد'],
+ ['وزن تخم',fmt(latest.average_egg_weight_g),'گرم','میانگین ثبت‌شده'],
+ ['دان/مرغ',fmt(latest.feed_per_hen_g),'گرم','مصرف روزانه'],
+ ['Feed/Egg Mass',fmt(latest.feed_per_egg_mass,3),'','نسبت مجموع دان به جرم تخم']
+ ]:[['روزهای ثبت‌شده','۰','','داده روزانه‌ای موجود نیست'],['هفته‌های ثبت‌شده',fmtInt(weekly.length),'',''],['ماه‌های ثبت‌شده',fmtInt(monthly.length),'',''],['وضعیت','بدون داده','','پس از ثبت پایش روزانه گزارش ساخته می‌شود']]);
+ $('overviewAlert').classList.toggle('warn',!latest);$('overviewAlert').textContent=latest?'آخرین رکورد روزانه مربوط به '+latest.record_date+' است. خلاصه‌های هفتگی و ماهانه از همین گله همگام‌سازی شده‌اند؛ برای بررسی بالینی یا مدیریتی، روند را همراه با سن و شرایط سالن تفسیر کنید.':'برای این گله هنوز رکورد روزانه‌ای ذخیره نشده است. گزارش پس از ثبت اولین پایش روزانه به‌صورت خودکار تکمیل می‌شود.';
+ $('coverageMetrics').innerHTML=[['رکورد روزانه',daily.length],['خلاصه هفتگی',weekly.length],['خلاصه ماهانه',monthly.length]].map(x=>'<div class="lr-chart-stat"><small>'+esc(x[0])+'</small><b>'+esc(fmtInt(x[1]))+'</b><span>رکورد ذخیره‌شده</span></div>').join('');
+ const recent=daily.slice(-14);drawChart($('productionChart'),recent);drawChart($('productionChartLarge'),recent);
+ $('trendSummary').innerHTML=[['آخرین تولید',latest?fmt(latest.hen_day_production_percent)+'٪':'—'],['تعداد نقاط نمودار',fmtInt(recent.length)],['آخرین تاریخ',latest?latest.record_date:'—']].map(x=>'<div class="lr-chart-stat"><small>'+esc(x[0])+'</small><b>'+esc(x[1])+'</b></div>').join('');
+ const dr=daily.find(r=>r.record_date===$('daySelect').value)||daily[daily.length-1]||null;
+ $('dailyMetrics').innerHTML=dr?metrics(metricRowDaily(dr)):'';
+ $('dailyEmpty').classList.toggle('lr-hidden',!!dr);$('dailyMetrics').classList.toggle('lr-hidden',!dr);
+ const wr=weekly.find(r=>String(r.week_no)===String($('weekSelect').value))||weekly[weekly.length-1]||null;
+ $('weeklyMetrics').innerHTML=wr?metrics(metricRowPeriod(wr)):'';
+ $('weeklyEmpty').classList.toggle('lr-hidden',!!wr);$('weeklyMetrics').classList.toggle('lr-hidden',!wr);
+ const mr=monthly.find(r=>String(r.jalali_month_key)===String($('monthSelect').value))||monthly[monthly.length-1]||null;
+ $('monthlyMetrics').innerHTML=mr?metrics(metricRowPeriod(mr,true)):'';
+ $('monthlyEmpty').classList.toggle('lr-hidden',!!mr);$('monthlyMetrics').classList.toggle('lr-hidden',!mr);
+ renderTables();
+ $('lastSyncChip').textContent='به‌روزرسانی: '+new Date().toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'});
+ $('overviewSubtitle').textContent=flock?flock.flock_name+' • '+(flock.strain||'سویه ثبت نشده')+' • '+(latest?'آخرین پایش '+latest.record_date:'بدون پایش روزانه'):'گله‌ای انتخاب نشده است';
+ $('flockTags').innerHTML=flock?'<span class="lr-tag">نوع گله: تخم‌گذار</span><span class="lr-tag">سویه: '+esc(flock.strain||'ثبت نشده')+'</span><span class="lr-tag">رکورد روزانه: '+esc(fmtInt(daily.length))+'</span>':'';
+ $('openDailyBtn').onclick=()=>{if(flockId)location.href='layer-daily-core.html?flock_id='+encodeURIComponent(flockId);};
+}
+async function loadFlock(id){
+ flockId=id;const f=flocks.find(x=>String(x.id)===String(id));if(!f)throw new Error('گله انتخاب‌شده در فهرست گله‌های تخم‌گذار وجود ندارد.');flock=f;
+ $('flockSelect').value=String(id);
+ const params=new URLSearchParams(location.search);params.set('flock_id',id);if(!params.get('section'))params.set('section','overview');history.replaceState(null,'',location.pathname+'?'+params.toString());
+ setStatus('در حال دریافت داده‌های ذخیره‌شده و به‌روزرسانی خلاصه‌های هفتگی و ماهانه…');
+ const d=await supabaseClient.from('layer_daily_monitoring').select('*').eq('flock_id',id).order('record_date',{ascending:true});
+ if(d.error)throw new Error('خواندن پایش روزانه ناموفق بود: '+d.error.message);daily=(d.data||[]).slice();
+ if(!window.ADINE_LAYER_PERIOD_ENGINE_V1?.sync)throw new Error('موتور مستقل گزارش تخم‌گذار بارگذاری نشده است.');
+ await window.ADINE_LAYER_PERIOD_ENGINE_V1.sync(flock,reportUser,supabaseClient,daily);
+ const [w,m]=await Promise.all([
+  supabaseClient.from('layer_weekly_monitoring').select('*').eq('flock_id',id).order('week_no',{ascending:true}),
+  supabaseClient.from('layer_monthly_monitoring').select('*').eq('flock_id',id).order('jalali_year',{ascending:true}).order('jalali_month',{ascending:true})
+ ]);
+ if(w.error)throw new Error('خواندن پایش هفتگی ناموفق بود: '+w.error.message);
+ if(m.error)throw new Error('خواندن پایش ماهانه ناموفق بود: '+m.error.message);
+ weekly=w.data||[];monthly=m.data||[];
+ addOptions($('daySelect'),daily,r=>r.record_date,r=>r.record_date+' • سن '+fmtInt(r.age_days)+' روز','هنوز داده روزانه‌ای ثبت نشده است');
+ addOptions($('weekSelect'),weekly,r=>String(r.week_no),r=>'هفته '+fmtInt(r.week_no)+' • سن '+fmtInt(r.age_start_days)+' تا '+fmtInt(r.age_end_days)+' روز','هنوز داده هفتگی وجود ندارد');
+ addOptions($('monthSelect'),monthly,r=>r.jalali_month_key,r=>(r.jalali_month_label||r.jalali_month_key)+' • سن '+fmtInt(r.age_start_days)+' تا '+fmtInt(r.age_end_days)+' روز','هنوز داده ماهانه وجود ندارد');
+ if(q.get('day')&&daily.some(r=>r.record_date===q.get('day'))) $('daySelect').value=q.get('day');
+ if(q.get('week')&&weekly.some(r=>String(r.week_no)===q.get('week'))) $('weekSelect').value=q.get('week');
+ if(q.get('month')&&monthly.some(r=>String(r.jalali_month_key)===q.get('month'))) $('monthSelect').value=q.get('month');
+ render();setStatus('گزارش اختصاصی '+(flock.flock_name||'گله تخم‌گذار')+' آماده است؛ داده‌ها از پایش‌های ذخیره‌شده خوانده شدند.');
+}
+async function boot(){
+ const access=await checkUserAccess();if(!access?.authenticated){location.href='login.html';return;}
+ const sr=await supabaseClient.auth.getSession();reportUser=sr.data?.session?.user;if(sr.error||!reportUser){location.href='login.html';return;}
+ const list=await supabaseClient.from('flocks').select('id,flock_name,strain,production_type,farm_id,house_id').eq('production_type','layer').order('flock_name',{ascending:true});
+ if(list.error)throw new Error('دریافت فهرست گله‌های تخم‌گذار ناموفق بود: '+list.error.message);
+ flocks=list.data||[];
+ if(!flocks.length){addOptions($('flockSelect'),[],x=>x.id,x=>x.flock_name,'هنوز گله تخم‌گذاری ثبت نشده است');setStatus('گله تخم‌گذاری برای این حساب پیدا نشد. پس از ثبت یا دسترسی به گله تخم‌گذار، گزارش از همین صفحه قابل مشاهده است.',true);render();return;}
+ addOptions($('flockSelect'),flocks,r=>String(r.id),r=>r.flock_name+(r.strain?' • '+r.strain:''),'گله تخم‌گذاری موجود نیست');
+ const selected=(typeof getCurrentSelection==='function'?getCurrentSelection()||{}:{});const wanted=q.get('flock_id')||q.get('flockId')||selected.flockId||selected.flock_id||selected.id;
+ const chosen=flocks.find(f=>String(f.id)===String(wanted))||flocks[0];
+ await loadFlock(chosen.id);
+}
+document.querySelectorAll('.lr-tab').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+$('flockSelect').addEventListener('change',async()=>{try{await loadFlock($('flockSelect').value)}catch(e){console.error(e);setStatus(e.message||'دریافت گزارش انجام نشد.',true);}});
+$('daySelect').addEventListener('change',render);$('weekSelect').addEventListener('change',render);$('monthSelect').addEventListener('change',render);
+$('refreshBtn').addEventListener('click',async()=>{if(!flockId)return;try{await loadFlock(flockId)}catch(e){console.error(e);setStatus(e.message||'به‌روزرسانی گزارش انجام نشد.',true);}});
+$('printBtn').addEventListener('click',()=>window.print());
+$('logoutButton').addEventListener('click',async()=>{try{if(typeof logoutUser==='function')await logoutUser();else await supabaseClient.auth.signOut();location.href='login.html';}catch(e){console.error('Layer report logout failed',e);}});
+if(q.get('section')&&['overview','daily','weekly','monthly','trend'].includes(q.get('section')))showView(q.get('section'));
+boot().catch(e=>{console.error('Layer report page failed:',e);setStatus(e.message||'خطا در بارگذاری گزارش تخم‌گذار.',true);$('overviewAlert').classList.add('warn');$('overviewAlert').textContent=e.message||'بارگذاری گزارش انجام نشد. دوباره تلاش کنید.';});
 })();
-</script><script id="layer-reports-v2-nav-js">document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll(".bottom-nav-item[data-nav]").forEach(function(b){b.addEventListener("click",function(){var target=b.getAttribute("data-nav");var qs=new URLSearchParams(location.search).toString();target=target+(qs?"?"+qs:"");location.href=target})})});</script></body></html>
+</script>
+</body>
+</html>

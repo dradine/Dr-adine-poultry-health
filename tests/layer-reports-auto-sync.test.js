@@ -23,6 +23,19 @@ assert.ok(syncAt < weeklyReadAt && syncAt < monthlyReadAt, 'reports read period 
 
 assert.ok(html.includes('data-nav="layer-weekly-core.html"'), 'weekly navigation remains within the layer module');
 assert.ok(html.includes('data-nav="layer-reports.html"'), 'report navigation remains within the layer module');
+assert.ok(html.includes('class="bottom-nav"'), 'reports use the same application bottom-nav component');
+assert.ok(html.includes('href="app.css?v=20260925.11"'), 'reports use the shared application stylesheet');
+assert.ok(html.includes('dashboard-icon-fix.js?v=20261006.2'), 'reports use the approved dashboard icon renderer');
+assert.ok(html.includes('src="IMG_4309.png"'), 'reports use the shared clinic logo');
+assert.ok(!html.includes('class="bottom-navigation"'), 'reports do not define a duplicate custom navigation');
+assert.ok(html.includes('data-nav="layer-weekly-core.html"'), 'weekly navigation stays on the dedicated layer page');
+for (const view of ['overview','daily','weekly','monthly','trend']) {
+  assert.ok(html.includes('id="view-' + view + '"'), 'dedicated report view exists: ' + view);
+}
+assert.ok(html.includes('id="flockSelect"'), 'page allows selecting a layer flock instead of showing a blank page');
+assert.ok(html.includes('id="productionChart"'), 'page contains a production trend chart');
+assert.ok(html.includes('weeklyNav.setAttribute(\'data-nav\',\'layer-weekly-core.html?flock_id=\''), 'weekly navigation preserves the selected layer flock');
+
 assert.doesNotMatch(html, /Broiler|گوشتی/i, 'report page contains no broiler references');
 assert.doesNotMatch(html, /(?:href|data-nav)=["'](?:reports|weekly|daily-core)\.html/i, 'report page contains no generic broiler route');
 assert.ok(!html.includes("location.href='reports.html'"), 'non-layer flock does not redirect into the generic report route');

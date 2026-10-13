@@ -34,27 +34,10 @@ function expectedActiveDays(flock, year, month, fromIso, toIso){
   }
   return count;
 }
-function baseAgg(rows){
-  const last=[...rows].sort((a,b)=>String(a.record_date).localeCompare(String(b.record_date))).at(-1)||{};
-  const totalEggs=sum(rows,'egg_count');
-  const totalFeed=sum(rows,'feed_quantity_kg');
-  const totalEggMass=rows.reduce((s,r)=>{const em=Number(r.egg_mass_g_hen_day),birds=Number(r.opening_birds);return s+(Number.isFinite(em)&&Number.isFinite(birds)&&birds>0?em*birds:0);},0);
-  return {
-    mortality_count:sum(rows,'mortality_count'),cull_count:sum(rows,'cull_count'),
-    total_eggs:totalEggs,total_saleable_eggs:sum(rows,'saleable_egg_count'),total_cracked_eggs:sum(rows,'cracked_egg_count'),
-    total_dirty_eggs:sum(rows,'dirty_egg_count'),total_floor_eggs:sum(rows,'floor_egg_count'),
-    avg_hen_day_production:weightedAvg(rows,'hen_day_production_percent','opening_birds'),
-    avg_hen_housed_production:weightedAvg(rows,'hen_housed_production_percent','opening_birds'),
-    avg_feed_per_hen_g:weightedAvg(rows,'feed_per_hen_g','opening_birds'),
-    avg_water_per_hen_ml:weightedAvg(rows,'water_per_hen_ml','opening_birds'),
-    avg_water_feed_ratio:avg(rows,'water_feed_ratio'),avg_egg_weight_g:weightedAvg(rows,'average_egg_weight_g','egg_count'),
-    avg_egg_mass_g:avg(rows,'egg_mass_g_hen_day'),feed_per_egg_g:totalEggs>0?totalFeed*1000/totalEggs:null,
-    feed_per_egg_mass:totalEggMass>0?totalFeed*1000/totalEggMass:null,avg_body_weight_g:avg(rows,'body_weight_g'),
-    avg_uniformity_10:avg(rows,'uniformity_10_percent'),avg_uniformity_15:avg(rows,'uniformity_15_percent'),avg_cv:avg(rows,'cv_percent'),
-    avg_temperature_c:avg(rows,'house_temperature_c'),avg_humidity_pct:avg(rows,'humidity_percent'),
-    avg_ammonia_ppm:avg(rows,'ammonia_ppm'),avg_co2_ppm:avg(rows,'co2_ppm'),avg_haugh_unit:avg(rows,'haugh_unit'),avg_albumen_height_mm:avg(rows,'albumen_height_mm'),avg_shell_strength_g:avg(rows,'egg_shell_strength_g'),avg_shell_thickness_mm:avg(rows,'egg_shell_thickness_mm'),avg_egg_color_score:avg(rows,'egg_color_score'),
-    livability:last.livability_percent??null,health_status:last.health_status||null
-  };
+function baseAgg(rows,flock){
+ const engine=g.ADINE_LAYER_CALCULATION_ENGINE_V1;
+ if(!engine||typeof engine.aggregate!=='function')throw new Error('Canonical Layer calculation engine is not loaded');
+ return engine.aggregate(rows,flock||{});
 }
 function welfareSummary(rows){
   const keys=['water_micro_status','manure_condition','feather_condition','keel_bone_score','locomotion_score','footpad_score','pecking_status','flock_activity_status','nest_use_status','egg_shell_quality_status','water_quality_status'];
@@ -68,13 +51,14 @@ async function sync(flock, user, supabaseClient, dailyRows){
   const first=rows[0].record_date;
   const byWeek=new Map(), byMonth=new Map();
   rows.forEach(r=>{
-    const age=Number(r.age_days)||0; const week=Math.floor(age/7)+1;
-    r.__week=week; r.__week_start_age=week===1?1:(week-1)*7; r.__week_end_age=week*7-1;
+    const age=Number(r.age_days)||0; const week=age>0?Math.floor((age-1)/7)+1:null;
+    if(!week)return;
+    r.__week=week; r.__week_start_age=(week-1)*7+1; r.__week_end_age=week*7;
     if(!byWeek.has(week))byWeek.set(week,[]);byWeek.get(week).push(r);
     const j=toJalali(r.record_date);if(j){const key=monthKey(j);if(!byMonth.has(key))byMonth.set(key,{j,rows:[]});byMonth.get(key).rows.push(r);}
   });
   const weeks=[...byWeek.entries()].map(([week,rs])=>{
-    const a=baseAgg(rs),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date); const consecutive=rs.length===7&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1);
+    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date); const consecutive=rs.length===7&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1);
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,week_no:week,
       period_start:s.record_date,period_end:e.record_date,age_start_days:s.age_days,age_end_days:e.age_days,
       jalali_year:j?.year||null,jalali_month:j?.month||null,jalali_week_label:'هفته '+fa(week),
@@ -83,7 +67,7 @@ async function sync(flock, user, supabaseClient, dailyRows){
   });
   for(const w of weeks){await supabaseClient.from('layer_weekly_monitoring').upsert(w,{onConflict:'flock_id,week_no'});}
   const months=[...byMonth.values()].map(({j,rows:rs})=>{
-    const a=baseAgg(rs),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const complete=todayIso>=monthEndIso&&rs.length>=expected&&contiguous&&s.record_date===activeStart&&e.record_date===monthEndIso;
+    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const complete=todayIso>=monthEndIso&&rs.length>=expected&&contiguous&&s.record_date===activeStart&&e.record_date===monthEndIso;
     const monthStart=activeStart;
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,
       jalali_year:j.year,jalali_month:j.month,jalali_month_key:monthKey(j),jalali_month_label:j.monthLabel,

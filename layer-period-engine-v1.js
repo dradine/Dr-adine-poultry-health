@@ -80,6 +80,16 @@ async function sync(flock, user, supabaseClient, dailyRows){
       welfare_summary:welfareSummary(rs),performance_summary:{aggregation_source:'layer_daily_monitoring',calendar_month:true,calculation_engine_version:engineVersion(),data_quality_flags:a.data_quality_flags||[],fcr_available:Boolean(a.fcr_available),average_body_weight_is_sample_weighted:true,uniformity_and_cv_are_means_of_daily_samples:true},updated_at:new Date().toISOString()};
   });
   for(const m of months){const result=await supabaseClient.from('layer_monthly_monitoring').upsert(m,{onConflict:'flock_id,jalali_month_key'});if(result.error)throw new Error('Layer monthly aggregation failed: '+result.error.message);}
+  // Remove derived period rows whose source period disappeared after a daily record was deleted or re-dated.
+  const [oldWeeks,oldMonths]=await Promise.all([
+    supabaseClient.from('layer_weekly_monitoring').select('week_no').eq('flock_id',flock.id),
+    supabaseClient.from('layer_monthly_monitoring').select('jalali_month_key').eq('flock_id',flock.id)
+  ]);
+  if(oldWeeks.error)throw new Error('Cannot reconcile old weekly rows: '+oldWeeks.error.message);
+  if(oldMonths.error)throw new Error('Cannot reconcile old monthly rows: '+oldMonths.error.message);
+  const activeWeeks=new Set(weeks.map(x=>Number(x.week_no))),activeMonths=new Set(months.map(x=>String(x.jalali_month_key)));
+  for(const x of (oldWeeks.data||[])){if(!activeWeeks.has(Number(x.week_no))){const del=await supabaseClient.from('layer_weekly_monitoring').delete().eq('flock_id',flock.id).eq('week_no',x.week_no);if(del.error)throw new Error('Cannot remove stale weekly row: '+del.error.message);}}
+  for(const x of (oldMonths.data||[])){if(!activeMonths.has(String(x.jalali_month_key))){const del=await supabaseClient.from('layer_monthly_monitoring').delete().eq('flock_id',flock.id).eq('jalali_month_key',x.jalali_month_key);if(del.error)throw new Error('Cannot remove stale monthly row: '+del.error.message);}}
   return {weeks,months};
 }
 g.ADINE_LAYER_PERIOD_ENGINE_V1={fa,toJalali,jalaliToGregorian,monthKey,daysInJalaliMonth,sync};

@@ -5,5 +5,5 @@ const aviary=s.resolve({strain:'ISA Brown',housing_system:'aviary'});assert.equa
 const floor=s.resolve({strain:'ISA Brown',housing_system:'floor'});assert.equal(floor.numericReady,false,'floor systems must not use cage curves');
 const unknown=s.resolve({strain:'ISA Brown'});assert.equal(unknown.numericReady,false);
 const w80=s.resolve({strain:'W-80',housing_system:'cage'});const w80feed=s.metricAtAge(w80,'dailyFeed',133);assert.equal(w80.numericReady,true);assert.equal(w80feed.min,79.3);assert.equal(w80feed.max,82.1);assert.equal(w80feed.referenceKind,'range');
-const plus=s.resolve({strain:'W-80 Plus',housing_system:'cage'});const plusFeed=s.metricAtAge(plus,'dailyFeed',133);assert.equal(plus.numericReady,true);assert.equal(plusFeed.min,81.3);assert.equal(plusFeed.max,84.1);assert.equal(s.isOfficial(isa),true);
+const plus=s.resolve({strain:'W-80 Plus',housing_system:'cage'});const plusFeed=s.metricAtAge(plus,'dailyFeed',133);assert.equal(plus.numericReady,true);assert.equal(plusFeed.min,81.3);assert.equal(plusFeed.max,84.1);assert.equal(s.metricAtAge(plus,'henDayProduction',700).min,76.9);assert.equal(s.metricAtAge(plus,'henDayProduction',700).max,80.0);assert.equal(s.isOfficial(isa),true);
 console.log('Layer standards engine tests passed.');

@@ -41,7 +41,8 @@ Current thresholds are operational screening triggers, not universal biological 
 - Interpolation between official points is an estimate, not a value directly printed in the breeder guide; provenance marks it as interpolated.
 - ISA Brown cage guide verified from the official source on 2026-10-13. Selected published weekly anchors are retained; values between anchors are interpolated.
 - ISA Brown cage points are disabled when housing is unknown or does not match cage housing.
-- Sparse W-80 Plus and W-80 Pro points were removed from numerical comparison pending exact-guide verification. Other profiles still require source-by-source auditing; management fallback must never be presented as an official strain curve.
+- W-80 and W-80 Plus selected age-specific min/max ranges are now transcribed from their official April 2026 conventional-system performance tables. The range is retained; the midpoint is not treated as the only valid target. Interpolation between listed ages is derived, and the UI/provenance marks it as interpolated.
+- W-80 Pro currently has no active numerical curve until its exact official tables are extracted and validated. Other profiles still require source-by-source auditing; management fallback must never be presented as an official strain curve.
 - Sources: ISA cage guide https://www.isa-poultry.com/documents/1399/ISA_Brown_EU_CS_product_guide_cage_EN_L6230-1.pdf ; ISA alternative guide https://www.isa-poultry.com/documents/2591/ISA_Brown_EU_CS_product_guide_alternative_EN_L6230-1.pdf ; Hy-Line official literature https://www.hyline.com/literature ; current W-80 Plus guide https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-80/80PLUS%20STD%20ENG.pdf ; EFSA welfare opinion https://efsa.onlinelibrary.wiley.com/doi/10.2903/j.efsa.2023.7789 ; FCR paper https://doi.org/10.1016/j.psj.2024.104013 ; egg-production model https://doi.org/10.1016/j.animal.2023.101015 .
 
 ## Portability and scale

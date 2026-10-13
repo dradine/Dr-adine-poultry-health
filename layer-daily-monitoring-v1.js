@@ -26,7 +26,7 @@ function setStatus(state,reason){
 }
 function calc(){
  const pop=avgPop()||openingBirds(), eggs=n(val('eggCount')),feed=n(val('feedQuantity')),water=n(val('waterQuantity')),ew=n(val('eggWeight'));
- const saleable=n(val('saleableEggCount')),cracked=n(val('crackedEggCount'))||0,dirty=n(val('dirtyEggCount'))||0,soft=n(val('softShellEggCount'))||0,misshapen=n(val('misshapenEggCount'))||0,floor=n(val('floorEggCount'))||0;
+ const saleable=n(val('saleableEggCount')),cracked=n(val('crackedEggCount')),dirty=n(val('dirtyEggCount')),soft=n(val('softShellEggCount')),misshapen=n(val('misshapenEggCount')),floor=n(val('floorEggCount'));
  const metrics=g.ADINE_LAYER_CALCULATION_ENGINE_V1.dailyMetrics({liveBirds:pop,placedBirds:n(flock?.initial_bird_count),eggCount:eggs,feedKg:feed,waterL:water,averageEggWeightG:ew,saleableEggCount:saleable,crackedEggCount:cracked,dirtyEggCount:dirty,softShellEggCount:soft,misshapenEggCount:misshapen,floorEggCount:floor});
  const henDay=metrics.henDayProductionPercent,feedHen=metrics.feedPerHenG,waterHen=metrics.waterPerHenMl,ratio=metrics.waterFeedRatio,mass=metrics.eggMassGPerHenDay,fpe=metrics.feedPerEggG,fpm=metrics.feedPerEggMass;
  const salePct=metrics.saleableEggPercent,defectPct=metrics.eggDefectPercent;
@@ -54,9 +54,9 @@ function calc(){
  if(daily.mortality?.max!=null&&mortPct!=null&&mortPct>daily.mortality.max){adverse++;reasons.push('تلفات روزانه بالاتر از سقف مرجع پایش');}
  const healthBad=[val('appetite'),val('respiratory'),val('droppings'),val('activity'),val('pecking'),val('keelBone'),val('locomotion'),val('footpad'),val('nestUse'),val('eggShellQuality')].filter(x=>x&&x!=='طبیعی');
  if(healthBad.length>=2){adverse++;reasons.push('چند شاخص سلامت/رفتار همزمان غیرطبیعی');}else if(healthBad.length===1){adverse++;reasons.push('یک شاخص سلامت/رفتار غیرطبیعی ثبت شده است');}
- if(saleable==null&&eggs!=null&&(cracked+dirty+soft+misshapen+floor)>0)reasons.push('برای محاسبه دقیق درصد قابل فروش، تعداد تخم قابل فروش ثبت شود.');
+ if(saleable==null&&eggs!=null&&((cracked||0)+(dirty||0)+(soft||0)+(misshapen||0)+(floor||0))>0)reasons.push('برای محاسبه دقیق درصد قابل فروش، تعداد تخم قابل فروش ثبت شود.');
  if(eggs!=null&&saleable!=null&&saleable>eggs)reasons.push('خطای داده: تخم قابل فروش نمی‌تواند از کل تخم بیشتر باشد.');
- if(eggs!=null&&(cracked+dirty+soft+misshapen+floor)>eggs)reasons.push('خطای داده: مجموع دسته‌های معیوب از کل تخم بیشتر است.');
+ if(eggs!=null&&((cracked||0)+(dirty||0)+(soft||0)+(misshapen||0)+(floor||0))>eggs)reasons.push('خطای داده: مجموع دسته‌های معیوب از کل تخم بیشتر است.');
  let state=adverse>=2?'investigate':adverse===1?'watch':positive>=2?'improving':'stable';
  const reason=reasons.length?reasons.slice(0,4).join(' • '):(state==='improving'?'چند شاخص در جهت مطلوب نسبت به مرجع قرار گرفته‌اند.':'انحراف مهمی در داده‌های ثبت‌شده مشاهده نشد.');
  setStatus(state,reason);

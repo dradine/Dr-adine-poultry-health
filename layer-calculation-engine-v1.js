@@ -67,6 +67,12 @@ function assessDaily(input={}){
  const finite=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v));
  const delta=(x,y)=>finite(x)&&finite(y)&&Number(y)!==0?(Number(x)-Number(y))/Number(y):null;
  const countKeys=['crackedEggCount','dirtyEggCount','softShellEggCount','misshapenEggCount','floorEggCount'];
+ if(!finite(a.eggCount))dataQualityFlags.push('missing_total_egg_count');
+ if(!finite(a.feedKg))dataQualityFlags.push('missing_feed_quantity');
+ if(!finite(a.waterL))dataQualityFlags.push('missing_water_quantity');
+ if(!finite(a.liveBirds)||Number(a.liveBirds)<=0)dataQualityFlags.push('missing_live_hen_population');
+ if(finite(a.eggCount)&&Number(a.eggCount)>0&&!finite(a.eggWeightG))dataQualityFlags.push('missing_egg_weight_for_egg_mass');
+ if(!finite(a.placedBirds)||Number(a.placedBirds)<=0)dataQualityFlags.push('missing_initial_housed_bird_count');
  for(const k of ['eggCount','saleableEggCount',...countKeys,'feedKg','waterL','liveBirds','placedBirds','mortalityCount','cullCount']){
   if(finite(a[k])&&Number(a[k])<0)dataQualityFlags.push(k+':negative');
  }
@@ -97,8 +103,8 @@ function assessDaily(input={}){
  if(finite(a.mortalityPercent)&&finite(r.mortalityMax)&&Number(a.mortalityPercent)>Number(r.mortalityMax))add('تلفات روزانه از سقف هشدار تنظیم‌شده بالاتر است');
  const health=(a.healthSignals||[]).filter(x=>x&&x!=='طبیعی'&&x!=='normal');
  if(health.length)add('شاخص سلامت/رفتار غیرطبیعی ثبت شده است: '+health.slice(0,3).join('، '));
- const hasError=dataQualityFlags.length>0;
- const state=hasError?'investigate':adverse>=2?'investigate':adverse===1?'watch':'stable';
+ const impossibleData=dataQualityFlags.some(x=>x.includes('exceed')||x.includes('negative'));
+ const state=impossibleData||adverse>=2?'investigate':adverse===1||dataQualityFlags.length?'watch':'stable';
  const reason=[...dataQualityFlags.map(x=>'خطای/نقص داده: '+x),...reasons].slice(0,5).join(' • ')||(state==='stable'?'در شاخص‌های ثبت‌شده انحرافی از آستانه‌های فعال مشاهده نشد.':'نیازمند بررسی');
  const source=input.referenceSource||'unknown';
  return {state,reason,reasons,dataQualityFlags,adverseCount:adverse,referenceSource:source,thresholds:t,score:null,scoreStatus:'not_calibrated'};

@@ -8,7 +8,7 @@ const VERSION='2026-10-13.layer-calculation.v2';
 const num=v=>{if(v===null||v===undefined||v==='')return null;const n=Number(String(v).replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,''));return Number.isFinite(n)?n:null;};
 const sum=(rows,key)=>rows.reduce((s,r)=>s+(num(r[key])??0),0);
 const avg=(rows,key)=>{const a=rows.map(r=>num(r[key])).filter(v=>v!==null);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null;};
-const weightedAvg=(rows,key,weightKey)=>{const a=rows.map(r=>({v:num(r[key]),w:num(r[weightKey])})).filter(x=>x.v!==null&&x.w!==null&&x.w>0);return a.length?a.reduce((s,x)=>s+x.v*x.w,0)/a.reduce((s,x)=>s+x.w,0):avg(rows,key);};
+const weightedAvg=(rows,key,weightKey)=>{const valid=rows.map(r=>({v:num(r[key]),w:num(r[weightKey])})).filter(x=>x.v!==null);if(!valid.length)return null;if(valid.every(x=>x.w!==null&&x.w>0))return valid.reduce((s,x)=>s+x.v*x.w,0)/valid.reduce((s,x)=>s+x.w,0);return avg(rows,key);};
 function aggregate(rows=[],flock={}){
  const rs=[...rows].sort((a,b)=>String(a.record_date||'').localeCompare(String(b.record_date||'')));
  const birdDays=rs.reduce((s,r)=>{const p=num(r.opening_birds);return s+(p!==null&&p>0?p:0);},0);
@@ -58,7 +58,8 @@ function aggregate(rows=[],flock={}){
   avg_shell_strength_g:avg(rs,'egg_shell_strength_g'),avg_shell_thickness_mm:avg(rs,'egg_shell_thickness_mm'),
   avg_egg_color_score:avg(rs,'egg_color_score'),
   livability:last.livability_percent??null,health_status:last.health_status||null,
-  data_quality_flags:qualityFlags,fcr_available:totalFeed!==null&&totalEggMassKg!==null&&totalEggMassKg>0
+  data_quality_flags:qualityFlags,fcr_available:totalFeed!==null&&totalEggMassKg!==null&&totalEggMassKg>0,
+  body_weight_sample_weighted:rs.some(r=>num(r.body_weight_g)!==null)&&rs.filter(r=>num(r.body_weight_g)!==null).every(r=>num(r.body_weight_sample_count)>0)
  };
 }
 function assessDaily(input={}){

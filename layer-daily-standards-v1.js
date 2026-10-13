@@ -113,7 +113,7 @@ const profiles={
       {ageDays:420,henDayProduction:{min:88.1,max:91.7},bodyWeight:{min:1655,max:1764},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:64.9,max:66.8}},
       {ageDays:490,henDayProduction:{min:86.4,max:89.9},bodyWeight:{min:1662,max:1778},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:65.2,max:67.2}},
       {ageDays:560,henDayProduction:{min:83.5,max:87.0},bodyWeight:{min:1668,max:1793},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:65.4,max:67.4}},
-      {ageDays:700,henDayProduction:{min:78.4,max:81.6},bodyWeight:{min:1682,max:1822},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:65.6,max:67.6}}
+      {ageDays:700,henDayProduction:{min:76.9,max:80.0},bodyWeight:{min:1682,max:1822},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:65.6,max:67.6}}
     ]
   },
 

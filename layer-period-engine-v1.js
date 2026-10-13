@@ -37,12 +37,17 @@ function expectedActiveDays(flock, year, month, fromIso, toIso){
 }
 function baseAgg(rows){
   const last=[...rows].sort((a,b)=>String(a.record_date).localeCompare(String(b.record_date))).at(-1)||{};
+  const eggRows=rows.filter(r=>{const eggs=numeric(r.egg_count),weight=numeric(r.average_egg_weight_g),birds=numeric(r.opening_birds);return eggs!==null&&birds!==null&&birds>0&&(eggs===0||(weight!==null&&weight>0));});
   const totalEggs=sum(rows,'egg_count');
   const totalFeed=sum(rows,'feed_quantity_kg');
-  const hasFeed=rows.some(r=>numeric(r.feed_quantity_kg)!==null);
-  const totalEggMassG=rows.reduce((s,r)=>{const eggs=numeric(r.egg_count),weight=numeric(r.average_egg_weight_g);return s+(eggs!==null&&eggs>0&&weight!==null&&weight>0?eggs*weight:0);},0);
-  const henDays=rows.reduce((s,r)=>{const birds=numeric(r.opening_birds);return s+(birds!==null&&birds>0?birds:0);},0);
-  const eggMassPerHenDay=totalEggMassG>0&&henDays>0?totalEggMassG/henDays:null;
+  const totalEggMassG=eggRows.reduce((s,r)=>{const eggs=numeric(r.egg_count),weight=numeric(r.average_egg_weight_g);return s+(eggs>0?eggs*weight:0);},0);
+  const henDays=eggRows.reduce((s,r)=>s+numeric(r.opening_birds),0);
+  const eggMassPerHenDay=totalEggMassG>=0&&henDays>0?totalEggMassG/henDays:null;
+  const fcrRows=rows.filter(r=>{const feed=numeric(r.feed_quantity_kg),eggs=numeric(r.egg_count),weight=numeric(r.average_egg_weight_g);return feed!==null&&eggs!==null&&(eggs===0||(weight!==null&&weight>0));});
+  const hasFeed=fcrRows.length>0;
+  const fcrFeedKg=sum(fcrRows,'feed_quantity_kg');
+  const fcrEggs=sum(fcrRows,'egg_count');
+  const fcrEggMassG=fcrRows.reduce((s,r)=>{const eggs=numeric(r.egg_count),weight=numeric(r.average_egg_weight_g);return s+(eggs>0?eggs*weight:0);},0);
   return {
     mortality_count:sum(rows,'mortality_count'),cull_count:sum(rows,'cull_count'),
     total_eggs:totalEggs,total_saleable_eggs:sum(rows,'saleable_egg_count'),total_cracked_eggs:sum(rows,'cracked_egg_count'),
@@ -52,8 +57,8 @@ function baseAgg(rows){
     avg_feed_per_hen_g:weightedAvg(rows,'feed_per_hen_g','opening_birds'),
     avg_water_per_hen_ml:weightedAvg(rows,'water_per_hen_ml','opening_birds'),
     avg_water_feed_ratio:avg(rows,'water_feed_ratio'),avg_egg_weight_g:weightedAvg(rows,'average_egg_weight_g','egg_count'),
-    avg_egg_mass_g:eggMassPerHenDay,feed_per_egg_g:hasFeed&&totalEggs>0?totalFeed*1000/totalEggs:null,
-    feed_per_egg_mass:hasFeed&&totalEggMassG>0?totalFeed*1000/totalEggMassG:null,avg_body_weight_g:avg(rows,'body_weight_g'),
+    avg_egg_mass_g:eggMassPerHenDay,feed_per_egg_g:hasFeed&&fcrEggs>0?fcrFeedKg*1000/fcrEggs:null,
+    feed_per_egg_mass:hasFeed&&fcrEggMassG>0?fcrFeedKg*1000/fcrEggMassG:null,avg_body_weight_g:avg(rows,'body_weight_g'),
     avg_uniformity_10:avg(rows,'uniformity_10_percent'),avg_uniformity_15:avg(rows,'uniformity_15_percent'),avg_cv:avg(rows,'cv_percent'),
     avg_temperature_c:avg(rows,'house_temperature_c'),avg_humidity_pct:avg(rows,'humidity_percent'),
     avg_ammonia_ppm:avg(rows,'ammonia_ppm'),avg_co2_ppm:avg(rows,'co2_ppm'),avg_haugh_unit:avg(rows,'haugh_unit'),avg_albumen_height_mm:avg(rows,'albumen_height_mm'),avg_shell_strength_g:avg(rows,'egg_shell_strength_g'),avg_shell_thickness_mm:avg(rows,'egg_shell_thickness_mm'),avg_egg_color_score:avg(rows,'egg_color_score'),

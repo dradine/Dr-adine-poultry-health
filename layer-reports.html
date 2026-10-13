@@ -168,7 +168,7 @@ body.layer-report-body .bottom-nav{z-index:10000}
 <nav class="bottom-nav" aria-label="ناوبری اصلی">
  <button type="button" data-nav="Dashboard.html" aria-label="خانه" onclick="window.location.href='Dashboard.html'"><span data-icon="home" aria-hidden="true"></span><small>خانه</small></button>
  <button type="button" data-nav="Farms.html" aria-label="فارم‌ها" onclick="window.location.href='Farms.html'"><span data-icon="farm" aria-hidden="true"></span><small>فارم‌ها</small></button>
- <button type="button" data-nav="layer-weekly-core.html" aria-label="هفتگی" onclick="window.location.href='layer-weekly-core.html'"><span data-icon="weeklyReport" aria-hidden="true"></span><small>هفتگی</small></button>
+ <button type="button" data-nav="weekly.html" aria-label="هفتگی" onclick="window.location.href='weekly.html'"><span data-icon="weeklyReport" aria-hidden="true"></span><small>هفتگی</small></button>
  <button type="button" class="active" data-nav="layer-reports.html" aria-label="گزارش‌ها" onclick="window.location.href='layer-reports.html'"><span data-icon="report" aria-hidden="true"></span><small>گزارش‌ها</small></button>
 </nav>
 </div>
@@ -249,7 +249,7 @@ async function loadFlock(id){
  if(q.get('day')&&daily.some(r=>r.record_date===q.get('day'))) $('daySelect').value=q.get('day');
  if(q.get('week')&&weekly.some(r=>String(r.week_no)===q.get('week'))) $('weekSelect').value=q.get('week');
  if(q.get('month')&&monthly.some(r=>String(r.jalali_month_key)===q.get('month'))) $('monthSelect').value=q.get('month');
- const weeklyNav=document.querySelector('.bottom-nav [data-nav="layer-weekly-core.html"]');if(weeklyNav){weeklyNav.setAttribute('data-nav','layer-weekly-core.html?flock_id='+encodeURIComponent(id));weeklyNav.setAttribute('onclick',"window.location.href='layer-weekly-core.html?flock_id="+encodeURIComponent(id)+"'");}
+ const weeklyNav=document.querySelector('.bottom-nav [data-nav="weekly.html"]');if(weeklyNav){weeklyNav.setAttribute('data-nav','weekly.html?flock_id='+encodeURIComponent(id));weeklyNav.setAttribute('onclick',"window.location.href='weekly.html?flock_id="+encodeURIComponent(id)+"'");}
  const reportsNav=document.querySelector('.bottom-nav [data-nav="layer-reports.html"]');if(reportsNav){reportsNav.setAttribute('data-nav','layer-reports.html?flock_id='+encodeURIComponent(id));reportsNav.setAttribute('onclick',"window.location.href='layer-reports.html?flock_id="+encodeURIComponent(id)+"'");}
  render();setStatus('گزارش اختصاصی '+(flock.flock_name||'گله تخم‌گذار')+' آماده است؛ داده‌ها از پایش‌های ذخیره‌شده خوانده شدند.');
 }

@@ -82,16 +82,26 @@ function assessDaily(input={}){
  if(finite(a.eggCount)&&Number(a.eggCount)>0&&a.saleableEggCount==null&&countKeys.some(k=>finite(a[k])))dataQualityFlags.push('saleable_count_missing');
  const add=(msg)=>{adverse++;reasons.push(msg);};
  const compare=(actual,reference,rel,label,lowBad=true)=>{
-  if(!finite(actual)||!finite(reference)||Number(reference)<=0)return;
-  const d=delta(actual,reference);
+  if(!finite(actual)||reference==null)return;
+  if(typeof reference==='object'&&finite(reference.min)&&finite(reference.max)){
+   const lo=Number(reference.min),hi=Number(reference.max),margin=Math.max(0,rel||0);
+   if(Number(actual)<lo*(1-margin))add(label+' پایین‌تر از بازهٔ رسمی سویه است');
+   else if(Number(actual)>hi*(1+margin))add(label+' بالاتر از بازهٔ رسمی سویه است؛ علت بررسی شود');
+   return;
+  }
+  const target=typeof reference==='object'?reference.value:reference;
+  if(!finite(target)||Number(target)<=0)return;
+  const d=delta(actual,target);
   if(d===null||Math.abs(d)<=rel)return;
   if(lowBad&&d<0)add(label+' بیش از '+Math.round(rel*100)+'٪ پایین‌تر از مرجع است');
   else add(label+' بیش از '+Math.round(rel*100)+'٪ بالاتر/متفاوت از مرجع است؛ علت بررسی شود');
  };
  compare(a.feedPerHenG,r.feed,t.feedRelative,'مصرف دان',true);
  compare(a.waterPerHenMl,r.water,t.waterReferenceRelative,'مصرف آب',true);
- if(finite(a.henDayProductionPercent)&&finite(r.henDayProductionPercent)&&Number(a.henDayProductionPercent)<Number(r.henDayProductionPercent)-t.productionAbsolutePP)add('تولید Hen-Day بیش از '+t.productionAbsolutePP+' واحد درصد زیر مرجع است');
- if(finite(a.eggWeightG)&&finite(r.eggWeightG)&&Number(r.eggWeightG)>0&&Math.abs(delta(a.eggWeightG,r.eggWeightG))>t.eggWeightRelative)add('وزن تخم بیش از '+Math.round(t.eggWeightRelative*100)+'٪ با مرجع اختلاف دارد؛ توزیع اندازه و جیره بررسی شود');
+ if(r.henDayProductionPercent&&typeof r.henDayProductionPercent==='object')compare(a.henDayProductionPercent,r.henDayProductionPercent,0.015,'تولید Hen-Day');
+ else if(finite(a.henDayProductionPercent)&&finite(r.henDayProductionPercent)&&Number(a.henDayProductionPercent)<Number(r.henDayProductionPercent)-t.productionAbsolutePP)add('تولید Hen-Day بیش از '+t.productionAbsolutePP+' واحد درصد زیر مرجع است');
+ if(r.eggWeightG&&typeof r.eggWeightG==='object')compare(a.eggWeightG,r.eggWeightG,t.eggWeightRelative,'وزن تخم');
+ else if(finite(a.eggWeightG)&&finite(r.eggWeightG)&&Number(r.eggWeightG)>0&&Math.abs(delta(a.eggWeightG,r.eggWeightG))>t.eggWeightRelative)add('وزن تخم بیش از '+Math.round(t.eggWeightRelative*100)+'٪ با مرجع اختلاف دارد؛ توزیع اندازه و جیره بررسی شود');
  if(finite(a.henDayProductionPercent)&&finite(p.production)&&Number(p.production)>0&&Number(a.henDayProductionPercent)<Number(p.production)*(1-t.productionTrendRelative))add('افت تولید نسبت به میانگین روزهای اخیر');
  if(finite(a.feedPerHenG)&&finite(p.feed)&&Number(p.feed)>0&&Number(a.feedPerHenG)<Number(p.feed)*(1-t.feedTrendRelative))add('افت مصرف دان نسبت به میانگین روزهای اخیر');
  if(finite(a.waterPerHenMl)&&finite(p.water)&&Number(p.water)>0&&Math.abs(Number(a.waterPerHenMl)-Number(p.water))/Number(p.water)>t.waterTrendRelative)add('تغییر سریع مصرف آب نسبت به میانگین روزهای اخیر');

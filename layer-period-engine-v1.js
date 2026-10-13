@@ -87,17 +87,17 @@ async function sync(flock, user, supabaseClient, dailyRows){
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,week_no:week,
       period_start:s.record_date,period_end:e.record_date,age_start_days:Math.min(...rs.map(x=>numeric(x.age_days)).filter(x=>x!==null)),age_end_days:Math.max(...rs.map(x=>numeric(x.age_days)).filter(x=>x!==null)),
       jalali_year:j?.year||null,jalali_month:j?.month||null,jalali_week_label:'هفته '+fa(week),
-      source_daily_count:rs.length,expected_daily_count:7,is_complete:consecutive&&rs.every(x=>numeric(x.age_days)!==null)&&rs.length===7&&Math.max(...rs.map(x=>numeric(x.age_days)))===Math.min(...rs.map(x=>numeric(x.age_days)))+6,source_daily_ids:rs.map(x=>x.id),
+      source_daily_count:rs.length,expected_daily_count:7,is_complete:consecutive&&rs.length===7&&rs.every((x,i)=>numeric(x.age_days)!==null&&(i===0||numeric(x.age_days)===numeric(rs[i-1].age_days)+1)),source_daily_ids:rs.map(x=>x.id),
       welfare_summary:welfareSummary(rs),performance_summary:{peak_or_average:'daily-derived'},updated_at:new Date().toISOString()};
   });
   for(const w of weeks){const wr=await supabaseClient.from('layer_weekly_monitoring').upsert(w,{onConflict:'flock_id,week_no'});if(wr.error)throw new Error('ذخیره خلاصه هفتگی تخم‌گذار ناموفق بود: '+wr.error.message);}
   const months=[...byMonth.values()].map(({j,rows:rs})=>{
     const a=baseAgg(rs),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const complete=todayIso>=monthEndIso&&rs.length>=expected&&contiguous&&s.record_date===activeStart&&e.record_date===monthEndIso;
-    const monthStart=activeStart;
+    const monthStart=activeStart; const ageContiguous=rs.every((x,i)=>numeric(x.age_days)!==null&&(i===0||numeric(x.age_days)===numeric(rs[i-1].age_days)+1));
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,
       jalali_year:j.year,jalali_month:j.month,jalali_month_key:monthKey(j),jalali_month_label:j.monthLabel,
       period_start:monthStart,period_end:e.record_date,age_start_days:Math.min(...rs.map(x=>numeric(x.age_days)).filter(x=>x!==null)),age_end_days:Math.max(...rs.map(x=>numeric(x.age_days)).filter(x=>x!==null)),
-      source_daily_count:rs.length,expected_daily_count:expected,is_complete:complete,source_daily_ids:rs.map(x=>x.id),
+      source_daily_count:rs.length,expected_daily_count:expected,is_complete:complete&&ageContiguous,source_daily_ids:rs.map(x=>x.id),
       welfare_summary:welfareSummary(rs),performance_summary:{calendar_month:true},updated_at:new Date().toISOString()};
   });
   for(const m of months){const mr=await supabaseClient.from('layer_monthly_monitoring').upsert(m,{onConflict:'flock_id,jalali_month_key'});if(mr.error)throw new Error('ذخیره خلاصه ماهانه تخم‌گذار ناموفق بود: '+mr.error.message);}

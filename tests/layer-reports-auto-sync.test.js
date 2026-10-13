@@ -26,6 +26,8 @@ assert.ok(html.includes('data-nav="layer-reports.html"'), 'report navigation rem
 assert.ok(html.includes('class="bottom-nav"'), 'reports use the same application bottom-nav component');
 assert.ok(html.includes('href="app.css?v=20260925.11"'), 'reports use the shared application stylesheet');
 assert.ok(html.includes('dashboard-icon-fix.js?v=20261006.2'), 'reports use the approved dashboard icon renderer');
+assert.ok(html.includes('poultry-icons.js?v=20260925.16'), 'shared app icons remain available for non-navigation controls');
+assert.ok(html.indexOf('dashboard-icon-fix.js?v=20261006.2') < html.indexOf('poultry-icons.js?v=20260925.16'), 'approved dashboard sprite runs before generic icon enhancement');
 assert.ok(html.includes('src="IMG_4309.png"'), 'reports use the shared clinic logo');
 assert.ok(!html.includes('class="bottom-navigation"'), 'reports do not define a duplicate custom navigation');
 assert.ok(html.includes('data-nav="layer-weekly-core.html"'), 'weekly navigation stays on the dedicated layer page');

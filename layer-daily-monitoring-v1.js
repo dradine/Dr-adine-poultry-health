@@ -6,7 +6,7 @@ let flock=null,user=null,records=[],current=null,historyPage=1;const HISTORY_PAG
 const $=id=>document.getElementById(id);
 const n=v=>{const x=Number(String(v??'').replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,''));return Number.isFinite(x)?x:null};
 const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const faDigits=v=>String(v??'').replace(/\\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const faDigits=v=>String(v??'').replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const fmtFa=(v,d=1)=>v==null||!Number.isFinite(Number(v))?'':Number(v).toLocaleString('fa-IR',{minimumFractionDigits:d,maximumFractionDigits:d});
 function todayIso(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 const selectedFlockId=()=>{try{if(typeof getCurrentSelection==='function'){const s=getCurrentSelection()||{};if(s.flockId)return String(s.flockId);if(s.flock_id)return String(s.flock_id);if(s.id)return String(s.id)}}catch(_){}for(const k of ['adine_poultry_current_selection','current_selection','adine_selected_flock']){try{const raw=localStorage.getItem(k);if(!raw)continue;try{const o=JSON.parse(raw);const id=o?.flockId||o?.flock_id||o?.id;if(id)return String(id)}catch(_){if(!raw.trim().startsWith('{'))return String(raw).trim()}}catch(_) {}}try{const p=new URLSearchParams(location.search);const q=p.get('flock_id')||p.get('flockId');if(q)return q}catch(_){}try{const tp=window.top&&window.top!==window?new URLSearchParams(window.top.location.search):null;const q=tp?.get('flock_id')||tp?.get('flockId');if(q)return q}catch(_){}return ''};

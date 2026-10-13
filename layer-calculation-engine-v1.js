@@ -4,7 +4,7 @@
 */
 (function(g){
 'use strict';
-const VERSION='2026-10-13.layer-calculation.v1';
+const VERSION='2026-10-13.layer-calculation.v2';
 const num=v=>{if(v===null||v===undefined||v==='')return null;const n=Number(String(v).replace(/[۰-۹]/g,c=>String(c.charCodeAt(0)-1776)).replace(/[٠-٩]/g,c=>String(c.charCodeAt(0)-1632)).replace(/[٬،,]/g,''));return Number.isFinite(n)?n:null;};
 const sum=(rows,key)=>rows.reduce((s,r)=>s+(num(r[key])??0),0);
 const avg=(rows,key)=>{const a=rows.map(r=>num(r[key])).filter(v=>v!==null);return a.length?a.reduce((s,v)=>s+v,0)/a.length:null;};
@@ -51,6 +51,48 @@ function aggregate(rows=[],flock={}){
   livability:last.livability_percent??null,health_status:last.health_status||null
  };
 }
+function assessDaily(input={}){
+ const a=input.actual||{},r=input.reference||{},p=input.previous||{},t={feedRelative:0.05,waterReferenceRelative:0.10,productionAbsolutePP:3,eggWeightRelative:0.03,productionTrendRelative:0.03,feedTrendRelative:0.05,waterTrendRelative:0.15,defectTrendPP:0.5,...(input.thresholds||{})};
+ const reasons=[],dataQualityFlags=[];let adverse=0;
+ const finite=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v));
+ const delta=(x,y)=>finite(x)&&finite(y)&&Number(y)!==0?(Number(x)-Number(y))/Number(y):null;
+ const countKeys=['crackedEggCount','dirtyEggCount','softShellEggCount','misshapenEggCount','floorEggCount'];
+ for(const k of ['eggCount','saleableEggCount',...countKeys,'feedKg','waterL','liveBirds','placedBirds','mortalityCount','cullCount']){
+  if(finite(a[k])&&Number(a[k])<0)dataQualityFlags.push(k+':negative');
+ }
+ if(finite(a.saleableEggCount)&&finite(a.eggCount)&&Number(a.saleableEggCount)>Number(a.eggCount))dataQualityFlags.push('saleable_eggs_exceed_total');
+ const defects=countKeys.reduce((s,k)=>s+(finite(a[k])?Number(a[k]):0),0);
+ if(finite(a.eggCount)&&defects>Number(a.eggCount))dataQualityFlags.push('defect_categories_exceed_total');
+ if(finite(a.eggCount)&&Number(a.eggCount)>0&&a.saleableEggCount==null&&countKeys.some(k=>finite(a[k])))dataQualityFlags.push('saleable_count_missing');
+ const add=(msg)=>{adverse++;reasons.push(msg);};
+ const compare=(actual,reference,rel,label,lowBad=true)=>{
+  if(!finite(actual)||!finite(reference)||Number(reference)<=0)return;
+  const d=delta(actual,reference);
+  if(d===null||Math.abs(d)<=rel)return;
+  if(lowBad&&d<0)add(label+' بیش از '+Math.round(rel*100)+'٪ پایین‌تر از مرجع است');
+  else add(label+' بیش از '+Math.round(rel*100)+'٪ بالاتر/متفاوت از مرجع است؛ علت بررسی شود');
+ };
+ compare(a.feedPerHenG,r.feed,t.feedRelative,'مصرف دان',true);
+ compare(a.waterPerHenMl,r.water,t.waterReferenceRelative,'مصرف آب',true);
+ if(finite(a.henDayProductionPercent)&&finite(r.henDayProductionPercent)&&Number(a.henDayProductionPercent)<Number(r.henDayProductionPercent)-t.productionAbsolutePP)add('تولید Hen-Day بیش از '+t.productionAbsolutePP+' واحد درصد زیر مرجع است');
+ if(finite(a.eggWeightG)&&finite(r.eggWeightG)&&Number(r.eggWeightG)>0&&Math.abs(delta(a.eggWeightG,r.eggWeightG))>t.eggWeightRelative)add('وزن تخم بیش از '+Math.round(t.eggWeightRelative*100)+'٪ با مرجع اختلاف دارد؛ توزیع اندازه و جیره بررسی شود');
+ if(finite(a.henDayProductionPercent)&&finite(p.production)&&Number(p.production)>0&&Number(a.henDayProductionPercent)<Number(p.production)*(1-t.productionTrendRelative))add('افت تولید نسبت به میانگین روزهای اخیر');
+ if(finite(a.feedPerHenG)&&finite(p.feed)&&Number(p.feed)>0&&Number(a.feedPerHenG)<Number(p.feed)*(1-t.feedTrendRelative))add('افت مصرف دان نسبت به میانگین روزهای اخیر');
+ if(finite(a.waterPerHenMl)&&finite(p.water)&&Number(p.water)>0&&Math.abs(Number(a.waterPerHenMl)-Number(p.water))/Number(p.water)>t.waterTrendRelative)add('تغییر سریع مصرف آب نسبت به میانگین روزهای اخیر');
+ if(finite(a.eggDefectPercent)&&finite(p.defect)&&Number(a.eggDefectPercent)>Number(p.defect)+t.defectTrendPP)add('افزایش درصد تخم معیوب نسبت به روزهای اخیر');
+ const range=(v,lim,label)=>{if(finite(v)&&lim&&((finite(lim.min)&&Number(v)<Number(lim.min))||(finite(lim.max)&&Number(v)>Number(lim.max))))add(label+' خارج از بازهٔ پایش است');};
+ range(a.waterFeedRatio,r.waterFeed,'نسبت آب به دان');
+ range(a.humidityPercent,r.humidity,'رطوبت سالن');
+ range(a.temperatureC,r.temperature,'دمای سالن');
+ if(finite(a.mortalityPercent)&&finite(r.mortalityMax)&&Number(a.mortalityPercent)>Number(r.mortalityMax))add('تلفات روزانه از سقف هشدار تنظیم‌شده بالاتر است');
+ const health=(a.healthSignals||[]).filter(x=>x&&x!=='طبیعی'&&x!=='normal');
+ if(health.length)add('شاخص سلامت/رفتار غیرطبیعی ثبت شده است: '+health.slice(0,3).join('، '));
+ const hasError=dataQualityFlags.length>0;
+ const state=hasError?'investigate':adverse>=2?'investigate':adverse===1?'watch':'stable';
+ const reason=[...dataQualityFlags.map(x=>'خطای/نقص داده: '+x),...reasons].slice(0,5).join(' • ')||(state==='stable'?'در شاخص‌های ثبت‌شده انحرافی از آستانه‌های فعال مشاهده نشد.':'نیازمند بررسی');
+ const source=input.referenceSource||'unknown';
+ return {state,reason,reasons,dataQualityFlags,adverseCount:adverse,referenceSource:source,thresholds:t,score:null,scoreStatus:'not_calibrated'};
+}
 function livabilityPercent(initialBirds,cumulativeMortality,cumulativeCulls){
  const placed=num(initialBirds),mort=num(cumulativeMortality)||0,culls=num(cumulativeCulls)||0;
  return placed!==null&&placed>0?Math.max(0,placed-mort-culls)/placed*100:null;
@@ -79,5 +121,5 @@ function dailyMetrics(input={}){
   saleableEggPercent,eggDefectPercent
  };
 }
-g.ADINE_LAYER_CALCULATION_ENGINE_V1=Object.freeze({version:VERSION,dailyMetrics,aggregate,livabilityPercent});
+g.ADINE_LAYER_CALCULATION_ENGINE_V1=Object.freeze({version:VERSION,dailyMetrics,aggregate,livabilityPercent,assessDaily});
 })(window);

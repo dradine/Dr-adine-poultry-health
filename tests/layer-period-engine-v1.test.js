@@ -91,6 +91,14 @@ const db = {
   assert.equal(Standards.metricAtAge(brown, "eggWeight", 182).value, null,
     "Do not invent pointwise Hy-Line Brown egg-weight targets when no supported point exists");
 
+  const dailyHtml = read("layer-daily-core.html");
+  const weeklyHtml = read("layer-weekly-core.html");
+  const monthlyHtml = read("layer-monthly-core.html");
+  assert.match(dailyHtml, /ضریب تبدیل غذایی تخم‌مرغ \(FCR\)/, "Daily layer page must display canonical FCR label");
+  assert.match(weeklyHtml, /ضریب تبدیل غذایی تخم‌مرغ/, "Weekly layer page must display canonical FCR label");
+  assert.match(monthlyHtml, /ضریب تبدیل غذایی تخم‌مرغ/, "Monthly layer page must display canonical FCR label");
+  assert.match(read("layer-reports.html"), /مجموع دان مصرفی \(کیلوگرم\).*مجموع توده تخم‌مرغ تولیدشده/, "Layer reports must explain the FCR formula");
+  assert.doesNotMatch(read("layer-reports.html"), /Feed\/Egg Mass/, "Reports must use one canonical FCR label");
   const reportsSource = read("layer-reports.html");
   const derivedStart = reportsSource.indexOf("function derivedDaily(");
   const derivedEnd = reportsSource.indexOf("function metricRowDaily(", derivedStart);

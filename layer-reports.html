@@ -184,7 +184,7 @@ const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const metrics=a=>a.map(m=>'<article class="lr-metric"><div class="lr-metric-top"><span class="lr-metric-label">'+esc(m[0])+'</span><i class="lr-metric-mark"></i></div><div class="lr-metric-value">'+esc(m[1])+(m[2]?'<span class="lr-metric-unit">'+esc(m[2])+'</span>':'')+'</div>'+(m[3]?'<div class="lr-metric-foot">'+esc(m[3])+'</div>':'')+'</article>').join('');
 const val=(row,key)=>row&&row[key]!==undefined?row[key]:null;
 function setStatus(message,warning=false){$('loadStatus').textContent=message;$('loadStatus').style.color=warning?'#9a5a08':'';}
-function showView(name){document.querySelectorAll('.lr-tab').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});document.querySelectorAll('.lr-view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));q.set('section',name);history.replaceState(null,'',location.pathname+'?'+q.toString());}
+function showView(name){document.querySelectorAll('.lr-tab').forEach(b=>{const active=b.dataset.view===name;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});document.querySelectorAll('.lr-view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));q.set('section',name);if(flockId)q.set('flock_id',flockId);history.replaceState(null,'',location.pathname+'?'+q.toString());}
 function addOptions(select,rows,valueFn,labelFn,emptyText){select.innerHTML='';if(!rows.length){const o=document.createElement('option');o.value='';o.textContent=emptyText;select.appendChild(o);select.disabled=true;return;}select.disabled=false;rows.forEach(r=>{const o=document.createElement('option');o.value=valueFn(r);o.textContent=labelFn(r);select.appendChild(o);});}
 function metricRowDaily(r){return [['تولید Hen-Day',fmt(r.hen_day_production_percent)+'٪'],['تولید Hen-Housed',fmt(r.hen_housed_production_percent)+'٪'],['وزن تخم',fmt(r.average_egg_weight_g)+' گرم'],['جرم تخم/مرغ/روز',fmt(r.egg_mass_g_hen_day)+' گرم'],['دان/مرغ',fmt(r.feed_per_hen_g)+' گرم'],['آب/مرغ',fmt(r.water_per_hen_ml)+' میلی‌لیتر'],['Feed/Egg Mass',fmt(r.feed_per_egg_mass,3)],['تلفات',fmtInt(r.mortality_count)+' قطعه'],['تخم قابل فروش',fmt(r.saleable_egg_percent)+'٪'],['تخم معیوب',fmt(r.egg_defect_percent)+'٪'],['تخم کل',fmtInt(r.total_eggs)],['وضعیت پایش',r.daily_monitoring_status||'—']];}
 function metricRowPeriod(r,monthlyMode=false){return [['تولید Hen-Day',fmt(r.avg_hen_day_production)+'٪'],['تولید Hen-Housed',fmt(r.avg_hen_housed_production)+'٪'],['وزن تخم',fmt(r.avg_egg_weight_g)+' گرم'],['جرم تخم/مرغ/روز',fmt(r.avg_egg_mass_g)+' گرم'],['دان/مرغ',fmt(r.avg_feed_per_hen_g)+' گرم'],['آب/مرغ',fmt(r.avg_water_per_hen_ml)+' میلی‌لیتر'],['Feed/Egg Mass',fmt(r.feed_per_egg_mass,3)],['تلفات',fmtInt(r.mortality_count)+' قطعه'],['زنده‌مانی',fmt(r.livability)+'٪'],...(monthlyMode?[['روزهای منبع',fmtInt(r.source_daily_count)+' روز'],['وضعیت دوره',r.is_complete?'ماه کامل':'ماه در حال تکمیل']]:[['وضعیت سلامت',r.health_status||'—']])];}
@@ -222,9 +222,9 @@ function render(){
  $('openDailyBtn').onclick=()=>{if(flockId)location.href='layer-daily-core.html?flock_id='+encodeURIComponent(flockId);};
 }
 async function loadFlock(id){
- flockId=id;const f=flocks.find(x=>String(x.id)===String(id));if(!f)throw new Error('گله انتخاب‌شده در فهرست گله‌های تخم‌گذار وجود ندارد.');flock=f;
+ const changing=Boolean(flockId&&String(flockId)!==String(id));if(changing){q.delete('day');q.delete('week');q.delete('month');}flockId=id;const f=flocks.find(x=>String(x.id)===String(id));if(!f)throw new Error('گله انتخاب‌شده در فهرست گله‌های تخم‌گذار وجود ندارد.');flock=f;
  $('flockSelect').value=String(id);
- const params=new URLSearchParams(location.search);params.set('flock_id',id);if(!params.get('section'))params.set('section','overview');history.replaceState(null,'',location.pathname+'?'+params.toString());
+ q.set('flock_id',id);if(!q.get('section'))q.set('section','overview');history.replaceState(null,'',location.pathname+'?'+q.toString());
  setStatus('در حال دریافت داده‌های ذخیره‌شده و به‌روزرسانی خلاصه‌های هفتگی و ماهانه…');
  const d=await supabaseClient.from('layer_daily_monitoring').select('*').eq('flock_id',id).order('record_date',{ascending:true});
  if(d.error)throw new Error('خواندن پایش روزانه ناموفق بود: '+d.error.message);daily=(d.data||[]).slice();
@@ -240,9 +240,13 @@ async function loadFlock(id){
  addOptions($('daySelect'),daily,r=>r.record_date,r=>r.record_date+' • سن '+fmtInt(r.age_days)+' روز','هنوز داده روزانه‌ای ثبت نشده است');
  addOptions($('weekSelect'),weekly,r=>String(r.week_no),r=>'هفته '+fmtInt(r.week_no)+' • سن '+fmtInt(r.age_start_days)+' تا '+fmtInt(r.age_end_days)+' روز','هنوز داده هفتگی وجود ندارد');
  addOptions($('monthSelect'),monthly,r=>r.jalali_month_key,r=>(r.jalali_month_label||r.jalali_month_key)+' • سن '+fmtInt(r.age_start_days)+' تا '+fmtInt(r.age_end_days)+' روز','هنوز داده ماهانه وجود ندارد');
+ if(daily.length)$('daySelect').value=daily[daily.length-1].record_date;
+ if(weekly.length)$('weekSelect').value=String(weekly[weekly.length-1].week_no);
+ if(monthly.length)$('monthSelect').value=String(monthly[monthly.length-1].jalali_month_key);
  if(q.get('day')&&daily.some(r=>r.record_date===q.get('day'))) $('daySelect').value=q.get('day');
  if(q.get('week')&&weekly.some(r=>String(r.week_no)===q.get('week'))) $('weekSelect').value=q.get('week');
  if(q.get('month')&&monthly.some(r=>String(r.jalali_month_key)===q.get('month'))) $('monthSelect').value=q.get('month');
+ const weeklyNav=document.querySelector('.bottom-nav [data-nav="layer-weekly-core.html"]');if(weeklyNav){weeklyNav.setAttribute('data-nav','layer-weekly-core.html?flock_id='+encodeURIComponent(id));weeklyNav.setAttribute('onclick',"window.location.href='layer-weekly-core.html?flock_id="+encodeURIComponent(id)+"'");}
  render();setStatus('گزارش اختصاصی '+(flock.flock_name||'گله تخم‌گذار')+' آماده است؛ داده‌ها از پایش‌های ذخیره‌شده خوانده شدند.');
 }
 async function boot(){

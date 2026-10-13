@@ -91,6 +91,33 @@ const db = {
   assert.equal(Standards.metricAtAge(brown, "eggWeight", 182).value, null,
     "Do not invent pointwise Hy-Line Brown egg-weight targets when no supported point exists");
 
+  const reportsSource = read("layer-reports.html");
+  const derivedStart = reportsSource.indexOf("function derivedDaily(");
+  const derivedEnd = reportsSource.indexOf("const metrics=", derivedStart);
+  assert.ok(derivedStart >= 0 && derivedEnd > derivedStart, "Daily report must derive its formula-based metrics from raw fields");
+  const reportContext = {
+    n(value) {
+      if (value === null || value === undefined || value === "") return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    },
+    flock: { initial_bird_count: 10000 }
+  };
+  vm.createContext(reportContext);
+  vm.runInContext(reportsSource.slice(derivedStart, derivedEnd) + "\nthis.derivedDaily = derivedDaily;", reportContext);
+  const historicDaily = reportContext.derivedDaily({
+    opening_birds: 10999,
+    feed_quantity_kg: 982.76,
+    egg_count: 411,
+    average_egg_weight_g: 50.25,
+    feed_per_egg_mass: 47.54,
+    feed_per_egg_g: 2391.15
+  });
+  assert.ok(Math.abs(historicDaily.fcr - (982.76 * 1000 / (411 * 50.25))) < 1e-9,
+    "Daily reports must recompute FCR from feed, egg count, and egg weight instead of trusting rounded historical FCR");
+  assert.ok(Math.abs(historicDaily.eggMass - (411 * 50.25 / 10999)) < 1e-9);
+  assert.ok(Math.abs(historicDaily.feedPerEgg - (982.76 * 1000 / 411)) < 1e-9);
+
   console.log("Layer Period Engine V1 regression tests: PASS");
 })().catch((error) => {
   console.error(error);

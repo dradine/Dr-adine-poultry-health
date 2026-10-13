@@ -34,6 +34,7 @@ function expectedActiveDays(flock, year, month, fromIso, toIso){
   }
   return count;
 }
+function engineVersion(){return g.ADINE_LAYER_CALCULATION_ENGINE_V1?.version||'unknown';}
 function baseAgg(rows,flock){
  const engine=g.ADINE_LAYER_CALCULATION_ENGINE_V1;
  if(!engine||typeof engine.aggregate!=='function')throw new Error('Canonical Layer calculation engine is not loaded');
@@ -45,9 +46,12 @@ function welfareSummary(rows){
   return o;
 }
 async function sync(flock, user, supabaseClient, dailyRows){
-  if(!flock||!user||!supabaseClient)return;
-  const rows=[...dailyRows].sort((a,b)=>String(a.record_date).localeCompare(String(b.record_date)));
-  if(!rows.length)return;
+  if(!flock||!user||!supabaseClient)throw new Error('Layer period sync requires flock, user and Supabase client');
+  const rows=[...(dailyRows||[])].sort((a,b)=>String(a.record_date).localeCompare(String(b.record_date)));
+  if(!rows.length){
+    for(const table of ['layer_weekly_monitoring','layer_monthly_monitoring']){const del=await supabaseClient.from(table).delete().eq('flock_id',flock.id);if(del.error)throw new Error('Failed to clear stale '+table+': '+del.error.message);}
+    return {weeks:[],months:[],cleared:true};
+  }
   const first=rows[0].record_date;
   const byWeek=new Map(), byMonth=new Map();
   rows.forEach(r=>{
@@ -58,24 +62,24 @@ async function sync(flock, user, supabaseClient, dailyRows){
     const j=toJalali(r.record_date);if(j){const key=monthKey(j);if(!byMonth.has(key))byMonth.set(key,{j,rows:[]});byMonth.get(key).rows.push(r);}
   });
   const weeks=[...byWeek.entries()].map(([week,rs])=>{
-    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date); const consecutive=rs.length===7&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1);
+    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date); const consecutive=rs.length===7&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const ageConsecutive=rs.every((x,i)=>i===0||(Number(x.age_days)===Number(rs[i-1].age_days)+1));
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,week_no:week,
       period_start:s.record_date,period_end:e.record_date,age_start_days:s.age_days,age_end_days:e.age_days,
       jalali_year:j?.year||null,jalali_month:j?.month||null,jalali_week_label:'هفته '+fa(week),
-      source_daily_count:rs.length,expected_daily_count:7,is_complete:consecutive,source_daily_ids:rs.map(x=>x.id),
-      welfare_summary:welfareSummary(rs),performance_summary:{peak_or_average:'daily-derived'},updated_at:new Date().toISOString()};
+      source_daily_count:rs.length,expected_daily_count:7,is_complete:consecutive&&ageConsecutive&&Number(s.age_days)===((week-1)*7+1)&&Number(e.age_days)===(week*7),source_daily_ids:rs.map(x=>x.id),
+      welfare_summary:welfareSummary(rs),performance_summary:{aggregation_source:'layer_daily_monitoring',calculation_engine_version:engineVersion(),data_quality_flags:a.data_quality_flags||[],fcr_available:Boolean(a.fcr_available),average_body_weight_is_sample_weighted:true,uniformity_and_cv_are_means_of_daily_samples:true},updated_at:new Date().toISOString()};
   });
-  for(const w of weeks){await supabaseClient.from('layer_weekly_monitoring').upsert(w,{onConflict:'flock_id,week_no'});}
+  for(const w of weeks){const {data_quality_flags,fcr_available,...row}=w;const result=await supabaseClient.from('layer_weekly_monitoring').upsert(row,{onConflict:'flock_id,week_no'});if(result.error)throw new Error('Layer weekly aggregation failed: '+result.error.message);}
   const months=[...byMonth.values()].map(({j,rows:rs})=>{
-    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const complete=todayIso>=monthEndIso&&rs.length>=expected&&contiguous&&s.record_date===activeStart&&e.record_date===monthEndIso;
+    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const ageConsecutive=rs.every((x,i)=>i===0||(Number(x.age_days)===Number(rs[i-1].age_days)+1)); const complete=Boolean(flock.placement_date)&&todayIso>=monthEndIso&&rs.length===expected&&contiguous&&ageConsecutive&&s.record_date===activeStart&&e.record_date===monthEndIso;
     const monthStart=activeStart;
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,
       jalali_year:j.year,jalali_month:j.month,jalali_month_key:monthKey(j),jalali_month_label:j.monthLabel,
       period_start:monthStart,period_end:e.record_date,age_start_days:s.age_days,age_end_days:e.age_days,
       source_daily_count:rs.length,expected_daily_count:expected,is_complete:complete,source_daily_ids:rs.map(x=>x.id),
-      welfare_summary:welfareSummary(rs),performance_summary:{calendar_month:true},updated_at:new Date().toISOString()};
+      welfare_summary:welfareSummary(rs),performance_summary:{aggregation_source:'layer_daily_monitoring',calendar_month:true,calculation_engine_version:engineVersion(),data_quality_flags:a.data_quality_flags||[],fcr_available:Boolean(a.fcr_available),average_body_weight_is_sample_weighted:true,uniformity_and_cv_are_means_of_daily_samples:true},updated_at:new Date().toISOString()};
   });
-  for(const m of months){await supabaseClient.from('layer_monthly_monitoring').upsert(m,{onConflict:'flock_id,jalali_month_key'});}
+  for(const m of months){const result=await supabaseClient.from('layer_monthly_monitoring').upsert(m,{onConflict:'flock_id,jalali_month_key'});if(result.error)throw new Error('Layer monthly aggregation failed: '+result.error.message);}
   return {weeks,months};
 }
 g.ADINE_LAYER_PERIOD_ENGINE_V1={fa,toJalali,jalaliToGregorian,monthKey,daysInJalaliMonth,sync};

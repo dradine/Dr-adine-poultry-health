@@ -16,7 +16,7 @@ const MANAGEMENT='management-standard';
 const MANAGEMENT_PROFILE={
   sourceType:MANAGEMENT,
   sourceYear:2026,
-  sourceLabel:'استاندارد مدیریتی پایش تخم‌گذار آدینه — مرجع عملیاتی 2026.1',
+  sourceLabel:'مرجع عملیاتی پایش تخم‌گذار آدینه 2026.1 — آستانهٔ غربالگری محلی، نه استاندارد جهانی یا ژنتیکی',
   sourceUrl:null,
   records:[
     {ageDays:119,dailyFeed:90,dailyWater:135,henDayProduction:85,eggWeight:58,fcr:2.20,mortality:0.08},
@@ -73,25 +73,17 @@ const profiles={
   'W-80 Plus':{
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2024,
     sourceLabel:'Hy-Line W-80 Plus Commercial Layers Performance Standards',
-    sourceUrl:'https://www.hyline.com/literature/w-80',
-    records:[
-      {ageDays:126,bodyWeight:1280,dailyFeed:73},
-      {ageDays:182,bodyWeight:1360,dailyFeed:100},
-      {ageDays:490,bodyWeight:1710,dailyFeed:104.9,eggWeight:63.4},
-      {ageDays:700,bodyWeight:1820,dailyFeed:113.2,eggWeight:68.8}
-    ]
+    sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-80/80PLUS%20STD%20ENG.pdf',
+    records:[],
+    notes:'مقادیر نقطه‌ای قبلی با جدول رسمی جاری به‌طور کامل تطبیق داده نشده بودند؛ تا استخراج و تطبیق کامل جدول، منحنی عددی فعال نیست.'
   },
 
   'W-80 Pro':{
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2026,
     sourceLabel:'Hy-Line W-80 Pro Commercial Layers Performance Standards — 2026',
     sourceUrl:'https://www.hyline.com/literature/w-80',
-    records:[
-      {ageDays:119,bodyWeight:1156},
-      {ageDays:182,bodyWeight:1210},
-      {ageDays:490,bodyWeight:1570,dailyFeed:102.8,eggWeight:62.4},
-      {ageDays:700,bodyWeight:1701,dailyFeed:106.4,eggWeight:64.3}
-    ]
+    records:[],
+    notes:'منبع دقیق و نسخهٔ راهنمای مختص W-80 Pro برای این نقاط تأیید نشده است؛ از این نقاط به‌عنوان منحنی رسمی استفاده نمی‌شود.'
   },
 
   'Brown':{
@@ -103,20 +95,22 @@ const profiles={
   },
 
   'ISA Brown':{
-    genetics:'hendrix',sourceType:OFFICIAL,sourceYear:2019,
-    sourceLabel:'ISA Brown Commercial Product Guide — 2019',
-    sourceUrl:'https://www.hendrix-genetics.com/en/news-events/events/space-en-2026/laying-hens/',
+    genetics:'hendrix',sourceType:OFFICIAL,sourceYear:null,
+    sourceLabel:'ISA Brown EU CS Product Guide — Cage housing (official PDF; verified 2026-10-13)',
+    sourceUrl:'https://www.isa-poultry.com/documents/1399/ISA_Brown_EU_CS_product_guide_cage_EN_L6230-1.pdf',
+    sourceVerifiedAt:'2026-10-13',housingSystem:'cage',dataGranularity:'selected_official_weekly_anchors',
+    interpolationNote:'Only official week-specific values below are source values; values between anchors are linear estimates and must be labelled as interpolated.',
     records:[
-      {ageDays:175,bodyWeight:1796,dailyFeed:112,henDayProduction:96.1},
-      {ageDays:259,bodyWeight:1896,dailyFeed:113,henDayProduction:95.2},
-      {ageDays:273,bodyWeight:1906,dailyFeed:113,henDayProduction:94.8},
-      {ageDays:287,bodyWeight:1915,dailyFeed:113,henDayProduction:94.4},
-      {ageDays:315,bodyWeight:1931,dailyFeed:113,henDayProduction:93.5},
-      {ageDays:329,bodyWeight:1939,dailyFeed:113,henDayProduction:92.9},
-      {ageDays:343,bodyWeight:1946,dailyFeed:113,henDayProduction:92.3},
-      {ageDays:371,bodyWeight:1969,dailyFeed:113,henDayProduction:90.9},
-      {ageDays:399,bodyWeight:1969,dailyFeed:113,henDayProduction:89.4},
-      {ageDays:490,bodyWeight:1988,dailyFeed:113,henDayProduction:83.5}
+      {ageDays:126,henDayProduction:3.2,eggWeight:42.6,dailyFeed:91,fcr:66.76,bodyWeight:1520,livability:99.9},
+      {ageDays:175,henDayProduction:94.2,eggWeight:59.2,dailyFeed:115,fcr:2.07,bodyWeight:1780,livability:99.2},
+      {ageDays:224,henDayProduction:95.7,eggWeight:63.0,dailyFeed:119,fcr:1.97,bodyWeight:1848,livability:98.5},
+      {ageDays:280,henDayProduction:95.0,eggWeight:63.6,dailyFeed:119,fcr:1.97,bodyWeight:1890,livability:97.6},
+      {ageDays:350,henDayProduction:93.2,eggWeight:63.9,dailyFeed:119,fcr:2.00,bodyWeight:1927,livability:96.6},
+      {ageDays:420,henDayProduction:89.4,eggWeight:64.2,dailyFeed:118,fcr:2.06,bodyWeight:1950,livability:95.6},
+      {ageDays:490,henDayProduction:86.1,eggWeight:64.5,dailyFeed:118,fcr:2.13,bodyWeight:1970,livability:94.5},
+      {ageDays:560,henDayProduction:81.9,eggWeight:64.7,dailyFeed:118,fcr:2.22,bodyWeight:1981,livability:93.5},
+      {ageDays:630,henDayProduction:77.3,eggWeight:65.0,dailyFeed:118,fcr:2.35,bodyWeight:1991,livability:92.5},
+      {ageDays:700,henDayProduction:73.3,eggWeight:65.3,dailyFeed:118,fcr:2.47,bodyWeight:2000,livability:91.5}
     ]
   },
 
@@ -274,7 +268,13 @@ function interpolate(points,age){
 function resolve(flock){
  const s=norm(flock?.strain),g0=norm(flock?.genetics);
  const exact=Object.keys(profiles).find(k=>norm(k)===s);
- if(exact){const p=profiles[exact];return {...p,strain:exact,fallback:!(Array.isArray(p.records)&&p.records.length>1),numericReady:Array.isArray(p.records)&&p.records.length>1,management:MANAGEMENT_PROFILE};}
+ if(exact){
+  const p=profiles[exact],housing=norm(flock?.housing_system||flock?.housingSystem||flock?.housing_type);
+  const cage=/(cage|قفس)/.test(housing),alternative=/(alternative|aviary|cage.free|آویاری|بستر|آزاد|بدون قفس)/.test(housing);
+  const systemMismatch=Boolean(p.housingSystem&&((p.housingSystem==='cage'&&alternative)||(p.housingSystem==='alternative'&&cage)||(!housing&&p.housingSystem==='cage')));
+  const active=systemMismatch?{...p,records:[],fallback:true,numericReady:false,systemMismatch:true,systemMismatchReason:!housing?'سیستم پرورش ثبت نشده؛ منحنی قفس فعال نشد.':'سیستم پرورش با منبع منحنی سویه هم‌خوان نیست؛ مقایسهٔ ژنتیکی غیرفعال شد.'}:p;
+  return {...active,label:active.strain||exact,strain:exact,fallback:systemMismatch||!(Array.isArray(active.records)&&active.records.length>1),numericReady:!systemMismatch&&Array.isArray(active.records)&&active.records.length>1,management:MANAGEMENT_PROFILE};
+}
  const aliases={
   'hy-line w-80':'W-80','hyline w-80':'W-80','hy-line brown':'Brown',
   'lohmann brown':'Lohmann Brown-Classic','lohmann lsl':'Lohmann LSL-Classic',
@@ -300,9 +300,9 @@ function resolve(flock){
 }
 function metricAtAge(std,metric,age){
  const official=interpolate((std.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);
- if(official!==null)return {value:official,sourceType:std.sourceType,sourceLabel:std.sourceLabel,isFallback:false};
+ if(official!==null)return {value:official,sourceType:std.sourceType,sourceLabel:std.sourceLabel,isFallback:false,isInterpolated:!(std.records||[]).some(r=>Number(r.ageDays)===Number(age))};
  const m=interpolate((std.management?.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);
- if(m!==null)return {value:m,sourceType:MANAGEMENT,sourceLabel:std.management.sourceLabel,isFallback:true};
+ if(m!==null)return {value:m,sourceType:MANAGEMENT,sourceLabel:std.management.sourceLabel,isFallback:true,isInterpolated:!(std.management?.records||[]).some(r=>Number(r.ageDays)===Number(age))};
  return {value:null,sourceType:null,sourceLabel:null,isFallback:false};
 }
 function getDailyReference(std){

@@ -1,0 +1,32 @@
+name: Layer monitoring and reports regression
+on:
+  pull_request:
+    paths:
+      - 'layer-*.js'
+      - 'layer-*.html'
+      - 'tests/layer-*.test.js'
+      - '.github/workflows/layer-monitoring-regression.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'layer-*.js'
+      - 'layer-*.html'
+      - 'tests/layer-*.test.js'
+      - '.github/workflows/layer-monitoring-regression.yml'
+jobs:
+  layer-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Canonical calculation engine tests
+        run: node tests/layer-calculation-engine-v1.test.js
+      - name: Standards engine tests
+        run: node tests/layer-standards-engine-v1.test.js
+      - name: Period aggregation tests
+        run: node tests/layer-period-engine-v1.test.js
+      - name: Reports auto-sync and isolation tests
+        run: node tests/layer-reports-auto-sync.test.js

@@ -301,6 +301,9 @@ function resolve(flock){
 function metricAtAge(std,metric,age){
  const official=interpolate((std.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);
  if(official!==null)return {value:official,sourceType:std.sourceType,sourceLabel:std.sourceLabel,isFallback:false};
+ // Hy-Line Brown's published summary supplies ranges and milestones, not a daily point curve.
+ // Do not substitute the generic management curve for pointwise production, egg-weight or FCR targets.
+ if(norm(std?.strain)==='brown'&&['henDayProduction','eggWeight','fcr'].includes(metric))return {value:null,sourceType:null,sourceLabel:null,isFallback:false};
  const m=interpolate((std.management?.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);
  if(m!==null)return {value:m,sourceType:MANAGEMENT,sourceLabel:std.management.sourceLabel,isFallback:true};
  return {value:null,sourceType:null,sourceLabel:null,isFallback:false};

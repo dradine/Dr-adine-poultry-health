@@ -49,6 +49,10 @@ function aggregate(rows=[],flock={}){
   livability:last.livability_percent??null,health_status:last.health_status||null
  };
 }
+function livabilityPercent(initialBirds,cumulativeMortality,cumulativeCulls){
+ const placed=num(initialBirds),mort=num(cumulativeMortality)||0,culls=num(cumulativeCulls)||0;
+ return placed!==null&&placed>0?Math.max(0,placed-mort-culls)/placed*100:null;
+}
 function dailyMetrics(input={}){
  const live=num(input.liveBirds),placed=num(input.placedBirds),eggs=num(input.eggCount),feed=num(input.feedKg),water=num(input.waterL),ew=num(input.averageEggWeightG),saleable=num(input.saleableEggCount);
  const cracked=num(input.crackedEggCount)||0,dirty=num(input.dirtyEggCount)||0,soft=num(input.softShellEggCount)||0,misshapen=num(input.misshapenEggCount)||0,floor=num(input.floorEggCount)||0;
@@ -72,5 +76,5 @@ function dailyMetrics(input={}){
   saleableEggPercent,eggDefectPercent
  };
 }
-g.ADINE_LAYER_CALCULATION_ENGINE_V1=Object.freeze({version:VERSION,dailyMetrics,aggregate});
+g.ADINE_LAYER_CALCULATION_ENGINE_V1=Object.freeze({version:VERSION,dailyMetrics,aggregate,livabilityPercent});
 })(window);

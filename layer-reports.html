@@ -247,6 +247,7 @@ async function loadFlock(id){
  if(q.get('week')&&weekly.some(r=>String(r.week_no)===q.get('week'))) $('weekSelect').value=q.get('week');
  if(q.get('month')&&monthly.some(r=>String(r.jalali_month_key)===q.get('month'))) $('monthSelect').value=q.get('month');
  const weeklyNav=document.querySelector('.bottom-nav [data-nav="layer-weekly-core.html"]');if(weeklyNav){weeklyNav.setAttribute('data-nav','layer-weekly-core.html?flock_id='+encodeURIComponent(id));weeklyNav.setAttribute('onclick',"window.location.href='layer-weekly-core.html?flock_id="+encodeURIComponent(id)+"'");}
+ const reportsNav=document.querySelector('.bottom-nav [data-nav="layer-reports.html"]);if(reportsNav){reportsNav.setAttribute('data-nav','layer-reports.html?flock_id='+encodeURIComponent(id));reportsNav.setAttribute('onclick',"window.location.href='layer-reports.html?flock_id="+encodeURIComponent(id)+"'");}
  render();setStatus('گزارش اختصاصی '+(flock.flock_name||'گله تخم‌گذار')+' آماده است؛ داده‌ها از پایش‌های ذخیره‌شده خوانده شدند.');
 }
 async function boot(){

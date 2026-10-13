@@ -50,10 +50,14 @@ function aggregate(rows=[],flock={}){
  };
 }
 function dailyMetrics(input={}){
- const live=num(input.liveBirds),placed=num(input.placedBirds),eggs=num(input.eggCount),feed=num(input.feedKg),water=num(input.waterL),ew=num(input.averageEggWeightG);
+ const live=num(input.liveBirds),placed=num(input.placedBirds),eggs=num(input.eggCount),feed=num(input.feedKg),water=num(input.waterL),ew=num(input.averageEggWeightG),saleable=num(input.saleableEggCount);
+ const cracked=num(input.crackedEggCount)||0,dirty=num(input.dirtyEggCount)||0,soft=num(input.softShellEggCount)||0,misshapen=num(input.misshapenEggCount)||0,floor=num(input.floorEggCount)||0;
  const validPop=live!==null&&live>0,validPlaced=placed!==null&&placed>0;
  const eggMassG=eggs!==null&&ew!==null&&eggs>=0&&ew>=0?eggs*ew:null;
  const eggMassKg=eggMassG!==null?eggMassG/1000:null;
+ const saleableEggPercent=eggs!==null&&eggs>0&&saleable!==null?saleable/eggs*100:null;
+ const categoryDefectPercent=eggs!==null&&eggs>0?(cracked+dirty+soft+misshapen+floor)/eggs*100:null;
+ const eggDefectPercent=saleableEggPercent!==null?Math.max(0,100-saleableEggPercent):categoryDefectPercent;
  return {
   liveBirds:validPop?live:null,placedBirds:validPlaced?placed:null,eggCount:eggs,
   henDayProductionPercent:validPop&&eggs!==null?eggs/live*100:null,
@@ -64,7 +68,8 @@ function dailyMetrics(input={}){
   eggMassGPerHenDay:validPop&&eggMassG!==null?eggMassG/live:null,
   totalEggMassG:eggMassG,totalEggMassKg:eggMassKg,
   feedPerEggG:eggs!==null&&eggs>0&&feed!==null&&feed>=0?feed*1000/eggs:null,
-  feedPerEggMass:eggMassKg!==null&&eggMassKg>0&&feed!==null&&feed>=0?feed/eggMassKg:null
+  feedPerEggMass:eggMassKg!==null&&eggMassKg>0&&feed!==null&&feed>=0?feed/eggMassKg:null,
+  saleableEggPercent,eggDefectPercent
  };
 }
 g.ADINE_LAYER_CALCULATION_ENGINE_V1=Object.freeze({version:VERSION,dailyMetrics,aggregate});

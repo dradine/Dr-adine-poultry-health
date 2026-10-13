@@ -1,0 +1,36 @@
+name: Layer Period Engine Validation
+on:
+  push:
+    paths:
+      - 'layer-daily-monitoring-v1.js'
+      - 'layer-period-engine-v1.js'
+      - 'layer-daily-standards-v1.js'
+      - 'layer-daily-core.html'
+      - 'layer-weekly-core.html'
+      - 'layer-monthly-core.html'
+      - 'layer-reports.html'
+      - 'tests/layer-period-engine-v1.test.js'
+      - '.github/workflows/layer-period-engine-test.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'layer-daily-monitoring-v1.js'
+      - 'layer-period-engine-v1.js'
+      - 'layer-daily-standards-v1.js'
+      - 'layer-daily-core.html'
+      - 'layer-weekly-core.html'
+      - 'layer-monthly-core.html'
+      - 'layer-reports.html'
+      - 'tests/layer-period-engine-v1.test.js'
+      - '.github/workflows/layer-period-engine-test.yml'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run isolated layer period and Jalali regression tests
+        run: node tests/layer-period-engine-v1.test.js

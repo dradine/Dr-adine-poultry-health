@@ -39,13 +39,13 @@ function aggregate(rows=[],flock={}){
   total_cracked_eggs:hasAll('cracked_egg_count')?sum(rs,'cracked_egg_count'):null,
   total_dirty_eggs:hasAll('dirty_egg_count')?sum(rs,'dirty_egg_count'):null,
   total_floor_eggs:hasAll('floor_egg_count')?sum(rs,'floor_egg_count'):null,
-  avg_hen_day_production:birdDays>0&&totalEggs!==null?totalEggs/birdDays*100:null,
+  avg_hen_day_production:hasAll('opening_birds')&&birdDays>0&&totalEggs!==null?totalEggs/birdDays*100:null,
   avg_hen_housed_production:placed&&rs.length&&totalEggs!==null?totalEggs/(placed*rs.length)*100:null,
-  avg_feed_per_hen_g:birdDays>0&&totalFeed!==null?totalFeed*1000/birdDays:null,
-  avg_water_per_hen_ml:birdDays>0&&totalWater!==null?totalWater*1000/birdDays:null,
+  avg_feed_per_hen_g:hasAll('opening_birds')&&birdDays>0&&totalFeed!==null?totalFeed*1000/birdDays:null,
+  avg_water_per_hen_ml:hasAll('opening_birds')&&birdDays>0&&totalWater!==null?totalWater*1000/birdDays:null,
   avg_water_feed_ratio:totalFeed!==null&&totalFeed>0&&totalWater!==null?totalWater/totalFeed:null,
   avg_egg_weight_g:totalEggs!==null&&totalEggs>0&&totalEggMassKg!==null?totalEggMassG/totalEggs:null,
-  avg_egg_mass_g:birdDays>0&&totalEggMassKg!==null?totalEggMassG/birdDays:null,
+  avg_egg_mass_g:hasAll('opening_birds')&&birdDays>0&&totalEggMassKg!==null?totalEggMassG/birdDays:null,
   feed_per_egg_g:totalEggs!==null&&totalEggs>0&&totalFeed!==null?totalFeed*1000/totalEggs:null,
   feed_per_egg_mass:totalEggMassKg!==null&&totalEggMassKg>0&&totalFeed!==null?totalFeed/totalEggMassKg:null,
   avg_body_weight_g:avg(rs,'body_weight_g'),avg_uniformity_10:avg(rs,'uniformity_10_percent'),
@@ -106,9 +106,12 @@ function livabilityPercent(initialBirds,cumulativeMortality,cumulativeCulls){
  return placed!==null&&placed>0?Math.max(0,placed-mort-culls)/placed*100:null;
 }
 function dailyMetrics(input={}){
- const live=num(input.liveBirds),placed=num(input.placedBirds),eggs=num(input.eggCount),feed=num(input.feedKg),water=num(input.waterL),ew=num(input.averageEggWeightG),saleable=num(input.saleableEggCount);
+ const live=num(input.liveBirds),placed=num(input.placedBirds),eggs=num(input.eggCount),feed=num(input.feedKg),water=num(input.waterL),ew=num(input.averageEggWeightG),saleable=num(input.saleableEggCount),mort=num(input.mortalityCount),cull=num(input.cullCount),cumMort=num(input.cumulativeMortalityCount),cumCull=num(input.cumulativeCullCount);
  const cracked=num(input.crackedEggCount),dirty=num(input.dirtyEggCount),soft=num(input.softShellEggCount),misshapen=num(input.misshapenEggCount),floor=num(input.floorEggCount);
  const validPop=live!==null&&live>0,validPlaced=placed!==null&&placed>0;
+ const mortalityPercent=validPop&&mort!==null&&mort>=0?mort/live*100:null;
+ const cullPercent=validPop&&cull!==null&&cull>=0?cull/live*100:null;
+ const cumulativeMortalityPercent=validPlaced&&cumMort!==null&&cumMort>=0?cumMort/placed*100:null;
  const eggMassG=eggs!==null&&ew!==null&&eggs>=0&&ew>=0?eggs*ew:null;
  const eggMassKg=eggMassG!==null?eggMassG/1000:null;
  const saleableEggPercent=eggs!==null&&eggs>0&&saleable!==null?saleable/eggs*100:null;
@@ -116,7 +119,7 @@ function dailyMetrics(input={}){
  // Never sum them into a flock-level defect rate; require an explicit saleable-egg count.
  const eggDefectPercent=saleableEggPercent!==null?Math.max(0,100-saleableEggPercent):null;
  return {
-  liveBirds:validPop?live:null,placedBirds:validPlaced?placed:null,eggCount:eggs,
+  liveBirds:validPop?live:null,placedBirds:validPlaced?placed:null,eggCount:eggs,mortalityPercent,cullPercent,cumulativeMortalityPercent,
   henDayProductionPercent:validPop&&eggs!==null?eggs/live*100:null,
   henHousedProductionPercent:validPlaced&&eggs!==null?eggs/placed*100:null,
   feedPerHenG:validPop&&feed!==null&&feed>=0?feed*1000/live:null,

@@ -28,8 +28,10 @@ function aggregate(rows=[],flock={}){
  const totalEggMassKg=allEggDaysHaveMass?totalEggMassG/1000:null;
  return {
   mortality_count:sum(rs,'mortality_count'),cull_count:sum(rs,'cull_count'),
-  total_eggs:totalEggs,total_saleable_eggs:sum(rs,'saleable_egg_count'),total_cracked_eggs:sum(rs,'cracked_egg_count'),
-  total_dirty_eggs:sum(rs,'dirty_egg_count'),total_floor_eggs:sum(rs,'floor_egg_count'),
+  total_eggs:totalEggs,total_saleable_eggs:hasAll('saleable_egg_count')?sum(rs,'saleable_egg_count'):null,
+  total_cracked_eggs:hasAll('cracked_egg_count')?sum(rs,'cracked_egg_count'):null,
+  total_dirty_eggs:hasAll('dirty_egg_count')?sum(rs,'dirty_egg_count'):null,
+  total_floor_eggs:hasAll('floor_egg_count')?sum(rs,'floor_egg_count'):null,
   avg_hen_day_production:birdDays>0&&totalEggs!==null?totalEggs/birdDays*100:null,
   avg_hen_housed_production:placed&&rs.length&&totalEggs!==null?totalEggs/(placed*rs.length)*100:null,
   avg_feed_per_hen_g:birdDays>0&&totalFeed!==null?totalFeed*1000/birdDays:null,
@@ -55,12 +57,13 @@ function livabilityPercent(initialBirds,cumulativeMortality,cumulativeCulls){
 }
 function dailyMetrics(input={}){
  const live=num(input.liveBirds),placed=num(input.placedBirds),eggs=num(input.eggCount),feed=num(input.feedKg),water=num(input.waterL),ew=num(input.averageEggWeightG),saleable=num(input.saleableEggCount);
- const cracked=num(input.crackedEggCount)||0,dirty=num(input.dirtyEggCount)||0,soft=num(input.softShellEggCount)||0,misshapen=num(input.misshapenEggCount)||0,floor=num(input.floorEggCount)||0;
+ const cracked=num(input.crackedEggCount),dirty=num(input.dirtyEggCount),soft=num(input.softShellEggCount),misshapen=num(input.misshapenEggCount),floor=num(input.floorEggCount);
+ const hasDefectCounts=[cracked,dirty,soft,misshapen,floor].some(v=>v!==null);
  const validPop=live!==null&&live>0,validPlaced=placed!==null&&placed>0;
  const eggMassG=eggs!==null&&ew!==null&&eggs>=0&&ew>=0?eggs*ew:null;
  const eggMassKg=eggMassG!==null?eggMassG/1000:null;
  const saleableEggPercent=eggs!==null&&eggs>0&&saleable!==null?saleable/eggs*100:null;
- const categoryDefectPercent=eggs!==null&&eggs>0?(cracked+dirty+soft+misshapen+floor)/eggs*100:null;
+ const categoryDefectPercent=eggs!==null&&eggs>0&&hasDefectCounts?((cracked||0)+(dirty||0)+(soft||0)+(misshapen||0)+(floor||0))/eggs*100:null;
  const eggDefectPercent=saleableEggPercent!==null?Math.max(0,100-saleableEggPercent):categoryDefectPercent;
  return {
   liveBirds:validPop?live:null,placedBirds:validPlaced?placed:null,eggCount:eggs,

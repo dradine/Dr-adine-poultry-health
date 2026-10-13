@@ -53,7 +53,7 @@ function baseAgg(rows){
     total_eggs:totalEggs,total_saleable_eggs:sum(rows,'saleable_egg_count'),total_cracked_eggs:sum(rows,'cracked_egg_count'),
     total_dirty_eggs:sum(rows,'dirty_egg_count'),total_floor_eggs:sum(rows,'floor_egg_count'),
     avg_hen_day_production:weightedAvg(rows,'hen_day_production_percent','opening_birds'),
-    avg_hen_housed_production:weightedAvg(rows,'hen_housed_production_percent','opening_birds'),
+    avg_hen_housed_production:avg(rows,'hen_housed_production_percent'),
     avg_feed_per_hen_g:weightedAvg(rows,'feed_per_hen_g','opening_birds'),
     avg_water_per_hen_ml:weightedAvg(rows,'water_per_hen_ml','opening_birds'),
     avg_water_feed_ratio:avg(rows,'water_feed_ratio'),avg_egg_weight_g:weightedAvg(rows,'average_egg_weight_g','egg_count'),

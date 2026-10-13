@@ -79,7 +79,7 @@ async function sync(flock, user, supabaseClient, dailyRows){
       source_daily_count:rs.length,expected_daily_count:expected,is_complete:complete,source_daily_ids:rs.map(x=>x.id),
       welfare_summary:welfareSummary(rs),performance_summary:{aggregation_source:'layer_daily_monitoring',calendar_month:true,calculation_engine_version:engineVersion(),data_quality_flags:a.data_quality_flags||[],fcr_available:Boolean(a.fcr_available),average_body_weight_is_sample_weighted:true,uniformity_and_cv_are_means_of_daily_samples:true},updated_at:new Date().toISOString()};
   });
-  for(const m of months){const result=await supabaseClient.from('layer_monthly_monitoring').upsert(m,{onConflict:'flock_id,jalali_month_key'});if(result.error)throw new Error('Layer monthly aggregation failed: '+result.error.message);}
+  for(const m of months){const {data_quality_flags,fcr_available,...row}=m;const result=await supabaseClient.from('layer_monthly_monitoring').upsert(row,{onConflict:'flock_id,jalali_month_key'});if(result.error)throw new Error('Layer monthly aggregation failed: '+result.error.message);}
   // Remove derived period rows whose source period disappeared after a daily record was deleted or re-dated.
   const [oldWeeks,oldMonths]=await Promise.all([
     supabaseClient.from('layer_weekly_monitoring').select('week_no').eq('flock_id',flock.id),

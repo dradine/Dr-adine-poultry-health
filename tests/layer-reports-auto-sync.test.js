@@ -4,8 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'layer-reports.html'), 'utf8');
-const scriptTags = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi)];
-const inlineScripts = scriptTags.filter(m => !/\\bsrc\\s*=/.test(m[1])).map(m => m[2]);
+const scriptTags = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+const inlineScripts = scriptTags.filter(m => !/\bsrc\s*=/.test(m[1])).map(m => m[2]);
 
 assert.ok(html.includes('src="layer-calculation-engine-v1.js"'), 'reports load the canonical layer calculation engine');
 assert.ok(html.includes('src="layer-period-engine-v1.js"'), 'reports load the canonical layer period engine');
@@ -24,7 +24,7 @@ assert.ok(syncAt < weeklyReadAt && syncAt < monthlyReadAt, 'reports read period 
 assert.ok(html.includes('data-nav="layer-weekly-core.html"'), 'weekly navigation remains within the layer module');
 assert.ok(html.includes('data-nav="layer-reports.html"'), 'report navigation remains within the layer module');
 assert.doesNotMatch(html, /Broiler|گوشتی/i, 'report page contains no broiler references');
-assert.doesNotMatch(html, /(?:href|data-nav)=["'](?:reports|weekly|daily-core)\\.html/i, 'report page contains no generic broiler route');
+assert.doesNotMatch(html, /(?:href|data-nav)=["'](?:reports|weekly|daily-core)\.html/i, 'report page contains no generic broiler route');
 assert.ok(!html.includes("location.href='reports.html'"), 'non-layer flock does not redirect into the generic report route');
 
 for (const [i, script] of inlineScripts.entries()) {

@@ -303,7 +303,7 @@ function resolve(flock){
  const exact=Object.keys(profiles).find(k=>norm(k)===s);
  if(exact){
   const p=profiles[exact],housing=norm(flock?.housing_system||flock?.housingSystem||flock?.housing_type);
-  const cage=/(cage|قفس)/.test(housing),alternative=/(alternative|aviary|cage.free|آویاری|بستر|آزاد|بدون قفس)/.test(housing);
+  const cage=/(cage|قفس)/.test(housing),alternative=/(alternative|aviary|floor|barn|deep.litter|free.range|cage.free|آویاری|بستر|آزاد|بدون قفس)/.test(housing);
   const systemMismatch=Boolean(p.housingSystem&&((p.housingSystem==='cage'&&alternative)||(p.housingSystem==='alternative'&&cage)||(!housing&&(p.housingSystem==='cage'||p.housingSystem==='alternative'))));
   const active=systemMismatch?{...p,records:[],rangeRecords:[],fallback:true,numericReady:false,systemMismatch:true,systemMismatchReason:!housing?'سیستم پرورش ثبت نشده؛ منحنی قفس فعال نشد.':'سیستم پرورش با منبع منحنی سویه هم‌خوان نیست؛ مقایسهٔ ژنتیکی غیرفعال شد.'}:p;
   const ready=(active.records||[]).length>1||(active.rangeRecords||[]).length>1;

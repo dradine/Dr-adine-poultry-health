@@ -49,6 +49,6 @@ Current thresholds are operational screening triggers, not universal biological 
 - Keep Layer UI, engines, migrations, tests and source registry in the `layer-*` namespace; avoid shared generic files unless separately reviewed.
 - Stable UUIDs and ISO dates are data keys; Jalali values are display labels.
 - Weekly/monthly summaries are rebuildable. Period sync removes stale summaries after a daily row is deleted or re-dated.
-- Index pattern `(flock_id, record_date)` supports per-flock scans. Do not partition preemptively; monitor row counts, query latency, index use and backup/restore duration first.
+- Unique indexes on `(flock_id, record_date)`, `(flock_id, week_no)` and `(flock_id, jalali_month_key)` support lookup and prevent duplicate daily/period keys. A migration removes exact duplicate non-unique indexes on the same columns. Do not partition preemptively; monitor row counts, query latency, index use and backup/restore duration first.
 - For a future separate project, define an export/import contract for Layer tables and migrations, standard/source metadata, engine versions, flock identity snapshots and explicit farm/house/user ID mapping. Verify row counts, foreign keys, unique daily keys and KPI recomputation before cutover.
 - Production migrations should be applied only after code review; verify the live schema and test changes before deployment.

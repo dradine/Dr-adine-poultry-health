@@ -35,11 +35,24 @@ function expectedActiveDays(flock, year, month, fromIso, toIso){
   }
   return count;
 }
-function baseAgg(rows){
+function baseAgg(rows,flock){
   const last=[...rows].sort((a,b)=>String(a.record_date).localeCompare(String(b.record_date))).at(-1)||{};
   const eggRows=rows.filter(r=>{const eggs=numeric(r.egg_count),weight=numeric(r.average_egg_weight_g),birds=numeric(r.opening_birds);return eggs!==null&&birds!==null&&birds>0&&(eggs===0||(weight!==null&&weight>0));});
   const totalEggs=sum(rows,'egg_count');
-  const totalFeed=sum(rows,'feed_quantity_kg');
+  const productionRows=rows.filter(r=>numeric(r.egg_count)!==null&&numeric(r.opening_birds)!==null&&numeric(r.opening_birds)>0);
+  const totalProductionEggs=sum(productionRows,'egg_count');
+  const liveHenDays=productionRows.reduce((s,r)=>s+numeric(r.opening_birds),0);
+  const henDayProduction=liveHenDays>0?totalProductionEggs/liveHenDays*100:avg(rows,'hen_day_production_percent');
+  const initialBirds=numeric(flock?.initial_bird_count);
+  const henHousedProduction=initialBirds>0&&productionRows.length>0?totalProductionEggs/(initialBirds*productionRows.length)*100:avg(rows,'hen_housed_production_percent');
+  const feedHenRows=rows.filter(r=>numeric(r.feed_quantity_kg)!==null&&numeric(r.opening_birds)!==null&&numeric(r.opening_birds)>0);
+  const feedHenBirdDays=feedHenRows.reduce((s,r)=>s+numeric(r.opening_birds),0);
+  const avgFeedPerHen=feedHenBirdDays>0?sum(feedHenRows,'feed_quantity_kg')*1000/feedHenBirdDays:avg(rows,'feed_per_hen_g');
+  const waterHenRows=rows.filter(r=>numeric(r.water_quantity_l)!==null&&numeric(r.opening_birds)!==null&&numeric(r.opening_birds)>0);
+  const waterHenBirdDays=waterHenRows.reduce((s,r)=>s+numeric(r.opening_birds),0);
+  const avgWaterPerHen=waterHenBirdDays>0?sum(waterHenRows,'water_quantity_l')*1000/waterHenBirdDays:avg(rows,'water_per_hen_ml');
+  const waterFeedRows=rows.filter(r=>numeric(r.water_quantity_l)!==null&&numeric(r.feed_quantity_kg)!==null&&numeric(r.feed_quantity_kg)>0);
+  const avgWaterFeed=waterFeedRows.length?sum(waterFeedRows,'water_quantity_l')/sum(waterFeedRows,'feed_quantity_kg'):avg(rows,'water_feed_ratio');
   const totalEggMassG=eggRows.reduce((s,r)=>{const eggs=numeric(r.egg_count),weight=numeric(r.average_egg_weight_g);return s+(eggs>0?eggs*weight:0);},0);
   const henDays=eggRows.reduce((s,r)=>s+numeric(r.opening_birds),0);
   const eggMassPerHenDay=totalEggMassG>=0&&henDays>0?totalEggMassG/henDays:null;
@@ -52,11 +65,11 @@ function baseAgg(rows){
     mortality_count:sum(rows,'mortality_count'),cull_count:sum(rows,'cull_count'),
     total_eggs:totalEggs,total_saleable_eggs:sum(rows,'saleable_egg_count'),total_cracked_eggs:sum(rows,'cracked_egg_count'),
     total_dirty_eggs:sum(rows,'dirty_egg_count'),total_floor_eggs:sum(rows,'floor_egg_count'),
-    avg_hen_day_production:weightedAvg(rows,'hen_day_production_percent','opening_birds'),
-    avg_hen_housed_production:avg(rows,'hen_housed_production_percent'),
-    avg_feed_per_hen_g:weightedAvg(rows,'feed_per_hen_g','opening_birds'),
-    avg_water_per_hen_ml:weightedAvg(rows,'water_per_hen_ml','opening_birds'),
-    avg_water_feed_ratio:avg(rows,'water_feed_ratio'),avg_egg_weight_g:weightedAvg(rows,'average_egg_weight_g','egg_count'),
+    avg_hen_day_production:henDayProduction,
+    avg_hen_housed_production:henHousedProduction,
+    avg_feed_per_hen_g:avgFeedPerHen,
+    avg_water_per_hen_ml:avgWaterPerHen,
+    avg_water_feed_ratio:avgWaterFeed,avg_egg_weight_g:weightedAvg(rows,'average_egg_weight_g','egg_count'),
     avg_egg_mass_g:eggMassPerHenDay,feed_per_egg_g:hasFeed&&fcrEggs>0?fcrFeedKg*1000/fcrEggs:null,
     feed_per_egg_mass:hasFeed&&fcrEggMassG>0?fcrFeedKg*1000/fcrEggMassG:null,avg_body_weight_g:avg(rows,'body_weight_g'),
     avg_uniformity_10:avg(rows,'uniformity_10_percent'),avg_uniformity_15:avg(rows,'uniformity_15_percent'),avg_cv:avg(rows,'cv_percent'),
@@ -83,7 +96,7 @@ async function sync(flock, user, supabaseClient, dailyRows){
     const j=toJalali(r.record_date);if(j){const key=monthKey(j);if(!byMonth.has(key))byMonth.set(key,{j,rows:[]});byMonth.get(key).rows.push(r);}
   });
   const weeks=[...byWeek.entries()].map(([week,rs])=>{
-    const a=baseAgg(rs),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date); const consecutive=rs.length===7&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1);
+    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1),j=toJalali(s.record_date); const consecutive=rs.length===7&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1);
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,week_no:week,
       period_start:s.record_date,period_end:e.record_date,age_start_days:Math.min(...rs.map(x=>numeric(x.age_days)).filter(x=>x!==null)),age_end_days:Math.max(...rs.map(x=>numeric(x.age_days)).filter(x=>x!==null)),
       jalali_year:j?.year||null,jalali_month:j?.month||null,jalali_week_label:'هفته '+fa(week),
@@ -92,7 +105,7 @@ async function sync(flock, user, supabaseClient, dailyRows){
   });
   for(const w of weeks){const wr=await supabaseClient.from('layer_weekly_monitoring').upsert(w,{onConflict:'flock_id,week_no'});if(wr.error)throw new Error('ذخیره خلاصه هفتگی تخم‌گذار ناموفق بود: '+wr.error.message);}
   const months=[...byMonth.values()].map(({j,rows:rs})=>{
-    const a=baseAgg(rs),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const complete=todayIso>=monthEndIso&&rs.length>=expected&&contiguous&&s.record_date===activeStart&&e.record_date===monthEndIso;
+    const a=baseAgg(rs,flock),s=rs[0],e=rs.at(-1); const monthStartIso=jalaliToGregorian(j.year,j.month,1); const monthEndIso=jalaliToGregorian(j.year,j.month,daysInJalaliMonth(j.year,j.month)); const activeStart=flock.placement_date&&flock.placement_date>monthStartIso?flock.placement_date:monthStartIso; const expected=activeStart<=monthEndIso?isoDiff(monthEndIso,activeStart)+1:0; const todayIso=new Date().toISOString().slice(0,10); const contiguous=rs.length>0&&rs.every((x,i)=>i===0||isoDiff(x.record_date,rs[i-1].record_date)===1); const complete=todayIso>=monthEndIso&&rs.length>=expected&&contiguous&&s.record_date===activeStart&&e.record_date===monthEndIso;
     const monthStart=activeStart; const ageContiguous=rs.every((x,i)=>numeric(x.age_days)!==null&&(i===0||numeric(x.age_days)===numeric(rs[i-1].age_days)+1));
     return {...a,flock_id:flock.id,farm_id:flock.farm_id,house_id:flock.house_id,owner_id:user.id,
       jalali_year:j.year,jalali_month:j.month,jalali_month_key:monthKey(j),jalali_month_label:j.monthLabel,

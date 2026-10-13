@@ -49,7 +49,7 @@ const profiles={
   'W-80':{
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2026,
     sourceLabel:'Hy-Line W-80 Commercial Layers Performance Standards Guide — April 2026 (Conventional/Cage systems)',
-    housingSystem:'cage',sourceVerifiedAt:'2026-10-13',
+    housingSystem:'cage',sourceVerifiedAt:'2026-10-13',sourceStatus:'verified_selected_points',
     sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-80/80%20STD%20ENG.pdf',
     records:[
       {ageDays:119,bodyWeight:1240.5,dailyFeed:73,dailyWater:110},
@@ -94,7 +94,7 @@ const profiles={
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2026,
     sourceLabel:'Hy-Line W-80 Plus Commercial Layers Performance Standards Guide — April 2026 (Conventional/Cage systems)',
     sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-80/80PLUS%20STD%20ENG.pdf',
-    housingSystem:'cage',sourceVerifiedAt:'2026-10-13',records:[],
+    housingSystem:'cage',sourceVerifiedAt:'2026-10-13',sourceStatus:'verified_selected_points',records:[],
     notes:'منحنی بازه‌ای از جدول رسمی آوریل ۲۰۲۶؛ مرزهای min/max حفظ می‌شوند و به نقطهٔ میانی به‌عنوان هدف قطعی تبدیل نمی‌شوند.',
     rangeRecords:[
       {ageDays:119,bodyWeight:{min:1238,max:1296},dailyFeed:{min:73.9,max:76.5},dailyWater:{min:110.9,max:114.7}},
@@ -137,7 +137,7 @@ const profiles={
     genetics:'hendrix',sourceType:OFFICIAL,sourceYear:null,
     sourceLabel:'ISA Brown EU CS Product Guide — Cage housing (official PDF; verified 2026-10-13)',
     sourceUrl:'https://www.isa-poultry.com/documents/1399/ISA_Brown_EU_CS_product_guide_cage_EN_L6230-1.pdf',
-    sourceVerifiedAt:'2026-10-13',housingSystem:'cage',dataGranularity:'selected_official_weekly_anchors',
+    sourceVerifiedAt:'2026-10-13',housingSystem:'cage',sourceStatus:'verified_selected_points',dataGranularity:'selected_official_weekly_anchors',
     interpolationNote:'Only official week-specific values below are source values; values between anchors are linear estimates and must be labelled as interpolated.',
     records:[
       {ageDays:126,henDayProduction:3.2,eggWeight:42.6,dailyFeed:91,fcr:66.76,bodyWeight:1520,livability:99.9},
@@ -307,7 +307,8 @@ function resolve(flock){
   const systemMismatch=Boolean(p.housingSystem&&((p.housingSystem==='cage'&&alternative)||(p.housingSystem==='alternative'&&cage)||(!housing&&(p.housingSystem==='cage'||p.housingSystem==='alternative'))));
   const active=systemMismatch?{...p,records:[],rangeRecords:[],fallback:true,numericReady:false,systemMismatch:true,systemMismatchReason:!housing?'سیستم پرورش ثبت نشده؛ منحنی قفس فعال نشد.':'سیستم پرورش با منبع منحنی سویه هم‌خوان نیست؛ مقایسهٔ ژنتیکی غیرفعال شد.'}:p;
   const ready=(active.records||[]).length>1||(active.rangeRecords||[]).length>1;
-  return {...active,label:active.strain||exact,strain:exact,fallback:systemMismatch||!ready,numericReady:!systemMismatch&&ready,management:MANAGEMENT_PROFILE};
+  const sourceStatus=active.sourceStatus||(ready?'provisional_selected_points':'source_available_curve_not_extracted');
+  return {...active,label:active.strain||exact,strain:exact,sourceStatus,fallback:systemMismatch||!ready,numericReady:!systemMismatch&&ready,management:MANAGEMENT_PROFILE};
 }
  const aliases={
   'hy-line w-80':'W-80','hyline w-80':'W-80','hy-line brown':'Brown',
@@ -334,9 +335,9 @@ function resolve(flock){
 }
 function metricAtAge(std,metric,age){
  const officialRange=interpolateRange(std.rangeRecords||[],metric,age);
- if(officialRange)return {value:(officialRange.min+officialRange.max)/2,min:officialRange.min,max:officialRange.max,referenceKind:'range',sourceType:std.sourceType,sourceLabel:std.sourceLabel,isFallback:false,isInterpolated:!(std.rangeRecords||[]).some(r=>Number(r.ageDays)===Number(age))};
+ if(officialRange)return {value:(officialRange.min+officialRange.max)/2,min:officialRange.min,max:officialRange.max,referenceKind:'range',sourceType:std.sourceStatus==='verified_selected_points'?std.sourceType:'provisional_breeder_guide',sourceLabel:std.sourceLabel,sourceStatus:std.sourceStatus,isFallback:false,isInterpolated:!(std.rangeRecords||[]).some(r=>Number(r.ageDays)===Number(age))};
  const official=interpolate((std.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);
- if(official!==null)return {value:official,sourceType:std.sourceType,sourceLabel:std.sourceLabel,isFallback:false,isInterpolated:!(std.records||[]).some(r=>Number(r.ageDays)===Number(age))};
+ if(official!==null)return {value:official,sourceType:std.sourceStatus==='verified_selected_points'?std.sourceType:'provisional_breeder_guide',sourceLabel:std.sourceLabel,sourceStatus:std.sourceStatus,isFallback:false,isInterpolated:!(std.records||[]).some(r=>Number(r.ageDays)===Number(age))};
  const m=interpolate((std.management?.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);
  if(m!==null)return {value:m,sourceType:MANAGEMENT,sourceLabel:std.management.sourceLabel,isFallback:true,isInterpolated:!(std.management?.records||[]).some(r=>Number(r.ageDays)===Number(age))};
  return {value:null,sourceType:null,sourceLabel:null,isFallback:false};
@@ -362,7 +363,7 @@ const api=Object.freeze({
  getDailyReference,
  evaluate,
  list:()=>Object.keys(profiles),
- isOfficial:std=>Boolean(std&&!std.fallback&&std.sourceType===OFFICIAL),
+ isOfficial:std=>Boolean(std&&!std.fallback&&std.sourceType===OFFICIAL&&std.sourceStatus==='verified_selected_points'),
  OFFICIAL,MANAGEMENT
 });
 g.ADINE_LAYER_STANDARDS_ENGINE_V1=api;

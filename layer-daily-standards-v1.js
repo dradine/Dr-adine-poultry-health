@@ -362,7 +362,8 @@ const api=Object.freeze({
  getDailyReference,
  evaluate,
  list:()=>Object.keys(profiles),
- isOfficial:std=>Boolean(std&&!std.fallback&&std.sourceType===OFFICIAL)
+ isOfficial:std=>Boolean(std&&!std.fallback&&std.sourceType===OFFICIAL),
+ OFFICIAL,MANAGEMENT
 });
 g.ADINE_LAYER_STANDARDS_ENGINE_V1=api;
 // Backward-compatible alias for the Layer Daily page; this is the same engine,

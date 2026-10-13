@@ -35,7 +35,7 @@ function calc(){
  const categoryDefect=eggs>0?(cracked+dirty+soft+misshapen+floor)/eggs*100:null;
  const defectPct=salePct!=null?Math.max(0,100-salePct):categoryDefect;
  set('henDay',fmtFa(henDay,2));set('henHoused',fmtFa(henHoused,2));set('feedPerHen',fmtFa(feedHen,2));set('waterPerHen',fmtFa(waterHen,1));set('waterFeedRatio',fmtFa(ratio,2));set('eggMass',fmtFa(mass,2));set('feedPerEgg',fmtFa(fpe,2));set('feedPerEggMass',fmtFa(fpm,3));set('saleableEggPercent',fmtFa(salePct,2));set('eggDefectPercent',fmtFa(defectPct,2));
- const mort=n(val('mortalityCount'))||0,cull=n(val('cullCount'))||0,init=n(flock?.initial_bird_count);
+ const mort=n(val('mortalityCount'))||0,cull=n(val('cullCount'))||0;
  const prev=records.filter(r=>String(r.record_date)<String(val('recordDate'))),prevMort=prev.reduce((a,r)=>a+(n(r.mortality_count)||0),0),prevCull=prev.reduce((a,r)=>a+(n(r.cull_count)||0),0),cum=prevMort+mort,cumCull=prevCull+cull;
  set('livability',init?fmtFa((Math.max(0,init-cum-cumCull)/init)*100,2):'');
  $('sProd').textContent=henDay!=null?fmtFa(henDay,1)+'٪':'—';$('sFeed').textContent=feedHen!=null?fmtFa(feedHen,1)+' گرم':'—';$('sWater').textContent=waterHen!=null?fmtFa(Math.round(waterHen),0)+' میلی‌لیتر':'—';$('sMass').textContent=mass!=null?fmtFa(mass,1)+' گرم':'—';if($('sFcr'))$('sFcr').textContent=fpm!=null?fmtFa(fpm,3):'—';$('sMort').textContent=pop&&mort!=null?fmtFa(mort/pop*100,3)+'٪':'—';

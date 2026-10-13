@@ -48,7 +48,8 @@ const profiles={
 
   'W-80':{
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2026,
-    sourceLabel:'Hy-Line W-80 Commercial Layers Performance Standards — April 2026',
+    sourceLabel:'Hy-Line W-80 Commercial Layers Performance Standards Guide — April 2026 (Conventional/Cage systems)',
+    housingSystem:'cage',sourceVerifiedAt:'2026-10-13',
     sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-80/80%20STD%20ENG.pdf',
     records:[
       {ageDays:119,bodyWeight:1240.5,dailyFeed:73,dailyWater:110},
@@ -67,23 +68,61 @@ const profiles={
       {ageDays:420,bodyWeight:1635,dailyFeed:107,dailyWater:160.6,henDayProduction:91.55,eggWeight:64.65},
       {ageDays:490,bodyWeight:1683,dailyFeed:107,dailyWater:160.6,henDayProduction:91,eggWeight:64.5},
       {ageDays:560,bodyWeight:1695,dailyFeed:107,dailyWater:160.6,henDayProduction:86.95,eggWeight:64.8}
+    ],
+    rangeRecords:[
+      {ageDays:119,bodyWeight:{min:1212,max:1269},dailyFeed:{min:72,max:74},dailyWater:{min:108,max:112}},
+      {ageDays:126,henDayProduction:{min:0.1,max:0.2},bodyWeight:{min:1257,max:1316},dailyFeed:{min:75.9,max:78.6},dailyWater:{min:113.8,max:117.8},eggWeight:{min:42.1,max:43.4}},
+      {ageDays:133,henDayProduction:{min:6.5,max:6.7},bodyWeight:{min:1299,max:1360},dailyFeed:{min:79.3,max:82.1},dailyWater:{min:119,max:123.1},eggWeight:{min:44.8,max:46.1}},
+      {ageDays:140,henDayProduction:{min:42.5,max:44.2},bodyWeight:{min:1336,max:1400},dailyFeed:{min:83.1,max:86.0},dailyWater:{min:124.7,max:129.1},eggWeight:{min:47.2,max:48.7}},
+      {ageDays:147,henDayProduction:{min:72.3,max:75.3},bodyWeight:{min:1368,max:1435},dailyFeed:{min:86.6,max:89.7},dailyWater:{min:130.0,max:134.5},eggWeight:{min:49.0,max:50.5}},
+      {ageDays:154,henDayProduction:{min:81.8,max:85.2},bodyWeight:{min:1398,max:1467},dailyFeed:{min:89.6,max:92.7},dailyWater:{min:134.4,max:139.1},eggWeight:{min:50.6,max:52.1}},
+      {ageDays:168,henDayProduction:{min:89.8,max:93.5},bodyWeight:{min:1450,max:1523},dailyFeed:{min:94.1,max:97.3},dailyWater:{min:141.1,max:146.0},eggWeight:{min:53.5,max:55.1}},
+      {ageDays:182,henDayProduction:{min:92.5,max:96.3},bodyWeight:{min:1495,max:1570},dailyFeed:{min:97.3,max:100.7},dailyWater:{min:145.9,max:151.0},eggWeight:{min:55.8,max:57.5}},
+      {ageDays:196,henDayProduction:{min:93.9,max:97.7},bodyWeight:{min:1529,max:1608},dailyFeed:{min:99.6,max:103.1},dailyWater:{min:149.4,max:154.6},eggWeight:{min:57.6,max:59.4}},
+      {ageDays:224,henDayProduction:{min:94.3,max:98.1},bodyWeight:{min:1573,max:1657},dailyFeed:{min:103.1,max:106.7},dailyWater:{min:154.7,max:160.1},eggWeight:{min:59.8,max:61.7}},
+      {ageDays:252,henDayProduction:{min:93.8,max:97.6},bodyWeight:{min:1595,max:1682},dailyFeed:{min:105.7,max:109.4},dailyWater:{min:158.5,max:164.1},eggWeight:{min:61.0,max:62.9}},
+      {ageDays:280,henDayProduction:{min:93.1,max:96.9},bodyWeight:{min:1605,max:1696},dailyFeed:{min:106.9,max:110.6},dailyWater:{min:160.3,max:165.9},eggWeight:{min:61.8,max:63.6}},
+      {ageDays:350,henDayProduction:{min:91.4,max:95.1},bodyWeight:{min:1613,max:1712},dailyFeed:{min:107.0,max:110.8},dailyWater:{min:160.6,max:166.2},eggWeight:{min:62.7,max:64.6}},
+      {ageDays:420,henDayProduction:{min:89.7,max:93.4},bodyWeight:{min:1620,max:1726},dailyFeed:{min:107.0,max:110.8},dailyWater:{min:160.6,max:166.2},eggWeight:{min:63.2,max:65.1}},
+      {ageDays:490,henDayProduction:{min:88.1,max:91.7},bodyWeight:{min:1626,max:1740},dailyFeed:{min:107.0,max:110.8},dailyWater:{min:160.6,max:166.2},eggWeight:{min:63.5,max:65.5}},
+      {ageDays:560,henDayProduction:{min:85.2,max:88.7},bodyWeight:{min:1633,max:1754},dailyFeed:{min:107.0,max:110.8},dailyWater:{min:160.6,max:166.2},eggWeight:{min:63.7,max:65.7}},
+      {ageDays:700,henDayProduction:{min:78.4,max:81.6},bodyWeight:{min:1646,max:1783},dailyFeed:{min:107.0,max:110.8},dailyWater:{min:160.6,max:166.2},eggWeight:{min:63.9,max:65.9}}
     ]
   },
 
   'W-80 Plus':{
-    genetics:'hyline',sourceType:OFFICIAL,sourceYear:2024,
-    sourceLabel:'Hy-Line W-80 Plus Commercial Layers Performance Standards',
+    genetics:'hyline',sourceType:OFFICIAL,sourceYear:2026,
+    sourceLabel:'Hy-Line W-80 Plus Commercial Layers Performance Standards Guide — April 2026 (Conventional/Cage systems)',
     sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-80/80PLUS%20STD%20ENG.pdf',
-    records:[],
-    notes:'مقادیر نقطه‌ای قبلی با جدول رسمی جاری به‌طور کامل تطبیق داده نشده بودند؛ تا استخراج و تطبیق کامل جدول، منحنی عددی فعال نیست.'
+    housingSystem:'cage',sourceVerifiedAt:'2026-10-13',records:[],
+    notes:'منحنی بازه‌ای از جدول رسمی آوریل ۲۰۲۶؛ مرزهای min/max حفظ می‌شوند و به نقطهٔ میانی به‌عنوان هدف قطعی تبدیل نمی‌شوند.',
+    rangeRecords:[
+      {ageDays:119,bodyWeight:{min:1238,max:1296},dailyFeed:{min:73.9,max:76.5},dailyWater:{min:110.9,max:114.7}},
+      {ageDays:126,henDayProduction:{min:0.1,max:0.2},bodyWeight:{min:1284,max:1345},dailyFeed:{min:77.8,max:80.6},dailyWater:{min:116.7,max:120.8},eggWeight:{min:43.2,max:44.6}},
+      {ageDays:133,henDayProduction:{min:6.5,max:6.7},bodyWeight:{min:1327,max:1390},dailyFeed:{min:81.3,max:84.1},dailyWater:{min:121.9,max:126.1},eggWeight:{min:45.9,max:47.3}},
+      {ageDays:140,henDayProduction:{min:42.5,max:44.2},bodyWeight:{min:1365,max:1430},dailyFeed:{min:85.1,max:88.0},dailyWater:{min:127.6,max:132.1},eggWeight:{min:48.5,max:50.0}},
+      {ageDays:147,henDayProduction:{min:72.3,max:75.3},bodyWeight:{min:1398,max:1466},dailyFeed:{min:88.5,max:91.6},dailyWater:{min:132.8,max:137.5},eggWeight:{min:50.3,max:51.8}},
+      {ageDays:154,henDayProduction:{min:81.8,max:85.2},bodyWeight:{min:1429,max:1498},dailyFeed:{min:91.5,max:94.7},dailyWater:{min:137.3,max:142.1},eggWeight:{min:51.9,max:53.5}},
+      {ageDays:168,henDayProduction:{min:89.8,max:93.5},bodyWeight:{min:1482,max:1556},dailyFeed:{min:96.0,max:99.3},dailyWater:{min:144.0,max:149.0},eggWeight:{min:54.9,max:56.5}},
+      {ageDays:182,henDayProduction:{min:92.5,max:96.3},bodyWeight:{min:1527,max:1604},dailyFeed:{min:99.2,max:102.7},dailyWater:{min:148.8,max:154.0},eggWeight:{min:57.3,max:59.0}},
+      {ageDays:196,henDayProduction:{min:93.9,max:97.7},bodyWeight:{min:1562,max:1642},dailyFeed:{min:102.0,max:105.6},dailyWater:{min:153.0,max:158.3},eggWeight:{min:59.1,max:60.9}},
+      {ageDays:224,henDayProduction:{min:94.1,max:98.0},bodyWeight:{min:1608,max:1693},dailyFeed:{min:105.5,max:109.2},dailyWater:{min:158.3,max:163.9},eggWeight:{min:61.4,max:63.3}},
+      {ageDays:252,henDayProduction:{min:93.4,max:97.2},bodyWeight:{min:1629,max:1719},dailyFeed:{min:108.2,max:111.9},dailyWater:{min:162.2,max:167.9},eggWeight:{min:62.6,max:64.5}},
+      {ageDays:280,henDayProduction:{min:92.4,max:96.2},bodyWeight:{min:1640,max:1733},dailyFeed:{min:109.4,max:113.2},dailyWater:{min:164.0,max:169.8},eggWeight:{min:63.4,max:65.3}},
+      {ageDays:350,henDayProduction:{min:90.3,max:94.0},bodyWeight:{min:1648,max:1749},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:64.4,max:66.3}},
+      {ageDays:420,henDayProduction:{min:88.1,max:91.7},bodyWeight:{min:1655,max:1764},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:64.9,max:66.8}},
+      {ageDays:490,henDayProduction:{min:86.4,max:89.9},bodyWeight:{min:1662,max:1778},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:65.2,max:67.2}},
+      {ageDays:560,henDayProduction:{min:83.5,max:87.0},bodyWeight:{min:1668,max:1793},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:65.4,max:67.4}},
+      {ageDays:700,henDayProduction:{min:78.4,max:81.6},bodyWeight:{min:1682,max:1822},dailyFeed:{min:109.5,max:113.3},dailyWater:{min:164.3,max:170.0},eggWeight:{min:65.6,max:67.6}}
+    ]
   },
 
   'W-80 Pro':{
     genetics:'hyline',sourceType:OFFICIAL,sourceYear:2026,
-    sourceLabel:'Hy-Line W-80 Pro Commercial Layers Performance Standards — 2026',
-    sourceUrl:'https://www.hyline.com/literature/w-80',
-    records:[],
-    notes:'منبع دقیق و نسخهٔ راهنمای مختص W-80 Pro برای این نقاط تأیید نشده است؛ از این نقاط به‌عنوان منحنی رسمی استفاده نمی‌شود.'
+    sourceLabel:'Hy-Line W-80 Pro Commercial Layers Performance Standards Guide — April 2026 (Conventional/Cage systems)',
+    sourceUrl:'https://www.hyline.com/filesimages/Hy-Line-Products/Hy-Line-Product-PDFs/W-80/80R%20STD%20ENG.pdf',
+    housingSystem:'cage',sourceVerifiedAt:'2026-10-13',records:[],
+    notes:'منبع رسمی موجود است اما منحنی W-80 Pro هنوز استخراج و تطبیق نشده؛ هیچ منحنی عددی حدسی فعال نیست.'
   },
 
   'Brown':{
@@ -265,6 +304,11 @@ function interpolate(points,age){
  for(let i=1;i<p.length;i++){if(a<=p[i].age){const x=p[i-1],y=p[i],t=(a-x.age)/(y.age-x.age);return x.value+(y.value-x.value)*t;}}
  return null;
 }
+function interpolateRange(records,metric,age){
+ const min=interpolate((records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]?.min})),age);
+ const max=interpolate((records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]?.max})),age);
+ return min!==null&&max!==null?{min,max}:null;
+}
 function resolve(flock){
  const s=norm(flock?.strain),g0=norm(flock?.genetics);
  const exact=Object.keys(profiles).find(k=>norm(k)===s);
@@ -272,8 +316,9 @@ function resolve(flock){
   const p=profiles[exact],housing=norm(flock?.housing_system||flock?.housingSystem||flock?.housing_type);
   const cage=/(cage|قفس)/.test(housing),alternative=/(alternative|aviary|cage.free|آویاری|بستر|آزاد|بدون قفس)/.test(housing);
   const systemMismatch=Boolean(p.housingSystem&&((p.housingSystem==='cage'&&alternative)||(p.housingSystem==='alternative'&&cage)||(!housing&&p.housingSystem==='cage')));
-  const active=systemMismatch?{...p,records:[],fallback:true,numericReady:false,systemMismatch:true,systemMismatchReason:!housing?'سیستم پرورش ثبت نشده؛ منحنی قفس فعال نشد.':'سیستم پرورش با منبع منحنی سویه هم‌خوان نیست؛ مقایسهٔ ژنتیکی غیرفعال شد.'}:p;
-  return {...active,label:active.strain||exact,strain:exact,fallback:systemMismatch||!(Array.isArray(active.records)&&active.records.length>1),numericReady:!systemMismatch&&Array.isArray(active.records)&&active.records.length>1,management:MANAGEMENT_PROFILE};
+  const active=systemMismatch?{...p,records:[],rangeRecords:[],fallback:true,numericReady:false,systemMismatch:true,systemMismatchReason:!housing?'سیستم پرورش ثبت نشده؛ منحنی قفس فعال نشد.':'سیستم پرورش با منبع منحنی سویه هم‌خوان نیست؛ مقایسهٔ ژنتیکی غیرفعال شد.'}:p;
+  const ready=(active.records||[]).length>1||(active.rangeRecords||[]).length>1;
+  return {...active,label:active.strain||exact,strain:exact,fallback:systemMismatch||!ready,numericReady:!systemMismatch&&ready,management:MANAGEMENT_PROFILE};
 }
  const aliases={
   'hy-line w-80':'W-80','hyline w-80':'W-80','hy-line brown':'Brown',
@@ -299,6 +344,8 @@ function resolve(flock){
  };
 }
 function metricAtAge(std,metric,age){
+ const officialRange=interpolateRange(std.rangeRecords||[],metric,age);
+ if(officialRange)return {value:(officialRange.min+officialRange.max)/2,min:officialRange.min,max:officialRange.max,referenceKind:'range',sourceType:std.sourceType,sourceLabel:std.sourceLabel,isFallback:false,isInterpolated:!(std.rangeRecords||[]).some(r=>Number(r.ageDays)===Number(age))};
  const official=interpolate((std.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);
  if(official!==null)return {value:official,sourceType:std.sourceType,sourceLabel:std.sourceLabel,isFallback:false,isInterpolated:!(std.records||[]).some(r=>Number(r.ageDays)===Number(age))};
  const m=interpolate((std.management?.records||[]).map(r=>({ageDays:r.ageDays,value:r[metric]})),age);

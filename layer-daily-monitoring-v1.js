@@ -51,6 +51,8 @@ function calc(){
  if(assessment.dataQualityFlags.length)reasons.push('داده‌های دارای خطا باید پیش از تفسیر عملکرد اصلاح شوند.');
  setStatus(state,reason);
  let alerts=[];if(referenceSource==='management')alerts.push('حداقل یکی از مقایسه‌ها از مرجع مدیریتی پایش استفاده می‌کند؛ این مرجع استاندارد جهانی یا منحنی رسمی این سویه نیست.');
+ if(Object.values(deviations.interpolatedByMetric||{}).some(Boolean))alerts.push('بخشی از مقدار مرجع از درون‌یابی بین نقاط مستند به‌دست آمده و عدد مستقیم جدول سازنده نیست.');
+ if(std.systemMismatchReason)alerts.push(std.systemMismatchReason);
  if(reasons.length)alerts.push(reasons.slice(0,5).join(' • '));
  $('alert').className=alerts.length?'alert show':'alert';$('alert').innerHTML=alerts.map(esc).join('<br>');
  return {state,reason,deviations,defectPct,salePct,assessment,calculationEngineVersion:g.ADINE_LAYER_CALCULATION_ENGINE_V1.version,standardsVersion:g.ADINE_LAYER_STANDARDS_ENGINE_V1.version,standardLabel:std.sourceLabel||std.label||std.strain,standardSource:std.sourceUrl||null,standardSystemMismatch:std.systemMismatchReason||null};

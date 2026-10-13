@@ -93,7 +93,7 @@ const db = {
 
   const reportsSource = read("layer-reports.html");
   const derivedStart = reportsSource.indexOf("function derivedDaily(");
-  const derivedEnd = reportsSource.indexOf("const metrics=", derivedStart);
+  const derivedEnd = reportsSource.indexOf("function metricRowDaily(", derivedStart);
   assert.ok(derivedStart >= 0 && derivedEnd > derivedStart, "Daily report must derive its formula-based metrics from raw fields");
   const reportContext = {
     n(value) {

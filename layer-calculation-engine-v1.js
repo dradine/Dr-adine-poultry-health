@@ -26,6 +26,13 @@ function aggregate(rows=[],flock={}){
  const placed=num(flock.initial_bird_count)||num(flock.placed_birds)||null;
  const last=rs.at(-1)||{};
  const totalEggMassKg=allEggDaysHaveMass?totalEggMassG/1000:null;
+ const qualityFlags=[];
+ if(!hasAll('egg_count'))qualityFlags.push('missing_daily_egg_count');
+ if(!hasAll('feed_quantity_kg'))qualityFlags.push('missing_daily_feed_quantity');
+ if(!allEggDaysHaveMass)qualityFlags.push('missing_egg_mass_for_one_or_more_days');
+ if(!hasAll('opening_birds'))qualityFlags.push('missing_live_population_for_one_or_more_days');
+ if(!placed)qualityFlags.push('missing_initial_housed_bird_count');
+ if(!rs.every(r=>num(r.average_egg_weight_g)!==null||num(r.egg_count)===0))qualityFlags.push('egg_mass_uses_fallback_or_is_incomplete');
  return {
   mortality_count:sum(rs,'mortality_count'),cull_count:sum(rs,'cull_count'),
   total_eggs:totalEggs,total_saleable_eggs:hasAll('saleable_egg_count')?sum(rs,'saleable_egg_count'):null,
@@ -48,7 +55,8 @@ function aggregate(rows=[],flock={}){
   avg_haugh_unit:avg(rs,'haugh_unit'),avg_albumen_height_mm:avg(rs,'albumen_height_mm'),
   avg_shell_strength_g:avg(rs,'egg_shell_strength_g'),avg_shell_thickness_mm:avg(rs,'egg_shell_thickness_mm'),
   avg_egg_color_score:avg(rs,'egg_color_score'),
-  livability:last.livability_percent??null,health_status:last.health_status||null
+  livability:last.livability_percent??null,health_status:last.health_status||null,
+  data_quality_flags:qualityFlags,fcr_available:totalFeed!==null&&totalEggMassKg!==null&&totalEggMassKg>0
  };
 }
 function assessDaily(input={}){
@@ -100,13 +108,13 @@ function livabilityPercent(initialBirds,cumulativeMortality,cumulativeCulls){
 function dailyMetrics(input={}){
  const live=num(input.liveBirds),placed=num(input.placedBirds),eggs=num(input.eggCount),feed=num(input.feedKg),water=num(input.waterL),ew=num(input.averageEggWeightG),saleable=num(input.saleableEggCount);
  const cracked=num(input.crackedEggCount),dirty=num(input.dirtyEggCount),soft=num(input.softShellEggCount),misshapen=num(input.misshapenEggCount),floor=num(input.floorEggCount);
- const hasDefectCounts=[cracked,dirty,soft,misshapen,floor].some(v=>v!==null);
  const validPop=live!==null&&live>0,validPlaced=placed!==null&&placed>0;
  const eggMassG=eggs!==null&&ew!==null&&eggs>=0&&ew>=0?eggs*ew:null;
  const eggMassKg=eggMassG!==null?eggMassG/1000:null;
  const saleableEggPercent=eggs!==null&&eggs>0&&saleable!==null?saleable/eggs*100:null;
- const categoryDefectPercent=eggs!==null&&eggs>0&&hasDefectCounts?((cracked||0)+(dirty||0)+(soft||0)+(misshapen||0)+(floor||0))/eggs*100:null;
- const eggDefectPercent=saleableEggPercent!==null?Math.max(0,100-saleableEggPercent):categoryDefectPercent;
+ // Defect categories may overlap (e.g., a floor egg may also be dirty/cracked).
+ // Never sum them into a flock-level defect rate; require an explicit saleable-egg count.
+ const eggDefectPercent=saleableEggPercent!==null?Math.max(0,100-saleableEggPercent):null;
  return {
   liveBirds:validPop?live:null,placedBirds:validPlaced?placed:null,eggCount:eggs,
   henDayProductionPercent:validPop&&eggs!==null?eggs/live*100:null,

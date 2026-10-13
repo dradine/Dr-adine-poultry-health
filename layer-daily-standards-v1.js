@@ -155,7 +155,7 @@ const profiles={
 
   'Lohmann Brown-Classic':{
     genetics:'lohmann',sourceType:OFFICIAL,sourceYear:2021,
-    sourceLabel:'LOHMANN BROWN-CLASSIC Management Guide / Performance Data',
+    sourceLabel:'LOHMANN BROWN-CLASSIC Management Guide / Performance Data',housingSystem:'cage',
     sourceUrl:'https://lohmann-breeders.com/files/downloads/MG/e-Guides/Cage/English/LB_eMG_Cage_EN_PerfData_LB-Classic_p8.pdf',
     records:[
       {ageDays:119,bodyWeight:1420},
@@ -168,7 +168,7 @@ const profiles={
 
   'Lohmann Brown-Lite':{
     genetics:'lohmann',sourceType:OFFICIAL,sourceYear:2021,
-    sourceLabel:'LOHMANN BROWN-LITE Performance Data',
+    sourceLabel:'LOHMANN BROWN-LITE Performance Data',housingSystem:'alternative',
     sourceUrl:'https://lohmann-breeders.com/files/downloads/MG/Data%20Tables/Protected_LB_Zusatzheft_Alternative%20Haltung_LB-Lite_EN_06.21_V01-21_high.pdf',
     records:[
       {ageDays:119,bodyWeight:1407},
@@ -181,7 +181,7 @@ const profiles={
 
   'Lohmann LSL-Classic':{
     genetics:'lohmann',sourceType:OFFICIAL,sourceYear:2021,
-    sourceLabel:'LOHMANN LSL-CLASSIC Performance Data',
+    sourceLabel:'LOHMANN LSL-CLASSIC Performance Data',housingSystem:'cage',
     sourceUrl:'https://lohmann-breeders.com/files/downloads/MG/Cage/LB_MG_Cage_LSL-Classic_EN.pdf',
     records:[
       {ageDays:119,bodyWeight:1270},
@@ -247,18 +247,15 @@ const profiles={
   },
 
   'Super Nick':{
-    genetics:'h&n',sourceType:OFFICIAL,sourceYear:2020,
-    sourceLabel:'H&N Super Nick Commercial Layer Field Performance Report — Turkey',
+    genetics:'hn',sourceType:'secondary_reference',sourceYear:2020,
+    sourceLabel:'H&N Super Nick field performance report — secondary reference; not a current breeder standard',
     sourceUrl:'https://hn-int.com/wp-content/uploads/2020/10/2011-2-FtF-en.pdf',
-    records:[
-      {ageDays:560,henDayProduction:77.7,eggWeight:66}
-    ],
-    notes:'گزارش رسمی عملکرد گله‌های تجاری H&N در ترکیه؛ مقادیر 77–80 هفتگی به‌عنوان داده میدانی رسمی ثبت شده‌اند و به منحنی نقطه‌ای جعلی تبدیل نشده‌اند.'
+    records:[],notes:'گزارش میدانی قدیمی و غیرمعادل استاندارد عملکرد جاری؛ برای مقایسه عددی سویه استفاده نمی‌شود.'
   },
 
   'Nick Chick':{
     genetics:'h&n',sourceType:OFFICIAL,sourceYear:2025,
-    sourceLabel:'H&N Nick Chick Commercial Layer Performance Standards',
+    sourceLabel:'H&N Nick Chick Commercial Layer Performance Standards',housingSystem:'alternative',
     sourceUrl:'https://hn-int.com/wp-content/uploads/2025/02/HN_MG_Alternative_EN-NA_NickChick_01.23_V01-25_printX3_compressed.pdf',
     records:[
       {ageDays:133,bodyWeight:1300,dailyFeed:103},
@@ -271,18 +268,10 @@ const profiles={
   },
 
   'TETRA Brown':{
-    genetics:'tetra',sourceType:OFFICIAL,sourceYear:2009,
-    sourceLabel:'Bábolna TETRA-SL Commercial Layer Management Guide',
+    genetics:'babolna',sourceType:'secondary_reference',sourceYear:2009,
+    sourceLabel:'TETRA-SL guide mirror — secondary copy; official publisher provenance not verified',
     sourceUrl:'https://www.winmixsoft.com/wp-content/uploads/2025/06/TETRA-SL_en.pdf',
-    records:[
-      {ageDays:126,bodyWeight:1440,dailyFeed:82},
-      {ageDays:144,bodyWeight:1500,dailyFeed:90,henDayProduction:50,eggWeight:52},
-      {ageDays:168,bodyWeight:1650,dailyFeed:105,henDayProduction:93,eggWeight:58},
-      {ageDays:196,bodyWeight:1750,dailyFeed:112,henDayProduction:95.3,eggWeight:60},
-      {ageDays:280,bodyWeight:1840,dailyFeed:112,henDayProduction:92,eggWeight:63},
-      {ageDays:420,bodyWeight:1900,dailyFeed:113,henDayProduction:87,eggWeight:66},
-      {ageDays:560,bodyWeight:1960,dailyFeed:113,henDayProduction:82,eggWeight:67.7}
-    ]
+    records:[],notes:'نسخهٔ ثانویه در میزبان غیرناشر؛ تا تأیید نسخهٔ اصلی سازنده، منحنی عددی غیرفعال است.'
   }
 };
 
@@ -315,7 +304,7 @@ function resolve(flock){
  if(exact){
   const p=profiles[exact],housing=norm(flock?.housing_system||flock?.housingSystem||flock?.housing_type);
   const cage=/(cage|قفس)/.test(housing),alternative=/(alternative|aviary|cage.free|آویاری|بستر|آزاد|بدون قفس)/.test(housing);
-  const systemMismatch=Boolean(p.housingSystem&&((p.housingSystem==='cage'&&alternative)||(p.housingSystem==='alternative'&&cage)||(!housing&&p.housingSystem==='cage')));
+  const systemMismatch=Boolean(p.housingSystem&&((p.housingSystem==='cage'&&alternative)||(p.housingSystem==='alternative'&&cage)||(!housing&&(p.housingSystem==='cage'||p.housingSystem==='alternative'))));
   const active=systemMismatch?{...p,records:[],rangeRecords:[],fallback:true,numericReady:false,systemMismatch:true,systemMismatchReason:!housing?'سیستم پرورش ثبت نشده؛ منحنی قفس فعال نشد.':'سیستم پرورش با منبع منحنی سویه هم‌خوان نیست؛ مقایسهٔ ژنتیکی غیرفعال شد.'}:p;
   const ready=(active.records||[]).length>1||(active.rangeRecords||[]).length>1;
   return {...active,label:active.strain||exact,strain:exact,fallback:systemMismatch||!ready,numericReady:!systemMismatch&&ready,management:MANAGEMENT_PROFILE};

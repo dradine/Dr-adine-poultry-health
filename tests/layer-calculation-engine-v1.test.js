@@ -14,5 +14,6 @@ assert.equal(e.aggregate([{opening_birds:1000,egg_count:500,average_egg_weight_g
 assert.equal(e.aggregate([{opening_birds:1000,egg_count:500,average_egg_weight_g:60,feed_quantity_kg:10},{opening_birds:null,egg_count:500,average_egg_weight_g:60,feed_quantity_kg:10}],{initial_bird_count:1000}).avg_hen_day_production,null);
 assert.equal(e.assessDaily({actual:{feedPerHenG:90},reference:{feed:100}}).state,'watch');
 const highFeed=e.assessDaily({actual:{feedPerHenG:112},reference:{feed:100}}); assert.equal(highFeed.state,'watch'); assert.equal(highFeed.score,null);
+const outsideOfficialRange=e.assessDaily({actual:{feedPerHenG:90},reference:{feed:{min:79.3,max:82.1}},referenceSource:'official'});assert.ok(outsideOfficialRange.reasons.some(x=>x.includes('مصرف دان بالاتر از بازهٔ رسمی')));
 const bad=e.assessDaily({actual:{eggCount:100,saleableEggCount:120}}); assert.equal(bad.state,'investigate'); assert.ok(bad.dataQualityFlags.includes('saleable_eggs_exceed_total'));
 console.log('Layer calculation engine tests passed.');

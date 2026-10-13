@@ -20,4 +20,8 @@ assert.ok(Math.abs(agg.avg_hen_housed_production-(16100/(10000*2)*100))<1e-12);
 assert.equal(agg.mortality_count,18);
 const missing=e.aggregate([{opening_birds:1000,egg_count:500,average_egg_weight_g:null,feed_quantity_kg:10}],{initial_bird_count:1000});
 assert.equal(missing.feed_per_egg_mass,null,'FCR must be null when egg-mass denominator is unavailable');
+const incompleteFeed=e.aggregate([{opening_birds:1000,egg_count:500,average_egg_weight_g:60,feed_quantity_kg:10},{opening_birds:1000,egg_count:500,average_egg_weight_g:60,feed_quantity_kg:null}],{initial_bird_count:1000});
+assert.equal(incompleteFeed.feed_per_egg_mass,null,'FCR must be null when any daily feed value is missing');
+const incompleteEggs=e.aggregate([{opening_birds:1000,egg_count:500,average_egg_weight_g:60,feed_quantity_kg:10},{opening_birds:1000,egg_count:null,average_egg_weight_g:60,feed_quantity_kg:10}],{initial_bird_count:1000});
+assert.equal(incompleteEggs.feed_per_egg_mass,null,'FCR must be null when any daily egg count is missing');
 console.log('Layer calculation engine tests passed.');

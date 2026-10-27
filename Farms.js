@@ -79,7 +79,7 @@ async function loadFarms() {
     } else if (!["owner", "admin"].includes(profileRole)) {
         farmQuery = farmQuery.eq("owner_id", currentUser.id);
     }
-    const { data, error } = await farmQuery.order("created_at", { ascending: false });
+    const { data, error } = await AdineOffline.withTimeout(farmQuery.order("created_at", { ascending: false }), 8000, "FARMS_QUERY");
     if (error) {
         console.error("Load farms error:", error);
         if (canUseOffline && AdineOffline.isNetworkFailure(error)) {

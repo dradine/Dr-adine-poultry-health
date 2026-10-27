@@ -147,20 +147,25 @@ async function loadSelectedFarm() {
     }
 
 
-    if (typeof AdineAccess !== "undefined" && !(await AdineAccess.canAccessFarm(selection.farmId))) {
+    if (navigator.onLine && typeof AdineAccess !== "undefined" && !(await AdineAccess.canAccessFarm(selection.farmId))) {
         document.getElementById("selectedFarm").innerHTML = "<p>دسترسی این فارم برای شما فعال نیست.</p>";
         disableForms();
         return;
     }
 
-    const {
-        data,
-        error
-    } = await supabaseClient
-        .from("farms")
-        .select("*")
-        .eq("id", selection.farmId)
-        .maybeSingle();
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);
+        data = cachedFarms.find(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id)) || null;
+    } else {
+        const result = await supabaseClient.from("farms").select("*").eq("id", selection.farmId).maybeSingle();
+        data = result.data; error = result.error;
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);
+            data = cachedFarms.find(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id)) || null;
+            error = null;
+        }
+    }
 
 
     if (error || !data) {

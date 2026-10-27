@@ -109,10 +109,11 @@
     el.style.background = kind === 'error' ? '#7f1d1d' : kind === 'pending' ? '#fff3cd' : '#e6f4ea';
     el.style.color = kind === 'error' ? '#fff' : '#1f3b2c';
     el.style.display = 'block';
-    if (navigator.onLine && kind === 'pending') {
+    if (kind === 'pending') {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = 'همگام‌سازی اکنون';
+      button.textContent = navigator.onLine ? 'همگام‌سازی اکنون' : 'پس از اتصال همگام‌سازی کنید';
+      button.disabled = !navigator.onLine;
       button.style.cssText = 'margin:4px 8px;padding:5px 10px;border:1px solid currentColor;border-radius:8px;background:transparent;color:inherit;font:inherit;cursor:pointer';
       button.onclick = async function () {
         button.disabled = true; button.textContent = 'در حال همگام‌سازی…';

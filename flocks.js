@@ -431,6 +431,8 @@ async function saveHouse(
 
     const payload = {
 
+        id: window.AdineOffline ? window.AdineOffline.uuid() : undefined,
+
         farm_id:
             selectedFarm.id,
 
@@ -484,13 +486,18 @@ async function saveHouse(
 
     try {
 
-        const {
-            error
-        } =
-            await supabaseClient
-                .from("houses")
-                .insert(payload);
-
+        let error = null, savedOffline = false;
+        if (!navigator.onLine && window.AdineOffline) {
+            await AdineOffline.saveLocal("houses", payload, { userId: currentUser.id });
+            savedOffline = true;
+        } else {
+            const result = await supabaseClient.from("houses").insert(payload);
+            error = result.error;
+            if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                await AdineOffline.saveLocal("houses", payload, { userId: currentUser.id });
+                error = null; savedOffline = true;
+            }
+        }
 
         if (error) {
 
@@ -515,7 +522,7 @@ async function saveHouse(
 
 
         alert(
-            "سالن با موفقیت ثبت شد."
+            savedOffline ? "سالن روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود." : "سالن با موفقیت ثبت شد."
         );
 
     }
@@ -1104,6 +1111,8 @@ async function saveFlock(
 
     const payload = {
 
+        id: window.AdineOffline ? window.AdineOffline.uuid() : undefined,
+
         farm_id:
             selectedFarm.id,
 
@@ -1172,18 +1181,20 @@ async function saveFlock(
 
     try {
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("flocks")
-                .insert(payload)
-                .select()
-                .single();
+        let data = null, error = null, savedOffline = false;
+        if (!navigator.onLine && window.AdineOffline) {
+            const local = await AdineOffline.saveLocal("flocks", payload, { userId: currentUser.id });
+            data = local.data; savedOffline = true;
+        } else {
+            const result = await supabaseClient.from("flocks").insert(payload).select().single();
+            data = result.data; error = result.error;
+            if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                const local = await AdineOffline.saveLocal("flocks", payload, { userId: currentUser.id });
+                data = local.data; error = null; savedOffline = true;
+            }
+        }
 
-
-        if (error) {
+        if (error || !data) {
 
             console.error(
                 "Save flock error:",
@@ -1229,7 +1240,7 @@ async function saveFlock(
 
 
         alert(
-            "گله با موفقیت ثبت شد."
+            savedOffline ? "گله روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود." : "گله با موفقیت ثبت شد."
         );
 
     }

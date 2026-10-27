@@ -18,7 +18,11 @@ const SHELL = [
   '/shared-jalali-calendar-v1.js','/accounting-v14.js','/dashboard-compact.css',
   '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/flocks-genetics-fix-v1.js',
   '/flocks-genetics-final.js','/production-date-picker.js','/poultry-icons.js',
-  '/app.css','/style.css','/auth-compact.css','/seo.css'
+  '/app.css','/style.css','/auth-compact.css','/seo.css',
+  '/login.js','/IMG_4309.png','/apple-touch-icon.png','/favicon.png',
+  '/broiler-fcr-engine-v11.js','/edit-manager.js','/farm-house-flock-enhancements.js',
+  '/guangming2-genetics-ui-fix-v1.js','/guangming2-integration-v1.js','/weekly-completion-restore-v1.js',
+  '/flocks-genetics-selector-v2.js','/broiler-daily-alert-engine-v1.js','/layer-daily-alert-engine-v1.js'
 ];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
 const CDN_ASSETS = [

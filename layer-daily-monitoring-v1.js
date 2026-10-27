@@ -90,7 +90,7 @@ function renderHistory(){
   const el=$('history');
   if(!el)return;
   if(!records.length){
-    el.innerHTML='<div class="muted">هنوز رکوردی ثبت نشده است.</div>';
+    el.innerHTML='<div class="muted">'+(!navigator.onLine?'سوابق قبلی این گله روی دستگاه موجود نیست. ثبت جدید ممکن است، اما شاخص‌های تجمعی تا زمان بارگذاری سوابق کامل محاسبه نمی‌شوند.':'هنوز رکوردی ثبت نشده است.')+'</div>';
     return;
   }
   const totalPages=Math.max(1,Math.ceil(records.length/HISTORY_PAGE_SIZE));

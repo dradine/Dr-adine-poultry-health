@@ -653,6 +653,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
 
+                // Cache only the profile already approved by the online auth check.
+                // Never store passwords or tokens in the offline database.
+                try {
+                    if (window.AdineOffline && typeof window.AdineOffline.saveProfile === "function") {
+                        await window.AdineOffline.saveProfile(profile);
+                    }
+                } catch (offlineCacheError) {
+                    console.warn("Could not cache verified profile for offline use:", offlineCacheError);
+                }
+
                 /* =================================================
                    UPDATE ACTIVITY
                 ================================================= */

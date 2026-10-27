@@ -69,7 +69,7 @@
         if(pending?.length&&!window.confirm("هنوز "+pending.length+" مورد روی دستگاه در انتظار همگام‌سازی است. خروج اطلاعات را حذف نمی‌کند، اما برای ارسال آن‌ها باید دوباره با همین حساب وارد شوید. ادامه می‌دهید؟"))return;
       }catch(e){console.warn("Offline queue check before sign-out:",e);}
       clear();
-      try{if(session?.user?.id)await window.AdineOffline?.clearCachedProfile?.(session.user.id);}catch(e){console.warn("Offline profile clear:",e);}
+      try{await window.AdineOffline?.clearAllCachedProfiles?.();}catch(e){console.warn("Offline profile clear:",e);}
       try{await supabaseClient.auth.signOut({scope:"local"});}catch(e){console.warn("signOut:",e);}
       window.location.replace("login.html");
     },

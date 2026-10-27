@@ -2923,32 +2923,21 @@ async function saveWeeklyRecord() {
         if (recordId) {
 
             result =
-                await query
-                    .update(
-                        payload
-                    )
-                    .eq(
-                        "id",
-                        recordId
-                    )
+                await AdineOffline.withTimeout(query
+                    .update(payload)
+                    .eq("id", recordId)
                     .select()
-                    .single();
+                    .single(), 8000, "WEEKLY_UPDATE");
 
         }
 
         else {
 
             result =
-                await query
-                    .upsert(
-                        payload,
-                        {
-                            onConflict:
-                                "flock_id,week_number"
-                        }
-                    )
+                await AdineOffline.withTimeout(query
+                    .upsert(payload, { onConflict:"flock_id,week_number" })
                     .select()
-                    .single();
+                    .single(), 8000, "WEEKLY_SAVE");
 
         }
 

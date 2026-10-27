@@ -1,0 +1,42 @@
+name: Offline static checks
+on:
+  push:
+    branches:
+      - feat/offline-first-safe-sync
+  pull_request:
+    paths:
+      - 'offline-core.js'
+      - 'sw.js'
+      - 'auth.js'
+      - 'login.js'
+      - 'Farms.js'
+      - 'flocks.js'
+      - 'broiler-daily-monitoring-v1.js'
+      - 'layer-daily-monitoring-v1.js'
+      - 'weekly.js'
+      - 'accounting-v14.js'
+      - 'tests/**'
+      - '.github/workflows/offline-static-check.yml'
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check JavaScript syntax
+        run: |
+          node --check offline-core.js
+          node --check sw.js
+          node --check auth.js
+          node --check login.js
+          node --check Farms.js
+          node --check flocks.js
+          node --check broiler-daily-monitoring-v1.js
+          node --check layer-daily-monitoring-v1.js
+          node --check weekly.js
+          node --check accounting-v14.js
+          node --check tests/offline-contract.test.mjs
+      - name: Check offline contract
+        run: node tests/offline-contract.test.mjs

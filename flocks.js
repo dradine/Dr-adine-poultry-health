@@ -501,7 +501,7 @@ async function saveHouse(
             await AdineOffline.saveLocal("houses", payload, { userId: currentUser.id });
             savedOffline = true;
         } else {
-            const result = await supabaseClient.from("houses").insert(payload);
+            const result = await AdineOffline.withTimeout(supabaseClient.from("houses").insert(payload), 8000, "HOUSE_SAVE");
             error = result.error;
             if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
                 await AdineOffline.saveLocal("houses", payload, { userId: currentUser.id });

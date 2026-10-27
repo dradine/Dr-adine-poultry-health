@@ -284,9 +284,9 @@
       if (!userId) return { skipped:true, reason:'NO_SESSION' };
       const client = g.supabaseClient;
       const queries = await Promise.all([
-        client.from('farms').select('*').order('created_at',{ascending:false}).limit(1000),
-        client.from('houses').select('*').order('created_at',{ascending:false}).limit(1000),
-        client.from('flocks').select('*').order('created_at',{ascending:false}).limit(1000)
+        withTimeout(client.from('farms').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_FARMS'),
+        withTimeout(client.from('houses').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_HOUSES'),
+        withTimeout(client.from('flocks').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_FLOCKS')
       ]);
       const tables = ['farms','houses','flocks'];
       let count = 0;
@@ -309,9 +309,9 @@
           const type = String(flock.production_type || '').toLowerCase();
           const layer = type.includes('layer') || type.includes('تخم');
           const dailyTable = layer ? 'layer_daily_monitoring' : 'broiler_daily_monitoring';
-          const daily = await client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000);
+          const daily = await withTimeout(client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000),8000,'PRIME_DAILY');
           if (!daily.error && Array.isArray(daily.data)) { await cacheRows(dailyTable, daily.data, userId); count += daily.data.length; }
-          const weekly = await client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300);
+          const weekly = await withTimeout(client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300),8000,'PRIME_WEEKLY');
           if (!weekly.error && Array.isArray(weekly.data)) { await cacheRows('weekly_records', weekly.data, userId); count += weekly.data.length; }
         }
       } catch (e) { console.warn('[AdineOffline] active flock history pre-cache skipped:', e); }
@@ -410,7 +410,7 @@
       const auth = g.supabaseClient;
       let profile;
       try {
-        const r = await auth.from('profiles').select('id,role,status,is_active').eq('id', userId).maybeSingle();
+        const r = await withTimeout(auth.from('profiles').select('id,role,status,is_active').eq('id', userId).maybeSingle(),8000,'SYNC_PROFILE');
         if (r.error || !r.data) return { synced:0, pending:0, skipped:true, reason:'PROFILE_UNVERIFIED' };
         profile = r.data;
       } catch (_) { return { synced:0, pending:0, skipped:true, reason:'PROFILE_UNVERIFIED' }; }
@@ -427,7 +427,7 @@
         if (blocked.has(op.table)) continue;
         if (await hasPendingParent(userId, op.table, op.payload)) { blocked.add(op.table); continue; }
         try {
-          const result = await auth.from(op.table).upsert(op.payload, { onConflict:'id', ignoreDuplicates:true });
+          const result = await withTimeout(auth.from(op.table).upsert(op.payload, { onConflict:'id', ignoreDuplicates:true }),8000,'SYNC_WRITE');
           if (result.error) {
             op.attempts = Number(op.attempts || 0) + 1;
             op.lastError = String(result.error.message || 'SERVER_REJECTED');

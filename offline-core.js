@@ -126,6 +126,27 @@
       backup.style.cssText = button.style.cssText;
       backup.onclick = function () { exportPendingBackup().catch(function(e){ console.error(e); alert('تهیه نسخه پشتیبان انجام نشد.'); }); };
       el.appendChild(backup);
+      const restore = document.createElement('button');
+      restore.type = 'button';
+      restore.textContent = 'بازیابی نسخه پشتیبان';
+      restore.style.cssText = button.style.cssText;
+      restore.onclick = function () {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'application/json,.json';
+        input.onchange = async function () {
+          if (!input.files || !input.files[0]) return;
+          try {
+            const count = await importPendingBackup(input.files[0]);
+            alert('بازیابی انجام شد؛ ' + count + ' مورد به صف همگام‌سازی اضافه شد.');
+            await updateStatus();
+          } catch (e) {
+            console.error('[AdineOffline] backup restore:', e);
+            alert('بازیابی انجام نشد. فایل باید متعلق به همین حساب کاربری باشد و قالب پشتیبان معتبر داشته باشد.');
+          }
+        };
+        input.click();
+      };
+      el.appendChild(restore);
     }
   }
   function hideBanner() {
@@ -271,6 +292,32 @@
     alert('این فایل شامل اطلاعات ثبت‌نشده فارم و/یا مالی است؛ آن را در جای امن نگهداری کنید.');
     return true;
   }
+  async function importPendingBackup(file) {
+    if (!file) throw new Error('BACKUP_FILE_REQUIRED');
+    const userId = await getUserId();
+    if (!userId) throw new Error('AUTH_REQUIRED');
+    const backupData = JSON.parse(await file.text());
+    if (backupData?.format !== 'adine-offline-backup-v1' || String(backupData.userId) !== String(userId) || !Array.isArray(backupData.operations)) throw new Error('BACKUP_FORMAT_OR_USER_MISMATCH');
+    const valid = backupData.operations.filter(function(op) {
+      return op && ALLOWED_TABLES.has(op.table) && op.action === 'insert' && op.payload && op.payload.id && String(op.payload.owner_id || '') === String(userId);
+    });
+    if (!valid.length) throw new Error('NO_VALID_OPERATIONS');
+    const db = await openDB();
+    await new Promise(function(resolve,reject) {
+      const tx = db.transaction(['records','queue'],'readwrite');
+      valid.forEach(function(op) {
+        const id = String(op.payload.id), key = keyOf(userId, op.table, id), now = Date.now();
+        const payload = Object.assign({}, op.payload);
+        tx.objectStore('records').put({key:key,userId:userId,table:op.table,id:id,data:payload,syncStatus:'pending',updatedAt:now});
+        tx.objectStore('queue').put({opId:String(op.opId || uuid()),userId:userId,table:op.table,action:'insert',payload:payload,createdAt:Number(op.createdAt)||now,status:'pending',attempts:0,lastError:null});
+      });
+      tx.oncomplete = function(){resolve();};
+      tx.onerror = function(){reject(tx.error || new Error('BACKUP_IMPORT_FAILED'));};
+      tx.onabort = function(){reject(tx.error || new Error('BACKUP_IMPORT_ABORTED'));};
+    });
+    await updateStatus();
+    return valid.length;
+  }
   async function sync(forceRetry) {
     if (syncPromise) return syncPromise;
     if (!navigator.onLine || !g.supabaseClient?.auth) return { synced:0, pending:0, skipped:true };
@@ -356,7 +403,7 @@
   g.AdineOffline = {
     version: 1, maxOfflineDays: MAX_OFFLINE_DAYS,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile,
-    cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup,
+    cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup, importPendingBackup:importPendingBackup,
     isNetworkFailure:isNetworkFailure, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,
     getPending:async function(){const id=await getUserId();return id?getPendingForUser(id):[];},
     uuid:uuid

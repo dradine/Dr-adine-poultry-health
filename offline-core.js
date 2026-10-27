@@ -314,6 +314,11 @@
           const weekly = await withTimeout(client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300),8000,'PRIME_WEEKLY');
           if (!weekly.error && Array.isArray(weekly.data)) { await cacheRows('weekly_records', weekly.data, userId); count += weekly.data.length; }
         }
+        const selectedFarmId = selection.farmId || selection.farm_id || (flock && flock.farm_id) || localStorage.getItem('adine_accounting_farm');
+        if (selectedFarmId) {
+          const transactions = await withTimeout(client.from('farm_accounting_transactions').select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),8000,'PRIME_ACCOUNTING');
+          if (!transactions.error && Array.isArray(transactions.data)) { await cacheRows('farm_accounting_transactions', transactions.data, userId); count += transactions.data.length; }
+        }
       } catch (e) { console.warn('[AdineOffline] active flock history pre-cache skipped:', e); }
       lastPrimeAt = Date.now();
       return { cached:count };

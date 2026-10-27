@@ -447,8 +447,12 @@
       const n = pendingRows.length;
       const errors = pendingRows.filter(row => row.status === 'error').length;
       const detail = errors ? '؛ ' + errors + ' مورد نیازمند بررسی یا اصلاح است' : '';
-      if (!navigator.onLine) showBanner(n ? 'بدون اینترنت؛ ' + n + ' مورد روی این دستگاه ذخیره شده و منتظر همگام‌سازی است' + detail + '.' : 'بدون اینترنت؛ فقط اطلاعات قبلاً ذخیره‌شده در دسترس است.', n ? 'pending' : 'ok');
-      else if (n) showBanner(n + ' مورد در انتظار همگام‌سازی است' + detail + '.', 'pending');
+      let durabilityNote = '';
+      try {
+        if (n && navigator.storage?.persisted && !(await navigator.storage.persisted())) durabilityNote = '؛ برای کاهش خطر حذف داده‌ها، نسخه پشتیبان بگیرید';
+      } catch (_) {}
+      if (!navigator.onLine) showBanner(n ? 'بدون اینترنت؛ ' + n + ' مورد روی این دستگاه ذخیره شده و منتظر همگام‌سازی است' + detail + durabilityNote + '.' : 'بدون اینترنت؛ فقط اطلاعات قبلاً ذخیره‌شده در دسترس است.', n ? 'pending' : 'ok');
+      else if (n) showBanner(n + ' مورد در انتظار همگام‌سازی است' + detail + durabilityNote + '.', 'pending');
       else hideBanner();
     } catch (e) { console.warn('[AdineOffline] status:', e); }
   }
@@ -463,6 +467,7 @@
   async function init() {
     registerSW();
     try { await openDB(); } catch (e) { console.warn('[AdineOffline] Local storage unavailable:', e); }
+    try { if (navigator.storage?.persist) await navigator.storage.persist(); } catch (_) {}
     if (navigator.onLine) prime().catch(e => console.warn('[AdineOffline] initial pre-cache skipped:', e));
     window.addEventListener('online', function () { sync().then(updateStatus).catch(()=>updateStatus()); });
     window.addEventListener('offline', updateStatus);

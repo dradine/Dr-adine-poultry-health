@@ -611,11 +611,11 @@ async function loadCurrentFlock() {
             data.houses = data.houses || { name: houseRows.find(x => String(x.id) === String(data.house_id))?.name || "-" };
         }
     } else {
-        const result = await supabaseClient.from("flocks").select(`
+        const result = await AdineOffline.withTimeout(supabaseClient.from("flocks").select(`
                 *,
                 farms ( name ),
                 houses ( name )
-            `).eq("id", selection.flockId).maybeSingle();
+            `).eq("id", selection.flockId).maybeSingle(), 8000, "WEEKLY_FLOCK_QUERY");
         data = result.data; error = result.error;
         if (!error && data && window.AdineOffline) {
             try { await AdineOffline.cacheRows("flocks", [data], data.owner_id || currentUser?.id); } catch (e) { console.warn("Weekly flock cache:", e); }

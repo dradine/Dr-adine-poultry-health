@@ -62,7 +62,17 @@
         console.warn("profile temporarily unavailable:",e);return null;
       }
     },
-    async signOut(){clear();try{await supabaseClient.auth.signOut();}catch(e){console.warn("signOut:",e);}window.location.replace("login.html");},
+    async signOut(){
+      const session=await this.getSession();
+      try{
+        const pending=await window.AdineOffline?.getPending();
+        if(pending?.length&&!window.confirm("هنوز "+pending.length+" مورد روی دستگاه در انتظار همگام‌سازی است. خروج اطلاعات را حذف نمی‌کند، اما برای ارسال آن‌ها باید دوباره با همین حساب وارد شوید. ادامه می‌دهید؟"))return;
+      }catch(e){console.warn("Offline queue check before sign-out:",e);}
+      clear();
+      try{if(session?.user?.id)await window.AdineOffline?.clearCachedProfile?.(session.user.id);}catch(e){console.warn("Offline profile clear:",e);}
+      try{await supabaseClient.auth.signOut({scope:"local"});}catch(e){console.warn("signOut:",e);}
+      window.location.replace("login.html");
+    },
     isActiveProfile(p){if(!p)return false;const s=norm(p.status),a=norm(p.access_status),r=norm(p.role);if(["blocked","suspended","removed"].includes(s)||["blocked","suspended","removed"].includes(a))return false;return s==="active"||a==="approved"||r==="owner"||r==="admin";},
     get lastProfileLookupStatus(){return lastProfileLookupStatus;},
     getAccessMessage(p){if(!p)return "اطلاعات حساب در حال دریافت است؛ لطفاً دوباره تلاش کنید.";const s=norm(p.status),a=norm(p.access_status);if(s==="pending"||a==="pending")return "ثبت‌نام شما انجام شده و در انتظار تأیید مالک سامانه است.";if(s==="suspended"||a==="suspended")return "دسترسی حساب شما موقتاً غیرفعال شده است.";if(s==="blocked"||a==="blocked")return "حساب شما مسدود شده است.";if(s==="removed"||a==="removed")return "دسترسی شما به سامانه لغو شده است.";return "دسترسی حساب شما فعال نیست.";},

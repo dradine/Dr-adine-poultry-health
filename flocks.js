@@ -147,10 +147,26 @@ async function loadSelectedFarm() {
     }
 
 
-    if (navigator.onLine && typeof AdineAccess !== "undefined" && !(await AdineAccess.canAccessFarm(selection.farmId))) {
-        document.getElementById("selectedFarm").innerHTML = "<p>دسترسی این فارم برای شما فعال نیست.</p>";
-        disableForms();
-        return;
+    if (navigator.onLine && typeof AdineAccess !== "undefined") {
+        const accessResult = await AdineOffline.withTimeout(
+            AdineAccess.canAccessFarm(selection.farmId).then(allowed => ({ data:allowed, error:null })),
+            8000,
+            "FARM_ACCESS"
+        );
+        if (accessResult.error) {
+            const networkFailure = AdineOffline.isNetworkFailure(accessResult.error);
+            const cached = networkFailure ? await AdineOffline.getRows("farms", currentUser.id) : [];
+            const cachedOwnedFarm = cached.some(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id));
+            if (!cachedOwnedFarm) {
+                document.getElementById("selectedFarm").innerHTML = "<p>دسترسی این فارم تأیید نشد. در صورت قطع ارتباط با سرور، ابتدا باید این فارم قبلاً روی همین دستگاه ذخیره شده باشد.</p>";
+                disableForms();
+                return;
+            }
+        } else if (!accessResult.data) {
+            document.getElementById("selectedFarm").innerHTML = "<p>دسترسی این فارم برای شما فعال نیست.</p>";
+            disableForms();
+            return;
+        }
     }
 
     let data = null, error = null;

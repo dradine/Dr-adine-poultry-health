@@ -77,7 +77,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!session?.user?.id || !window.AdineOffline) { offlineResume.hidden = true; return; }
             const saved = await window.AdineOffline.getCachedProfile(session.user.id);
             const profile = saved?.profile;
-            const valid = saved && !saved.expired && profile && window.AdineAuth.isActiveProfile(profile);
+            const role = String(profile?.role || "").trim().toLowerCase();
+            const rawType = String(profile?.user_type || profile?.userType || "").trim().toLowerCase();
+            const aliases = { poultry_operator:"farm_operator", poultry_manager:"farm_manager" };
+            const type = aliases[rawType] || rawType;
+            const supportedFarmUser = !["owner","admin"].includes(role) && ["farm_operator","farm_manager","poultry_technical_expert"].includes(type);
+            const valid = saved && !saved.expired && profile && window.AdineAuth.isActiveProfile(profile) && supportedFarmUser;
             offlineResume.hidden = !valid;
             offlineResume.textContent = navigator.onLine ? "ادامه با حساب قبلی (در صورت اختلال اینترنت)" : "ورود آفلاین با حساب قبلی";
         } catch (e) {

@@ -133,7 +133,7 @@
     el.style.background = kind === 'error' ? '#7f1d1d' : kind === 'pending' ? '#fff3cd' : '#e6f4ea';
     el.style.color = kind === 'error' ? '#fff' : '#1f3b2c';
     el.style.display = 'block';
-    if (kind === 'pending') {
+    if (kind === 'pending' || kind === 'error') {
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = navigator.onLine ? 'همگام‌سازی اکنون' : 'پس از اتصال همگام‌سازی کنید';

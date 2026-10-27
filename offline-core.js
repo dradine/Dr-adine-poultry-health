@@ -195,6 +195,34 @@
     if (navigator.onLine) sync().catch(e => console.warn('[AdineOffline] sync after save:', e));
     return { data:data, error:null, offline:true, pending:true, opId:op.opId };
   }
+  async function isPendingRecord(table, id, userId) {
+    const uid = String(userId || await getUserId() || '');
+    if (!uid || !id) return false;
+    const queue = await getPendingForUser(uid);
+    return queue.some(op => op.table === table && String(op.payload?.id) === String(id));
+  }
+  async function updatePending(table, payload, userId) {
+    if (!ALLOWED_TABLES.has(table) || !payload?.id) throw new Error('PENDING_RECORD_REQUIRED');
+    const uid = String(userId || await getUserId() || '');
+    if (!uid) throw new Error('OFFLINE_AUTH_REQUIRED');
+    const queue = await getPendingForUser(uid);
+    const op = queue.find(x => x.table === table && String(x.payload?.id) === String(payload.id));
+    if (!op) return false;
+    const key = keyOf(uid, table, payload.id), now = Date.now();
+    op.payload = Object.assign({}, payload);
+    op.lastError = null; op.status = 'pending';
+    const db = await openDB();
+    await new Promise(function(resolve,reject){
+      const tx = db.transaction(['records','queue'],'readwrite');
+      tx.objectStore('records').put({key:key,userId:uid,table:table,id:String(payload.id),data:payload,syncStatus:'pending',updatedAt:now});
+      tx.objectStore('queue').put(op);
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>reject(tx.error||new Error('OFFLINE_UPDATE_FAILED'));
+      tx.onabort=()=>reject(tx.error||new Error('OFFLINE_UPDATE_ABORTED'));
+    });
+    updateStatus();
+    return true;
+  }
   async function cacheSyncedRecord(userId, table, payload) {
     const db = await openDB(), key = keyOf(userId, table, payload.id);
     await new Promise(function (resolve, reject) {
@@ -290,7 +318,7 @@
   g.AdineOffline = {
     version: 1, maxOfflineDays: MAX_OFFLINE_DAYS,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile,
-    cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, sync:sync, updateStatus:updateStatus,
+    cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus,
     isNetworkFailure:isNetworkFailure, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,
     getPending:async function(){const id=await getUserId();return id?getPendingForUser(id):[];},
     uuid:uuid

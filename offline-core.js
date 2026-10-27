@@ -293,6 +293,7 @@
       let synced = 0, blocked = new Set();
       for (const op of queue) {
         if (!navigator.onLine) break;
+        if (op.status === 'error' && !forceRetry) continue;
         if (blocked.has(op.table)) continue;
         if (await hasPendingParent(userId, op.table, op.payload)) { blocked.add(op.table); continue; }
         try {

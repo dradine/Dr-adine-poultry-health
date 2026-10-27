@@ -2868,7 +2868,7 @@ async function saveWeeklyRecord() {
         };
 
 
-        payload.id = recordId || weeklyRecords.find(row => Number(row.week_number) === Number(week))?.id || (window.AdineOffline ? AdineOffline.uuid() : undefined);
+        payload.id = recordId || weeklyRecords.find(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays)))?.id || (window.AdineOffline ? AdineOffline.uuid() : undefined);
 
         if (!navigator.onLine && window.AdineOffline) {
             if (recordId) {
@@ -2879,7 +2879,7 @@ async function saveWeeklyRecord() {
                     return;
                 }
             } else {
-                const duplicateWeek = weeklyRecords.find(row => Number(row.week_number) === Number(week));
+                const duplicateWeek = weeklyRecords.find(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays)));
                 if (duplicateWeek) {
                     alert("برای این هفته گزارشی از قبل وجود دارد. برای جلوگیری از بازنویسی ناخواسته، ویرایش گزارش موجود را پس از اتصال اینترنت انجام دهید.");
                     return;
@@ -2961,7 +2961,7 @@ async function saveWeeklyRecord() {
 
 
         if (error) {
-            if (!recordId && !weeklyRecords.some(row => Number(row.week_number) === Number(week)) && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            if (!recordId && !weeklyRecords.some(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays))) && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
                 await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
                 alert("گزارش هفتگی روی این دستگاه ذخیره شد و در انتظار همگام‌سازی است.");
                 if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره گزارش هفتگی"; }

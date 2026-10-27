@@ -65,29 +65,45 @@ async function initializeFarms() {
 
 async function loadFarms() {
     farmsList.innerHTML = `<div class="card">در حال دریافت اطلاعات فارم‌ها...</div>`;
-
-    let farmQuery = supabaseClient.from("farms").select("*");
     const profileRole = String(window.__ADINEH_CURRENT_PROFILE__?.role || "").toLowerCase();
-
+    const canUseOffline = !ownerViewReadOnly && currentUser && window.AdineOffline;
+    if (canUseOffline && (!navigator.onLine || !supabaseClient)) {
+        farms = (await AdineOffline.getRows("farms", currentUser.id)).filter(f => String(f.owner_id) === String(currentUser.id));
+        renderFarms();
+        return;
+    }
+    let farmQuery = supabaseClient.from("farms").select("*");
     if (ownerViewTarget) {
         farmQuery = farmQuery.eq("owner_id", ownerViewTarget);
         if (ownerViewFarm) farmQuery = farmQuery.eq("id", ownerViewFarm);
     } else if (!["owner", "admin"].includes(profileRole)) {
         farmQuery = farmQuery.eq("owner_id", currentUser.id);
     }
-
     const { data, error } = await farmQuery.order("created_at", { ascending: false });
     if (error) {
         console.error("Load farms error:", error);
+        if (canUseOffline && AdineOffline.isNetworkFailure(error)) {
+            farms = (await AdineOffline.getRows("farms", currentUser.id)).filter(f => String(f.owner_id) === String(currentUser.id));
+            renderFarms();
+            return;
+        }
         farmsList.innerHTML = `<div class="card">خطا در دریافت اطلاعات فارم‌ها.</div>`;
         return;
     }
-
     farms = data || [];
+    if (canUseOffline) {
+        try {
+            await AdineOffline.cacheRows("farms", farms, currentUser.id);
+            const pending = await AdineOffline.getPending();
+            const localFarms = pending.filter(op => op.table === "farms" && String(op.payload.owner_id) === String(currentUser.id)).map(op => op.payload);
+            const byId = new Map(farms.map(f => [String(f.id), f]));
+            localFarms.forEach(f => byId.set(String(f.id), f));
+            farms = Array.from(byId.values()).sort((x,y) => String(y.created_at||"").localeCompare(String(x.created_at||"")));
+        } catch (cacheError) { console.warn("Farm offline cache:", cacheError); }
+    }
     if (ownerViewReadOnly && farmForm) farmForm.style.display = "none";
     renderFarms();
 }
-
 function setupFarmForm() {
     if (farmForm) farmForm.addEventListener("submit", saveFarm);
 }
@@ -131,6 +147,7 @@ async function saveFarm(event) {
         const climate = geo.climate || getValue("farmClimate");
 
         const payload = {
+            id: window.AdineOffline ? window.AdineOffline.uuid() : undefined,
             owner_id: currentUser.id,
             name,
             farm_code: getValue("farmCode"),
@@ -145,15 +162,21 @@ async function saveFarm(event) {
             is_active: true
         };
 
-        const { data, error } = await supabaseClient
-            .from("farms")
-            .insert(payload)
-            .select()
-            .single();
-
-        if (error) {
+        let data = null, error = null;
+        if (!navigator.onLine && window.AdineOffline) {
+            const local = await AdineOffline.saveLocal("farms", payload, { userId: currentUser.id });
+            data = local.data;
+        } else {
+            const result = await supabaseClient.from("farms").insert(payload).select().single();
+            data = result.data; error = result.error;
+            if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                const local = await AdineOffline.saveLocal("farms", payload, { userId: currentUser.id });
+                data = local.data; error = null;
+            }
+        }
+        if (error || !data) {
             console.error("Save farm error:", error);
-            alert("ذخیره فارم انجام نشد:\n" + error.message);
+            alert("ذخیره فارم انجام نشد:\n" + (error?.message || "پاسخ معتبری از سرور دریافت نشد."));
             return;
         }
 
@@ -167,7 +190,7 @@ async function saveFarm(event) {
         await loadFarms();
 
         setCurrentSelection({ farmId: data.id, houseId: null, flockId: null });
-        alert("فارم با موفقیت ذخیره شد.");
+        alert(data && !navigator.onLine ? "فارم روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود." : "فارم با موفقیت ذخیره شد.");
     } finally {
         if (button) {
             button.disabled = false;

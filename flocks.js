@@ -158,7 +158,7 @@ async function loadSelectedFarm() {
         const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);
         data = cachedFarms.find(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id)) || null;
     } else {
-        const result = await supabaseClient.from("farms").select("*").eq("id", selection.farmId).maybeSingle();
+        const result = await AdineOffline.withTimeout(supabaseClient.from("farms").select("*").eq("id", selection.farmId).maybeSingle(), 8000, "FARM_QUERY");
         data = result.data; error = result.error;
         if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
             const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);

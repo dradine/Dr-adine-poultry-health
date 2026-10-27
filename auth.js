@@ -17,6 +17,7 @@
     async getSession(){try{const r=await supabaseClient.auth.getSession();return r.error?null:r.data?.session||null;}catch(e){console.warn("getSession:",e);return null;}},
     async getProfile(id=null,opt={}){
       const u=id?{id}:await this.getUser(); if(!u?.id)return null;
+      if(navigator.onLine===false){lastProfileLookupStatus="network_error";return null;}
       const c=!opt.force&&cached(u.id); if(c&&navigator.onLine!==false){lastProfileLookupStatus="session_cache";return c;}
       if(profilePromise&&!opt.force&&profilePromiseUserId===u.id)return profilePromise;
       profilePromiseUserId=u.id;
@@ -44,7 +45,7 @@
     getAccessMessage(p){if(!p)return "اطلاعات حساب در حال دریافت است؛ لطفاً دوباره تلاش کنید.";const s=norm(p.status),a=norm(p.access_status);if(s==="pending"||a==="pending")return "ثبت‌نام شما انجام شده و در انتظار تأیید مالک سامانه است.";if(s==="suspended"||a==="suspended")return "دسترسی حساب شما موقتاً غیرفعال شده است.";if(s==="blocked"||a==="blocked")return "حساب شما مسدود شده است.";if(s==="removed"||a==="removed")return "دسترسی شما به سامانه لغو شده است.";return "دسترسی حساب شما فعال نیست.";},
     async requireAuth(){
       const s=await this.getSession(); if(!s?.user){window.location.replace("login.html");return null;}
-      const u=s.user; let p=await this.getProfile(u.id); if(!p)p=cached(u.id); if(!p)p=await this.getProfile(u.id,{force:true});
+      const u=s.user; let p=await this.getProfile(u.id); if(!p&&navigator.onLine!==false)p=cached(u.id); if(!p)p=await this.getProfile(u.id,{force:true});
       let offlineAuth=false;
       if(!p&&(lastProfileLookupStatus==="network_error"||navigator.onLine===false)){
         try{const saved=await window.AdineOffline?.getCachedProfile(u.id);

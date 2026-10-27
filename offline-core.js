@@ -383,6 +383,7 @@
       tx.onabort=()=>reject(tx.error||new Error('OFFLINE_UPDATE_ABORTED'));
     });
     updateStatus();
+    if (navigator.onLine) sync().catch(e => console.warn('[AdineOffline] pending edit sync:', e));
     return true;
   }
   async function cacheSyncedRecord(userId, table, payload) {
@@ -436,6 +437,7 @@
       tx.onabort = function(){reject(tx.error || new Error('BACKUP_IMPORT_ABORTED'));};
     });
     await updateStatus();
+    if (navigator.onLine) sync().catch(e => console.warn('[AdineOffline] restored backup sync:', e));
     return valid.length;
   }
   async function sync(forceRetry) {

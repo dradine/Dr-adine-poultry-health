@@ -251,7 +251,10 @@ async function renderFarmChooser() {
     try {
 
         let data, error;
-        if (typeof AdineAccess !== "undefined" && !["owner","admin"].includes(String((await AdineAccess.current())?.profile?.role||"").toLowerCase())) {
+        if (!navigator.onLine && window.AdineOffline) {
+            data = (await AdineOffline.getRows("farms", currentUser.id)).filter(f => String(f.owner_id) === String(currentUser.id));
+            error = null;
+        } else if (typeof AdineAccess !== "undefined" && !["owner","admin"].includes(String((await AdineAccess.current())?.profile?.role||"").toLowerCase())) {
             const r = await supabaseClient.rpc("get_my_farm_access");
             error = r.error;
             data = (r.data||[]).filter(x=>x.connection_status==="active").map(x=>({id:x.farm_id,name:x.farm_name,farm_code:x.farm_code,capacity:null}));
@@ -260,8 +263,14 @@ async function renderFarmChooser() {
             data=r.data; error=r.error;
         }
 
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("farms", currentUser.id)).filter(f => !f.owner_id || String(f.owner_id) === String(currentUser.id));
+            error = null;
+        }
         if (error) throw error;
-
+        if (navigator.onLine && window.AdineOffline && Array.isArray(data)) {
+            try { await AdineOffline.cacheRows("farms", data, currentUser.id); } catch (cacheError) { console.warn("Farm chooser cache:", cacheError); }
+        }
         const farms = data || [];
 
         if (!farms.length) {

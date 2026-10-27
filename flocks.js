@@ -168,6 +168,14 @@ async function loadSelectedFarm() {
     }
 
 
+    if ((!data || error) && window.AdineOffline) {
+        try {
+            const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);
+            const cachedFarm = cachedFarms.find(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id));
+            if (cachedFarm) { data = cachedFarm; error = null; }
+        } catch (cacheError) { console.warn("Selected farm offline fallback:", cacheError); }
+    }
+
     if (error || !data) {
 
         console.error(
@@ -192,6 +200,9 @@ async function loadSelectedFarm() {
 
     selectedFarm =
         data;
+    if (navigator.onLine && window.AdineOffline && String(data.owner_id) === String(currentUser.id)) {
+        try { await AdineOffline.cacheRows("farms", [data], currentUser.id); } catch (cacheError) { console.warn("Selected farm cache:", cacheError); }
+    }
 
 
     document.getElementById(
@@ -358,9 +369,16 @@ async function loadHouses() {
     }
 
 
-    houses =
-        data || [];
-
+    houses = data || [];
+    if (window.AdineOffline) {
+        try {
+            const pending = await AdineOffline.getPending();
+            const local = pending.filter(op => op.table === "houses" && String(op.payload.farm_id) === String(selectedFarm.id)).map(op => op.payload);
+            const map = new Map(houses.map(row => [String(row.id), row]));
+            local.forEach(row => map.set(String(row.id), row));
+            houses = Array.from(map.values());
+        } catch (cacheError) { console.warn("Pending houses merge:", cacheError); }
+    }
 
     renderHouses();
 
@@ -977,9 +995,16 @@ async function loadFlocks() {
     }
 
 
-    flocks =
-        data || [];
-
+    flocks = data || [];
+    if (window.AdineOffline) {
+        try {
+            const pending = await AdineOffline.getPending();
+            const local = pending.filter(op => op.table === "flocks" && String(op.payload.farm_id) === String(selectedFarm.id)).map(op => op.payload);
+            const map = new Map(flocks.map(row => [String(row.id), row]));
+            local.forEach(row => map.set(String(row.id), row));
+            flocks = Array.from(map.values());
+        } catch (cacheError) { console.warn("Pending flocks merge:", cacheError); }
+    }
 
     renderFlocks();
 

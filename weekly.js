@@ -599,26 +599,34 @@ async function loadCurrentFlock() {
     }
 
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("flocks")
-            .select(`
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        const flockRows = await AdineOffline.getRows("flocks", currentUser?.id || (await AdineAuth.getUser())?.id);
+        data = flockRows.find(row => String(row.id) === String(selection.flockId)) || null;
+        if (data) {
+            const uid = currentUser?.id || (await AdineAuth.getUser())?.id;
+            const farmRows = await AdineOffline.getRows("farms", uid);
+            const houseRows = await AdineOffline.getRows("houses", uid);
+            data.farms = data.farms || { name: farmRows.find(x => String(x.id) === String(data.farm_id))?.name || "-" };
+            data.houses = data.houses || { name: houseRows.find(x => String(x.id) === String(data.house_id))?.name || "-" };
+        }
+    } else {
+        const result = await supabaseClient.from("flocks").select(`
                 *,
-                farms (
-                    name
-                ),
-                houses (
-                    name
-                )
-            `)
-            .eq(
-                "id",
-                selection.flockId
-            )
-            .maybeSingle();
+                farms ( name ),
+                houses ( name )
+            `).eq("id", selection.flockId).maybeSingle();
+        data = result.data; error = result.error;
+        if (!error && data && window.AdineOffline) {
+            try { await AdineOffline.cacheRows("flocks", [data], data.owner_id || currentUser?.id); } catch (e) { console.warn("Weekly flock cache:", e); }
+        }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            const uid = currentUser?.id || (await AdineAuth.getUser())?.id;
+            const rows = await AdineOffline.getRows("flocks", uid);
+            data = rows.find(row => String(row.id) === String(selection.flockId)) || null;
+            error = null;
+        }
+    }
 
 
     if (
@@ -3034,26 +3042,18 @@ async function loadHistory() {
     }
 
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from(
-                "weekly_records"
-            )
-            .select("*")
-            .eq(
-                "flock_id",
-                currentFlock.id
-            )
-            .order(
-                "week_number",
-                {
-                    ascending:
-                        true
-                }
-            );
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        data = (await AdineOffline.getRows("weekly_records", currentUser.id)).filter(row => String(row.flock_id) === String(currentFlock.id)).sort((a,b) => Number(a.week_number||0)-Number(b.week_number||0));
+    } else {
+        const result = await supabaseClient.from("weekly_records").select("*").eq("flock_id", currentFlock.id).order("week_number", { ascending:true });
+        data = result.data; error = result.error;
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("weekly_records", data || [], currentUser.id); } catch (e) { console.warn("Weekly records cache:",e); } }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("weekly_records", currentUser.id)).filter(row => String(row.flock_id) === String(currentFlock.id)).sort((a,b) => Number(a.week_number||0)-Number(b.week_number||0));
+            error = null;
+        }
+    }
 
 
     if (error) {

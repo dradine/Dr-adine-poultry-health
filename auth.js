@@ -17,7 +17,7 @@
     async getSession(){try{const r=await supabaseClient.auth.getSession();return r.error?null:r.data?.session||null;}catch(e){console.warn("getSession:",e);return null;}},
     async getProfile(id=null,opt={}){
       const u=id?{id}:await this.getUser(); if(!u?.id)return null;
-      const c=!opt.force&&cached(u.id); if(c){lastProfileLookupStatus="session_cache";return c;}
+      const c=!opt.force&&cached(u.id); if(c&&navigator.onLine!==false){lastProfileLookupStatus="session_cache";return c;}
       if(profilePromise&&!opt.force&&profilePromiseUserId===u.id)return profilePromise;
       profilePromiseUserId=u.id;
       profilePromise=(async()=>{

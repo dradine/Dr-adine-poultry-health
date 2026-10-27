@@ -425,12 +425,13 @@
         return { synced:0, pending:0, skipped:true, reason:'ACCOUNT_NOT_ACTIVE' };
       }
       const queue = await getPendingForUser(userId);
-      let synced = 0, blocked = new Set();
+      const dependencyRank = table => table === 'farms' ? 0 : table === 'houses' ? 1 : table === 'flocks' ? 2 : 3;
+      queue.sort((a,b) => dependencyRank(a.table) - dependencyRank(b.table) || a.createdAt - b.createdAt);
+      let synced = 0;
       for (const op of queue) {
         if (!navigator.onLine) break;
         if (op.status === 'error' && !forceRetry) continue;
-        if (blocked.has(op.table)) continue;
-        if (await hasPendingParent(userId, op.table, op.payload)) { blocked.add(op.table); continue; }
+        if (await hasPendingParent(userId, op.table, op.payload)) continue;
         try {
           const result = await withTimeout(auth.from(op.table).upsert(op.payload, { onConflict:'id', ignoreDuplicates:true }),8000,'SYNC_WRITE');
           if (result.error) {
@@ -441,7 +442,6 @@
             await transact('queue','readwrite',s=>s.put(op));
             console.warn('[AdineOffline] record not synchronized; kept locally', op.table, op.opId, op.lastError);
             if (networkFailure) break;
-            blocked.add(op.table);
             continue;
           }
           await cacheSyncedRecord(userId, op.table, op.payload);

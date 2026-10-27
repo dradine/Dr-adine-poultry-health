@@ -2868,7 +2868,7 @@ async function saveWeeklyRecord() {
         };
 
 
-        payload.id = recordId || (window.AdineOffline ? AdineOffline.uuid() : undefined);
+        payload.id = recordId || weeklyRecords.find(row => Number(row.week_number) === Number(week))?.id || (window.AdineOffline ? AdineOffline.uuid() : undefined);
 
         if (!navigator.onLine && window.AdineOffline) {
             if (recordId) {
@@ -2961,7 +2961,7 @@ async function saveWeeklyRecord() {
 
 
         if (error) {
-            if (!recordId && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            if (!recordId && !weeklyRecords.some(row => Number(row.week_number) === Number(week)) && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
                 await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
                 alert("گزارش هفتگی روی این دستگاه ذخیره شد و در انتظار همگام‌سازی است.");
                 if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره گزارش هفتگی"; }

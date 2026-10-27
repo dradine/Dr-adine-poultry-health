@@ -168,14 +168,6 @@ async function loadSelectedFarm() {
     }
 
 
-    if ((!data || error) && window.AdineOffline) {
-        try {
-            const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);
-            const cachedFarm = cachedFarms.find(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id));
-            if (cachedFarm) { data = cachedFarm; error = null; }
-        } catch (cacheError) { console.warn("Selected farm offline fallback:", cacheError); }
-    }
-
     if (error || !data) {
 
         console.error(

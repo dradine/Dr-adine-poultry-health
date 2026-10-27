@@ -262,7 +262,7 @@ async function renderFarmChooser() {
             error = r.error;
             data = (r.data||[]).filter(x=>x.connection_status==="active").map(x=>({id:x.farm_id,name:x.farm_name,farm_code:x.farm_code,capacity:null}));
         } else {
-            const r = await supabaseClient.from("farms").select("id,name,farm_code,capacity").order("created_at", { ascending:false });
+            const r = await AdineOffline.withTimeout(supabaseClient.from("farms").select("id,name,farm_code,capacity,owner_id,created_at").order("created_at", { ascending:false }), 8000, "FARM_CHOOSER_QUERY");
             data=r.data; error=r.error;
         }
 

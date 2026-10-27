@@ -17,6 +17,8 @@
   ]);
   let dbPromise = null;
   let syncPromise = null;
+  let primePromise = null;
+  let lastPrimeAt = 0;
 
   function openDB() {
     if (dbPromise) return dbPromise;
@@ -158,6 +160,7 @@
     if (!profile || !profile.id) throw new Error('PROFILE_REQUIRED');
     const row = { userId: String(profile.id), profile: profile, validatedAt: Date.now() };
     await transact('profiles', 'readwrite', s => s.put(row));
+    if (navigator.onLine) prime().catch(e => console.warn('[AdineOffline] pre-cache skipped:', e));
     return true;
   }
   async function getCachedProfile(userId) {
@@ -237,6 +240,51 @@
     updateStatus();
     if (navigator.onLine) sync().catch(e => console.warn('[AdineOffline] sync after save:', e));
     return { data:data, error:null, offline:true, pending:true, opId:op.opId };
+  }
+  async function prime(force) {
+    if (!navigator.onLine || !g.supabaseClient?.from) return { skipped:true };
+    if (primePromise) return primePromise;
+    if (!force && Date.now() - lastPrimeAt < 10 * 60 * 1000) return { skipped:true, reason:'RECENTLY_PRIMED' };
+    primePromise = (async function () {
+      const userId = await getUserId();
+      if (!userId) return { skipped:true, reason:'NO_SESSION' };
+      const client = g.supabaseClient;
+      const queries = await Promise.all([
+        client.from('farms').select('*').order('created_at',{ascending:false}).limit(1000),
+        client.from('houses').select('*').order('created_at',{ascending:false}).limit(1000),
+        client.from('flocks').select('*').order('created_at',{ascending:false}).limit(1000)
+      ]);
+      const tables = ['farms','houses','flocks'];
+      let count = 0;
+      for (let i=0;i<queries.length;i++) {
+        const result = queries[i];
+        if (!result.error && Array.isArray(result.data)) {
+          await cacheRows(tables[i], result.data, userId);
+          count += result.data.length;
+        } else if (result.error) {
+          console.warn('[AdineOffline] pre-cache table skipped:', tables[i], result.error.message);
+        }
+      }
+      // Pre-cache the active flock's recent history so cumulative values can be
+      // calculated from known data when the user goes offline.
+      try {
+        const selection = JSON.parse(localStorage.getItem('adine_poultry_current_selection') || '{}');
+        const flockId = selection.flockId || selection.flock_id;
+        const flock = (queries[2].data || []).find(x => String(x.id) === String(flockId));
+        if (flockId && flock) {
+          const type = String(flock.production_type || '').toLowerCase();
+          const layer = type.includes('layer') || type.includes('تخم');
+          const dailyTable = layer ? 'layer_daily_monitoring' : 'broiler_daily_monitoring';
+          const daily = await client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000);
+          if (!daily.error && Array.isArray(daily.data)) { await cacheRows(dailyTable, daily.data, userId); count += daily.data.length; }
+          const weekly = await client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300);
+          if (!weekly.error && Array.isArray(weekly.data)) { await cacheRows('weekly_records', weekly.data, userId); count += weekly.data.length; }
+        }
+      } catch (e) { console.warn('[AdineOffline] active flock history pre-cache skipped:', e); }
+      lastPrimeAt = Date.now();
+      return { cached:count };
+    })().finally(function () { primePromise = null; });
+    return primePromise;
   }
   async function isPendingRecord(table, id, userId) {
     const uid = String(userId || await getUserId() || '');
@@ -394,6 +442,7 @@
   async function init() {
     registerSW();
     try { await openDB(); } catch (e) { console.warn('[AdineOffline] Local storage unavailable:', e); }
+    if (navigator.onLine) prime().catch(e => console.warn('[AdineOffline] initial pre-cache skipped:', e));
     window.addEventListener('online', function () { sync().then(updateStatus).catch(()=>updateStatus()); });
     window.addEventListener('offline', updateStatus);
     document.addEventListener('visibilitychange', function () { if (!document.hidden && navigator.onLine) sync().then(updateStatus).catch(()=>updateStatus()); });
@@ -402,7 +451,7 @@
   }
 
   g.AdineOffline = {
-    version: 1, maxOfflineDays: MAX_OFFLINE_DAYS,
+    version: 1, maxOfflineDays: MAX_OFFLINE_DAYS, prime:prime,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile,
     cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup, importPendingBackup:importPendingBackup,
     isNetworkFailure:isNetworkFailure, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,

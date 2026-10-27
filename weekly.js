@@ -3081,7 +3081,7 @@ async function loadHistory() {
     } else {
         const result = await supabaseClient.from("weekly_records").select("*").eq("flock_id", currentFlock.id).order("week_number", { ascending:true });
         data = result.data; error = result.error;
-        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("weekly_records", data || [], currentUser.id); } catch (e) { console.warn("Weekly records cache:",e); } }
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("weekly_records", data || [], currentUser.id); const pending = await AdineOffline.getPending(); const local = pending.filter(op => op.table === "weekly_records" && String(op.payload.flock_id) === String(currentFlock.id)).map(op => op.payload); const map = new Map((data || []).map(row => [String(row.id), row])); local.forEach(row => map.set(String(row.id), row)); data = Array.from(map.values()); } catch (e) { console.warn("Weekly records cache:",e); } }
         if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
             data = (await AdineOffline.getRows("weekly_records", currentUser.id)).filter(row => String(row.flock_id) === String(currentFlock.id)).sort((a,b) => Number(a.week_number||0)-Number(b.week_number||0));
             error = null;

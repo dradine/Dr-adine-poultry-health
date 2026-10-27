@@ -37,17 +37,23 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(VERSION);
     await Promise.all(CDN_ASSETS.map(async url => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
       try {
-        const request = new Request(url, { mode:'no-cors', credentials:'omit' });
+        const request = new Request(url, { mode:'no-cors', credentials:'omit', signal:controller.signal });
         const response = await fetch(request);
         if (response && (response.ok || response.type === 'opaque')) await cache.put(request, response);
       } catch (_) { /* Runtime caching retries this asset when it is next requested online. */ }
+      finally { clearTimeout(timer); }
     }));
     await Promise.all(SHELL.map(async path => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
       try {
-        const response = await fetch(path, { cache:'reload' });
+        const response = await fetch(path, { cache:'reload', signal:controller.signal });
         if (response && (response.ok || response.type === 'opaque')) await cache.put(path, response);
       } catch (_) { /* A non-core optional page can be cached when visited online. */ }
+      finally { clearTimeout(timer); }
     }));
     await self.skipWaiting();
   })());

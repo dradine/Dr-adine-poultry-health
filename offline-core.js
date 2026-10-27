@@ -443,9 +443,12 @@
     try {
       const id = await getUserId();
       if (!id) return;
-      const n = (await getPendingForUser(id)).length;
-      if (!navigator.onLine) showBanner(n ? 'بدون اینترنت؛ ' + n + ' مورد روی این دستگاه ذخیره شده و منتظر همگام‌سازی است.' : 'بدون اینترنت؛ فقط اطلاعات قبلاً ذخیره‌شده در دسترس است.', n ? 'pending' : 'ok');
-      else if (n) showBanner(n + ' مورد در انتظار همگام‌سازی است.', 'pending');
+      const pendingRows = await getPendingForUser(id);
+      const n = pendingRows.length;
+      const errors = pendingRows.filter(row => row.status === 'error').length;
+      const detail = errors ? '؛ ' + errors + ' مورد نیازمند بررسی یا اصلاح است' : '';
+      if (!navigator.onLine) showBanner(n ? 'بدون اینترنت؛ ' + n + ' مورد روی این دستگاه ذخیره شده و منتظر همگام‌سازی است' + detail + '.' : 'بدون اینترنت؛ فقط اطلاعات قبلاً ذخیره‌شده در دسترس است.', n ? 'pending' : 'ok');
+      else if (n) showBanner(n + ' مورد در انتظار همگام‌سازی است' + detail + '.', 'pending');
       else hideBanner();
     } catch (e) { console.warn('[AdineOffline] status:', e); }
   }

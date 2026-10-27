@@ -2870,6 +2870,13 @@ async function saveWeeklyRecord() {
 
         payload.id = recordId || weeklyRecords.find(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays)))?.id || (window.AdineOffline ? AdineOffline.uuid() : undefined);
 
+        if (recordId && window.AdineOffline && await AdineOffline.isPendingRecord("weekly_records", recordId, currentUser.id)) {
+            await AdineOffline.updatePending("weekly_records", payload, currentUser.id);
+            alert("گزارش هفتگی محلی اصلاح شد و در انتظار همگام‌سازی است.");
+            if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره تغییرات"; }
+            clearWeeklyForm(); await loadHistory(); return;
+        }
+
         if (!navigator.onLine && window.AdineOffline) {
             if (recordId) {
                 if (await AdineOffline.isPendingRecord("weekly_records", recordId, currentUser.id)) {

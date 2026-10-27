@@ -9,9 +9,24 @@ const SHELL = [
   '/weekly.html','/weekly-core.html','/accounting-v14.html'
 ];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
+const CDN_ASSETS = [
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js',
+  'https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js',
+  'https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js',
+  'https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css',
+  'https://cdn.jsdelivr.net/npm/chart.js'
+];
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(VERSION);
+    await Promise.all(CDN_ASSETS.map(async url => {
+      try {
+        const request = new Request(url, { mode:'no-cors', credentials:'omit' });
+        const response = await fetch(request);
+        if (response && (response.ok || response.type === 'opaque')) await cache.put(request, response);
+      } catch (_) { /* Runtime caching retries this asset when it is next requested online. */ }
+    }));
     await Promise.all(SHELL.map(async path => {
       try {
         const response = await fetch(path, { cache:'reload' });

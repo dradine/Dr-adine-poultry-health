@@ -70,7 +70,7 @@
       }catch(e){console.warn("Offline queue check before sign-out:",e);}
       clear();
       try{await window.AdineOffline?.clearAllCachedProfiles?.();}catch(e){console.warn("Offline profile clear:",e);}
-      try{await supabaseClient.auth.signOut({scope:"local"});}catch(e){console.warn("signOut:",e);}
+      try{if(navigator.onLine===false)await supabaseClient.auth.signOut({scope:"local"});else await supabaseClient.auth.signOut();}catch(e){console.warn("signOut:",e);}
       window.location.replace("login.html");
     },
     isActiveProfile(p){if(!p)return false;const s=norm(p.status),a=norm(p.access_status),r=norm(p.role);if(["blocked","suspended","removed"].includes(s)||["blocked","suspended","removed"].includes(a))return false;return s==="active"||a==="approved"||r==="owner"||r==="admin";},

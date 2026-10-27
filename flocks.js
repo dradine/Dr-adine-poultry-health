@@ -1203,7 +1203,7 @@ async function saveFlock(
             const local = await AdineOffline.saveLocal("flocks", payload, { userId: currentUser.id });
             data = local.data; savedOffline = true;
         } else {
-            const result = await supabaseClient.from("flocks").insert(payload).select().single();
+            const result = await AdineOffline.withTimeout(supabaseClient.from("flocks").insert(payload).select().single(), 8000, "FLOCK_SAVE");
             data = result.data; error = result.error;
             if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
                 const local = await AdineOffline.saveLocal("flocks", payload, { userId: currentUser.id });

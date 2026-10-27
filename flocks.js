@@ -965,7 +965,7 @@ async function loadFlocks() {
     if (!navigator.onLine && window.AdineOffline) {
         data = (await AdineOffline.getRows("flocks", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
     } else {
-        const result = await supabaseClient.from("flocks").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:false });
+        const result = await AdineOffline.withTimeout(supabaseClient.from("flocks").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:false }), 8000, "FLOCKS_QUERY");
         data = result.data; error = result.error;
         if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("flocks", data || [], currentUser.id); } catch (e) { console.warn("Flock cache:",e); } }
         if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {

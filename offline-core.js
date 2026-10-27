@@ -291,7 +291,7 @@
     version: 1, maxOfflineDays: MAX_OFFLINE_DAYS,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile,
     cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, sync:sync, updateStatus:updateStatus,
-    isNetworkFailure:isNetworkFailure, isAllowedTable:table=>ALLOWED_TABLES.has(table),
+    isNetworkFailure:isNetworkFailure, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,
     getPending:async function(){const id=await getUserId();return id?getPendingForUser(id):[];},
     uuid:uuid
   };

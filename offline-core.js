@@ -446,19 +446,28 @@
     syncPromise = (async function () {
       const userId = await getUserId();
       if (!userId) return { synced:0, pending:0, skipped:true, reason:'NO_SESSION' };
+      const queue = await getPendingForUser(userId);
+      if (!queue.length) { await updateStatus(); return { synced:0, pending:0, skipped:false }; }
       const auth = g.supabaseClient;
       let profile;
       try {
         const r = await withTimeout(auth.from('profiles').select('id,role,status,is_active').eq('id', userId).maybeSingle(),8000,'SYNC_PROFILE');
-        if (r.error || !r.data) return { synced:0, pending:0, skipped:true, reason:'PROFILE_UNVERIFIED' };
+        if (r.error || !r.data) {
+          const networkFailure = isNetworkFailure(r.error);
+          showBanner(networkFailure ? queue.length + ' مورد روی دستگاه محفوظ است؛ سرور فعلاً در دسترس نیست.' : 'همگام‌سازی متوقف شد؛ حساب قابل تأیید نیست و اطلاعات محلی حذف نشده‌اند.', networkFailure ? 'pending' : 'error');
+          return { synced:0, pending:queue.length, skipped:true, reason:'PROFILE_UNVERIFIED' };
+        }
         profile = r.data;
-      } catch (_) { return { synced:0, pending:0, skipped:true, reason:'PROFILE_UNVERIFIED' }; }
+      } catch (error) {
+        const networkFailure = isNetworkFailure(error);
+        showBanner(networkFailure ? queue.length + ' مورد روی دستگاه محفوظ است؛ سرور فعلاً در دسترس نیست.' : 'همگام‌سازی متوقف شد؛ اطلاعات محلی حذف نشده‌اند.', networkFailure ? 'pending' : 'error');
+        return { synced:0, pending:queue.length, skipped:true, reason:'PROFILE_UNVERIFIED' };
+      }
       const status = String(profile.status || '').toLowerCase();
       if (['blocked','suspended','removed','pending'].includes(status) || profile.is_active === false) {
         showBanner('همگام‌سازی متوقف شد؛ وضعیت حساب باید توسط پشتیبانی بررسی شود.', 'error');
         return { synced:0, pending:0, skipped:true, reason:'ACCOUNT_NOT_ACTIVE' };
       }
-      const queue = await getPendingForUser(userId);
       const dependencyRank = table => table === 'farms' ? 0 : table === 'houses' ? 1 : table === 'flocks' ? 2 : 3;
       queue.sort((a,b) => dependencyRank(a.table) - dependencyRank(b.table) || a.createdAt - b.createdAt);
       let synced = 0;

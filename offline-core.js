@@ -158,7 +158,17 @@
   }
   async function saveProfile(profile) {
     if (!profile || !profile.id) throw new Error('PROFILE_REQUIRED');
-    const row = { userId: String(profile.id), profile: profile, validatedAt: Date.now() };
+    const minimalProfile = {
+      id: String(profile.id),
+      full_name: profile.full_name || '',
+      email: profile.email || '',
+      role: profile.role || '',
+      status: profile.status || '',
+      is_active: profile.is_active,
+      access_status: profile.access_status || '',
+      user_type: profile.user_type || profile.userType || ''
+    };
+    const row = { userId: String(profile.id), profile: minimalProfile, validatedAt: Date.now() };
     await transact('profiles', 'readwrite', s => s.put(row));
     if (navigator.onLine) prime().catch(e => console.warn('[AdineOffline] pre-cache skipped:', e));
     return true;

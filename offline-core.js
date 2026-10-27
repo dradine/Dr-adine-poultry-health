@@ -199,6 +199,13 @@
     if (!Number.isFinite(age) || age < 0 || age > MAX_OFFLINE_DAYS * 86400000) return { expired: true, profile: row.profile, validatedAt: row.validatedAt };
     return { expired: false, profile: row.profile, validatedAt: row.validatedAt };
   }
+  async function getLastCachedProfile() {
+    const db = await openDB();
+    const rows = await requestResult(db.transaction('profiles', 'readonly').objectStore('profiles').getAll());
+    if (!rows || !rows.length) return null;
+    rows.sort((a,b) => Number(b.validatedAt || 0) - Number(a.validatedAt || 0));
+    return getCachedProfile(rows[0].userId);
+  }
   async function cacheRows(table, rows, userId) {
     if (!ALLOWED_TABLES.has(table) || !Array.isArray(rows) || !userId) return false;
     const db = await openDB();
@@ -501,7 +508,7 @@
 
   g.AdineOffline = {
     version: 1, maxOfflineDays: MAX_OFFLINE_DAYS, prime:prime,
-    init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile,
+    init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile, getLastCachedProfile:getLastCachedProfile,
     cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup, importPendingBackup:importPendingBackup,
     isNetworkFailure:isNetworkFailure, withTimeout:withTimeout, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,
     getPending:async function(){const id=await getUserId();return id?getPendingForUser(id):[];},

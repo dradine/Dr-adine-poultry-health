@@ -51,7 +51,7 @@
           const cachedRole=String(saved?.profile?.role||"").trim().toLowerCase();
           const cachedTypeRaw=String(saved?.profile?.user_type||saved?.profile?.userType||"").trim().toLowerCase();
           const cachedType=({poultry_operator:"farm_operator",poultry_manager:"farm_manager"})[cachedTypeRaw]||cachedTypeRaw;
-          const offlineRoleSupported=!["owner","admin"].includes(cachedRole)&&["farm_operator","farm_manager","poultry_technical_expert"].includes(cachedType);
+          const offlineRoleSupported=!["owner","admin"].includes(cachedRole)&&["farm_operator","farm_manager"].includes(cachedType);
           if(saved&&!saved.expired&&saved.profile&&this.isActiveProfile(saved.profile)&&offlineRoleSupported){p=saved.profile;offlineAuth=true;}
           else if(saved?.expired)window.AdineOffline?.showBanner?.("اعتبار ورود آفلاین منقضی شده است؛ برای تأیید مجدد حساب به اینترنت متصل شوید.","error");
         }catch(e){console.warn("Offline auth cache unavailable:",e);}

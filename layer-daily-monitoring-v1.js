@@ -75,7 +75,7 @@ function renderFlock(){const std=resolveStd();$('flockInfo').innerHTML=[['گله
 async function loadRecords(){
  if(!navigator.onLine&&g.AdineOffline){records=(await g.AdineOffline.getRows('layer_daily_monitoring',user.id)).filter(r=>String(r.flock_id)===String(flock.id)).sort((a,b)=>String(b.record_date).localeCompare(String(a.record_date)));historyPage=1;renderDaySelector();renderHistory();return;}
  const r=await supabaseClient.from('layer_daily_monitoring').select('*').eq('flock_id',flock.id).order('record_date',{ascending:false});
- if(!r.error){records=r.data||[];try{await g.AdineOffline?.cacheRows('layer_daily_monitoring',records,user.id)}catch(e){console.warn('Layer daily records cache:',e)}}
+ if(!r.error){records=r.data||[];try{await g.AdineOffline?.cacheRows('layer_daily_monitoring',records,user.id);const pending=await g.AdineOffline?.getPending();if(pending){const local=pending.filter(op=>op.table==='layer_daily_monitoring'&&String(op.payload.flock_id)===String(flock.id)).map(op=>op.payload);const map=new Map(records.map(row=>[String(row.id),row]));local.forEach(row=>map.set(String(row.id),row));records=Array.from(map.values()).sort((a,b)=>String(b.record_date).localeCompare(String(a.record_date)));}}catch(e){console.warn('Layer daily records cache:',e)}}
  else if(g.AdineOffline&&g.AdineOffline.isNetworkFailure(r.error))records=(await g.AdineOffline.getRows('layer_daily_monitoring',user.id)).filter(x=>String(x.flock_id)===String(flock.id)).sort((a,b)=>String(b.record_date).localeCompare(String(a.record_date)));
  historyPage=1;renderDaySelector();renderHistory();
 }

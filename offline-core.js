@@ -86,6 +86,10 @@
   }
   async function getUserId() {
     try {
+      if (g.AdineAuth && typeof g.AdineAuth.getSession === 'function') {
+        const session = await g.AdineAuth.getSession();
+        if (session?.user?.id) return String(session.user.id);
+      }
       const r = await g.supabaseClient.auth.getSession();
       return r && !r.error ? (r.data?.session?.user?.id || null) : null;
     } catch (_) { return null; }

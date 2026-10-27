@@ -2868,6 +2868,31 @@ async function saveWeeklyRecord() {
         };
 
 
+        payload.id = recordId || (window.AdineOffline ? AdineOffline.uuid() : undefined);
+
+        if (!navigator.onLine && window.AdineOffline) {
+            if (recordId) {
+                if (await AdineOffline.isPendingRecord("weekly_records", recordId, currentUser.id)) {
+                    await AdineOffline.updatePending("weekly_records", payload, currentUser.id);
+                } else {
+                    alert("ویرایش گزارش هفتگی قبلاً همگام‌سازی‌شده در حالت آفلاین پشتیبانی نمی‌شود. پس از اتصال اینترنت ویرایش کنید.");
+                    return;
+                }
+            } else {
+                const duplicateWeek = weeklyRecords.find(row => Number(row.week_number) === Number(week));
+                if (duplicateWeek) {
+                    alert("برای این هفته گزارشی از قبل وجود دارد. برای جلوگیری از بازنویسی ناخواسته، ویرایش گزارش موجود را پس از اتصال اینترنت انجام دهید.");
+                    return;
+                }
+                await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
+            }
+            alert("گزارش هفتگی روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود.");
+            if (saveButton) { saveButton.disabled = false; saveButton.textContent = editingRecordId ? "ذخیره تغییرات" : "ذخیره گزارش هفتگی"; }
+            clearWeeklyForm();
+            await loadHistory();
+            return;
+        }
+
         console.log(
             "WEEKLY PAYLOAD:",
             payload
@@ -2936,6 +2961,14 @@ async function saveWeeklyRecord() {
 
 
         if (error) {
+            if (!recordId && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
+                alert("گزارش هفتگی روی این دستگاه ذخیره شد و در انتظار همگام‌سازی است.");
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره گزارش هفتگی"; }
+                clearWeeklyForm();
+                await loadHistory();
+                return;
+            }
 
             console.error(
                 "Save weekly error:",

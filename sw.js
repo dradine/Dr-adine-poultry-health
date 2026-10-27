@@ -6,7 +6,7 @@ const SHELL = [
   '/config.js','/supabase-config.js','/auth.js','/app-core.js',
   '/style.css','/app.css','/auth-compact.css','/seo.css',
   '/Farms.html','/flocks.html','/daily-core.html','/layer-daily-core.html',
-  '/weekly.html','/weekly-core.html','/accounting-v14.html'
+  '/weekly.html','/weekly-core.html','/accounting-v14.html','/offline.html'
 ];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
 const CDN_ASSETS = [

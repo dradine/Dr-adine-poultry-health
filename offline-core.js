@@ -413,10 +413,12 @@
           if (result.error) {
             op.attempts = Number(op.attempts || 0) + 1;
             op.lastError = String(result.error.message || 'SERVER_REJECTED');
-            op.status = 'error';
+            const networkFailure = isNetworkFailure(result.error);
+            op.status = networkFailure ? 'pending' : 'error';
             await transact('queue','readwrite',s=>s.put(op));
+            console.warn('[AdineOffline] record not synchronized; kept locally', op.table, op.opId, op.lastError);
+            if (networkFailure) break;
             blocked.add(op.table);
-            console.warn('[AdineOffline] record rejected; kept locally', op.table, op.opId, op.lastError);
             continue;
           }
           await cacheSyncedRecord(userId, op.table, op.payload);

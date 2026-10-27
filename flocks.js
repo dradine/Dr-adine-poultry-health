@@ -339,7 +339,7 @@ async function loadHouses() {
     if (!navigator.onLine && window.AdineOffline) {
         data = (await AdineOffline.getRows("houses", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
     } else {
-        const result = await supabaseClient.from("houses").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:true });
+        const result = await AdineOffline.withTimeout(supabaseClient.from("houses").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:true }), 8000, "HOUSES_QUERY");
         data = result.data; error = result.error;
         if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("houses", data || [], currentUser.id); } catch (e) { console.warn("House cache:",e); } }
         if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {

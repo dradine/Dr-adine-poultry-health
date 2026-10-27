@@ -90,6 +90,20 @@
       return r && !r.error ? (r.data?.session?.user?.id || null) : null;
     } catch (_) { return null; }
   }
+  async function withTimeout(promise, milliseconds, label) {
+    let timer;
+    try {
+      return await Promise.race([
+        Promise.resolve(promise),
+        new Promise(function(_, reject) {
+          timer = setTimeout(function() { reject(new Error((label || 'REQUEST') + '_TIMEOUT')); }, Math.max(1000, Number(milliseconds) || 8000));
+        })
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
   function isNetworkFailure(error) {
     const m = String(error && (error.message || error.name) || error || '').toLowerCase();
     return !navigator.onLine || /failed to fetch|networkerror|network error|load failed|timeout|timed out|err_internet_disconnected|connection|offline|fetch failed/.test(m);
@@ -480,7 +494,7 @@
     version: 1, maxOfflineDays: MAX_OFFLINE_DAYS, prime:prime,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile,
     cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup, importPendingBackup:importPendingBackup,
-    isNetworkFailure:isNetworkFailure, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,
+    isNetworkFailure:isNetworkFailure, withTimeout:withTimeout, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,
     getPending:async function(){const id=await getUserId();return id?getPendingForUser(id):[];},
     uuid:uuid
   };

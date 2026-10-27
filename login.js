@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const rawType = String(profile?.user_type || profile?.userType || "").trim().toLowerCase();
             const aliases = { poultry_operator:"farm_operator", poultry_manager:"farm_manager" };
             const type = aliases[rawType] || rawType;
-            const supportedFarmUser = !["owner","admin"].includes(role) && ["farm_operator","farm_manager","poultry_technical_expert"].includes(type);
+            const supportedFarmUser = !["owner","admin"].includes(role) && ["farm_operator","farm_manager"].includes(type);
             const valid = saved && !saved.expired && profile && window.AdineAuth.isActiveProfile(profile) && supportedFarmUser;
             offlineResume.hidden = !valid;
             offlineResume.textContent = navigator.onLine ? "ادامه با حساب قبلی (در صورت اختلال اینترنت)" : "ورود آفلاین با حساب قبلی";

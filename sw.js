@@ -6,7 +6,19 @@ const SHELL = [
   '/config.js','/supabase-config.js','/auth.js','/app-core.js',
   '/style.css','/app.css','/auth-compact.css','/seo.css',
   '/Farms.html','/flocks.html','/daily-core.html','/layer-daily-core.html',
-  '/weekly.html','/weekly-core.html','/accounting-v14.html','/offline.html'
+  '/weekly.html','/weekly-core.html','/accounting-v14.html','/offline.html',
+  '/Farms.js','/flocks.js','/farm-region-runtime-v1.js','/app-core.js',
+  '/standard-data.js','/standards.js','/poultry-utils.js','/weekly-storage.js',
+  '/comparison-engine.js','/genetics-ui.js','/weekly-engine.js','/access-control.js',
+  '/date-system.js','/broiler-daily-standards-v1.js','/broiler-daily-monitoring-v1.js',
+  '/broiler-daily-history-actions-v1.js','/broiler-daily-monitoring-enhancements-v1.js',
+  '/layer-daily-standards-v1.js','/layer-period-engine-v1.js','/layer-daily-monitoring-v1.js',
+  '/weekly.js','/weekly-specialized.js','/performance-engine-v2.js',
+  '/performance-intelligence-v1.js','/adine-weight-band-engine-v1.js','/weight-band-runtime-v1.js',
+  '/shared-jalali-calendar-v1.js','/accounting-v14.js','/dashboard-compact.css',
+  '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/flocks-genetics-fix-v1.js',
+  '/flocks-genetics-final.js','/production-date-picker.js','/poultry-icons.js',
+  '/app.css','/style.css','/auth-compact.css','/seo.css'
 ];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
 const CDN_ASSETS = [
@@ -70,7 +82,7 @@ self.addEventListener('fetch', event => {
   }
   event.respondWith((async () => {
     const cache = await caches.open(VERSION);
-    const cached = await cache.match(req);
+    const cached = await cache.match(req) || (sameOrigin ? await cache.match(url.pathname) : null);
     if (cached) return cached;
     try {
       const response = await fetch(req);

@@ -599,26 +599,34 @@ async function loadCurrentFlock() {
     }
 
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("flocks")
-            .select(`
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        const flockRows = await AdineOffline.getRows("flocks", currentUser?.id || (await AdineAuth.getUser())?.id);
+        data = flockRows.find(row => String(row.id) === String(selection.flockId)) || null;
+        if (data) {
+            const uid = currentUser?.id || (await AdineAuth.getUser())?.id;
+            const farmRows = await AdineOffline.getRows("farms", uid);
+            const houseRows = await AdineOffline.getRows("houses", uid);
+            data.farms = data.farms || { name: farmRows.find(x => String(x.id) === String(data.farm_id))?.name || "-" };
+            data.houses = data.houses || { name: houseRows.find(x => String(x.id) === String(data.house_id))?.name || "-" };
+        }
+    } else {
+        const result = await AdineOffline.withTimeout(supabaseClient.from("flocks").select(`
                 *,
-                farms (
-                    name
-                ),
-                houses (
-                    name
-                )
-            `)
-            .eq(
-                "id",
-                selection.flockId
-            )
-            .maybeSingle();
+                farms ( name ),
+                houses ( name )
+            `).eq("id", selection.flockId).maybeSingle(), 8000, "WEEKLY_FLOCK_QUERY");
+        data = result.data; error = result.error;
+        if (!error && data && window.AdineOffline) {
+            try { await AdineOffline.cacheRows("flocks", [data], data.owner_id || currentUser?.id); } catch (e) { console.warn("Weekly flock cache:", e); }
+        }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            const uid = currentUser?.id || (await AdineAuth.getUser())?.id;
+            const rows = await AdineOffline.getRows("flocks", uid);
+            data = rows.find(row => String(row.id) === String(selection.flockId)) || null;
+            error = null;
+        }
+    }
 
 
     if (
@@ -2860,6 +2868,38 @@ async function saveWeeklyRecord() {
         };
 
 
+        payload.id = recordId || weeklyRecords.find(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays)))?.id || (window.AdineOffline ? AdineOffline.uuid() : undefined);
+
+        if (recordId && window.AdineOffline && await AdineOffline.isPendingRecord("weekly_records", recordId, currentUser.id)) {
+            await AdineOffline.updatePending("weekly_records", payload, currentUser.id);
+            alert("گزارش هفتگی محلی اصلاح شد و در انتظار همگام‌سازی است.");
+            if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره تغییرات"; }
+            clearWeeklyForm(); await loadHistory(); return;
+        }
+
+        if (!navigator.onLine && window.AdineOffline) {
+            if (recordId) {
+                if (await AdineOffline.isPendingRecord("weekly_records", recordId, currentUser.id)) {
+                    await AdineOffline.updatePending("weekly_records", payload, currentUser.id);
+                } else {
+                    alert("ویرایش گزارش هفتگی قبلاً همگام‌سازی‌شده در حالت آفلاین پشتیبانی نمی‌شود. پس از اتصال اینترنت ویرایش کنید.");
+                    return;
+                }
+            } else {
+                const duplicateWeek = weeklyRecords.find(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays)));
+                if (duplicateWeek) {
+                    alert("برای این هفته گزارشی از قبل وجود دارد. برای جلوگیری از بازنویسی ناخواسته، ویرایش گزارش موجود را پس از اتصال اینترنت انجام دهید.");
+                    return;
+                }
+                await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
+            }
+            alert("گزارش هفتگی روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود.");
+            if (saveButton) { saveButton.disabled = false; saveButton.textContent = editingRecordId ? "ذخیره تغییرات" : "ذخیره گزارش هفتگی"; }
+            clearWeeklyForm();
+            await loadHistory();
+            return;
+        }
+
         console.log(
             "WEEKLY PAYLOAD:",
             payload
@@ -2890,32 +2930,21 @@ async function saveWeeklyRecord() {
         if (recordId) {
 
             result =
-                await query
-                    .update(
-                        payload
-                    )
-                    .eq(
-                        "id",
-                        recordId
-                    )
+                await AdineOffline.withTimeout(query
+                    .update(payload)
+                    .eq("id", recordId)
                     .select()
-                    .single();
+                    .single(), 8000, "WEEKLY_UPDATE");
 
         }
 
         else {
 
             result =
-                await query
-                    .upsert(
-                        payload,
-                        {
-                            onConflict:
-                                "flock_id,week_number"
-                        }
-                    )
+                await AdineOffline.withTimeout(query
+                    .upsert(payload, { onConflict:"flock_id,week_number" })
                     .select()
-                    .single();
+                    .single(), 8000, "WEEKLY_SAVE");
 
         }
 
@@ -2928,6 +2957,14 @@ async function saveWeeklyRecord() {
 
 
         if (error) {
+            if (!recordId && !weeklyRecords.some(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays))) && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
+                alert("گزارش هفتگی روی این دستگاه ذخیره شد و در انتظار همگام‌سازی است.");
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره گزارش هفتگی"; }
+                clearWeeklyForm();
+                await loadHistory();
+                return;
+            }
 
             console.error(
                 "Save weekly error:",
@@ -3034,26 +3071,18 @@ async function loadHistory() {
     }
 
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from(
-                "weekly_records"
-            )
-            .select("*")
-            .eq(
-                "flock_id",
-                currentFlock.id
-            )
-            .order(
-                "week_number",
-                {
-                    ascending:
-                        true
-                }
-            );
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        data = (await AdineOffline.getRows("weekly_records", currentUser.id)).filter(row => String(row.flock_id) === String(currentFlock.id)).sort((a,b) => Number(a.week_number||0)-Number(b.week_number||0));
+    } else {
+        const result = await AdineOffline.withTimeout(supabaseClient.from("weekly_records").select("*").eq("flock_id", currentFlock.id).order("week_number", { ascending:true }), 8000, "WEEKLY_QUERY");
+        data = result.data; error = result.error;
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("weekly_records", data || [], currentUser.id); const pending = await AdineOffline.getPending(); const local = pending.filter(op => op.table === "weekly_records" && String(op.payload.flock_id) === String(currentFlock.id)).map(op => op.payload); const map = new Map((data || []).map(row => [String(row.id), row])); local.forEach(row => map.set(String(row.id), row)); data = Array.from(map.values()); } catch (e) { console.warn("Weekly records cache:",e); } }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("weekly_records", currentUser.id)).filter(row => String(row.flock_id) === String(currentFlock.id)).sort((a,b) => Number(a.week_number||0)-Number(b.week_number||0));
+            error = null;
+        }
+    }
 
 
     if (error) {

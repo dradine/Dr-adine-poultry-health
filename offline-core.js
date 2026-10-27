@@ -228,14 +228,20 @@
     const now = Date.now();
     const op = { opId: uuid(), userId: userId, table: table, action: 'insert', payload: data, createdAt: now, status: 'pending', attempts: 0, lastError: null };
     const db = await openDB();
-    await new Promise(function (resolve, reject) {
-      const tx = db.transaction(['records','queue'], 'readwrite');
-      tx.objectStore('records').put({ key:key, userId:userId, table:table, id:String(data.id), data:data, syncStatus:'pending', updatedAt:now });
-      tx.objectStore('queue').put(op);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error || new Error('OFFLINE_SAVE_FAILED'));
-      tx.onabort = () => reject(tx.error || new Error('OFFLINE_SAVE_ABORTED'));
-    });
+    try {
+      await new Promise(function (resolve, reject) {
+        const tx = db.transaction(['records','queue'], 'readwrite');
+        tx.objectStore('records').put({ key:key, userId:userId, table:table, id:String(data.id), data:data, syncStatus:'pending', updatedAt:now });
+        tx.objectStore('queue').put(op);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error('OFFLINE_SAVE_FAILED'));
+        tx.onabort = () => reject(tx.error || new Error('OFFLINE_SAVE_ABORTED'));
+      });
+    } catch (storageError) {
+      console.error('[AdineOffline] local write failed:', storageError);
+      showBanner('ذخیره روی دستگاه انجام نشد؛ فرم را نبندید و از اطلاعات واردشده نسخه‌ای تهیه کنید. خطا: ' + String(storageError?.name || storageError?.message || 'فضای ذخیره‌سازی'), 'error');
+      throw storageError;
+    }
     try { if (navigator.storage?.persist) await navigator.storage.persist(); } catch (_) {}
     updateStatus();
     if (navigator.onLine) sync().catch(e => console.warn('[AdineOffline] sync after save:', e));

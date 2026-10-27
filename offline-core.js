@@ -102,10 +102,31 @@
       el.style.cssText = 'position:sticky;top:0;z-index:2147483000;padding:9px 12px;text-align:center;font:700 13px/1.7 system-ui,sans-serif;direction:rtl;box-shadow:0 2px 10px rgba(0,0,0,.12)';
       document.body.insertBefore(el, document.body.firstChild);
     }
-    el.textContent = message;
+    el.replaceChildren();
+    const label = document.createElement('span');
+    label.textContent = message;
+    el.appendChild(label);
     el.style.background = kind === 'error' ? '#7f1d1d' : kind === 'pending' ? '#fff3cd' : '#e6f4ea';
     el.style.color = kind === 'error' ? '#fff' : '#1f3b2c';
     el.style.display = 'block';
+    if (navigator.onLine && kind === 'pending') {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = 'همگام‌سازی اکنون';
+      button.style.cssText = 'margin:4px 8px;padding:5px 10px;border:1px solid currentColor;border-radius:8px;background:transparent;color:inherit;font:inherit;cursor:pointer';
+      button.onclick = async function () {
+        button.disabled = true; button.textContent = 'در حال همگام‌سازی…';
+        try { await sync(true); } catch (e) { console.warn('[AdineOffline] manual sync:',e); }
+        await updateStatus();
+      };
+      el.appendChild(button);
+      const backup = document.createElement('button');
+      backup.type = 'button';
+      backup.textContent = 'دریافت نسخه پشتیبان';
+      backup.style.cssText = button.style.cssText;
+      backup.onclick = function () { exportPendingBackup().catch(function(e){ console.error(e); alert('تهیه نسخه پشتیبان انجام نشد.'); }); };
+      el.appendChild(backup);
+    }
   }
   function hideBanner() {
     const el = document.getElementById('adineOfflineStatus');
@@ -234,7 +255,23 @@
       tx.onabort = () => reject(tx.error || new Error('LOCAL_SYNC_COMMIT_ABORTED'));
     });
   }
-  async function sync() {
+  async function exportPendingBackup() {
+    const userId = await getUserId();
+    if (!userId) throw new Error('AUTH_REQUIRED');
+    const operations = await getPendingForUser(userId);
+    if (!operations.length) { alert('موردی در انتظار همگام‌سازی نیست.'); return false; }
+    const backupData = { format:'adine-offline-backup-v1', userId:userId, exportedAt:new Date().toISOString(), operations:operations };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'adine-offline-backup-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+    alert('این فایل شامل اطلاعات ثبت‌نشده فارم و/یا مالی است؛ آن را در جای امن نگهداری کنید.');
+    return true;
+  }
+  async function sync(forceRetry) {
     if (syncPromise) return syncPromise;
     if (!navigator.onLine || !g.supabaseClient?.auth) return { synced:0, pending:0, skipped:true };
     syncPromise = (async function () {
@@ -318,7 +355,7 @@
   g.AdineOffline = {
     version: 1, maxOfflineDays: MAX_OFFLINE_DAYS,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile,
-    cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus,
+    cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup,
     isNetworkFailure:isNetworkFailure, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,
     getPending:async function(){const id=await getUserId();return id?getPendingForUser(id):[];},
     uuid:uuid

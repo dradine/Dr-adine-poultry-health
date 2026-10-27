@@ -14,7 +14,30 @@
   const timeout=async(p,ms)=>{let t;try{return await Promise.race([p,new Promise((_,r)=>t=setTimeout(()=>r(new Error("AUTH_TIMEOUT")),ms))]);}finally{clearTimeout(t);}};
   window.AdineAuth={
     async getUser(){try{const r=await supabaseClient.auth.getSession();if(!r.error&&r.data?.session?.user)return r.data.session.user;const f=await supabaseClient.auth.getUser();return f.data?.user||null;}catch(e){console.warn("getUser:",e);return null;}},
-    async getSession(){try{const r=await supabaseClient.auth.getSession();return r.error?null:r.data?.session||null;}catch(e){console.warn("getSession:",e);return null;}},
+    async getOfflineSession(){
+      if(navigator.onLine!==false||!window.AdineOffline?.getLastCachedProfile)return null;
+      try{
+        const saved=await window.AdineOffline.getLastCachedProfile();
+        const p=saved?.profile;
+        const role=norm(p?.role);
+        const type=canonicalType(p?.user_type||p?.userType);
+        if(!saved||saved.expired||!p||!this.isActiveProfile(p)||["owner","admin"].includes(role)||!["farm_operator","farm_manager"].includes(type))return null;
+        return {offline:true,user:{id:String(p.id),email:p.email||"",user_metadata:{user_type:type,role:role}},expires_at:Math.floor((saved.validatedAt+7*86400000)/1000)};
+      }catch(e){console.warn("Offline session cache:",e);return null;}
+    },
+    async getSession(){
+      try{
+        const r=await supabaseClient.auth.getSession();
+        const session=!r.error?r.data?.session||null:null;
+        if(session)return session;
+        if(navigator.onLine===false)return await this.getOfflineSession();
+        return null;
+      }catch(e){
+        console.warn("getSession:",e);
+        if(navigator.onLine===false)return await this.getOfflineSession();
+        return null;
+      }
+    },
     async getProfile(id=null,opt={}){
       const u=id?{id}:await this.getUser(); if(!u?.id)return null;
       if(navigator.onLine===false){lastProfileLookupStatus="network_error";return null;}

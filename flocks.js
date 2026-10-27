@@ -258,7 +258,7 @@ async function renderFarmChooser() {
             data = (await AdineOffline.getRows("farms", currentUser.id)).filter(f => String(f.owner_id) === String(currentUser.id));
             error = null;
         } else if (typeof AdineAccess !== "undefined" && !["owner","admin"].includes(String((await AdineAccess.current())?.profile?.role||"").toLowerCase())) {
-            const r = await supabaseClient.rpc("get_my_farm_access");
+            const r = await AdineOffline.withTimeout(supabaseClient.rpc("get_my_farm_access"), 8000, "FARM_ACCESS_QUERY");
             error = r.error;
             data = (r.data||[]).filter(x=>x.connection_status==="active").map(x=>({id:x.farm_id,name:x.farm_name,farm_code:x.farm_code,capacity:null}));
         } else {

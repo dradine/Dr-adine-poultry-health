@@ -162,16 +162,16 @@ async function saveFarm(event) {
             is_active: true
         };
 
-        let data = null, error = null;
+        let data = null, error = null, savedOffline = false;
         if (!navigator.onLine && window.AdineOffline) {
             const local = await AdineOffline.saveLocal("farms", payload, { userId: currentUser.id });
-            data = local.data;
+            data = local.data; savedOffline = true;
         } else {
             const result = await supabaseClient.from("farms").insert(payload).select().single();
             data = result.data; error = result.error;
             if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
                 const local = await AdineOffline.saveLocal("farms", payload, { userId: currentUser.id });
-                data = local.data; error = null;
+                data = local.data; error = null; savedOffline = true;
             }
         }
         if (error || !data) {
@@ -190,7 +190,7 @@ async function saveFarm(event) {
         await loadFarms();
 
         setCurrentSelection({ farmId: data.id, houseId: null, flockId: null });
-        alert(data && !navigator.onLine ? "فارم روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود." : "فارم با موفقیت ذخیره شد.");
+        alert(savedOffline ? "فارم روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود." : "فارم با موفقیت ذخیره شد.");
     } finally {
         if (button) {
             button.disabled = false;

@@ -99,6 +99,10 @@
           timer = setTimeout(function() { reject(new Error((label || 'REQUEST') + '_TIMEOUT')); }, Math.max(1000, Number(milliseconds) || 8000));
         })
       ]);
+    } catch (error) {
+      // Match Supabase's {data,error} shape so callers can reliably fall back
+      // to local IndexedDB when a network request stalls or rejects.
+      return { data:null, error:error || new Error((label || 'REQUEST') + '_FAILED') };
     } finally {
       if (timer) clearTimeout(timer);
     }

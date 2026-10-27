@@ -332,23 +332,18 @@ function enableForms() {
 
 async function loadHouses() {
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("houses")
-            .select("*")
-            .eq(
-                "farm_id",
-                selectedFarm.id
-            )
-            .order(
-                "created_at",
-                {
-                    ascending: true
-                }
-            );
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        data = (await AdineOffline.getRows("houses", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+    } else {
+        const result = await supabaseClient.from("houses").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:true });
+        data = result.data; error = result.error;
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("houses", data || [], currentUser.id); } catch (e) { console.warn("House cache:",e); } }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("houses", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+            error = null;
+        }
+    }
 
 
     if (error) {
@@ -949,23 +944,18 @@ function updateStrainProgram() {
 
 async function loadFlocks() {
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("flocks")
-            .select("*")
-            .eq(
-                "farm_id",
-                selectedFarm.id
-            )
-            .order(
-                "created_at",
-                {
-                    ascending: false
-                }
-            );
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        data = (await AdineOffline.getRows("flocks", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+    } else {
+        const result = await supabaseClient.from("flocks").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:false });
+        data = result.data; error = result.error;
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("flocks", data || [], currentUser.id); } catch (e) { console.warn("Flock cache:",e); } }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("flocks", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+            error = null;
+        }
+    }
 
 
     if (error) {

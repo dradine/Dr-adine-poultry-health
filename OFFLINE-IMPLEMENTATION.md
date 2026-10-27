@@ -7,12 +7,13 @@ This branch adds an offline foundation for previously verified users, local crea
 1. The user must have signed in successfully online on this device at least once. A first-ever account/device cannot be verified with no connection.
 2. The offline grant is stored for at most 7 days after the last successful online profile validation. No password or service-role key is stored.
 3. Form records are persisted to IndexedDB before the UI reports success.
-4. Every locally created record gets a stable UUID. The sync queue uses upsert-on-id with ignoreDuplicates to tolerate a server commit whose response was lost.
-5. Farm → house → flock → monitoring dependencies are sent in queue order; a child is held while its parent remains pending.
-6. A server/RLS/constraint rejection leaves the item on-device and marks it for review. It is not silently deleted.
-7. A user can export pending operations to JSON and restore them only while signed into the same user ID.
-8. Existing synced records are intentionally not edited or deleted offline in v1. New records and edits to still-pending local records are supported.
-9. Reports, standards comparisons, and central analytics remain online. Layer monthly/weekly aggregates continue to be produced by the existing online engine.
+4. Offline resume is enabled only for farm-operator/farm-manager accounts; signing out clears cached offline grants but deliberately retains queued records.
+5. Every locally created record gets a stable UUID. The sync queue uses upsert-on-id with ignoreDuplicates to tolerate a server commit whose response was lost.
+6. Farm → house → flock → monitoring dependencies are sent in queue order; a child is held while its parent remains pending.
+7. A server/RLS/constraint rejection leaves the item on-device and marks it for review. It is not silently deleted.
+8. A user can export pending operations to JSON and restore them only while signed into the same user ID.
+9. Existing synced records are intentionally not edited or deleted offline in v1. New records and edits to still-pending local records are supported.
+10. Reports, standards comparisons, and central analytics remain online. Layer monthly/weekly aggregates continue to be produced by the existing online engine.
 
 ## Browser storage
 - IndexedDB stores the profile minimum, authorized snapshots, local records, and queue.

@@ -20,6 +20,8 @@ assert.ok(auth.includes('p.is_active===false'), 'explicitly inactive profiles mu
 assert.ok(core.includes('opts.complete === true'), 'snapshot reconciliation must require an explicitly complete result');
 assert.ok(core.includes('matchesScope(saved.data)'), 'snapshot reconciliation must be limited to the requested data scope');
 assert.ok(core.includes('store.delete(saved.key)'), 'complete snapshots must remove stale rows from the local snapshot cache');
+assert.ok(core.includes('pruneSnapshotsByParent'), 'complete parent snapshots must prune stale child snapshots when access lists change');
+assert.ok(core.includes('allowedFlocks'), 'flock child-cache pruning must use the authoritative complete flock list');
 assert.ok(read('login.js').includes('offlineResumeButton'), 'login must expose offline resume for eligible accounts');
 assert.ok(!/service_role/i.test(core), 'service role credentials must never appear in offline core');
 for (const [file, token] of [

@@ -149,6 +149,9 @@ function check(condition, message) {
         await api.saveLocal('houses', { id:'sync-house-1', owner_id:uid, farm_id:'sync-farm-1', name:'Test house' }, { userId:uid });
         await api.saveLocal('flocks', { id:'sync-flock-1', owner_id:uid, farm_id:'sync-farm-1', house_id:'sync-house-1', name:'Test flock' }, { userId:uid });
         await api.saveLocal('broiler_daily_monitoring', { id:'sync-daily-1', owner_id:uid, farm_id:'sync-farm-1', house_id:'sync-house-1', flock_id:'sync-flock-1', record_date:'2026-10-28' }, { userId:uid });
+        await api.saveLocal('layer_daily_monitoring', { id:'sync-layer-daily-1', owner_id:uid, farm_id:'sync-farm-1', house_id:'sync-house-1', flock_id:'sync-flock-1', record_date:'2026-10-28' }, { userId:uid });
+        await api.saveLocal('weekly_records', { id:'sync-weekly-1', owner_id:uid, farm_id:'sync-farm-1', house_id:'sync-house-1', flock_id:'sync-flock-1', week_number:1 }, { userId:uid });
+        await api.saveLocal('farm_accounting_transactions', { id:'sync-accounting-1', owner_id:uid, farm_id:'sync-farm-1', amount:100, transaction_type:'income', event_date:'2026-10-28' }, { userId:uid });
         const pendingOffline = (await api.getPending()).length;
         Object.defineProperty(navigator, 'onLine', { configurable:true, get:() => true });
         const first = await api.sync(true);
@@ -172,12 +175,12 @@ function check(condition, message) {
     });
     check(syncBehavior.available, 'offline queue and sync behavior can be exercised with an isolated mock server');
     if (syncBehavior.available) {
-      check(syncBehavior.pendingOffline === 4, 'farm, house, flock and daily record persist locally while offline');
-      check(syncBehavior.firstPending === 4 && syncBehavior.pendingAfterLostResponse === 4, 'network response loss keeps the operation queue intact');
-      check(syncBehavior.secondSynced === 4 && syncBehavior.pendingAfterRetry === 0, 'retry synchronizes the dependency chain and clears the queue');
-      check(syncBehavior.serverCount === 4, 'retry after an accepted-but-lost response does not duplicate server records');
+      check(syncBehavior.pendingOffline === 7, 'farm, house, flock and daily record persist locally while offline');
+      check(syncBehavior.firstPending === 7 && syncBehavior.pendingAfterLostResponse === 7, 'network response loss keeps the operation queue intact');
+      check(syncBehavior.secondSynced === 7 && syncBehavior.pendingAfterRetry === 0, 'retry synchronizes the dependency chain and clears the queue');
+      check(syncBehavior.serverCount === 7, 'retry after an accepted-but-lost response does not duplicate server records');
       check(syncBehavior.farmAttempts === 2, 'the farm insert is retried idempotently after simulated response loss');
-      check(JSON.stringify(syncBehavior.tables) === JSON.stringify(['broiler_daily_monitoring','farms','flocks','houses']), 'all four record types reach the mock server');
+      check(JSON.stringify(syncBehavior.tables) === JSON.stringify(['broiler_daily_monitoring','farm_accounting_transactions','farms','flocks','houses','layer_daily_monitoring','weekly_records']), 'broiler/layer daily, weekly and accounting records reach the mock server');
     } else {
       failures.push('offline sync behavior: ' + (syncBehavior.error || 'mock sync unavailable'));
     }

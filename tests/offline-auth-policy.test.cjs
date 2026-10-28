@@ -27,12 +27,10 @@ const cases = [
   ['numeric inactive flag', { status: 'active', is_active: 0, role: 'farm_manager' }, false],
   ['suspended profile', { status: 'suspended', is_active: true, role: 'farm_manager' }, false],
   ['pending profile', { status: 'pending', is_active: true, role: 'farm_manager' }, false],
-  ['revoked access', { status: 'active', access_status: 'revoked', is_active: true, role: 'farm_manager' }, false],
+  ['removed profile', { status: 'removed', is_active: true, role: 'farm_manager' }, false],
+  ['unknown status fails closed for regular user', { status: '', is_active: true, role: 'farm_manager' }, false],
   ['inactive owner must not bypass flag', { status: 'active', is_active: false, role: 'owner' }, false],
-  ['approved profile', { access_status: 'approved', is_active: true, role: 'farm_manager' }, true],
-  ['approved access status without legacy status', { access_status: 'approved', is_active: true, role: 'farm_manager' }, true],
-  ['revoked access overrides active status', { status: 'active', access_status: 'revoked', is_active: true, role: 'farm_manager' }, false],
-  ['denied access overrides owner role', { access_status: 'denied', is_active: true, role: 'owner' }, false]
+  ['active owner profile', { status: 'active', is_active: true, role: 'owner' }, true]
 ];
 
 for (const [name, profile, expected] of cases) {

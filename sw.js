@@ -6,7 +6,7 @@ const SHELL = [
   '/config.js','/supabase-config.js','/auth.js','/app-core.js',
   '/style.css','/app.css','/auth-compact.css','/seo.css',
   '/Farms.html','/flocks.html','/daily-core.html','/layer-daily-core.html',
-  '/weekly.html','/weekly-core.html','/accounting-v14.html','/offline.html',
+  '/weekly.html','/daily-router.html','/weekly-router.html','/weekly-core.html','/layer-weekly-core.html','/layer-monthly-core.html','/accounting-v14.html','/offline.html',
   '/Farms.js','/flocks.js','/farm-region-runtime-v1.js','/app-core.js',
   '/standard-data.js','/standards.js','/poultry-utils.js','/weekly-storage.js',
   '/comparison-engine.js','/genetics-ui.js','/weekly-engine.js','/access-control.js',

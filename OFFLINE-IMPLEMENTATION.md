@@ -39,9 +39,9 @@ This branch adds an offline foundation for previously verified users, local crea
 
 ## Automated browser smoke test
 - GitHub Actions runs `tests/offline-browser-smoke.cjs` with Playwright/Chromium against a local HTTP server on `127.0.0.1`. Localhost is treated as a secure context by modern browsers, so this validates service-worker behavior without publishing the app or changing production hosting.
-- The smoke test checks that the service worker controls the login page, login/dashboard/offline fallback pages are cached, IndexedDB is available, cached login navigation still renders with browser networking disabled, and Supabase API URLs are not stored in the service-worker cache.
+- The smoke test checks that the service worker controls the login page, login/dashboard/offline fallback and daily/weekly/Layer routing pages are cached, IndexedDB is available, cached login navigation still renders with browser networking disabled, and Supabase API URLs are not stored in the service-worker cache.
 - Behavioral checks cover complete-vs-truncated snapshot reconciliation, scope-limited stale-row removal, preservation of another flock's cached history during a scoped refresh, and purging child snapshots when a complete authoritative farm/flock access list no longer contains their parent. They also cover offline persistence of farm → house → flock → broiler/layer daily monitoring → weekly and accounting records, ordered synchronization, and idempotent retry after simulating a server-accepted insert whose network response was lost. Sync uses an isolated in-browser mock server; it does not write to the production Supabase project.
-- `tests/offline-auth-policy.test.cjs` runs 10 behavioral cases against the actual `auth.js` policy, including boolean/string/numeric inactive flags, pending/suspended/revoked access, legacy active profiles, and owner-role bypass prevention.
+- `tests/offline-auth-policy.test.cjs` runs 13 behavioral cases against the actual `auth.js` policy, including boolean/string/numeric inactive flags, approved/revoked/denied access states, legacy active profiles, and owner-role bypass prevention.
 - This is a desktop Chromium simulation, not a real iOS Safari/Android Chrome device test and not a publicly hosted HTTPS staging environment. It does not validate real Supabase authentication/RLS policies or actual device storage eviction. Those checks remain required before production rollout.
 - To provide a public HTTPS staging URL, use a separately configured staging host/project with its own credentials and no production-domain/Pages-setting changes. Do not point the production custom domain at this branch for testing.
 
@@ -84,8 +84,9 @@ This branch adds an offline foundation for previously verified users, local crea
 - [ ] Verify no regression to existing online reports, calculations, standards, or broiler/layer separation.
 
 ## Current validation notes
-- The latest GitHub Actions runs for this branch pass the offline static contract, auth policy regression, browser smoke, existing test, daily-standards, auth-page protection, and validation jobs. Confirm the newest commit's check status again before merge because each subsequent commit starts new runs.
-- The Cloudflare Workers build check is separately failing and its GitHub check summary exposes only the build link, not the underlying diagnostic. This failure is not considered resolved by the green application tests. Inspect the Cloudflare build logs and confirm the configured build/deploy target before merging; do not add or change Worker deployment configuration from this static-site branch without verifying the production target.
+- The baseline commit `e49b31c6d2a00e9b5b01ac31614e0a634e3460ad` passed the Cloudflare Workers Build check. Subsequent authorization and offline-routing hardening commits require a fresh check run; do not infer their build status from the baseline.
+- The branch-preview URL is a build artifact, not proof of end-to-end operation. Verify it manually over HTTPS, including the app shell, login, cached flock-type routing and offline form flows. Real Supabase auth/RLS writes and real-device behavior remain unverified until tested in an isolated staging project and on iOS Safari/Android Chrome.
+- Keep the PR unmerged and do not promote the Worker to production until the latest checks pass and the release checklist is reviewed.
 
 ## Deployment
 This branch is not production. Do not merge/deploy until the release checklist is run on actual devices and the result is reviewed. No production database schema or production data has been changed by this branch.

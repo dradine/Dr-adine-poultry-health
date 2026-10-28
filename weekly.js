@@ -137,7 +137,7 @@ async function getWeeklyUserAccess() {
         if (!user) return { authenticated: false, allowed: false, user: null, profile: null };
         const profileResult = await supabaseClient
             .from("profiles")
-            .select("id,role,status,is_active,access_status")
+            .select("id,role,status,is_active")
             .eq("id", user.id)
             .maybeSingle();
         if (profileResult.error || !profileResult.data) {
@@ -145,14 +145,12 @@ async function getWeeklyUserAccess() {
         }
         const profile = profileResult.data;
         const status = String(profile.status || "").trim().toLowerCase();
-        const accessStatus = String(profile.access_status || "").trim().toLowerCase();
         const role = String(profile.role || "").trim().toLowerCase();
         const inactive = profile.is_active === false || profile.is_active === 0 ||
             ["false", "0"].includes(String(profile.is_active == null ? "" : profile.is_active).trim().toLowerCase());
         const deniedStatus = ["blocked", "suspended", "removed", "pending", "rejected", "inactive", "disabled"];
-        const deniedAccessStatus = ["blocked", "suspended", "removed", "pending", "rejected", "inactive", "disabled", "revoked", "denied"];
-        const allowed = !inactive && !deniedStatus.includes(status) && !deniedAccessStatus.includes(accessStatus) &&
-            (status === "active" || accessStatus === "approved" || ["owner", "admin"].includes(role));
+        const allowed = !inactive && !deniedStatus.includes(status) &&
+            (status === "active" || ["owner", "admin"].includes(role));
         return { authenticated: true, allowed, user, profile, offline: false };
     } catch (error) {
         console.error("Authentication error:", error);

@@ -37,6 +37,10 @@ assert.ok(core.includes('pruneSnapshotsByParent'), 'complete parent snapshots mu
 assert.ok(core.includes('allowedFlocks'), 'flock child-cache pruning must use the authoritative complete flock list');
 assert.ok(read('login.js').includes('offlineResumeButton'), 'login must expose offline resume for eligible accounts');
 assert.ok(!/service_role/i.test(core), 'service role credentials must never appear in offline core');
+assert.ok(read('weekly.js').includes('id: recordId || (window.AdineOffline ? window.AdineOffline.uuid() : undefined)'), 'new weekly rows must have a stable client ID before online insert to prevent duplicates after timeout');
+assert.ok(auth.includes('return s==="active";'), 'privileged role must not bypass profile status');
+assert.ok(core.includes("const approved = status === 'active';"), 'offline sync must require an active profile status regardless of role');
+assert.ok(read('weekly.js').includes('status === "active";'), 'weekly fallback must require active profile status regardless of role');
 for (const [file, token] of [
   ['Farms.js','saveLocal("farms"'],
   ['flocks.js','saveLocal("houses"'],

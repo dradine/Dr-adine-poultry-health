@@ -52,6 +52,8 @@ function check(condition, message) {
     check(state.cacheNames.some(name => state.cached[name]?.offline), 'offline fallback page is stored in the app-shell cache');
     check(state.dbAvailable, 'IndexedDB API is available for local records');
 
+    await context.setOffline(true);
+
     const cacheBehavior = await page.evaluate(async () => {
       const api = window.AdineOffline;
       if (!api || typeof api.cacheRows !== 'function' || typeof api.getRows !== 'function') {
@@ -95,7 +97,87 @@ function check(condition, message) {
       failures.push('snapshot cache behavior: ' + (cacheBehavior.error || 'offline API unavailable'));
     }
 
-    await context.setOffline(true);
+    const syncBehavior = await page.evaluate(async () => {
+      const api = window.AdineOffline;
+      if (!api) return { available:false };
+      const uid = '__offline_sync_smoke_user__';
+      const serverRows = new Map();
+      const attempts = {};
+      let loseFirstFarmResponse = true;
+      window.AdineAuth.getSession = async () => ({ user:{ id:uid } });
+      window.supabaseClient = {
+        auth: { getSession: async () => ({ data:{ session:{ user:{ id:uid } } }, error:null }) },
+        from(table) {
+          const query = {
+            select() { return this; },
+            order() { return this; },
+            limit() { return this; },
+            eq() { return this; },
+            maybeSingle() {
+              return Promise.resolve({
+                data: table === 'profiles' ? { id:uid, role:'farm_manager', status:'active', is_active:true } : null,
+                error:null
+              });
+            },
+            upsert(payload, options) {
+              attempts[table] = (attempts[table] || 0) + 1;
+              if (!options || options.ignoreDuplicates !== true || options.onConflict !== 'id') {
+                return Promise.resolve({ data:null, error:{ message:'IDEMPOTENCY_OPTIONS_MISSING' } });
+              }
+              const key = table + ':' + String(payload.id);
+              if (!serverRows.has(key)) serverRows.set(key, Object.assign({}, payload));
+              // Simulate a lost network response after the server accepted the first farm insert.
+              if (table === 'farms' && loseFirstFarmResponse) {
+                loseFirstFarmResponse = false;
+                return Promise.resolve({ data:null, error:{ message:'Failed to fetch' } });
+              }
+              return Promise.resolve({ data:null, error:null });
+            },
+            then(resolve, reject) {
+              return Promise.resolve({ data:[], error:null }).then(resolve, reject);
+            }
+          };
+          return query;
+        }
+      };
+      try {
+        await api.saveLocal('farms', { id:'sync-farm-1', owner_id:uid, name:'Test farm' }, { userId:uid });
+        await api.saveLocal('houses', { id:'sync-house-1', owner_id:uid, farm_id:'sync-farm-1', name:'Test house' }, { userId:uid });
+        await api.saveLocal('flocks', { id:'sync-flock-1', owner_id:uid, farm_id:'sync-farm-1', house_id:'sync-house-1', name:'Test flock' }, { userId:uid });
+        await api.saveLocal('broiler_daily_monitoring', { id:'sync-daily-1', owner_id:uid, farm_id:'sync-farm-1', house_id:'sync-house-1', flock_id:'sync-flock-1', record_date:'2026-10-28' }, { userId:uid });
+        const pendingOffline = (await api.getPending()).length;
+        Object.defineProperty(navigator, 'onLine', { configurable:true, get:() => true });
+        const first = await api.sync(true);
+        const pendingAfterLostResponse = (await api.getPending()).length;
+        const second = await api.sync(true);
+        const pendingAfterRetry = (await api.getPending()).length;
+        return {
+          available:true,
+          pendingOffline,
+          firstPending:first.pending,
+          pendingAfterLostResponse,
+          secondSynced:second.synced,
+          pendingAfterRetry,
+          serverCount:serverRows.size,
+          farmAttempts:attempts.farms,
+          tables:Array.from(serverRows.keys()).map(key=>key.split(':')[0]).sort()
+        };
+      } catch (error) {
+        return { available:false, error:String(error) };
+      }
+    });
+    check(syncBehavior.available, 'offline queue and sync behavior can be exercised with an isolated mock server');
+    if (syncBehavior.available) {
+      check(syncBehavior.pendingOffline === 4, 'farm, house, flock and daily record persist locally while offline');
+      check(syncBehavior.firstPending === 4 && syncBehavior.pendingAfterLostResponse === 4, 'network response loss keeps the operation queue intact');
+      check(syncBehavior.secondSynced === 4 && syncBehavior.pendingAfterRetry === 0, 'retry synchronizes the dependency chain and clears the queue');
+      check(syncBehavior.serverCount === 4, 'retry after an accepted-but-lost response does not duplicate server records');
+      check(syncBehavior.farmAttempts === 2, 'the farm insert is retried idempotently after simulated response loss');
+      check(JSON.stringify(syncBehavior.tables) === JSON.stringify(['broiler_daily_monitoring','farms','flocks','houses']), 'all four record types reach the mock server');
+    } else {
+      failures.push('offline sync behavior: ' + (syncBehavior.error || 'mock sync unavailable'));
+    }
+
     const offlineResponse = await page.goto(baseURL + '/login.html?offline-smoke=1', {
       waitUntil: 'domcontentloaded', timeout: 15000
     }).catch(() => null);

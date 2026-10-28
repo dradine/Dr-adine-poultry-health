@@ -8,6 +8,7 @@ new vm.Script(alert);
 const required=['FEED_DROP_WARNING','FEED_DROP_CRITICAL','WATER_DROP_WARNING','WATER_DROP_CRITICAL','WATER_FEED_RATIO_WARNING','TEMP_WARNING','RH_WARNING','CROP_2_WARNING','WEIGHT_WARNING','DOA_WARNING','MORTALITY_WARNING','NH3_WARNING','CO2_CRITICAL','COMBO_FEED_WATER_DROP','COMBO_FEED_WEIGHT'];
 for(const code of required)if(!alert.includes(code))throw new Error('missing alert code: '+code);
 if(!alert.includes('Missing data'))throw new Error('missing-data safety contract missing');
+if(!alert.includes('st.humidity?.default?.[c.age]'))throw new Error('RH alerts must read the nested default humidity bands');
 if(!alert.includes('broiler_daily_monitoring'))throw new Error('daily history source missing');
 if(alert.includes('BROILER_OFFICIAL_STANDARDS_V1'))throw new Error('alert engine must not depend on weekly canonical standards');
 const weekly=fs.readFileSync('weekly-core.html','utf8');

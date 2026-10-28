@@ -187,7 +187,6 @@
       role: profile.role || '',
       status: profile.status || '',
       is_active: profile.is_active,
-      access_status: profile.access_status || '',
       user_type: profile.user_type || profile.userType || ''
     };
     const row = { userId: String(profile.id), profile: minimalProfile, validatedAt: Date.now() };

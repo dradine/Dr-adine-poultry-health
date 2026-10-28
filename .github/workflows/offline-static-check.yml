@@ -39,5 +39,8 @@ jobs:
           node --check weekly.js
           node --check accounting-v14.js
           node --check tests/offline-contract.test.mjs
+          node --check tests/offline-auth-policy.test.cjs
       - name: Check offline contract
         run: node tests/offline-contract.test.mjs
+      - name: Test offline auth access policy
+        run: node tests/offline-auth-policy.test.cjs

@@ -533,10 +533,18 @@
         showBanner(networkFailure ? queue.length + ' مورد روی دستگاه محفوظ است؛ سرور فعلاً در دسترس نیست.' : 'همگام‌سازی متوقف شد؛ اطلاعات محلی حذف نشده‌اند.', networkFailure ? 'pending' : 'error');
         return { synced:0, pending:queue.length, skipped:true, reason:'PROFILE_UNVERIFIED' };
       }
-      const status = String(profile.status || '').toLowerCase();
-      if (['blocked','suspended','removed','pending'].includes(status) || profile.is_active === false) {
-        showBanner('همگام‌سازی متوقف شد؛ وضعیت حساب باید توسط پشتیبانی بررسی شود.', 'error');
-        return { synced:0, pending:0, skipped:true, reason:'ACCOUNT_NOT_ACTIVE' };
+      // Keep queue authorization aligned with auth.js. A missing/unknown status
+      // is not an approval; explicitly inactive flags must fail closed.
+      const status = String(profile.status || '').trim().toLowerCase();
+      const role = String(profile.role || '').trim().toLowerCase();
+      const activeFlag = String(profile.is_active == null ? '' : profile.is_active).trim().toLowerCase();
+      const explicitlyInactive = profile.is_active === false || profile.is_active === 0 ||
+        activeFlag === 'false' || activeFlag === '0';
+      const deniedStatus = ['blocked','suspended','removed','pending','rejected','inactive','disabled'];
+      const approved = status === 'active' || ['owner','admin'].includes(role);
+      if (explicitlyInactive || deniedStatus.includes(status) || !approved) {
+        showBanner('همگام‌سازی متوقف شد؛ حساب فعال و مجاز نیست. اطلاعات محلی حذف نشده‌اند.', 'error');
+        return { synced:0, pending:queue.length, skipped:true, reason:'ACCOUNT_NOT_ACTIVE' };
       }
       const dependencyRank = table => table === 'farms' ? 0 : table === 'houses' ? 1 : table === 'flocks' ? 2 : 3;
       queue.sort((a,b) => dependencyRank(a.table) - dependencyRank(b.table) || a.createdAt - b.createdAt);

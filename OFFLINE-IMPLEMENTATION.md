@@ -88,5 +88,13 @@ This branch adds an offline foundation for previously verified users, local crea
 - The branch-preview URL is available at `https://feat-offline-first-v1-clean-dr-adine-poultry-health.ramzarzadine-c00.workers.dev` (immutable build URL: `https://d62f0913-dr-adine-poultry-health.ramzarzadine-c00.workers.dev`). The available browser verification path could not load these hosts, so app runtime behavior has not been manually verified. Real Supabase auth/RLS writes and real-device behavior remain unverified until tested in an isolated staging project and on iOS Safari/Android Chrome.
 - Keep the PR unmerged and do not promote the Worker to production until the latest checks pass and the release checklist is reviewed.
 
+## Separate live-database advisor findings (not changed by this branch)
+A read-only Supabase advisor scan on 2026-10-28 returned project-wide warnings that are outside this offline-first PR and require a separate, function-by-function review:
+- 81 SECURITY DEFINER functions are executable by the authenticated role. This is an advisor warning, not proof that every function is exploitable; inspect each function's authorization logic and grants before changing anything.
+- 5 functions have a mutable search_path warning.
+- 2 tables have RLS enabled but no policies: `public.poultry_mortality_weekly_standards` and `public.professional_farm_health_monitoring`.
+- 13 duplicate-index warnings were reported by the performance advisor.
+No database policies, functions, indexes, schema, or production data were changed during this audit. Do not bundle broad database remediation into this PR without a separate reviewed migration and isolated staging validation.
+
 ## Deployment
 This branch is not production. Do not merge/deploy until the release checklist is run on actual devices and the result is reviewed. No production database schema or production data has been changed by this branch.

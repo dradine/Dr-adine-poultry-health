@@ -71,7 +71,7 @@
       try{if(navigator.onLine===false)await supabaseClient.auth.signOut({scope:"local"});else await supabaseClient.auth.signOut();}catch(e){console.warn("signOut:",e);}
       window.location.replace("login.html");
     },
-    isActiveProfile(p){if(!p)return false;const s=norm(p.status),r=norm(p.role),activeFlag=norm(p.is_active);if(p.is_active===false||p.is_active===0||activeFlag==="false"||activeFlag==="0")return false;if(["blocked","suspended","removed","pending","rejected","inactive","disabled"].includes(s))return false;return s==="active"||r==="owner"||r==="admin";},
+    isActiveProfile(p){if(!p)return false;const s=norm(p.status),r=norm(p.role),activeFlag=norm(p.is_active);if(p.is_active===false||p.is_active===0||activeFlag==="false"||activeFlag==="0")return false;if(["blocked","suspended","removed","pending","rejected","inactive","disabled"].includes(s))return false;return s==="active";},
     get lastProfileLookupStatus(){return lastProfileLookupStatus;},
     getAccessMessage(p){if(!p)return "اطلاعات حساب در حال دریافت است؛ لطفاً دوباره تلاش کنید.";const s=norm(p.status);if(s==="pending")return "ثبت‌نام شما انجام شده و در انتظار تأیید مالک سامانه است.";if(s==="suspended")return "دسترسی حساب شما موقتاً غیرفعال شده است.";if(s==="blocked")return "حساب شما مسدود شده است.";if(s==="removed")return "دسترسی شما به سامانه لغو شده است.";return "دسترسی حساب شما فعال نیست.";},
     async requireAuth(){

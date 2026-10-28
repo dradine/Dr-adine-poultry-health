@@ -37,6 +37,12 @@ This branch adds an offline foundation for previously verified users, local crea
 - Layer monthly and derived layer-weekly records are rebuilt by the existing online period engine; they are not generated as authoritative reports while offline.
 - A backup export is for pending operations only, not a full database export.
 
+## Automated browser smoke test
+- GitHub Actions runs `tests/offline-browser-smoke.cjs` with Playwright/Chromium against a local HTTP server on `127.0.0.1`. Localhost is treated as a secure context by modern browsers, so this validates service-worker behavior without publishing the app or changing production hosting.
+- The smoke test checks that the service worker controls the login page, login/dashboard/offline fallback pages are cached, IndexedDB is available, cached login navigation still renders with browser networking disabled, and Supabase API URLs are not stored in the service-worker cache.
+- This is a desktop Chromium simulation, not a real iOS Safari/Android Chrome device test and not a publicly hosted HTTPS staging environment. It does not validate Supabase authentication, real farm writes, or actual device storage eviction. Those checks remain required before production rollout.
+- To provide a public HTTPS staging URL, use a separately configured staging host/project with its own credentials and no production-domain/Pages-setting changes. Do not point the production custom domain at this branch for testing.
+
 ## Release checklist — must pass on real devices before production rollout
 ### Install and startup
 - [ ] Visit online once, sign in, confirm service worker is active and shell/CDN dependencies are cached.

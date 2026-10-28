@@ -1,8 +1,8 @@
 /* Adine offline shell service worker v1. Cache static app files only; never cache Supabase API responses. */
 'use strict';
-const VERSION = 'adine-shell-v1';
+const VERSION = 'adine-shell-v2';
 const SHELL = [
-  '/','/index.html','/login.html','/manifest.json','/offline-core.js',
+  '/','/index.html','/login.html','/Dashboard.html','/manifest.json','/offline-core.js',
   '/config.js','/supabase-config.js','/auth.js','/app-core.js',
   '/style.css','/app.css','/auth-compact.css','/seo.css',
   '/Farms.html','/flocks.html','/daily-core.html','/layer-daily-core.html',

@@ -74,6 +74,8 @@ function check(condition, message) {
       ], uid, {scope:{flock_id:'flock-a'},complete:true,limit:10});
       const scopedRows = await api.getRows('broiler_daily_monitoring',uid);
       const scopedIds = scopedRows.map(x=>String(x.id)).sort();
+      await api.cacheRows('flocks', [{id:'flock-a'}], uid, {complete:true,limit:10});
+      const afterFlockAccessRefresh = (await api.getRows('broiler_daily_monitoring',uid)).map(x=>String(x.id)).sort();
       await api.cacheRows('houses', [{id:'house-a'},{id:'house-b'}], uid, {complete:true,limit:10});
       await api.cacheRows('houses', [{id:'house-c'}], uid, {complete:true,limit:1});
       const cappedIds = (await api.getRows('houses',uid)).map(x=>String(x.id)).sort();
@@ -83,6 +85,7 @@ function check(condition, message) {
         partialIds,
         scopedIds,
         scopedFlocks:scopedRows.map(x=>String(x.flock_id)).sort(),
+        afterFlockAccessRefresh,
         cappedIds
       };
     }).catch(error => ({available:false,error:String(error)}));
@@ -91,7 +94,8 @@ function check(condition, message) {
       check(JSON.stringify(cacheBehavior.completeIds) === JSON.stringify(['farm-a']), 'complete snapshot removes stale rows from the same table');
       check(JSON.stringify(cacheBehavior.partialIds) === JSON.stringify(['farm-a','farm-c']), 'incomplete snapshot preserves rows that may be outside a truncated result');
       check(JSON.stringify(cacheBehavior.scopedIds) === JSON.stringify(['daily-a2','daily-b1']), 'scoped snapshot removes stale rows only for the refreshed flock');
-      check(JSON.stringify(cacheBehavior.scopedFlocks) === JSON.stringify(['flock-a','flock-b']), 'snapshot reconciliation preserves another flock’s cached history');
+      check(JSON.stringify(cacheBehavior.scopedFlocks) === JSON.stringify(['flock-a','flock-b']), 'scoped refresh preserves another flock’s cached history');
+      check(JSON.stringify(cacheBehavior.afterFlockAccessRefresh) === JSON.stringify(['daily-a2']), 'complete authoritative flock refresh purges child snapshots for flocks no longer authorized');
       check(JSON.stringify(cacheBehavior.cappedIds) === JSON.stringify(['house-a','house-b','house-c']), 'result at query limit never triggers destructive reconciliation');
     } else {
       failures.push('snapshot cache behavior: ' + (cacheBehavior.error || 'offline API unavailable'));

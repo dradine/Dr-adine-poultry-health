@@ -61,6 +61,76 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    // Resume a previously verified account without contacting Supabase.
+    // A first-time account/device still needs an online sign-in.
+    const offlineResume = document.createElement("button");
+    offlineResume.type = "button";
+    offlineResume.id = "offlineResumeButton";
+    offlineResume.hidden = true;
+    offlineResume.textContent = "ورود آفلاین با حساب قبلی";
+    offlineResume.style.cssText = "width:100%;margin-top:12px;padding:12px 14px;border:1px solid #2e6b4a;border-radius:12px;background:#edf7f0;color:#1f5135;font:700 15px Tahoma,Arial,sans-serif;cursor:pointer";
+    form.insertAdjacentElement("afterend", offlineResume);
+
+    async function refreshOfflineResume() {
+        try {
+            const session = await window.AdineAuth?.getSession();
+            if (!window.AdineOffline) { offlineResume.hidden = true; return; }
+            const saved = session?.user?.id
+                ? await window.AdineOffline.getCachedProfile(session.user.id)
+                : await window.AdineOffline.getLastCachedProfile();
+            const profile = saved?.profile;
+            const role = String(profile?.role || "").trim().toLowerCase();
+            const rawType = String(profile?.user_type || profile?.userType || "").trim().toLowerCase();
+            const aliases = { poultry_operator:"farm_operator", poultry_manager:"farm_manager" };
+            const type = aliases[rawType] || rawType;
+            const supportedFarmUser = !["owner","admin"].includes(role) && ["farm_operator","farm_manager"].includes(type);
+            const valid = saved && !saved.expired && profile && window.AdineAuth.isActiveProfile(profile) && supportedFarmUser;
+            offlineResume.hidden = !valid;
+            offlineResume.textContent = navigator.onLine ? "ادامه با حساب قبلی (در صورت اختلال اینترنت)" : "ورود آفلاین با حساب قبلی";
+        } catch (e) {
+            offlineResume.hidden = true;
+            console.warn("Offline resume check:", e);
+        }
+    }
+
+    function routeOfflineProfile(profile) {
+        const role = String(profile.role || "").trim().toLowerCase();
+        const raw = String(profile.user_type || profile.userType || "").trim().toLowerCase();
+        const aliases = { poultry_operator:"farm_operator", poultry_manager:"farm_manager", veterinary_lab:"diagnostic_lab", organization_manager:"company_manager" };
+        const type = aliases[raw] || raw;
+        if (role === "owner" || role === "admin") location.replace("owner.html");
+        else if (["farm_operator","farm_manager","poultry_technical_expert"].includes(type)) location.replace("Dashboard.html");
+        else if (type === "diagnostic_lab") location.replace("laboratory.html");
+        else location.replace("professional.html");
+    }
+
+    offlineResume.addEventListener("click", async function () {
+        offlineResume.disabled = true;
+        try {
+            const session = await window.AdineAuth?.getSession();
+            if (!window.AdineOffline) throw new Error("OFFLINE_SESSION_NOT_AVAILABLE");
+            const saved = session?.user?.id
+                ? await window.AdineOffline.getCachedProfile(session.user.id)
+                : await window.AdineOffline.getLastCachedProfile();
+            const profile = saved?.profile;
+            const role = String(profile?.role || "").trim().toLowerCase();
+            const rawType = String(profile?.user_type || profile?.userType || "").trim().toLowerCase();
+            const type = ({ poultry_operator:"farm_operator", poultry_manager:"farm_manager" })[rawType] || rawType;
+            if (!saved || saved.expired || !profile || !window.AdineAuth.isActiveProfile(profile) || ["owner","admin"].includes(role) || !["farm_operator","farm_manager"].includes(type)) {
+                throw new Error("OFFLINE_GRANT_EXPIRED_OR_UNSUPPORTED");
+            }
+            routeOfflineProfile(profile);
+        } catch (e) {
+            alert("ورود آفلاین ممکن نیست. برای استفاده آفلاین باید قبلاً با همین دستگاه وارد سامانه شده باشید و اعتبار آفلاین حساب منقضی نشده باشد.");
+        } finally {
+            offlineResume.disabled = false;
+        }
+    });
+
+    refreshOfflineResume();
+    window.addEventListener("online", refreshOfflineResume);
+    window.addEventListener("offline", refreshOfflineResume);
+
     /* =====================================================
        SHOW MESSAGE
     ===================================================== */
@@ -652,6 +722,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
+
+                // Cache only the profile already approved by the online auth check.
+                // Never store passwords or tokens in the offline database.
+                try {
+                    if (window.AdineOffline && typeof window.AdineOffline.saveProfile === "function") {
+                        await window.AdineOffline.saveProfile(profile);
+                    }
+                } catch (offlineCacheError) {
+                    console.warn("Could not cache verified profile for offline use:", offlineCacheError);
+                }
 
                 /* =================================================
                    UPDATE ACTIVITY

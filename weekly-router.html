@@ -1,1 +1,37 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پایش هفتگی گله</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0}body{background:#f3f6f4}</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="auth.js"></script><script src="app-core.js"></script></head><body><iframe id="frame" title="پایش هفتگی"></iframe><script>(async function(){try{const s=(typeof getCurrentSelection==='function'?getCurrentSelection():{})||{};const q=new URLSearchParams(location.search);const id=q.get('flock_id')||q.get('flockId')||s.flockId||s.flock_id;if(!id){frame.src='weekly-core.html'+location.search;return}const r=await supabaseClient.from('flocks').select('production_type').eq('id',id).maybeSingle();const t=String(r.data?.production_type||'').toLowerCase();frame.src=(t==='layer'||t.includes('تخم'))?'layer-weekly-core.html'+location.search:'weekly-core.html'+location.search;}catch(e){console.error(e);frame.src='weekly-core.html'+location.search;}})();</script></body></html>
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پایش هفتگی گله</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0}body{background:#f3f6f4}</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="offline-core.js?v=1"></script><script src="auth.js"></script><script src="app-core.js"></script></head><body><iframe id="frame" title="پایش هفتگی"></iframe><script>
+(async function(){
+  const frame=document.getElementById('frame');
+  const q=new URLSearchParams(location.search);
+  const norm=v=>String(v||'').normalize('NFKC').trim().toLowerCase();
+  function routeUnavailable(){
+    document.body.innerHTML='<main dir="rtl" style="font:15px/2 Tahoma,Arial,sans-serif;padding:24px;text-align:center;color:#173f35"><h2>نوع گله مشخص نشد</h2><p>برای جلوگیری از باز شدن فرم اشتباه، نوع گله از اطلاعات ذخیره‌شده قابل تشخیص نیست. اتصال اینترنت را برقرار کنید و دوباره تلاش کنید.</p><button id="retryRoute" type="button" style="padding:10px 18px;border:0;border-radius:10px;background:#1f6b45;color:#fff;font:inherit">تلاش مجدد</button></main>';
+    document.getElementById('retryRoute').addEventListener('click',()=>location.reload());
+  }
+  async function cachedType(id){
+    try{
+      const session=await window.AdineAuth?.getSession?.();
+      const userId=session?.user?.id;
+      if(!userId||!window.AdineOffline?.getRows)return '';
+      const rows=await window.AdineOffline.getRows('flocks',String(userId));
+      const flock=rows.find(row=>String(row.id)===String(id));
+      return norm(flock?.production_type);
+    }catch(e){console.warn('Weekly router cached flock lookup:',e);return '';}
+  }
+  async function flockType(id){
+    try{
+      const request=supabaseClient.from('flocks').select('production_type').eq('id',id).maybeSingle();
+      const r=window.AdineOffline?.withTimeout?await window.AdineOffline.withTimeout(request,5000,'ROUTER_FLOCK'):await request;
+      if(!r.error&&r.data?.production_type)return norm(r.data.production_type);
+    }catch(e){console.warn('Weekly router online flock lookup:',e);}
+    return await cachedType(id);
+  }
+  try{
+    const selection=(typeof getCurrentSelection==='function'?getCurrentSelection():{})||{};
+    const id=q.get('flock_id')||q.get('flockId')||selection.flockId||selection.flock_id||selection.id||'';
+    if(!id){frame.src='weekly-core.html'+location.search;return;}
+    const type=await flockType(id);
+    if(!type){routeUnavailable();return;}
+    frame.src=(type==='layer'||type.includes('تخم'))?'layer-weekly-core.html'+location.search:'weekly-core.html'+location.search;
+  }catch(e){console.error('Weekly router:',e);routeUnavailable();}
+})();
+</script></body></html>

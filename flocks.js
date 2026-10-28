@@ -147,20 +147,41 @@ async function loadSelectedFarm() {
     }
 
 
-    if (typeof AdineAccess !== "undefined" && !(await AdineAccess.canAccessFarm(selection.farmId))) {
-        document.getElementById("selectedFarm").innerHTML = "<p>دسترسی این فارم برای شما فعال نیست.</p>";
-        disableForms();
-        return;
+    if (navigator.onLine && typeof AdineAccess !== "undefined") {
+        const accessResult = await AdineOffline.withTimeout(
+            AdineAccess.canAccessFarm(selection.farmId).then(allowed => ({ data:allowed, error:null })),
+            8000,
+            "FARM_ACCESS"
+        );
+        if (accessResult.error) {
+            const networkFailure = AdineOffline.isNetworkFailure(accessResult.error);
+            const cached = networkFailure ? await AdineOffline.getRows("farms", currentUser.id) : [];
+            const cachedOwnedFarm = cached.some(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id));
+            if (!cachedOwnedFarm) {
+                document.getElementById("selectedFarm").innerHTML = "<p>دسترسی این فارم تأیید نشد. در صورت قطع ارتباط با سرور، ابتدا باید این فارم قبلاً روی همین دستگاه ذخیره شده باشد.</p>";
+                disableForms();
+                return;
+            }
+        } else if (!accessResult.data) {
+            document.getElementById("selectedFarm").innerHTML = "<p>دسترسی این فارم برای شما فعال نیست.</p>";
+            disableForms();
+            return;
+        }
     }
 
-    const {
-        data,
-        error
-    } = await supabaseClient
-        .from("farms")
-        .select("*")
-        .eq("id", selection.farmId)
-        .maybeSingle();
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);
+        data = cachedFarms.find(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id)) || null;
+    } else {
+        const result = await AdineOffline.withTimeout(supabaseClient.from("farms").select("*").eq("id", selection.farmId).maybeSingle(), 8000, "FARM_QUERY");
+        data = result.data; error = result.error;
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            const cachedFarms = await AdineOffline.getRows("farms", currentUser.id);
+            data = cachedFarms.find(row => String(row.id) === String(selection.farmId) && String(row.owner_id) === String(currentUser.id)) || null;
+            error = null;
+        }
+    }
 
 
     if (error || !data) {
@@ -187,6 +208,9 @@ async function loadSelectedFarm() {
 
     selectedFarm =
         data;
+    if (navigator.onLine && window.AdineOffline && String(data.owner_id) === String(currentUser.id)) {
+        try { await AdineOffline.cacheRows("farms", [data], currentUser.id); } catch (cacheError) { console.warn("Selected farm cache:", cacheError); }
+    }
 
 
     document.getElementById(
@@ -246,17 +270,26 @@ async function renderFarmChooser() {
     try {
 
         let data, error;
-        if (typeof AdineAccess !== "undefined" && !["owner","admin"].includes(String((await AdineAccess.current())?.profile?.role||"").toLowerCase())) {
-            const r = await supabaseClient.rpc("get_my_farm_access");
+        if (!navigator.onLine && window.AdineOffline) {
+            data = (await AdineOffline.getRows("farms", currentUser.id)).filter(f => String(f.owner_id) === String(currentUser.id));
+            error = null;
+        } else if (typeof AdineAccess !== "undefined" && !["owner","admin"].includes(String((await AdineAccess.current())?.profile?.role||"").toLowerCase())) {
+            const r = await AdineOffline.withTimeout(supabaseClient.rpc("get_my_farm_access"), 8000, "FARM_ACCESS_QUERY");
             error = r.error;
             data = (r.data||[]).filter(x=>x.connection_status==="active").map(x=>({id:x.farm_id,name:x.farm_name,farm_code:x.farm_code,capacity:null}));
         } else {
-            const r = await supabaseClient.from("farms").select("id,name,farm_code,capacity").order("created_at", { ascending:false });
+            const r = await AdineOffline.withTimeout(supabaseClient.from("farms").select("id,name,farm_code,capacity,owner_id,created_at").order("created_at", { ascending:false }), 8000, "FARM_CHOOSER_QUERY");
             data=r.data; error=r.error;
         }
 
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("farms", currentUser.id)).filter(f => !f.owner_id || String(f.owner_id) === String(currentUser.id));
+            error = null;
+        }
         if (error) throw error;
-
+        if (navigator.onLine && window.AdineOffline && Array.isArray(data)) {
+            try { await AdineOffline.cacheRows("farms", data, currentUser.id); } catch (cacheError) { console.warn("Farm chooser cache:", cacheError); }
+        }
         const farms = data || [];
 
         if (!farms.length) {
@@ -318,23 +351,18 @@ function enableForms() {
 
 async function loadHouses() {
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("houses")
-            .select("*")
-            .eq(
-                "farm_id",
-                selectedFarm.id
-            )
-            .order(
-                "created_at",
-                {
-                    ascending: true
-                }
-            );
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        data = (await AdineOffline.getRows("houses", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+    } else {
+        const result = await AdineOffline.withTimeout(supabaseClient.from("houses").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:true }), 8000, "HOUSES_QUERY");
+        data = result.data; error = result.error;
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("houses", data || [], currentUser.id); } catch (e) { console.warn("House cache:",e); } }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("houses", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+            error = null;
+        }
+    }
 
 
     if (error) {
@@ -349,9 +377,16 @@ async function loadHouses() {
     }
 
 
-    houses =
-        data || [];
-
+    houses = data || [];
+    if (window.AdineOffline) {
+        try {
+            const pending = await AdineOffline.getPending();
+            const local = pending.filter(op => op.table === "houses" && String(op.payload.farm_id) === String(selectedFarm.id)).map(op => op.payload);
+            const map = new Map(houses.map(row => [String(row.id), row]));
+            local.forEach(row => map.set(String(row.id), row));
+            houses = Array.from(map.values());
+        } catch (cacheError) { console.warn("Pending houses merge:", cacheError); }
+    }
 
     renderHouses();
 
@@ -422,6 +457,8 @@ async function saveHouse(
 
     const payload = {
 
+        id: window.AdineOffline ? window.AdineOffline.uuid() : undefined,
+
         farm_id:
             selectedFarm.id,
 
@@ -475,13 +512,18 @@ async function saveHouse(
 
     try {
 
-        const {
-            error
-        } =
-            await supabaseClient
-                .from("houses")
-                .insert(payload);
-
+        let error = null, savedOffline = false;
+        if (!navigator.onLine && window.AdineOffline) {
+            await AdineOffline.saveLocal("houses", payload, { userId: currentUser.id });
+            savedOffline = true;
+        } else {
+            const result = await AdineOffline.withTimeout(supabaseClient.from("houses").insert(payload), 8000, "HOUSE_SAVE");
+            error = result.error;
+            if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                await AdineOffline.saveLocal("houses", payload, { userId: currentUser.id });
+                error = null; savedOffline = true;
+            }
+        }
 
         if (error) {
 
@@ -506,7 +548,7 @@ async function saveHouse(
 
 
         alert(
-            "سالن با موفقیت ثبت شد."
+            savedOffline ? "سالن روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود." : "سالن با موفقیت ثبت شد."
         );
 
     }
@@ -935,23 +977,18 @@ function updateStrainProgram() {
 
 async function loadFlocks() {
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("flocks")
-            .select("*")
-            .eq(
-                "farm_id",
-                selectedFarm.id
-            )
-            .order(
-                "created_at",
-                {
-                    ascending: false
-                }
-            );
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        data = (await AdineOffline.getRows("flocks", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+    } else {
+        const result = await AdineOffline.withTimeout(supabaseClient.from("flocks").select("*").eq("farm_id", selectedFarm.id).order("created_at", { ascending:false }), 8000, "FLOCKS_QUERY");
+        data = result.data; error = result.error;
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("flocks", data || [], currentUser.id); } catch (e) { console.warn("Flock cache:",e); } }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("flocks", currentUser.id)).filter(row => String(row.farm_id) === String(selectedFarm.id));
+            error = null;
+        }
+    }
 
 
     if (error) {
@@ -966,9 +1003,16 @@ async function loadFlocks() {
     }
 
 
-    flocks =
-        data || [];
-
+    flocks = data || [];
+    if (window.AdineOffline) {
+        try {
+            const pending = await AdineOffline.getPending();
+            const local = pending.filter(op => op.table === "flocks" && String(op.payload.farm_id) === String(selectedFarm.id)).map(op => op.payload);
+            const map = new Map(flocks.map(row => [String(row.id), row]));
+            local.forEach(row => map.set(String(row.id), row));
+            flocks = Array.from(map.values());
+        } catch (cacheError) { console.warn("Pending flocks merge:", cacheError); }
+    }
 
     renderFlocks();
 
@@ -1100,6 +1144,8 @@ async function saveFlock(
 
     const payload = {
 
+        id: window.AdineOffline ? window.AdineOffline.uuid() : undefined,
+
         farm_id:
             selectedFarm.id,
 
@@ -1168,18 +1214,20 @@ async function saveFlock(
 
     try {
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("flocks")
-                .insert(payload)
-                .select()
-                .single();
+        let data = null, error = null, savedOffline = false;
+        if (!navigator.onLine && window.AdineOffline) {
+            const local = await AdineOffline.saveLocal("flocks", payload, { userId: currentUser.id });
+            data = local.data; savedOffline = true;
+        } else {
+            const result = await AdineOffline.withTimeout(supabaseClient.from("flocks").insert(payload).select().single(), 8000, "FLOCK_SAVE");
+            data = result.data; error = result.error;
+            if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                const local = await AdineOffline.saveLocal("flocks", payload, { userId: currentUser.id });
+                data = local.data; error = null; savedOffline = true;
+            }
+        }
 
-
-        if (error) {
+        if (error || !data) {
 
             console.error(
                 "Save flock error:",
@@ -1225,7 +1273,7 @@ async function saveFlock(
 
 
         alert(
-            "گله با موفقیت ثبت شد."
+            savedOffline ? "گله روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود." : "گله با موفقیت ثبت شد."
         );
 
     }

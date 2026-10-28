@@ -30,7 +30,9 @@ const cases = [
   ['removed profile', { status: 'removed', is_active: true, role: 'farm_manager' }, false],
   ['unknown status fails closed for regular user', { status: '', is_active: true, role: 'farm_manager' }, false],
   ['inactive owner must not bypass flag', { status: 'active', is_active: false, role: 'owner' }, false],
-  ['active owner profile', { status: 'active', is_active: true, role: 'owner' }, true]
+  ['active owner profile', { status: 'active', is_active: true, role: 'owner' }, true],
+  ['owner role cannot bypass unknown status', { status: '', is_active: true, role: 'owner' }, false],
+  ['admin role cannot bypass rejected status', { status: 'rejected', is_active: true, role: 'admin' }, false]
 ];
 
 for (const [name, profile, expected] of cases) {

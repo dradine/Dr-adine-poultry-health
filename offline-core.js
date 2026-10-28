@@ -521,7 +521,7 @@
       const auth = g.supabaseClient;
       let profile;
       try {
-        const r = await withTimeout(auth.from('profiles').select('id,role,status,is_active,access_status').eq('id', userId).maybeSingle(),8000,'SYNC_PROFILE');
+        const r = await withTimeout(auth.from('profiles').select('id,role,status,is_active').eq('id', userId).maybeSingle(),8000,'SYNC_PROFILE');
         if (r.error || !r.data) {
           const networkFailure = isNetworkFailure(r.error);
           showBanner(networkFailure ? queue.length + ' مورد روی دستگاه محفوظ است؛ سرور فعلاً در دسترس نیست.' : 'همگام‌سازی متوقف شد؛ حساب قابل تأیید نیست و اطلاعات محلی حذف نشده‌اند.', networkFailure ? 'pending' : 'error');
@@ -536,15 +536,13 @@
       // Keep queue authorization aligned with auth.js. A missing/unknown status
       // is not an approval; explicitly inactive flags must fail closed.
       const status = String(profile.status || '').trim().toLowerCase();
-      const accessStatus = String(profile.access_status || '').trim().toLowerCase();
       const role = String(profile.role || '').trim().toLowerCase();
       const activeFlag = String(profile.is_active == null ? '' : profile.is_active).trim().toLowerCase();
       const explicitlyInactive = profile.is_active === false || profile.is_active === 0 ||
         activeFlag === 'false' || activeFlag === '0';
       const deniedStatus = ['blocked','suspended','removed','pending','rejected','inactive','disabled'];
-      const deniedAccessStatus = ['blocked','suspended','removed','pending','rejected','inactive','disabled','revoked','denied'];
-      const approved = status === 'active' || accessStatus === 'approved' || ['owner','admin'].includes(role);
-      if (explicitlyInactive || deniedStatus.includes(status) || deniedAccessStatus.includes(accessStatus) || !approved) {
+      const approved = status === 'active' || ['owner','admin'].includes(role);
+      if (explicitlyInactive || deniedStatus.includes(status) || !approved) {
         showBanner('همگام‌سازی متوقف شد؛ حساب فعال و مجاز نیست. اطلاعات محلی حذف نشده‌اند.', 'error');
         return { synced:0, pending:queue.length, skipped:true, reason:'ACCOUNT_NOT_ACTIVE' };
       }

@@ -35,6 +35,10 @@ function check(condition, message) {
           login: !!(await cache.match('/login.html')),
           dashboard: !!(await cache.match('/Dashboard.html')),
           offline: !!(await cache.match('/offline.html')),
+          dailyRouter: !!(await cache.match('/daily-router.html')),
+          weeklyRouter: !!(await cache.match('/weekly-router.html')),
+          layerWeekly: !!(await cache.match('/layer-weekly-core.html')),
+          layerMonthly: !!(await cache.match('/layer-monthly-core.html')),
           urls: (await cache.keys()).map(req => req.url)
         };
       }
@@ -50,6 +54,10 @@ function check(condition, message) {
     check(state.cacheNames.some(name => state.cached[name]?.login), 'login page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.dashboard), 'dashboard page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.offline), 'offline fallback page is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.dailyRouter), 'daily router is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.weeklyRouter), 'weekly router is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.layerWeekly), 'Layer weekly route is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.layerMonthly), 'Layer monthly route is stored in the app-shell cache');
     check(state.dbAvailable, 'IndexedDB API is available for local records');
 
     await context.setOffline(true);

@@ -15,7 +15,7 @@
   window.AdineAuth={
     async getUser(){try{const r=await supabaseClient.auth.getSession();if(!r.error&&r.data?.session?.user)return r.data.session.user;const f=await supabaseClient.auth.getUser();return f.data?.user||null;}catch(e){console.warn("getUser:",e);return null;}},
     async getOfflineSession(){
-      if(navigator.onLine!==false||!window.AdineOffline?.getLastCachedProfile)return null;
+      if(!window.AdineOffline?.getLastCachedProfile)return null;
       try{
         const saved=await window.AdineOffline.getLastCachedProfile();
         const p=saved?.profile;
@@ -30,12 +30,10 @@
         const r=await supabaseClient.auth.getSession();
         const session=!r.error?r.data?.session||null:null;
         if(session)return session;
-        if(navigator.onLine===false)return await this.getOfflineSession();
-        return null;
+        return await this.getOfflineSession();
       }catch(e){
         console.warn("getSession:",e);
-        if(navigator.onLine===false)return await this.getOfflineSession();
-        return null;
+        return await this.getOfflineSession();
       }
     },
     async getProfile(id=null,opt={}){

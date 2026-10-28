@@ -2678,12 +2678,10 @@ async function saveWeeklyRecord() {
 
         const payload = {
 
-            ...(recordId
-                ? {
-                    id:
-                        recordId
-                }
-                : {}),
+            // Allocate the UUID before the first online request. If the server
+            // commits but the response is lost, the offline retry must reuse
+            // this exact ID instead of creating a duplicate weekly record.
+            id: recordId || (window.AdineOffline ? window.AdineOffline.uuid() : undefined),
 
             owner_id:
                 currentUser.id,

@@ -150,7 +150,7 @@ async function getWeeklyUserAccess() {
             ["false", "0"].includes(String(profile.is_active == null ? "" : profile.is_active).trim().toLowerCase());
         const deniedStatus = ["blocked", "suspended", "removed", "pending", "rejected", "inactive", "disabled"];
         const allowed = !inactive && !deniedStatus.includes(status) &&
-            (status === "active" || ["owner", "admin"].includes(role));
+            status === "active";
         return { authenticated: true, allowed, user, profile, offline: false };
     } catch (error) {
         console.error("Authentication error:", error);

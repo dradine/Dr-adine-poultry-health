@@ -2,7 +2,8 @@ name: Offline static checks
 on:
   push:
     branches:
-      - feat/offline-first-safe-sync
+      - main
+      - feat/offline-first-v1-clean
   pull_request:
     paths:
       - 'offline-core.js'

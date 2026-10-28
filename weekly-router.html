@@ -19,7 +19,8 @@
   }
   async function flockType(id){
     try{
-      const r=await supabaseClient.from('flocks').select('production_type').eq('id',id).maybeSingle();
+      const request=supabaseClient.from('flocks').select('production_type').eq('id',id).maybeSingle();
+      const r=window.AdineOffline?.withTimeout?await window.AdineOffline.withTimeout(request,5000,'ROUTER_FLOCK'):await request;
       if(!r.error&&r.data?.production_type)return norm(r.data.production_type);
     }catch(e){console.warn('Weekly router online flock lookup:',e);}
     return await cachedType(id);

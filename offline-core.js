@@ -231,6 +231,34 @@
     });
     return true;
   }
+  async function pruneSnapshotsByParent(userId, childTable, parentField, allowedIds) {
+    if (!ALLOWED_TABLES.has(childTable) || !parentField || !Array.isArray(allowedIds)) return 0;
+    const uid = String(userId);
+    const allowed = new Set(allowedIds.map(String));
+    const db = await openDB();
+    let removed = 0;
+    await new Promise(function (resolve, reject) {
+      const tx = db.transaction('snapshots', 'readwrite');
+      const store = tx.objectStore('snapshots');
+      const req = store.index('byUserTable').getAll([uid, childTable]);
+      req.onsuccess = function () {
+        (req.result || []).forEach(function (saved) {
+          const parentId = saved.data && saved.data[parentField];
+          // Keep malformed/unrelated rows rather than guessing their ownership.
+          if (parentId != null && !allowed.has(String(parentId))) {
+            store.delete(saved.key);
+            removed++;
+          }
+        });
+      };
+      req.onerror = function () { try { tx.abort(); } catch (_) {} };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error('SNAPSHOT_PRUNE_FAILED'));
+      tx.onabort = () => reject(tx.error || new Error('SNAPSHOT_PRUNE_ABORTED'));
+    });
+    return removed;
+  }
+
   async function cacheRows(table, rows, userId, options) {
     if (!ALLOWED_TABLES.has(table) || !Array.isArray(rows) || !userId) return false;
     const uid = String(userId);
@@ -251,7 +279,7 @@
       if (row && row.id != null) incoming.set(String(row.id), row);
     });
     const db = await openDB();
-    return new Promise(function (resolve, reject) {
+    await new Promise(function (resolve, reject) {
       const tx = db.transaction('snapshots', 'readwrite');
       const store = tx.objectStore('snapshots');
       const existingReq = store.index('byUserTable').getAll([uid, table]);
@@ -265,13 +293,28 @@
           store.put({ key: keyOf(uid, table, id), userId: uid, table: table, id: id, data: row, cachedAt: Date.now() });
         });
       };
-      existingReq.onerror = function () {
-        try { tx.abort(); } catch (_) {}
-      };
-      tx.oncomplete = () => resolve(true);
+      existingReq.onerror = function () { try { tx.abort(); } catch (_) {} };
+      tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error || new Error('SNAPSHOT_WRITE_FAILED'));
       tx.onabort = () => reject(tx.error || new Error('SNAPSHOT_WRITE_ABORTED'));
     });
+
+    // A complete, unscoped parent snapshot is authoritative for which child
+    // snapshots remain visible to this account. Never apply this to partial
+    // or query-limit-capped results, and never delete queued local records.
+    if (reconcile && !scope && table === 'flocks') {
+      const allowedFlocks = Array.from(incoming.keys());
+      for (const childTable of ['broiler_daily_monitoring','layer_daily_monitoring','weekly_records','layer_weekly_monitoring','layer_monthly_monitoring']) {
+        await pruneSnapshotsByParent(uid, childTable, 'flock_id', allowedFlocks);
+      }
+    }
+    if (reconcile && !scope && table === 'farms') {
+      const allowedFarms = Array.from(incoming.keys());
+      for (const childTable of ['farm_accounting_transactions','layer_accounting_transactions']) {
+        await pruneSnapshotsByParent(uid, childTable, 'farm_id', allowedFarms);
+      }
+    }
+    return true;
   }
   async function getRows(table, userId) {
     if (!ALLOWED_TABLES.has(table) || !userId) return [];

@@ -231,16 +231,43 @@
     });
     return true;
   }
-  async function cacheRows(table, rows, userId) {
+  async function cacheRows(table, rows, userId, options) {
     if (!ALLOWED_TABLES.has(table) || !Array.isArray(rows) || !userId) return false;
+    const uid = String(userId);
+    const opts = options || {};
+    const limit = Math.max(1, Number(opts.limit) || 1000);
+    // Only reconcile a snapshot when the caller confirms a complete result.
+    // A result at the query limit may be truncated and must never delete unseen rows.
+    const reconcile = opts.complete === true && rows.length < limit;
+    const scope = opts.scope && typeof opts.scope === 'object' ? opts.scope : null;
+    const matchesScope = function (data) {
+      if (!scope) return true;
+      return Object.keys(scope).every(function (field) {
+        return String(data && data[field] != null ? data[field] : '') === String(scope[field] != null ? scope[field] : '');
+      });
+    };
+    const incoming = new Map();
+    rows.forEach(function (row) {
+      if (row && row.id != null) incoming.set(String(row.id), row);
+    });
     const db = await openDB();
     return new Promise(function (resolve, reject) {
       const tx = db.transaction('snapshots', 'readwrite');
       const store = tx.objectStore('snapshots');
-      rows.forEach(function (row) {
-        if (!row || row.id == null) return;
-        store.put({ key: keyOf(userId, table, row.id), userId: String(userId), table: table, id: String(row.id), data: row, cachedAt: Date.now() });
-      });
+      const existingReq = store.index('byUserTable').getAll([uid, table]);
+      existingReq.onsuccess = function () {
+        if (reconcile) {
+          (existingReq.result || []).forEach(function (saved) {
+            if (matchesScope(saved.data) && !incoming.has(String(saved.id))) store.delete(saved.key);
+          });
+        }
+        incoming.forEach(function (row, id) {
+          store.put({ key: keyOf(uid, table, id), userId: uid, table: table, id: id, data: row, cachedAt: Date.now() });
+        });
+      };
+      existingReq.onerror = function () {
+        try { tx.abort(); } catch (_) {}
+      };
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error || new Error('SNAPSHOT_WRITE_FAILED'));
       tx.onabort = () => reject(tx.error || new Error('SNAPSHOT_WRITE_ABORTED'));
@@ -325,7 +352,7 @@
       for (let i=0;i<queries.length;i++) {
         const result = queries[i];
         if (!result.error && Array.isArray(result.data)) {
-          await cacheRows(tables[i], result.data, userId);
+          await cacheRows(tables[i], result.data, userId, { complete: result.data.length < 1000, limit: 1000 });
           count += result.data.length;
         } else if (result.error) {
           console.warn('[AdineOffline] pre-cache table skipped:', tables[i], result.error.message);
@@ -342,14 +369,14 @@
           const layer = type.includes('layer') || type.includes('تخم');
           const dailyTable = layer ? 'layer_daily_monitoring' : 'broiler_daily_monitoring';
           const daily = await withTimeout(client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000),8000,'PRIME_DAILY');
-          if (!daily.error && Array.isArray(daily.data)) { await cacheRows(dailyTable, daily.data, userId); count += daily.data.length; }
+          if (!daily.error && Array.isArray(daily.data)) { await cacheRows(dailyTable, daily.data, userId, { scope:{ flock_id:flockId }, complete:daily.data.length < 1000, limit:1000 }); count += daily.data.length; }
           const weekly = await withTimeout(client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300),8000,'PRIME_WEEKLY');
-          if (!weekly.error && Array.isArray(weekly.data)) { await cacheRows('weekly_records', weekly.data, userId); count += weekly.data.length; }
+          if (!weekly.error && Array.isArray(weekly.data)) { await cacheRows('weekly_records', weekly.data, userId, { scope:{ flock_id:flockId }, complete:weekly.data.length < 300, limit:300 }); count += weekly.data.length; }
         }
         const selectedFarmId = selection.farmId || selection.farm_id || (flock && flock.farm_id) || localStorage.getItem('adine_accounting_farm');
         if (selectedFarmId) {
           const transactions = await withTimeout(client.from('farm_accounting_transactions').select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),8000,'PRIME_ACCOUNTING');
-          if (!transactions.error && Array.isArray(transactions.data)) { await cacheRows('farm_accounting_transactions', transactions.data, userId); count += transactions.data.length; }
+          if (!transactions.error && Array.isArray(transactions.data)) { await cacheRows('farm_accounting_transactions', transactions.data, userId, { scope:{ farm_id:selectedFarmId }, complete:transactions.data.length < 1000, limit:1000 }); count += transactions.data.length; }
         }
       } catch (e) { console.warn('[AdineOffline] active flock history pre-cache skipped:', e); }
       lastPrimeAt = Date.now();

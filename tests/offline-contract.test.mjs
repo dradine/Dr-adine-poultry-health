@@ -11,8 +11,10 @@ for (const token of ['indexedDB.open','saveLocal','updatePending','isPendingReco
 for (const token of ['broiler_daily_monitoring','layer_daily_monitoring','weekly_records','farm_accounting_transactions','farms','houses','flocks']) assert.ok(core.includes(token), 'offline table allowlist missing ' + token);
 assert.ok(sw.includes("url.hostname.includes('supabase.co')"), 'service worker must not cache Supabase API');
 assert.ok(sw.includes("'/offline.html'"), 'offline fallback page must be precached');
+assert.ok(sw.includes("'/Dashboard.html'"), 'dashboard must be included in offline shell cache');
 assert.ok(auth.includes('getCachedProfile'), 'auth fallback must use the bounded cached profile');
 assert.ok(auth.includes('getOfflineSession'), 'expired/missing online session must be handled through a bounded offline grant');
+assert.ok(!auth.includes('if(navigator.onLine!==false||!window.AdineOffline?.getLastCachedProfile)return null;'), 'cached offline grant must also be considered when the network is online but Supabase is unreachable');
 assert.ok(auth.includes('clearAllCachedProfiles'), 'sign-out must clear offline grants');
 assert.ok(read('login.js').includes('offlineResumeButton'), 'login must expose offline resume for eligible accounts');
 assert.ok(!/service_role/i.test(core), 'service role credentials must never appear in offline core');

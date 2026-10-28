@@ -1,4 +1,16 @@
 # Never publish repository metadata, tests, documentation, or database scripts.
+.git/
+.wrangler/
+node_modules/
+.env
+.env.*
+package.json
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+*.log
+*.yml
+*.yaml
 .github/
 tests/
 supabase/

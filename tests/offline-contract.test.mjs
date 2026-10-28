@@ -16,6 +16,10 @@ assert.ok(auth.includes('getCachedProfile'), 'auth fallback must use the bounded
 assert.ok(auth.includes('getOfflineSession'), 'expired/missing online session must be handled through a bounded offline grant');
 assert.ok(!auth.includes('if(navigator.onLine!==false||!window.AdineOffline?.getLastCachedProfile)return null;'), 'cached offline grant must also be considered when the network is online but Supabase is unreachable');
 assert.ok(auth.includes('clearAllCachedProfiles'), 'sign-out must clear offline grants');
+assert.ok(auth.includes('p.is_active===false'), 'explicitly inactive profiles must not receive offline access');
+assert.ok(core.includes('opts.complete === true'), 'snapshot reconciliation must require an explicitly complete result');
+assert.ok(core.includes('matchesScope(saved.data)'), 'snapshot reconciliation must be limited to the requested data scope');
+assert.ok(core.includes('store.delete(saved.key)'), 'complete snapshots must remove stale rows from the local snapshot cache');
 assert.ok(read('login.js').includes('offlineResumeButton'), 'login must expose offline resume for eligible accounts');
 assert.ok(!/service_role/i.test(core), 'service role credentials must never appear in offline core');
 for (const [file, token] of [

@@ -175,7 +175,7 @@ function check(condition, message) {
     });
     check(syncBehavior.available, 'offline queue and sync behavior can be exercised with an isolated mock server');
     if (syncBehavior.available) {
-      check(syncBehavior.pendingOffline === 7, 'farm, house, flock and daily record persist locally while offline');
+      check(syncBehavior.pendingOffline === 7, 'farm, house, flock, broiler/layer daily, weekly and accounting records persist locally while offline');
       check(syncBehavior.firstPending === 7 && syncBehavior.pendingAfterLostResponse === 7, 'network response loss keeps the operation queue intact');
       check(syncBehavior.secondSynced === 7 && syncBehavior.pendingAfterRetry === 0, 'retry synchronizes the dependency chain and clears the queue');
       check(syncBehavior.serverCount === 7, 'retry after an accepted-but-lost response does not duplicate server records');

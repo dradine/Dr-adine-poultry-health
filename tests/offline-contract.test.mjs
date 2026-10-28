@@ -5,13 +5,22 @@ const read = (p) => readFileSync(p, 'utf8');
 const core = read('offline-core.js');
 const sw = read('sw.js');
 const auth = read('auth.js');
-const requiredPages = ['login.html','Dashboard.html','Farms.html','flocks.html','daily-core.html','layer-daily-core.html','weekly.html','weekly-core.html','accounting-v14.html'];
+const requiredPages = ['login.html','Dashboard.html','Farms.html','flocks.html','daily-core.html','layer-daily-core.html','daily-router.html','weekly-router.html','weekly.html','weekly-core.html','accounting-v14.html'];
 for (const page of requiredPages) assert.match(read(page), /offline-core\.js/, page + ' must load offline core');
 for (const token of ['indexedDB.open','saveLocal','updatePending','isPendingRecord','exportPendingBackup','importPendingBackup','getLastCachedProfile','clearAllCachedProfiles','withTimeout','onConflict:\'id\'','ignoreDuplicates:true','MAX_OFFLINE_DAYS']) assert.ok(core.includes(token), 'offline core missing ' + token);
 for (const token of ['broiler_daily_monitoring','layer_daily_monitoring','weekly_records','farm_accounting_transactions','farms','houses','flocks']) assert.ok(core.includes(token), 'offline table allowlist missing ' + token);
 assert.ok(sw.includes("url.hostname.includes('supabase.co')"), 'service worker must not cache Supabase API');
 assert.ok(sw.includes("'/offline.html'"), 'offline fallback page must be precached');
 assert.ok(sw.includes("'/Dashboard.html'"), 'dashboard must be included in offline shell cache');
+for (const path of ["'/daily-router.html'","'/weekly-router.html'","'/layer-weekly-core.html'","'/layer-monthly-core.html'"]) {
+  assert.ok(sw.includes(path), path + ' must be included in offline shell cache');
+}
+for (const file of ['daily-router.html','weekly-router.html']) {
+  const router = read(file);
+  assert.ok(router.includes("offline-core.js"), file + ' must load offline cache before auth routing');
+  assert.ok(router.includes("AdineOffline.getRows('flocks'"), file + ' must resolve flock type from authorized offline snapshots');
+  assert.ok(router.includes('routeUnavailable()'), file + ' must not silently route unknown flock type to broiler engine');
+}
 assert.ok(auth.includes('getCachedProfile'), 'auth fallback must use the bounded cached profile');
 assert.ok(auth.includes('getOfflineSession'), 'expired/missing online session must be handled through a bounded offline grant');
 assert.ok(!auth.includes('if(navigator.onLine!==false||!window.AdineOffline?.getLastCachedProfile)return null;'), 'cached offline grant must also be considered when the network is online but Supabase is unreachable');

@@ -540,7 +540,7 @@
       const explicitlyInactive = profile.is_active === false || profile.is_active === 0 ||
         activeFlag === 'false' || activeFlag === '0';
       const deniedStatus = ['blocked','suspended','removed','pending','rejected','inactive','disabled'];
-      const approved = status === 'active' || ['owner','admin'].includes(role);
+      const approved = status === 'active';
       if (explicitlyInactive || deniedStatus.includes(status) || !approved) {
         showBanner('همگام‌سازی متوقف شد؛ حساب فعال و مجاز نیست. اطلاعات محلی حذف نشده‌اند.', 'error');
         return { synced:0, pending:queue.length, skipped:true, reason:'ACCOUNT_NOT_ACTIVE' };

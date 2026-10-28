@@ -74,8 +74,10 @@ document.addEventListener("DOMContentLoaded", function () {
     async function refreshOfflineResume() {
         try {
             const session = await window.AdineAuth?.getSession();
-            if (!session?.user?.id || !window.AdineOffline) { offlineResume.hidden = true; return; }
-            const saved = await window.AdineOffline.getCachedProfile(session.user.id);
+            if (!window.AdineOffline) { offlineResume.hidden = true; return; }
+            const saved = session?.user?.id
+                ? await window.AdineOffline.getCachedProfile(session.user.id)
+                : await window.AdineOffline.getLastCachedProfile();
             const profile = saved?.profile;
             const role = String(profile?.role || "").trim().toLowerCase();
             const rawType = String(profile?.user_type || profile?.userType || "").trim().toLowerCase();
@@ -106,12 +108,18 @@ document.addEventListener("DOMContentLoaded", function () {
         offlineResume.disabled = true;
         try {
             const session = await window.AdineAuth?.getSession();
-            if (!session?.user?.id || !window.AdineOffline) throw new Error("OFFLINE_SESSION_NOT_AVAILABLE");
-            const saved = await window.AdineOffline.getCachedProfile(session.user.id);
-            if (!saved || saved.expired || !saved.profile || !window.AdineAuth.isActiveProfile(saved.profile)) {
-                throw new Error("OFFLINE_GRANT_EXPIRED");
+            if (!window.AdineOffline) throw new Error("OFFLINE_SESSION_NOT_AVAILABLE");
+            const saved = session?.user?.id
+                ? await window.AdineOffline.getCachedProfile(session.user.id)
+                : await window.AdineOffline.getLastCachedProfile();
+            const profile = saved?.profile;
+            const role = String(profile?.role || "").trim().toLowerCase();
+            const rawType = String(profile?.user_type || profile?.userType || "").trim().toLowerCase();
+            const type = ({ poultry_operator:"farm_operator", poultry_manager:"farm_manager" })[rawType] || rawType;
+            if (!saved || saved.expired || !profile || !window.AdineAuth.isActiveProfile(profile) || ["owner","admin"].includes(role) || !["farm_operator","farm_manager"].includes(type)) {
+                throw new Error("OFFLINE_GRANT_EXPIRED_OR_UNSUPPORTED");
             }
-            routeOfflineProfile(saved.profile);
+            routeOfflineProfile(profile);
         } catch (e) {
             alert("ورود آفلاین ممکن نیست. برای استفاده آفلاین باید قبلاً با همین دستگاه وارد سامانه شده باشید و اعتبار آفلاین حساب منقضی نشده باشد.");
         } finally {

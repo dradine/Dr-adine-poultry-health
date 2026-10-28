@@ -43,7 +43,7 @@
       if(profilePromise&&!opt.force&&profilePromiseUserId===u.id)return profilePromise;
       profilePromiseUserId=u.id;
       profilePromise=(async()=>{
-        const a=supabaseClient.from("profiles").select("id,full_name,email,phone,role,status,is_active,access_status,approved_at,approved_by,last_seen_at,created_at,updated_at").eq("id",u.id).maybeSingle();
+        const a=supabaseClient.from("profiles").select("id,full_name,email,phone,role,status,is_active,approved_at,approved_by,last_seen_at,created_at,updated_at").eq("id",u.id).maybeSingle();
         const b=supabaseClient.from("professional_profiles").select("user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified").eq("user_id",u.id).maybeSingle();
         const [p,pro]=await timeout(Promise.all([a,b]),7000);
         if(p.error){lastProfileLookupStatus="server_error";throw p.error;}

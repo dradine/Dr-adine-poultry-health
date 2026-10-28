@@ -24,7 +24,7 @@ if(S.common.chickVentTemperatureC.min!==39.4||S.common.chickVentTemperatureC.max
 for(let d=1;d<=7;d++){
   const l=S.common.lighting[`day${d}`];
   if(!l||Math.abs((l.light+l.dark)-24)>0.001) throw new Error(`lighting total is not 24h on day ${d}`);
-  const rh=S.common.humidity[d];
+  const rh=S.common.humidity.default[d];
   if(!Array.isArray(rh)||rh.length!==2||rh[0]>=rh[1]) throw new Error(`invalid RH band on day ${d}`);
 }
 if(S.strains.Arian.sourcePriority!==2) throw new Error('Arian must remain management fallback, not official');

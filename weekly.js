@@ -112,134 +112,49 @@ initializeEvaluationDatePicker();
 ========================================================= */
 
 async function getWeeklyUserAccess() {
-
+    // Use the same authorization policy as the rest of the app. This also
+    // supports a previously verified offline session and fails closed when
+    // the profile cannot be verified; missing profile data is never approval.
     try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .auth
-                .getUser();
-
-        if (
-            error ||
-            !data ||
-            !data.user
-        ) {
-
-            return {
-                authenticated: false,
-                allowed: false,
-                user: null
-            };
-
-        }
-
-        const user =
-            data.user;
-
-        let profile = null;
-
-        try {
-
-            const profileResult =
-                await supabaseClient
-                    .from("profiles")
-                    .select("*")
-                    .eq(
-                        "id",
-                        user.id
-                    )
-                    .maybeSingle();
-
-            if (!profileResult.error) {
-
-                profile =
-                    profileResult.data;
-
+        if (window.AdineAuth && typeof window.AdineAuth.requireAuth === "function") {
+            const auth = await window.AdineAuth.requireAuth();
+            if (!auth || !auth.user || !auth.profile) {
+                return { authenticated: false, allowed: false, user: null, profile: null };
             }
-
-        }
-
-        catch (profileError) {
-
-            console.warn(
-                "Profile check:",
-                profileError
-            );
-
-        }
-
-        if (!profile) {
-
             return {
                 authenticated: true,
                 allowed: true,
-                user
+                user: auth.user,
+                profile: auth.profile,
+                offline: auth.offline === true
             };
-
         }
 
-        const status =
-            String(
-                profile.status || ""
-            ).toLowerCase();
-
-        const accessStatus =
-            String(
-                profile.access_status || ""
-            ).toLowerCase();
-
-        const role =
-            String(
-                profile.role || ""
-            ).toLowerCase();
-
-        const allowed =
-            accessStatus === "approved" ||
-            status === "active" ||
-            (
-                role === "owner" &&
-                ![
-                    "blocked",
-                    "removed",
-                    "suspended"
-                ].includes(status)
-            );
-
-        return {
-
-            authenticated: true,
-
-            allowed,
-
-            user
-
-        };
-
+        // Defensive fallback for an unexpectedly missing auth.js: do not
+        // permit weekly writes when the profile is missing or unreadable.
+        const sessionResult = await supabaseClient.auth.getSession();
+        const user = !sessionResult.error ? sessionResult.data?.session?.user : null;
+        if (!user) return { authenticated: false, allowed: false, user: null, profile: null };
+        const profileResult = await supabaseClient
+            .from("profiles")
+            .select("id,role,status,is_active")
+            .eq("id", user.id)
+            .maybeSingle();
+        if (profileResult.error || !profileResult.data) {
+            return { authenticated: true, allowed: false, user, profile: null };
+        }
+        const profile = profileResult.data;
+        const status = String(profile.status || "").trim().toLowerCase();
+        const role = String(profile.role || "").trim().toLowerCase();
+        const inactive = profile.is_active === false || profile.is_active === 0 ||
+            ["false", "0"].includes(String(profile.is_active == null ? "" : profile.is_active).trim().toLowerCase());
+        const allowed = !inactive && !["blocked", "suspended", "removed", "pending", "rejected", "inactive", "disabled"].includes(status) &&
+            (status === "active" || ["owner", "admin"].includes(role));
+        return { authenticated: true, allowed, user, profile, offline: false };
+    } catch (error) {
+        console.error("Authentication error:", error);
+        return { authenticated: false, allowed: false, user: null, profile: null };
     }
-
-    catch (error) {
-
-        console.error(
-            "Authentication error:",
-            error
-        );
-
-        return {
-
-            authenticated: false,
-
-            allowed: false,
-
-            user: null
-
-        };
-
-    }
-
 }
 
 

@@ -1,0 +1,12 @@
+# Never publish repository metadata, tests, documentation, or database scripts.
+.github/
+tests/
+supabase/
+*.sql
+*.md
+*.test.js
+*tests.js
+test-*.js
+audit-ui-trigger.txt
+CNAME
+wrangler.jsonc

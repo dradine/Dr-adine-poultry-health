@@ -1,6 +1,6 @@
 /* Adine offline shell service worker v1. Cache static app files only; never cache Supabase API responses. */
 'use strict';
-const VERSION = 'adine-shell-v4';
+const VERSION = 'adine-shell-v5';
 const SHELL = [
   '/','/index.html','/login.html','/Dashboard.html','/manifest.json','/offline-core.js',
   '/config.js','/supabase-config.js','/auth.js','/app-core.js',
@@ -24,7 +24,12 @@ const SHELL = [
   '/guangming2-genetics-ui-fix-v1.js','/guangming2-integration-v1.js','/weekly-completion-restore-v1.js',
   '/flocks-genetics-selector-v2.js','/broiler-daily-alert-engine-v1.js','/layer-daily-alert-engine-v1.js'
 ];
-const CORE_SHELL = ['/login.html','/offline-core.js','/config.js','/supabase-config.js','/auth.js','/login.js','/Dashboard.html','/offline.html'];
+const CORE_SHELL = [
+  '/','/index.html','/login.html','/Dashboard.html','/manifest.json','/offline.html',
+  '/offline-core.js','/config.js','/supabase-config.js','/auth.js','/login.js',
+  '/style.css','/auth-compact.css','/seo.css','/app.css','/dashboard-compact.css',
+  '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/IMG_4309.png'
+];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
 const CDN_ASSETS = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -37,24 +42,27 @@ const CDN_ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(VERSION);
-    await Promise.all(CDN_ASSETS.map(async url => {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
-      try {
-        const request = new Request(url, { mode:'no-cors', credentials:'omit', signal:controller.signal });
-        const response = await fetch(request);
-        if (response && (response.ok || response.type === 'opaque')) await cache.put(request, response);
-      } catch (_) { /* Runtime caching retries this asset when it is next requested online. */ }
-      finally { clearTimeout(timer); }
-    }));
-    await Promise.all(SHELL.map(async path => {
+    // Keep installation deliberately small: the previous installer fetched the
+    // entire application and several optional CDNs at once, competing with login
+    // and dashboard requests on mobile connections.
+    const installAssets = [...CORE_SHELL, 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'];
+    await Promise.all(installAssets.map(async asset => {
+      const isCdn = /^https:\/\//i.test(asset);
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 8000);
       try {
-        const response = await fetch(path, { cache:'reload', signal:controller.signal });
-        if (response && (response.ok || response.type === 'opaque')) await cache.put(path, response);
-      } catch (_) { /* A non-core optional page can be cached when visited online. */ }
-      finally { clearTimeout(timer); }
+        const request = isCdn
+          ? new Request(asset, { mode:'no-cors', credentials:'omit', signal:controller.signal })
+          : new Request(asset, { cache:'reload', signal:controller.signal });
+        const response = await fetch(request);
+        if (response && (response.ok || response.type === 'opaque')) {
+          await cache.put(isCdn ? request : new URL(asset, self.location.origin).pathname, response);
+        }
+      } catch (_) {
+        // A failed optional/core fetch must not hold up the interactive app.
+      } finally {
+        clearTimeout(timer);
+      }
     }));
     // Do not activate a new offline worker unless its authentication and app-entry core is cached.
     // A transient install-time network failure must not advertise an offline-ready shell.

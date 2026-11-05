@@ -15,6 +15,9 @@ assert.ok(!auth.includes('status,is_active,access_status,approved_at'), 'shared 
 for (const token of ['broiler_daily_monitoring','layer_daily_monitoring','weekly_records','farm_accounting_transactions','farms','houses','flocks']) assert.ok(core.includes(token), 'offline table allowlist missing ' + token);
 assert.ok(sw.includes("url.hostname.includes('supabase.co')"), 'service worker must not cache Supabase API');
 assert.ok(sw.includes("'/offline.html'"), 'offline fallback page must be precached');
+assert.ok(sw.includes('const CORE_SHELL ='), 'offline install must explicitly validate critical entry/auth resources');
+assert.ok(sw.includes('OFFLINE_CORE_CACHE_INCOMPLETE'), 'service worker must fail installation rather than claim offline readiness when core assets are missing');
+assert.ok(sw.includes('verifiedCore.some') || sw.includes('missingCore.length'), 'service worker must verify critical shell cache before activation');
 assert.ok(sw.includes("'/Dashboard.html'"), 'dashboard must be included in offline shell cache');
 for (const path of ["'/daily-router.html'","'/weekly-router.html'","'/layer-weekly-core.html'","'/layer-monthly-core.html'"]) {
   assert.ok(sw.includes(path), path + ' must be included in offline shell cache');

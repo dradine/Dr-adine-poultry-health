@@ -1,46 +1,29 @@
-/* ADINE WEEKLY — LAZY OPTIONAL LIBRARIES
-   Keep the weekly form interactive without waiting for chart/date-picker CDNs.
+/* ADINE WEEKLY — LAZY CHART LOADER
+   The shared Jalali calendar handles dates locally. Chart.js is loaded only
+   when the user explicitly asks to calculate and render a weight chart.
 */
 (function(){
  'use strict';
- const loaded=new Map();
- function loadScript(src){
-  if(loaded.has(src))return loaded.get(src);
-  const promise=new Promise((resolve,reject)=>{
-   const existing=[...document.scripts].find(s=>s.src===new URL(src,location.href).href);
-   if(existing){if(existing.dataset.loaded==='true'){resolve();return}existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return}
-   const script=document.createElement('script');script.src=src;script.async=true;
-   script.onload=()=>{script.dataset.loaded='true';resolve()};
-   script.onerror=()=>reject(new Error('Optional library failed: '+src));
+ let chartPromise=null;
+ function ensureChart(){
+  if(window.Chart)return Promise.resolve();
+  if(chartPromise)return chartPromise;
+  chartPromise=new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/chart.js';
+   script.async=true;
+   script.onload=()=>resolve();
+   script.onerror=()=>reject(new Error('Chart.js failed to load'));
    document.head.appendChild(script);
-  });
-  loaded.set(src,promise);return promise;
+  }).catch(error=>{chartPromise=null;throw error});
+  return chartPromise;
  }
- function loadStyle(href){
-  if(document.querySelector('link[data-adine-lazy-style="'+href+'"]'))return;
-  const link=document.createElement('link');link.rel='stylesheet';link.href=href;link.dataset.adineLazyStyle=href;document.head.appendChild(link);
- }
- let datePromise=null;
- function ensureDatePicker(){
-  if(datePromise)return datePromise;
-  datePromise=(async()=>{
-   loadStyle('https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css');
-   await loadScript('https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js');
-   await loadScript('https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js');
-   await loadScript('https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js');
-   if(typeof window.initializeEvaluationDatePicker==='function')window.initializeEvaluationDatePicker();
-   else document.addEventListener('DOMContentLoaded',()=>{if(typeof window.initializeEvaluationDatePicker==='function')window.initializeEvaluationDatePicker()},{once:true});
-  })().catch(error=>{datePromise=null;console.warn('[ADINE] Persian date picker deferred:',error)});
-  return datePromise;
- }
- document.addEventListener('focusin',event=>{
-  if(event.target?.id==='evaluationDate'&&!window.jQuery?.fn?.persianDatepicker)ensureDatePicker();
- });
  document.addEventListener('click',event=>{
   const button=event.target?.closest?.('button[onclick="calculateWeekly()"]');
   if(!button||window.Chart)return;
-  event.preventDefault();event.stopImmediatePropagation();
-  loadScript('https://cdn.jsdelivr.net/npm/chart.js').then(()=>{
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  ensureChart().then(()=>{
    if(typeof window.calculateWeekly==='function')window.calculateWeekly();
   }).catch(error=>{
    console.warn('[ADINE] Chart.js unavailable; calculating without chart:',error);

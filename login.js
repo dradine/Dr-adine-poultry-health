@@ -632,52 +632,34 @@ document.addEventListener("DOMContentLoaded", function () {
                 // extension is optional for authentication, so a transient failure there
                 // must not invalidate an otherwise valid login.
                 let profile = null;
-                try {
-                    const profileResult = await Promise.race([
-                        window.supabaseClient
-                            .from("profiles")
-                            .select("id,full_name,email,phone,role,status,is_active,approved_at,approved_by,last_seen_at,created_at,updated_at")
-                            .eq("id", authenticatedUser.id)
-                            .maybeSingle(),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_TIMEOUT")), 7000))
-                    ]);
-                    if (profileResult?.error) throw profileResult.error;
-                    profile = profileResult?.data || null;
-                } catch (profileError) {
-                    console.error("LOGIN PROFILE LOAD:", profileError);
+                const profileQuery = window.supabaseClient
+                    .from("profiles")
+                    .select("id,full_name,email,phone,role,status,is_active,approved_at,approved_by,last_seen_at,created_at,updated_at")
+                    .eq("id", authenticatedUser.id)
+                    .maybeSingle();
+                const professionalQuery = window.supabaseClient
+                    .from("professional_profiles")
+                    .select("user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified")
+                    .eq("user_id", authenticatedUser.id)
+                    .maybeSingle();
+                const [profileOutcome, professionalOutcome] = await Promise.all([
+                    Promise.race([profileQuery, new Promise((_, reject) => setTimeout(() => reject(new Error("PROFILE_TIMEOUT")), 7000))])
+                        .then(result => ({ result })).catch(error => ({ error })),
+                    Promise.race([professionalQuery, new Promise((_, reject) => setTimeout(() => reject(new Error("PROFESSIONAL_PROFILE_TIMEOUT")), 5000))])
+                        .then(result => ({ result })).catch(error => ({ error }))
+                ]);
+                if (profileOutcome.error) console.error("LOGIN PROFILE LOAD:", profileOutcome.error);
+                else if (profileOutcome.result?.error) console.error("LOGIN PROFILE LOAD:", profileOutcome.result.error);
+                else profile = profileOutcome.result?.data || null;
+                if (profile && professionalOutcome.result && !professionalOutcome.result.error && professionalOutcome.result.data) {
+                    profile = { ...profile, ...professionalOutcome.result.data };
+                } else if (professionalOutcome.error || professionalOutcome.result?.error) {
+                    console.warn("LOGIN PROFESSIONAL PROFILE LOAD:", professionalOutcome.error || professionalOutcome.result.error);
                 }
-
-                // Fetch professional metadata separately. It is used only for routing.
-                // If it is unavailable, Auth metadata remains a safe routing fallback.
-                if (profile) {
-                    try {
-                        const professionalResult = await Promise.race([
-                            window.supabaseClient
-                                .from("professional_profiles")
-                                .select("user_type,activity_types,organization_name,license_number,province,city,specialty,notes,is_verified")
-                                .eq("user_id", authenticatedUser.id)
-                                .maybeSingle(),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error("PROFESSIONAL_PROFILE_TIMEOUT")), 5000))
-                        ]);
-                        if (!professionalResult?.error && professionalResult?.data) {
-                            profile = { ...profile, ...professionalResult.data };
-                        } else if (professionalResult?.error) {
-                            console.warn("LOGIN PROFESSIONAL PROFILE LOAD:", professionalResult.error);
-                        }
-                    } catch (professionalError) {
-                        console.warn("LOGIN PROFESSIONAL PROFILE EXCEPTION:", professionalError);
-                    }
-                }
-
-                // Keep role/type metadata as a fallback for routing if the extension row
-                // is temporarily unavailable.
                 if (profile) {
                     profile.role = profile.role || authenticatedUser.user_metadata?.role || "";
-                    profile.user_type = profile.user_type ||
-                        authenticatedUser.user_metadata?.user_type ||
-                        authenticatedUser.user_metadata?.userType || "";
+                    profile.user_type = profile.user_type || authenticatedUser.user_metadata?.user_type || authenticatedUser.user_metadata?.userType || "";
                 }
-
 
                 /* =================================================
                    PROFILE NOT FOUND
@@ -723,11 +705,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
 
+                try { window.AdineAuth.cacheVerifiedProfile(authenticatedUser.id, profile); } catch (cacheError) { console.warn("Verified profile session cache skipped:", cacheError); }
+
                 // Cache only the profile already approved by the online auth check.
                 // Never store passwords or tokens in the offline database.
                 try {
                     if (window.AdineOffline && typeof window.AdineOffline.saveProfile === "function") {
-                        await window.AdineOffline.saveProfile(profile);
+                        window.AdineOffline.saveProfile(profile).catch(offlineCacheError => console.warn("Could not cache verified profile for offline use:", offlineCacheError));
                     }
                 } catch (offlineCacheError) {
                     console.warn("Could not cache verified profile for offline use:", offlineCacheError);
@@ -738,12 +722,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 ================================================= */
 
                 try {
-                    await Promise.race([
-                        window.supabaseClient.rpc("update_my_activity"),
-                        new Promise(resolve => setTimeout(resolve, 3000))
-                    ]);
+                    // Activity telemetry is non-critical; never hold up successful sign-in.
+                    window.supabaseClient.rpc("update_my_activity")
+                        .then(result => { if (result?.error) console.warn("ACTIVITY UPDATE:", result.error); })
+                        .catch(activityError => console.warn("ACTIVITY UPDATE EXCEPTION:", activityError));
                 } catch (activityError) {
-                    // ثبت آخرین فعالیت نباید مانع ورود و مسیریابی شود.
                     console.warn("ACTIVITY UPDATE EXCEPTION:", activityError);
                 }
 

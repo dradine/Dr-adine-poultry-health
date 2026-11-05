@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded',()=>{(async function(){
   const frame=document.getElementById('frame');
-  frame.addEventListener('load',()=>document.getElementById('routeLoading')?.remove(),{once:true});
+  frame.addEventListener('load',()=>{if(frame.getAttribute('src'))document.getElementById('routeLoading')?.remove();});
   const q=new URLSearchParams(location.search);
   const norm=v=>String(v||'').normalize('NFKC').trim().toLowerCase();
   function routeUnavailable(){

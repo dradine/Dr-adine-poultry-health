@@ -41,10 +41,10 @@
       }
     }
     id=id||q.get('flock_id')||q.get('flockId')||'';
-    if(!id){frame.src='daily-core.html'+location.search;return;}
+    if(!id){const params=new URLSearchParams(location.search);params.set('v','20261105.1');frame.src='daily-core.html?'+params.toString();return;}
     const type=await flockType(id);
     if(!type){routeUnavailable();return;}
-    const qs=new URLSearchParams(location.search);qs.set('flock_id',id);
+    const qs=new URLSearchParams(location.search);qs.set('flock_id',id);qs.set('v','20261105.1');
     frame.src=(type==='layer'||type.includes('تخم'))?'layer-daily-core.html?'+qs.toString():'daily-core.html?'+qs.toString();
   }catch(e){console.error('Daily router:',e);routeUnavailable();}
 })();

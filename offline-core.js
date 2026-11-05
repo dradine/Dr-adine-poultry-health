@@ -383,6 +383,13 @@
     primePromise = (async function () {
       const userId = await getUserId();
       if (!userId) return { skipped:true, reason:'NO_SESSION' };
+      const stampKey = 'adine_offline_prime_at_v1:' + userId;
+      let persistedStamp = 0;
+      try { persistedStamp = Number(localStorage.getItem(stampKey) || 0); } catch (_) {}
+      if (!force && persistedStamp && Date.now() - persistedStamp < 10 * 60 * 1000) {
+        return { skipped:true, reason:'RECENTLY_PRIMED_ACROSS_NAVIGATION' };
+      }
+      try { localStorage.setItem(stampKey, String(Date.now())); } catch (_) {}
       const client = g.supabaseClient;
       const queries = await Promise.all([
         withTimeout(client.from('farms').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_FARMS'),
@@ -422,6 +429,7 @@
         }
       } catch (e) { console.warn('[AdineOffline] active flock history pre-cache skipped:', e); }
       lastPrimeAt = Date.now();
+      try { localStorage.setItem(stampKey, String(lastPrimeAt)); } catch (_) {}
       return { cached:count };
     })().finally(function () { primePromise = null; });
     return primePromise;
@@ -611,7 +619,16 @@
     registerSW();
     try { await openDB(); } catch (e) { console.warn('[AdineOffline] Local storage unavailable:', e); }
     try { if (navigator.storage?.persist) await navigator.storage.persist(); } catch (_) {}
-    if (navigator.onLine) prime().catch(e => console.warn('[AdineOffline] initial pre-cache skipped:', e));
+    if (navigator.onLine) {
+      // Let the page paint and its first user interaction finish before bulk offline pre-caching.
+      const schedulePrime = () => setTimeout(() => {
+        if (navigator.onLine && !document.hidden) {
+          prime().catch(e => console.warn('[AdineOffline] deferred pre-cache skipped:', e));
+        }
+      }, 12000);
+      if (document.readyState === 'complete') schedulePrime();
+      else window.addEventListener('load', schedulePrime, { once:true });
+    }
     window.addEventListener('online', function () { sync().then(updateStatus).catch(()=>updateStatus()); });
     window.addEventListener('offline', updateStatus);
     document.addEventListener('visibilitychange', function () { if (!document.hidden && navigator.onLine) sync().then(updateStatus).catch(()=>updateStatus()); });

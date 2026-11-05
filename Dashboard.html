@@ -596,18 +596,18 @@
      SCRIPTS
 ========================== -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="supabase-config.js"></script>
-<script src="offline-core.js?v=1"></script>
+<script defer src="supabase-config.js"></script>
+<script defer src="offline-core.js?v=1"></script>
 
-<script src="app-core.js"></script>
-<script src="auth.js"></script>
-<script src="access-control.js"></script>
+<script defer src="app-core.js"></script>
+<script defer src="auth.js"></script>
+<script defer src="access-control.js"></script>
 
-<script src="poultry-icons.js?v=20260925.16"></script>
-<script src="dashboard-icon-assets.js?v=20260925.50"></script>
-<script src="dashboard-icon-fix.js?v=20261006.2"></script>
+<script defer src="poultry-icons.js?v=20260925.16"></script>
+<script defer src="dashboard-icon-assets.js?v=20260925.50"></script>
+<script defer src="dashboard-icon-fix.js?v=20261006.2"></script>
 
 
 <script>
@@ -661,166 +661,77 @@ document.addEventListener(
 
 
         async function loadAccount() {
+            retryButton.hidden = true;
+            setStatus("در حال بررسی اتصال و حساب…", "loading");
+            welcomeText.textContent = "در حال دریافت اطلاعات حساب…";
 
-            // متخصصان نباید وارد داشبورد مدیریتی مرغدار شوند.
-            // این مسیر فقط برای حساب‌های بهره‌بردار/مدیر واحد است.
             try {
-                const auth = await AdineAuth.requireAuth();
-                if (!auth) return;
-                const rawType = String(auth.profile?.user_type || '').trim().toLowerCase();
-                const type = ({poultry_operator:'farm_operator',poultry_manager:'farm_manager',veterinary_lab:'diagnostic_lab',organization_manager:'company_manager'})[rawType] || rawType;
-                const role = String(auth.profile?.role || '').trim().toLowerCase();
-                const mainFarmTypes = [
-                    'farm_operator',
-                    'farm_manager',
-                    'poultry_technical_expert'
-                ];
-                if (!mainFarmTypes.includes(type) && !['owner','admin'].includes(role)) {
-                    window.location.replace('professional.html');
+                // One authorization/profile lookup only. The old flow called
+                // requireAuth() here and then checkUserAccess(), which called it again.
+                const result = await checkUserAccess();
+
+                if (!result?.authenticated) {
+                    window.location.replace(
+                        "login.html?message=" + encodeURIComponent("ابتدا وارد سامانه شوید.")
+                    );
                     return;
                 }
-                if (role === 'owner' || role === 'admin') {
-                    // مالک/مدیر از مسیر owner.html مدیریت می‌شود؛ مگر اینکه owner_view عمداً فعال شده باشد.
-                    const ownerView = new URLSearchParams(window.location.search).get('owner_view');
-                    if (!ownerView && window.location.pathname.toLowerCase().endsWith('dashboard.html')) {
-                        window.location.replace('owner.html');
+
+                if (!result.profile) {
+                    welcomeText.textContent = "حساب شما وارد شده است، اما پروفایل سامانه در دسترس نیست.";
+                    setStatus("پروفایل کاربری دریافت نشد؛ اتصال را بررسی و دوباره تلاش کنید.", "error");
+                    retryButton.hidden = false;
+                    return;
+                }
+
+                const profile = result.profile;
+                const rawType = String(profile.user_type || "").trim().toLowerCase();
+                const type = ({
+                    poultry_operator: "farm_operator",
+                    poultry_manager: "farm_manager",
+                    veterinary_lab: "diagnostic_lab",
+                    organization_manager: "company_manager"
+                })[rawType] || rawType;
+                const role = String(profile.role || "").trim().toLowerCase();
+                const mainFarmTypes = ["farm_operator", "farm_manager", "poultry_technical_expert"];
+
+                if (!mainFarmTypes.includes(type) && !["owner", "admin"].includes(role)) {
+                    window.location.replace("professional.html");
+                    return;
+                }
+
+                if (role === "owner" || role === "admin") {
+                    const ownerView = new URLSearchParams(window.location.search).get("owner_view");
+                    if (!ownerView && window.location.pathname.toLowerCase().endsWith("dashboard.html")) {
+                        window.location.replace("owner.html");
                         return;
                     }
                 }
-            } catch (routeError) {
-                console.error('Dashboard role routing:', routeError);
-                return;
-            }
 
-            retryButton.hidden =
-                true;
-
-
-            setStatus(
-                "در حال بررسی اتصال و حساب…",
-                "loading"
-            );
-
-
-            welcomeText.textContent =
-                "در حال دریافت اطلاعات حساب…";
-
-
-            try {
-
-
-                const result =
-                    await checkUserAccess();
-
-
-                if (
-                    !result?.authenticated
-                ) {
-
-                    window.location.replace(
-                        "login.html?message=" +
-                        encodeURIComponent(
-                            "ابتدا وارد سامانه شوید."
-                        )
-                    );
-
-                    return;
-
-                }
-
-
-                if (
-                    result.error ===
-                    "PROFILE_NOT_FOUND"
-                ) {
-
-                    welcomeText.textContent =
-                        "حساب شما وارد شده است، اما پروفایل سامانه پیدا نشد.";
-
-
-                    setStatus(
-                        "پروفایل کاربری پیدا نشد.",
-                        "error"
-                    );
-
-
-                    retryButton.hidden =
-                        false;
-
-
-                    return;
-
-                }
-
-
-                const user =
-                    result.user;
-
-
+                const user = result.user;
                 const fullName =
+                    profile.full_name ||
                     user?.user_metadata?.full_name ||
                     user?.user_metadata?.name ||
                     user?.email?.split("@")[0] ||
                     "کاربر سامانه";
 
-
                 welcomeText.textContent =
-                    `سلام ${fullName}؛ به سامانه مدیریت و پایش طیور خوش آمدید.`;
+                    "سلام " + fullName + "؛ به سامانه مدیریت و پایش طیور خوش آمدید.";
 
-
-                if (
-                    result.allowed
-                ) {
-
-                    setStatus(
-                        "حساب شما فعال است.",
-                        "active"
-                    );
-
+                if (result.allowed) {
+                    setStatus("حساب شما فعال است.", "active");
+                } else {
+                    setStatus("حساب شما هنوز تأیید یا فعال نشده است.", "warning");
+                    retryButton.hidden = false;
                 }
-
-                else {
-
-                    setStatus(
-                        "حساب شما هنوز تأیید یا فعال نشده است.",
-                        "warning"
-                    );
-
-
-                    retryButton.hidden =
-                        false;
-
-                }
-
-
+            } catch (error) {
+                console.error("Dashboard account error:", error);
+                welcomeText.textContent = "ارتباط با حساب کاربری کامل نشد.";
+                setStatus("خطا در دریافت حساب؛ دوباره تلاش کنید.", "error");
+                retryButton.hidden = false;
             }
-
-            catch (error) {
-
-
-                console.error(
-                    "Dashboard account error:",
-                    error
-                );
-
-
-                welcomeText.textContent =
-                    "ارتباط با حساب کاربری کامل نشد.";
-
-
-                setStatus(
-                    "خطا در دریافت حساب؛ دوباره تلاش کنید.",
-                    "error"
-                );
-
-
-                retryButton.hidden =
-                    false;
-
-            }
-
         }
-
 
         /*
          * Bottom navigation

@@ -18,12 +18,14 @@
     }catch(e){console.warn('Daily router cached flock lookup:',e);return '';}
   }
   async function flockType(id){
+    const local=await cachedType(id);
+    if(local)return local;
     try{
       const request=supabaseClient.from('flocks').select('production_type').eq('id',id).maybeSingle();
-      const r=window.AdineOffline?.withTimeout?await window.AdineOffline.withTimeout(request,5000,'ROUTER_FLOCK'):await request;
+      const r=window.AdineOffline?.withTimeout?await window.AdineOffline.withTimeout(request,3500,'ROUTER_FLOCK'):await request;
       if(!r.error&&r.data?.production_type)return norm(r.data.production_type);
-    }catch(e){console.warn('Daily router online flock lookup:',e);}
-    return await cachedType(id);
+    }catch(e){console.warn('Flock type lookup:',e);}
+    return '';
   }
   try{
     let id='';

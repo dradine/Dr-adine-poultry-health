@@ -24,6 +24,7 @@ const SHELL = [
   '/guangming2-genetics-ui-fix-v1.js','/guangming2-integration-v1.js','/weekly-completion-restore-v1.js',
   '/flocks-genetics-selector-v2.js','/broiler-daily-alert-engine-v1.js','/layer-daily-alert-engine-v1.js'
 ];
+const CORE_SHELL = ['/login.html','/offline-core.js','/config.js','/supabase-config.js','/auth.js','/login.js','/Dashboard.html','/offline.html'];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
 const CDN_ASSETS = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -55,6 +56,11 @@ self.addEventListener('install', event => {
       } catch (_) { /* A non-core optional page can be cached when visited online. */ }
       finally { clearTimeout(timer); }
     }));
+    // Do not activate a new offline worker unless its authentication and app-entry core is cached.
+    // A transient install-time network failure must not advertise an offline-ready shell.
+    const missingCore = CORE_SHELL.filter(path => !cache.match(path));
+    const verifiedCore = await Promise.all(CORE_SHELL.map(path => cache.match(path)));
+    if (verifiedCore.some(response => !response)) throw new Error('OFFLINE_CORE_CACHE_INCOMPLETE: ' + missingCore.join(','));
     await self.skipWaiting();
   })());
 });

@@ -30,10 +30,10 @@
   try{
     const selection=(typeof getCurrentSelection==='function'?getCurrentSelection():{})||{};
     const id=q.get('flock_id')||q.get('flockId')||selection.flockId||selection.flock_id||selection.id||'';
-    if(!id){const params=new URLSearchParams(location.search);params.set('v','20261105.1');frame.src='weekly-core.html?'+params.toString();return;}
+    if(!id){const params=new URLSearchParams(location.search);params.set('v','20261105.2');frame.src='weekly-core.html?'+params.toString();return;}
     const type=await flockType(id);
     if(!type){routeUnavailable();return;}
-    const params=new URLSearchParams(location.search);params.set('v','20261105.1');frame.src=(type==='layer'||type.includes('تخم'))?'layer-weekly-core.html?'+params.toString():'weekly-core.html?'+params.toString();
+    const params=new URLSearchParams(location.search);params.set('v','20261105.2');frame.src=(type==='layer'||type.includes('تخم'))?'layer-weekly-core.html?'+params.toString():'weekly-core.html?'+params.toString();
   }catch(e){console.error('Weekly router:',e);routeUnavailable();}
 })();
 </script></body></html>

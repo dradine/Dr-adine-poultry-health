@@ -29,6 +29,7 @@
    await loadScript('https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js');
    await loadScript('https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js');
    if(typeof window.initializeEvaluationDatePicker==='function')window.initializeEvaluationDatePicker();
+   else document.addEventListener('DOMContentLoaded',()=>{if(typeof window.initializeEvaluationDatePicker==='function')window.initializeEvaluationDatePicker()},{once:true});
   })().catch(error=>{datePromise=null;console.warn('[ADINE] Persian date picker deferred:',error)});
   return datePromise;
  }

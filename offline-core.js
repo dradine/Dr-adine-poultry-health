@@ -611,7 +611,7 @@
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return false;
     try {
       const r = await navigator.serviceWorker.register('/sw.js', { scope:'/' });
-      if (r.update) r.update().catch(()=>{});
+      // Let the browser perform its normal periodic update check; avoid a forced network check on every app page.
       return true;
     } catch (e) { console.warn('[AdineOffline] Service Worker registration failed:', e); return false; }
   }

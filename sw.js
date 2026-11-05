@@ -58,9 +58,9 @@ self.addEventListener('install', event => {
     }));
     // Do not activate a new offline worker unless its authentication and app-entry core is cached.
     // A transient install-time network failure must not advertise an offline-ready shell.
-    const missingCore = CORE_SHELL.filter(path => !cache.match(path));
     const verifiedCore = await Promise.all(CORE_SHELL.map(path => cache.match(path)));
-    if (verifiedCore.some(response => !response)) throw new Error('OFFLINE_CORE_CACHE_INCOMPLETE: ' + missingCore.join(','));
+    const missingCore = CORE_SHELL.filter((path, index) => !verifiedCore[index]);
+    if (missingCore.length) throw new Error('OFFLINE_CORE_CACHE_INCOMPLETE: ' + missingCore.join(','));
     await self.skipWaiting();
   })());
 });

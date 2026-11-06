@@ -679,7 +679,11 @@ document.addEventListener(
             }
 
             card.style.display = "flex";
-            const stampKey = "adine_offline_prime_success_v2:" + userId;
+            let selection = {};
+            try { selection = JSON.parse(localStorage.getItem("adine_poultry_current_selection") || "{}") || {}; } catch (_) {}
+            const selectedFarmId = selection.farmId || selection.farm_id || "none";
+            const selectedFlockId = selection.flockId || selection.flock_id || "none";
+            const stampKey = "adine_offline_prime_success_v3:" + userId + ":" + selectedFarmId + ":" + selectedFlockId;
             const showLastSuccess = function () {
                 let stamp = 0;
                 try { stamp = Number(localStorage.getItem(stampKey) || 0); } catch (_) {}

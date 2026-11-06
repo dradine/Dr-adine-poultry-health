@@ -165,6 +165,7 @@ function check(condition, message) {
         return {available:false,error:String(error)};
       } finally {
         localStorage.removeItem('adine_poultry_current_selection');
+        Object.defineProperty(navigator, 'onLine', { configurable:true, get:() => false });
       }
     });
     check(primeBehavior.available, 'offline snapshot preparation can be tested with an isolated mock Supabase client');

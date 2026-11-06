@@ -15,6 +15,8 @@ const accessBridgeSource = fs.readFileSync(path.join(__dirname, '..', 'access-co
 const weeklySource = fs.readFileSync(path.join(__dirname, '..', 'weekly.js'), 'utf8');
 check(/if\s*\(typeof window\.loadCurrentFlock\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly flock loader when it exists');
 check(/if\s*\(typeof window\.loadHistory\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly history loader when it exists');
+check(/const rpcResults=await Promise\.all/.test(accessBridgeSource), 'farm access RPC lookups run in parallel rather than serially');
+check(/async canAccessFarm\(id\)\{if\(!id\)return false;const rows=await this\.farmAccessRows\(\);return rows\.some/.test(accessBridgeSource), 'farm access checks reuse the RLS-authorized farm list instead of issuing duplicate reads');
 check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySource), 'native weekly loader retains its offline snapshot fallback');
 
 (async () => {

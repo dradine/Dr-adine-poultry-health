@@ -174,6 +174,16 @@
             </section>
 
 
+            <section id="offlinePrepCard" class="account-status-card dashboard-account-card" style="display:none;margin-top:14px;align-items:flex-start;">
+                <div class="status-icon" data-icon="cloud"></div>
+                <div class="status-content" style="flex:1;min-width:0;">
+                    <strong>آمادگی استفاده آفلاین</strong>
+                    <span id="offlinePrepStatus" aria-live="polite">برای استفاده بدون اینترنت، اطلاعات این دستگاه را به‌روز کنید.</span>
+                    <small style="display:block;margin-top:6px;line-height:1.7;color:#68766f;">پیش از قطع اینترنت این کار را انجام دهید. اعتبار ورود آفلاین حداکثر ۷ روز است.</small>
+                </div>
+                <button id="offlineRefreshButton" type="button" class="account-retry">به‌روزرسانی داده‌ها</button>
+            </section>
+
             <!-- =========================
                  MANAGEMENT
             ========================== -->
@@ -659,6 +669,61 @@ document.addEventListener(
         }
 
 
+        function setupOfflinePreparation(userId) {
+            const card = document.getElementById("offlinePrepCard");
+            const status = document.getElementById("offlinePrepStatus");
+            const button = document.getElementById("offlineRefreshButton");
+            if (!card || !status || !button || !window.AdineOffline) {
+                if (card) card.style.display = "none";
+                return;
+            }
+
+            card.style.display = "flex";
+            const stampKey = "adine_offline_prime_success_v2:" + userId;
+            const showLastSuccess = function () {
+                let stamp = 0;
+                try { stamp = Number(localStorage.getItem(stampKey) || 0); } catch (_) {}
+                status.textContent = stamp
+                    ? "آخرین آماده‌سازی موفق: " + new Date(stamp).toLocaleString("fa-IR")
+                    : "هنوز نسخه آفلاین این حساب آماده نشده است؛ اطلاعات را در حالت آنلاین دریافت کنید.";
+            };
+            showLastSuccess();
+
+            window.addEventListener("adine:offline-prime-complete", function (event) {
+                if (event.detail?.userId !== userId) return;
+                status.textContent = "آماده‌سازی آفلاین کامل شد؛ " + event.detail.cached + " رکورد ذخیره شد.";
+            });
+
+            button.onclick = async function () {
+                if (button.disabled) return;
+                if (!navigator.onLine) {
+                    status.textContent = "برای به‌روزرسانی اطلاعات آفلاین، ابتدا به اینترنت متصل شوید.";
+                    return;
+                }
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = "در حال آماده‌سازی…";
+                status.textContent = "در حال ذخیره اطلاعات فارم، سالن، گله و سوابق پایش روی همین دستگاه…";
+                try {
+                    const result = await window.AdineOffline.prime(true);
+                    if (result?.complete) {
+                        status.textContent = "آماده‌سازی کامل شد؛ " + (result.cached || 0) + " رکورد روی دستگاه ذخیره شد.";
+                    } else if (result?.partial) {
+                        status.textContent = "بخشی از اطلاعات ذخیره شد. اتصال را بررسی کنید و دوباره بزنید تا تکمیل شود.";
+                    } else {
+                        status.textContent = "آماده‌سازی انجام نشد؛ " + (result?.reason || "اتصال و ورود حساب را بررسی کنید.");
+                    }
+                } catch (error) {
+                    console.warn("Offline preparation:", error);
+                    status.textContent = "ذخیره اطلاعات آفلاین انجام نشد؛ اتصال را بررسی و دوباره تلاش کنید.";
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                    showLastSuccess();
+                }
+            };
+        }
+
         async function loadAccount() {
             retryButton.hidden = true;
             setStatus("در حال بررسی اتصال و حساب…", "loading");
@@ -693,6 +758,11 @@ document.addEventListener(
                 })[rawType] || rawType;
                 const role = String(profile.role || "").trim().toLowerCase();
                 const mainFarmTypes = ["farm_operator", "farm_manager", "poultry_technical_expert"];
+                if (mainFarmTypes.includes(type)) setupOfflinePreparation(result.user?.id);
+                else {
+                    const offlineCard = document.getElementById("offlinePrepCard");
+                    if (offlineCard) offlineCard.style.display = "none";
+                }
 
                 if (!mainFarmTypes.includes(type) && !["owner", "admin"].includes(role)) {
                     window.location.replace("professional.html");

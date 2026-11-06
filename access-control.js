@@ -14,7 +14,7 @@ window.AdineAccess={
   if(!force&&currentCache&&Date.now()-currentCacheAt<5000)return currentCache;
   if(currentPromise)return currentPromise;
   currentPromise=(async()=>{
-   if(window.AdineAuth?.requireAuth){const a=await window.AdineAuth.requireAuth();if(a)return a}
+   if(window.AdineAuth?.requireAuth){const a=await window.AdineAuth.requireAuth();return a||null}
    const u=await withTimeout(supabaseClient.auth.getUser(),6000,'ACCESS_USER');
    if(u.error||!u.data?.user)return null;
    const user=u.data.user;let profile=null;

@@ -82,7 +82,7 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
     if (warmShell.available !== false) {
       check(warmShell.complete === true, 'offline preparation caches all required farm, daily, weekly and accounting route assets');
       const warmed = await page.evaluate(async () => {
-        const cache = await caches.open('adine-shell-v7');
+        const cache = await caches.open('adine-shell-v8');
         const paths = ['/Farms.js','/flocks.js','/broiler-daily-monitoring-v1.js','/layer-daily-monitoring-v1.js','/weekly.js','/access-control.js','/accounting-v14.js'];
         const result = {};
         for (const path of paths) result[path] = !!(await cache.match(path));

@@ -200,6 +200,17 @@ function check(condition, message) {
     });
     check(layerSeed.available, 'offline layer profile, flock, weekly and monthly snapshots can be seeded');
     if(layerSeed.available){
+      const dashboardResponse=await page.goto(baseURL+'/Dashboard.html?offline-smoke=1',{waitUntil:'domcontentloaded',timeout:15000}).catch(()=>null);
+      await page.waitForFunction(()=>document.querySelector('#offlinePrepCard')?.style.display==='flex',{timeout:10000}).catch(()=>{});
+      const dashboardOfflineState=await page.evaluate(()=>({card:document.querySelector('#offlinePrepCard')?.style.display||'',button:!!document.querySelector('#offlineRefreshButton'),status:document.querySelector('#offlinePrepStatus')?.textContent||''}));
+      check(!!dashboardResponse&&dashboardResponse.status()===200,'dashboard opens from the offline app shell');
+      check(dashboardOfflineState.card==='flex'&&dashboardOfflineState.button,'dashboard exposes the manual offline data preparation control for farm users');
+      if(dashboardOfflineState.button){
+        await page.click('#offlineRefreshButton');
+        const offlineButtonStatus=await page.locator('#offlinePrepStatus').textContent();
+        check(offlineButtonStatus.includes('به‌روزرسانی')||offlineButtonStatus.includes('اینترنت'),'manual offline refresh gives a clear message when the device is offline');
+      }
+
       const weeklyResponse=await page.goto(baseURL+'/layer-weekly-core.html?flock_id='+encodeURIComponent(layerSeed.flockId),{waitUntil:'domcontentloaded',timeout:15000}).catch(()=>null);
       await page.waitForFunction(()=>document.querySelector('#prod')?.textContent?.includes('91'),{timeout:10000}).catch(()=>{});
       const weeklyState=await page.evaluate(()=>({flock:document.querySelector('#flockInfo')?.textContent||'',production:document.querySelector('#prod')?.textContent||'',week:document.querySelector('#weekSelect')?.options?.length||0,note:document.querySelector('#note')?.textContent||''}));

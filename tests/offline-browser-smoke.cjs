@@ -120,7 +120,10 @@ function check(condition, message) {
       const rows = {
         farms:[{id:'prime-layer-farm',owner_id:uid}],
         houses:[{id:'prime-layer-house',farm_id:'prime-layer-farm'}],
-        flocks:[{id:'prime-layer-flock',farm_id:'prime-layer-farm',house_id:'prime-layer-house',production_type:'layer'}],
+        flocks:[
+          {id:'prime-layer-flock',farm_id:'prime-layer-farm',house_id:'prime-layer-house',production_type:'layer'},
+          {id:'prime-layer-flock-2',farm_id:'prime-layer-farm',house_id:'prime-layer-house',production_type:'layer'}
+        ],
         layer_daily_monitoring:[{id:'prime-layer-daily',flock_id:'prime-layer-flock',record_date:'2026-11-01'}],
         layer_weekly_monitoring:[{id:'prime-layer-weekly',flock_id:'prime-layer-flock',week_no:1}],
         layer_monthly_monitoring:[{id:'prime-layer-monthly',flock_id:'prime-layer-flock',jalali_year:1405,jalali_month:8}],
@@ -155,11 +158,14 @@ function check(condition, message) {
         const layerTables = ['layer_daily_monitoring','layer_weekly_monitoring','layer_monthly_monitoring','farm_accounting_transactions'];
         const cached = {};
         for (const table of layerTables) cached[table] = (await api.getRows(table,uid)).map(row=>String(row.id));
+        localStorage.setItem('adine_poultry_current_selection', JSON.stringify({flockId:'prime-layer-flock-2',farmId:'prime-layer-farm'}));
+        const afterSelectionChange = await api.prime(false);
         return {
           available:true,
           callsAfterProfileSave,
           firstPartial:first.partial===true,
           secondComplete:second.complete===true,
+          selectionChangeComplete:afterSelectionChange.complete===true,
           flockFetches:calls.flocks || 0,
           cached
         };
@@ -174,7 +180,8 @@ function check(condition, message) {
     if (primeBehavior.available) {
       check(primeBehavior.callsAfterProfileSave === 0, 'saving a verified profile does not start bulk network reads during login');
       check(primeBehavior.firstPartial && primeBehavior.secondComplete, 'a transient snapshot failure remains retryable instead of setting a false success throttle');
-      check(primeBehavior.flockFetches === 2, 'failed flock snapshot is fetched again on the next eligible prime');
+      check(primeBehavior.flockFetches === 3, 'failed snapshot is retried and switching the selected flock triggers a fresh snapshot');
+      check(primeBehavior.selectionChangeComplete, 'a newly selected flock receives its own offline snapshot without waiting for the previous flock throttle');
       check(JSON.stringify(primeBehavior.cached.layer_daily_monitoring) === JSON.stringify(['prime-layer-daily']), 'layer daily history is cached for offline use');
       check(JSON.stringify(primeBehavior.cached.layer_weekly_monitoring) === JSON.stringify(['prime-layer-weekly']), 'layer weekly history is cached for offline use');
       check(JSON.stringify(primeBehavior.cached.layer_monthly_monitoring) === JSON.stringify(['prime-layer-monthly']), 'layer monthly history is cached for offline use');

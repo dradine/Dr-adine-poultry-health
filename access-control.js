@@ -25,12 +25,15 @@ window.AdineAccess={
  },
  async farmAccessRows(force=false){
   const a=await this.current();if(!a)return[];const uid=String(a.user?.id||'');
+  if(navigator.onLine===false&&window.AdineOffline)return window.AdineOffline.getRows('farms',uid);
   if(!force&&farmAccessCache&&farmAccessCacheUserId===uid&&Date.now()-farmAccessCacheAt<10000)return farmAccessCache.map(x=>({...x,_source:[...(x._source||[])]}));
   if(farmAccessPromise&&farmAccessPromiseUserId===uid)return farmAccessPromise;
   farmAccessPromiseUserId=uid;
   farmAccessPromise=(async()=>{
-   const rls=await withTimeout(supabaseClient.from('farms').select('id,name,farm_code,capacity,farm_type,owner_id,owner_name,manager_name,operational_status,monitoring_status,monitoring_message,monitoring_updated_at,created_at').order('created_at',{ascending:false}),7000,'FARM_ACCESS_QUERY');
-   if(rls.error){console.error('RLS farm access query failed',rls.error);return[];}
+   let rls;
+   try{rls=await withTimeout(supabaseClient.from('farms').select('id,name,farm_code,capacity,farm_type,owner_id,owner_name,manager_name,operational_status,monitoring_status,monitoring_message,monitoring_updated_at,created_at').order('created_at',{ascending:false}),7000,'FARM_ACCESS_QUERY')}
+   catch(error){const offlineFailure=navigator.onLine===false||window.AdineOffline?.isNetworkFailure?.(error)||/TIMEOUT|NETWORK|FETCH/i.test(String(error?.message||error));if(offlineFailure&&window.AdineOffline)return window.AdineOffline.getRows('farms',uid);throw error}
+   if(rls.error){if(window.AdineOffline?.isNetworkFailure?.(rls.error))return window.AdineOffline.getRows('farms',uid);console.error('RLS farm access query failed',rls.error);return[];}
    const rows=new Map((rls.data||[]).map(x=>[x.id,{...x,_source:['rls']} ]));const allowed=new Set(rows.keys());
    const rpcResults=await Promise.all(['get_my_farm_access','get_my_professional_farms'].map(async rpcName=>{
     try{return{rpcName,result:await withTimeout(supabaseClient.rpc(rpcName),4000,rpcName)}}catch(error){console.warn(rpcName+' fallback unavailable',error);return null}

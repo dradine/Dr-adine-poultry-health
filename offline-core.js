@@ -706,6 +706,39 @@
       return true;
     } catch (e) { console.warn('[AdineOffline] Service Worker registration failed:', e); return false; }
   }
+  async function warmShell() {
+    if (!navigator.onLine) return { complete:false, skipped:true, reason:'OFFLINE' };
+    if (!('serviceWorker' in navigator) || typeof MessageChannel === 'undefined') {
+      return { complete:false, skipped:true, reason:'SERVICE_WORKER_UNAVAILABLE' };
+    }
+    try {
+      const registration = await withTimeout(navigator.serviceWorker.ready,10000,'SW_READY');
+      const worker = registration.active || navigator.serviceWorker.controller;
+      if (!worker) return { complete:false, skipped:true, reason:'SERVICE_WORKER_NOT_ACTIVE' };
+      return await new Promise(resolve => {
+        const channel = new MessageChannel();
+        const timer = setTimeout(() => {
+          try { channel.port1.close(); } catch (_) {}
+          resolve({ complete:false, timeout:true, reason:'WARM_SHELL_TIMEOUT' });
+        },65000);
+        channel.port1.onmessage = event => {
+          clearTimeout(timer);
+          try { channel.port1.close(); } catch (_) {}
+          resolve(event.data || { complete:false, reason:'EMPTY_WARM_SHELL_RESULT' });
+        };
+        try {
+          worker.postMessage({type:'ADINE_WARM_OFFLINE_SHELL'},[channel.port2]);
+        } catch (error) {
+          clearTimeout(timer);
+          try { channel.port1.close(); } catch (_) {}
+          resolve({complete:false,reason:String(error?.message||error)});
+        }
+      });
+    } catch (error) {
+      return { complete:false, reason:String(error?.message||error) };
+    }
+  }
+
   async function init() {
     registerSW();
     try { await openDB(); } catch (e) { console.warn('[AdineOffline] Local storage unavailable:', e); }
@@ -731,7 +764,7 @@
   }
 
   g.AdineOffline = {
-    version: 1, maxOfflineDays: MAX_OFFLINE_DAYS, prime:prime,
+    version: 1, maxOfflineDays: MAX_OFFLINE_DAYS, prime:prime, warmShell:warmShell,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile, getLastCachedProfile:getLastCachedProfile, clearCachedProfile:clearCachedProfile, clearAllCachedProfiles:clearAllCachedProfiles,
     cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup, importPendingBackup:importPendingBackup,
     isNetworkFailure:isNetworkFailure, withTimeout:withTimeout, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,

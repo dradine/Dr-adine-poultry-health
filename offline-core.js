@@ -509,6 +509,11 @@
       const completedAt = Date.now();
       lastPrimeAt.set(userId, completedAt);
       try { localStorage.setItem(stampKey, String(completedAt)); } catch (_) {}
+      try {
+        g.dispatchEvent(new CustomEvent('adine:offline-prime-complete', {
+          detail:{ userId:userId, cached:count, cachedAt:completedAt }
+        }));
+      } catch (_) {}
       return { cached:count, complete:true, cachedAt:completedAt };
     })().finally(function () { primePromise = null; });
     return primePromise;

@@ -13,6 +13,7 @@ function check(condition, message) {
 
 const accessBridgeSource = fs.readFileSync(path.join(__dirname, '..', 'access-control.js'), 'utf8');
 const weeklySource = fs.readFileSync(path.join(__dirname, '..', 'weekly.js'), 'utf8');
+check(accessBridgeSource.includes("if(window.AdineAuth?.requireAuth){const a=await window.AdineAuth.requireAuth();return a||null}"), 'access bridge fails closed instead of bypassing failed primary profile verification');
 check(/if\s*\(typeof window\.loadCurrentFlock\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly flock loader when it exists');
 check(/if\s*\(typeof window\.loadHistory\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly history loader when it exists');
 check(/const rpcResults=await Promise\.all/.test(accessBridgeSource), 'farm access RPC lookups run in parallel rather than serially');

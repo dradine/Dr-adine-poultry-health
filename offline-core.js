@@ -384,9 +384,16 @@
     if (!userId) return { skipped:true, reason:'NO_SESSION' };
     if (primePromise) return primePromise;
 
+    // Throttle independently for each selected farm/flock. Switching active
+    // flocks must trigger its own offline snapshot instead of inheriting the
+    // previous flock's six-hour throttle.
+    let selection = {};
+    try { selection = JSON.parse(localStorage.getItem('adine_poultry_current_selection') || '{}') || {}; } catch (_) {}
+    const selectedFlockId = selection.flockId || selection.flock_id || 'none';
+    const selectedFarmId = selection.farmId || selection.farm_id || 'none';
     // Throttle only after a successful snapshot. Failed/interrupted downloads
     // must remain retryable instead of suppressing offline preparation for hours.
-    const stampKey = 'adine_offline_prime_success_v2:' + userId;
+    const stampKey = 'adine_offline_prime_success_v3:' + userId + ':' + selectedFarmId + ':' + selectedFlockId;
     const now = Date.now();
     const memoryStamp = Number(lastPrimeAt.get(userId) || 0);
     let persistedStamp = 0;
@@ -423,8 +430,7 @@
       // Cache the currently selected flock's recent monitoring history. Broiler
       // and layer use different weekly/monthly tables and must remain separate.
       try {
-        const selection = JSON.parse(localStorage.getItem('adine_poultry_current_selection') || '{}');
-        const flockId = selection.flockId || selection.flock_id;
+        const flockId = selectedFlockId === 'none' ? null : selectedFlockId;
         const flock = (queries[2].data || []).find(x => String(x.id) === String(flockId));
         let childComplete = true;
 

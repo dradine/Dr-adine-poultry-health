@@ -713,7 +713,7 @@
     }
     try {
       const registration = await withTimeout(navigator.serviceWorker.ready,10000,'SW_READY');
-      const worker = registration.active || navigator.serviceWorker.controller;
+      const worker = registration.waiting || registration.installing || registration.active || navigator.serviceWorker.controller;
       if (!worker) return { complete:false, skipped:true, reason:'SERVICE_WORKER_NOT_ACTIVE' };
       return await new Promise(resolve => {
         const channel = new MessageChannel();

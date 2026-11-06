@@ -109,6 +109,77 @@ function check(condition, message) {
       failures.push('snapshot cache behavior: ' + (cacheBehavior.error || 'offline API unavailable'));
     }
 
+    const primeBehavior = await page.evaluate(async () => {
+      const api = window.AdineOffline;
+      if (!api || typeof api.prime !== 'function' || typeof api.saveProfile !== 'function') return { available:false };
+      const uid = '__offline_layer_prime_smoke__';
+      const calls = {};
+      let failFirstFlockSnapshot = true;
+      const rows = {
+        farms:[{id:'prime-layer-farm',owner_id:uid}],
+        houses:[{id:'prime-layer-house',farm_id:'prime-layer-farm'}],
+        flocks:[{id:'prime-layer-flock',farm_id:'prime-layer-farm',house_id:'prime-layer-house',production_type:'layer'}],
+        layer_daily_monitoring:[{id:'prime-layer-daily',flock_id:'prime-layer-flock',record_date:'2026-11-01'}],
+        layer_weekly_monitoring:[{id:'prime-layer-weekly',flock_id:'prime-layer-flock',week_no:1}],
+        layer_monthly_monitoring:[{id:'prime-layer-monthly',flock_id:'prime-layer-flock',jalali_year:1405,jalali_month:8}],
+        layer_accounting_transactions:[{id:'prime-layer-accounting',farm_id:'prime-layer-farm',flock_id:'prime-layer-flock',event_date:'2026-11-01'}]
+      };
+      Object.defineProperty(navigator, 'onLine', { configurable:true, get:() => true });
+      localStorage.setItem('adine_poultry_current_selection', JSON.stringify({flockId:'prime-layer-flock',farmId:'prime-layer-farm'}));
+      window.AdineAuth.getSession = async () => ({ user:{id:uid} });
+      window.supabaseClient = {
+        auth:{},
+        from(table) {
+          calls[table] = (calls[table] || 0) + 1;
+          return {
+            select(){return this;},
+            eq(){return this;},
+            order(){return this;},
+            limit(){
+              if(table==='flocks' && failFirstFlockSnapshot){
+                failFirstFlockSnapshot=false;
+                return Promise.resolve({data:null,error:{message:'SIMULATED_TRANSIENT_FAILURE'}});
+              }
+              return Promise.resolve({data:rows[table] || [],error:null});
+            }
+          };
+        }
+      };
+      try {
+        await api.saveProfile({id:uid,full_name:'Offline test',role:'farm_manager',status:'active',is_active:true,user_type:'farm_manager'});
+        const callsAfterProfileSave = Object.values(calls).reduce((sum,n)=>sum+n,0);
+        const first = await api.prime(true);
+        const second = await api.prime(false);
+        const layerTables = ['layer_daily_monitoring','layer_weekly_monitoring','layer_monthly_monitoring','layer_accounting_transactions'];
+        const cached = {};
+        for (const table of layerTables) cached[table] = (await api.getRows(table,uid)).map(row=>String(row.id));
+        return {
+          available:true,
+          callsAfterProfileSave,
+          firstPartial:first.partial===true,
+          secondComplete:second.complete===true,
+          flockFetches:calls.flocks || 0,
+          cached
+        };
+      } catch(error) {
+        return {available:false,error:String(error)};
+      } finally {
+        localStorage.removeItem('adine_poultry_current_selection');
+      }
+    });
+    check(primeBehavior.available, 'offline snapshot preparation can be tested with an isolated mock Supabase client');
+    if (primeBehavior.available) {
+      check(primeBehavior.callsAfterProfileSave === 0, 'saving a verified profile does not start bulk network reads during login');
+      check(primeBehavior.firstPartial && primeBehavior.secondComplete, 'a transient snapshot failure remains retryable instead of setting a false success throttle');
+      check(primeBehavior.flockFetches === 2, 'failed flock snapshot is fetched again on the next eligible prime');
+      check(JSON.stringify(primeBehavior.cached.layer_daily_monitoring) === JSON.stringify(['prime-layer-daily']), 'layer daily history is cached for offline use');
+      check(JSON.stringify(primeBehavior.cached.layer_weekly_monitoring) === JSON.stringify(['prime-layer-weekly']), 'layer weekly history is cached for offline use');
+      check(JSON.stringify(primeBehavior.cached.layer_monthly_monitoring) === JSON.stringify(['prime-layer-monthly']), 'layer monthly history is cached for offline use');
+      check(JSON.stringify(primeBehavior.cached.layer_accounting_transactions) === JSON.stringify(['prime-layer-accounting']), 'layer accounting history is cached for offline use');
+    } else {
+      failures.push('offline prime behavior: ' + (primeBehavior.error || 'offline prime API unavailable'));
+    }
+
     const syncBehavior = await page.evaluate(async () => {
       const api = window.AdineOffline;
       if (!api) return { available:false };

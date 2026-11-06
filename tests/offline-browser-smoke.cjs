@@ -1,6 +1,8 @@
 const { createRequire } = require('node:module');
 const requireFromEnv = createRequire(__filename);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const baseURL = process.env.OFFLINE_TEST_BASE_URL || 'http://127.0.0.1:4173';
 const failures = [];
@@ -8,6 +10,12 @@ function check(condition, message) {
   if (!condition) failures.push(message);
   console.log((condition ? 'PASS ' : 'FAIL ') + message);
 }
+
+const accessBridgeSource = fs.readFileSync(path.join(__dirname, '..', 'access-control.js'), 'utf8');
+const weeklySource = fs.readFileSync(path.join(__dirname, '..', 'weekly.js'), 'utf8');
+check(/if\s*\(typeof window\.loadCurrentFlock\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly flock loader when it exists');
+check(/if\s*\(typeof window\.loadHistory\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly history loader when it exists');
+check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySource), 'native weekly loader retains its offline snapshot fallback');
 
 (async () => {
   const browser = await chromium.launch({ headless: true });

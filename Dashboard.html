@@ -712,13 +712,20 @@ document.addEventListener(
                 button.textContent = "در حال آماده‌سازی…";
                 status.textContent = "در حال ذخیره اطلاعات فارم، سالن، گله و سوابق پایش روی همین دستگاه…";
                 try {
+                    status.textContent = "در حال ذخیره فایل‌های اصلی فرم‌ها و بخش‌های پایش روی دستگاه…";
+                    const shellResult = await window.AdineOffline.warmShell();
+                    status.textContent = shellResult?.complete
+                        ? "فایل‌های فرم‌ها ذخیره شدند؛ اکنون اطلاعات گله و سوابق پایش دریافت می‌شود…"
+                        : "برخی فایل‌ها دریافت نشدند؛ اکنون اطلاعات گله و سوابق پایش دریافت می‌شود…";
                     const result = await window.AdineOffline.prime(true);
-                    if (result?.complete) {
-                        status.textContent = "آماده‌سازی کامل شد؛ " + (result.cached || 0) + " رکورد روی دستگاه ذخیره شد.";
+                    if (result?.complete && shellResult?.complete) {
+                        status.textContent = "آماده‌سازی کامل شد؛ " + shellResult.cached + " فایل و " + (result.cached || 0) + " رکورد روی دستگاه ذخیره شد.";
+                    } else if (result?.complete) {
+                        status.textContent = "اطلاعات گله ذخیره شد، اما آماده‌سازی فایل‌ها کامل نشد. اتصال را بررسی و دوباره تلاش کنید.";
                     } else if (result?.partial) {
-                        status.textContent = "بخشی از اطلاعات ذخیره شد. اتصال را بررسی کنید و دوباره بزنید تا تکمیل شود.";
+                        status.textContent = "بخشی از فایل‌ها یا اطلاعات ذخیره شد. اتصال را بررسی کنید و دوباره بزنید تا تکمیل شود.";
                     } else {
-                        status.textContent = "آماده‌سازی انجام نشد؛ " + (result?.reason || "اتصال و ورود حساب را بررسی کنید.");
+                        status.textContent = "آماده‌سازی انجام نشد؛ " + (result?.reason || shellResult?.reason || "اتصال و ورود حساب را بررسی کنید.");
                     }
                 } catch (error) {
                     console.warn("Offline preparation:", error);

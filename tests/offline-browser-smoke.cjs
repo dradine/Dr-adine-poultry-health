@@ -39,6 +39,7 @@ function check(condition, message) {
           weeklyRouter: !!(await cache.match('/weekly-router.html')),
           layerWeekly: !!(await cache.match('/layer-weekly-core.html')),
           layerMonthly: !!(await cache.match('/layer-monthly-core.html')),
+          supabaseSdk: !!(await cache.match('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')),
           urls: (await cache.keys()).map(req => req.url)
         };
       }
@@ -58,6 +59,7 @@ function check(condition, message) {
     check(state.cacheNames.some(name => state.cached[name]?.weeklyRouter), 'weekly router is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.layerWeekly), 'Layer weekly route is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.layerMonthly), 'Layer monthly route is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.supabaseSdk), 'Supabase client SDK is cached for offline auth initialization');
     check(state.dbAvailable, 'IndexedDB API is available for local records');
 
     await context.setOffline(true);
@@ -179,6 +181,38 @@ function check(condition, message) {
       check(JSON.stringify(primeBehavior.cached.farm_accounting_transactions) === JSON.stringify(['prime-layer-accounting']), 'shared layer accounting history is cached for offline use');
     } else {
       failures.push('offline prime behavior: ' + (primeBehavior.error || 'offline prime API unavailable'));
+    }
+
+    const layerSeed = await page.evaluate(async () => {
+      const api=window.AdineOffline;
+      if(!api)return {available:false};
+      const uid='__offline_layer_view_smoke__',flockId='offline-layer-flock';
+      const flock={id:flockId,owner_id:uid,farm_id:'offline-layer-farm',house_id:'offline-layer-house',flock_name:'گله آزمایشی',strain:'Hy-Line Brown',production_type:'layer'};
+      const weekly={id:'offline-layer-week-3',flock_id:flockId,week_no:3,age_start_days:15,age_end_days:21,avg_hen_day_production:91,avg_feed_per_hen_g:112,avg_water_per_hen_ml:205,avg_egg_weight_g:62,avg_egg_mass_g:56.4,feed_per_egg_g:123,mortality_count:12,source_daily_count:7,is_complete:true};
+      const monthly={id:'offline-layer-month-1405-08',flock_id:flockId,jalali_year:1405,jalali_month:8,jalali_month_key:'1405-08',jalali_month_label:'آبان ۱۴۰۵',age_start_days:15,age_end_days:44,avg_hen_day_production:91,avg_feed_per_hen_g:112,avg_water_per_hen_ml:205,avg_egg_weight_g:62,avg_egg_mass_g:56.4,feed_per_egg_mass:1.99,mortality_count:30,livability:99,total_eggs:12000,total_saleable_eggs:11800,source_daily_count:30,is_complete:true};
+      try{
+        await api.saveProfile({id:uid,full_name:'Offline layer test',email:'offline@example.invalid',role:'farm_manager',status:'active',is_active:true,user_type:'farm_manager'});
+        await api.cacheRows('flocks',[flock],uid,{complete:false,limit:10});
+        await api.cacheRows('layer_weekly_monitoring',[weekly],uid,{scope:{flock_id:flockId},complete:true,limit:300});
+        await api.cacheRows('layer_monthly_monitoring',[monthly],uid,{scope:{flock_id:flockId},complete:true,limit:120});
+        return {available:true,flockId};
+      }catch(error){return {available:false,error:String(error)}}
+    });
+    check(layerSeed.available, 'offline layer profile, flock, weekly and monthly snapshots can be seeded');
+    if(layerSeed.available){
+      const weeklyResponse=await page.goto(baseURL+'/layer-weekly-core.html?flock_id='+encodeURIComponent(layerSeed.flockId),{waitUntil:'domcontentloaded',timeout:15000}).catch(()=>null);
+      await page.waitForFunction(()=>document.querySelector('#prod')?.textContent?.includes('91'),{timeout:10000}).catch(()=>{});
+      const weeklyState=await page.evaluate(()=>({flock:document.querySelector('#flockInfo')?.textContent||'',production:document.querySelector('#prod')?.textContent||'',week:document.querySelector('#weekSelect')?.options?.length||0,note:document.querySelector('#note')?.textContent||''}));
+      check(!!weeklyResponse&&weeklyResponse.status()===200,'layer weekly page opens from the offline app shell');
+      check(weeklyState.flock.includes('نمایش آفلاین')&&weeklyState.production.includes('91')&&weeklyState.week>0,'layer weekly metrics render from IndexedDB without internet');
+
+      const monthlyResponse=await page.goto(baseURL+'/layer-monthly-core.html?flock_id='+encodeURIComponent(layerSeed.flockId),{waitUntil:'domcontentloaded',timeout:15000}).catch(()=>null);
+      await page.waitForFunction(()=>document.querySelector('#prod')?.textContent?.includes('91'),{timeout:10000}).catch(()=>{});
+      const monthlyState=await page.evaluate(()=>({flock:document.querySelector('#flockInfo')?.textContent||'',production:document.querySelector('#prod')?.textContent||'',eggs:document.querySelector('#eggs')?.textContent||'',months:document.querySelector('#monthSelect')?.options?.length||0}));
+      check(!!monthlyResponse&&monthlyResponse.status()===200,'layer monthly page opens from the offline app shell');
+      check(monthlyState.flock.includes('نمایش آفلاین')&&monthlyState.production.includes('91')&&monthlyState.eggs.includes('12')&&monthlyState.months>0,'layer monthly metrics render from IndexedDB without internet');
+    }else{
+      failures.push('offline layer page behavior: '+(layerSeed.error||'seed unavailable'));
     }
 
     const syncBehavior = await page.evaluate(async () => {

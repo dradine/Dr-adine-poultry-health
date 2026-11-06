@@ -185,6 +185,7 @@ function check(condition, message) {
       const api = window.AdineOffline;
       if (!api) return { available:false };
       const uid = '__offline_sync_smoke_user__';
+      Object.defineProperty(navigator, 'onLine', { configurable:true, get:() => false });
       const serverRows = new Map();
       const attempts = {};
       let loseFirstFarmResponse = true;

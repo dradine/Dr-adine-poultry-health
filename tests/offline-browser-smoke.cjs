@@ -122,7 +122,7 @@ function check(condition, message) {
         layer_daily_monitoring:[{id:'prime-layer-daily',flock_id:'prime-layer-flock',record_date:'2026-11-01'}],
         layer_weekly_monitoring:[{id:'prime-layer-weekly',flock_id:'prime-layer-flock',week_no:1}],
         layer_monthly_monitoring:[{id:'prime-layer-monthly',flock_id:'prime-layer-flock',jalali_year:1405,jalali_month:8}],
-        layer_accounting_transactions:[{id:'prime-layer-accounting',farm_id:'prime-layer-farm',flock_id:'prime-layer-flock',event_date:'2026-11-01'}]
+        farm_accounting_transactions:[{id:'prime-layer-accounting',farm_id:'prime-layer-farm',flock_id:'prime-layer-flock',farm_type:'layer',event_date:'2026-11-01'}]
       };
       Object.defineProperty(navigator, 'onLine', { configurable:true, get:() => true });
       localStorage.setItem('adine_poultry_current_selection', JSON.stringify({flockId:'prime-layer-flock',farmId:'prime-layer-farm'}));
@@ -150,7 +150,7 @@ function check(condition, message) {
         const callsAfterProfileSave = Object.values(calls).reduce((sum,n)=>sum+n,0);
         const first = await api.prime(true);
         const second = await api.prime(false);
-        const layerTables = ['layer_daily_monitoring','layer_weekly_monitoring','layer_monthly_monitoring','layer_accounting_transactions'];
+        const layerTables = ['layer_daily_monitoring','layer_weekly_monitoring','layer_monthly_monitoring','farm_accounting_transactions'];
         const cached = {};
         for (const table of layerTables) cached[table] = (await api.getRows(table,uid)).map(row=>String(row.id));
         return {
@@ -175,7 +175,7 @@ function check(condition, message) {
       check(JSON.stringify(primeBehavior.cached.layer_daily_monitoring) === JSON.stringify(['prime-layer-daily']), 'layer daily history is cached for offline use');
       check(JSON.stringify(primeBehavior.cached.layer_weekly_monitoring) === JSON.stringify(['prime-layer-weekly']), 'layer weekly history is cached for offline use');
       check(JSON.stringify(primeBehavior.cached.layer_monthly_monitoring) === JSON.stringify(['prime-layer-monthly']), 'layer monthly history is cached for offline use');
-      check(JSON.stringify(primeBehavior.cached.layer_accounting_transactions) === JSON.stringify(['prime-layer-accounting']), 'layer accounting history is cached for offline use');
+      check(JSON.stringify(primeBehavior.cached.farm_accounting_transactions) === JSON.stringify(['prime-layer-accounting']), 'shared layer accounting history is cached for offline use');
     } else {
       failures.push('offline prime behavior: ' + (primeBehavior.error || 'offline prime API unavailable'));
     }

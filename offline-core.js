@@ -484,13 +484,14 @@
 
           const selectedFarmId = selection.farmId || selection.farm_id || flock.farm_id || localStorage.getItem('adine_accounting_farm');
           if (selectedFarmId) {
-            const accountingTable = layer ? 'layer_accounting_transactions' : 'farm_accounting_transactions';
+            // The current accounting UI stores both broiler and layer entries
+            // in farm_accounting_transactions, distinguished by farm_type.
             const accounting = await withTimeout(
-              client.from(accountingTable).select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),
+              client.from('farm_accounting_transactions').select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),
               8000,'PRIME_ACCOUNTING'
             );
             if (!accounting.error && Array.isArray(accounting.data)) {
-              await cacheRows(accountingTable, accounting.data, userId, { scope:{ farm_id:selectedFarmId }, complete:accounting.data.length < 1000, limit:1000 });
+              await cacheRows('farm_accounting_transactions', accounting.data, userId, { scope:{ farm_id:selectedFarmId }, complete:accounting.data.length < 1000, limit:1000 });
               count += accounting.data.length;
             } else {
               childComplete = false;

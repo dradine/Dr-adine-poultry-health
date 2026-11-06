@@ -73,6 +73,26 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
     check(state.cacheNames.some(name => state.cached[name]?.supabaseSdk), 'Supabase client SDK is cached for offline auth initialization');
     check(state.dbAvailable, 'IndexedDB API is available for local records');
 
+    const warmShell = await page.evaluate(async () => {
+      const api = window.AdineOffline;
+      if (!api || typeof api.warmShell !== 'function') return { available:false };
+      return await api.warmShell();
+    }).catch(error => ({available:false,error:String(error)}));
+    check(warmShell.available !== false, 'offline preparation exposes a background route-asset warmer');
+    if (warmShell.available !== false) {
+      check(warmShell.complete === true, 'offline preparation caches all required farm, daily, weekly and accounting route assets');
+      const warmed = await page.evaluate(async () => {
+        const cache = await caches.open('adine-shell-v7');
+        const paths = ['/Farms.js','/flocks.js','/broiler-daily-monitoring-v1.js','/layer-daily-monitoring-v1.js','/weekly.js','/access-control.js','/accounting-v14.js'];
+        const result = {};
+        for (const path of paths) result[path] = !!(await cache.match(path));
+        return result;
+      });
+      for (const [path, cached] of Object.entries(warmed)) check(cached, 'offline asset is cached: ' + path);
+    } else {
+      failures.push('offline shell warmer: ' + (warmShell.error || 'warmShell API unavailable'));
+    }
+
     await context.setOffline(true);
 
     const cacheBehavior = await page.evaluate(async () => {

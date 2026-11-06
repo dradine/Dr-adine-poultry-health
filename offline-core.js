@@ -379,14 +379,15 @@
   async function prime(force) {
     if (!navigator.onLine || !g.supabaseClient?.from) return { skipped:true };
     if (primePromise) return primePromise;
-    if (!force && Date.now() - lastPrimeAt < 10 * 60 * 1000) return { skipped:true, reason:'RECENTLY_PRIMED' };
+    // Snapshot priming is maintenance, not a page-startup dependency.
+    if (!force && Date.now() - lastPrimeAt < 24 * 60 * 60 * 1000) return { skipped:true, reason:'RECENTLY_PRIMED' };
     primePromise = (async function () {
       const userId = await getUserId();
       if (!userId) return { skipped:true, reason:'NO_SESSION' };
       const stampKey = 'adine_offline_prime_at_v1:' + userId;
       let persistedStamp = 0;
       try { persistedStamp = Number(localStorage.getItem(stampKey) || 0); } catch (_) {}
-      if (!force && persistedStamp && Date.now() - persistedStamp < 10 * 60 * 1000) {
+      if (!force && persistedStamp && Date.now() - persistedStamp < 24 * 60 * 60 * 1000) {
         return { skipped:true, reason:'RECENTLY_PRIMED_ACROSS_NAVIGATION' };
       }
       try { localStorage.setItem(stampKey, String(Date.now())); } catch (_) {}
@@ -619,13 +620,16 @@
     registerSW();
     try { await openDB(); } catch (e) { console.warn('[AdineOffline] Local storage unavailable:', e); }
     try { if (navigator.storage?.persist) await navigator.storage.persist(); } catch (_) {}
-    if (navigator.onLine) {
-      // Let the page paint and its first user interaction finish before bulk offline pre-caching.
+    // Bulk offline snapshot priming is restricted to the dashboard. Running it
+    // on login and monitoring pages competed with authentication, form reads and UI.
+    const path = String(location.pathname || '').toLowerCase();
+    const isDashboard = path.endsWith('/dashboard.html') || path === '/dashboard.html';
+    if (navigator.onLine && isDashboard) {
       const schedulePrime = () => setTimeout(() => {
         if (navigator.onLine && !document.hidden) {
           prime().catch(e => console.warn('[AdineOffline] deferred pre-cache skipped:', e));
         }
-      }, 12000);
+      }, 45000);
       if (document.readyState === 'complete') schedulePrime();
       else window.addEventListener('load', schedulePrime, { once:true });
     }

@@ -13,7 +13,7 @@ const SHELL = [
   '/date-system.js','/broiler-daily-standards-v1.js','/broiler-daily-monitoring-v1.js',
   '/broiler-daily-history-actions-v1.js','/broiler-daily-monitoring-enhancements-v1.js',
   '/layer-daily-standards-v1.js','/layer-period-engine-v1.js','/layer-daily-monitoring-v1.js',
-  '/weekly.js','/weekly-specialized.js','/performance-engine-v2.js',
+  '/weekly.js','/weekly-lazy-assets-v1.js','/weekly-specialized.js','/performance-engine-v2.js',
   '/performance-intelligence-v1.js','/adine-weight-band-engine-v1.js','/weight-band-runtime-v1.js',
   '/shared-jalali-calendar-v1.js','/accounting-v14.js','/dashboard-compact.css',
   '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/flocks-genetics-fix-v1.js',
@@ -84,6 +84,49 @@ self.addEventListener('activate', event => {
     await Promise.all(keys.filter(k => k.startsWith('adine-shell-') && k !== VERSION).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
+});
+const WARM_REQUIRED = [
+  '/Farms.html','/Farms.js','/flocks.html','/flocks.js',
+  '/daily-core.html','/broiler-daily-monitoring-v1.js',
+  '/layer-daily-core.html','/layer-daily-monitoring-v1.js',
+  '/weekly-core.html','/weekly.js','/access-control.js',
+  '/accounting-v14.html','/accounting-v14.js'
+];
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'ADINE_WARM_OFFLINE_SHELL') return;
+  event.waitUntil((async () => {
+    const cache = await caches.open(VERSION);
+    const assets = [...new Set(SHELL)].filter(path => !CORE_SHELL.includes(path));
+    let cursor = 0, cached = 0;
+    const failed = [];
+    async function worker() {
+      while (true) {
+        const index = cursor++;
+        if (index >= assets.length) return;
+        const path = assets[index];
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 6000);
+        try {
+          const response = await fetch(new Request(path, { cache:'reload', signal:controller.signal }));
+          if (response && response.ok) {
+            await cache.put(new URL(path, self.location.origin).pathname, response.clone());
+            cached++;
+          } else failed.push(path + ':' + (response?.status || 'NO_RESPONSE'));
+        } catch (_) {
+          failed.push(path);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(4,assets.length)}, () => worker()));
+    const missing = [];
+    for (const path of WARM_REQUIRED) if (!(await cache.match(path))) missing.push(path);
+    const result = { complete:missing.length===0, cached, total:assets.length, failed:failed.length, missing };
+    try { event.ports?.[0]?.postMessage(result); } catch (_) {}
+  })().catch(error => {
+    try { event.ports?.[0]?.postMessage({complete:false,error:String(error?.message||error)}); } catch (_) {}
+  }));
 });
 self.addEventListener('fetch', event => {
   const req = event.request;

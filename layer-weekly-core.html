@@ -1,4 +1,4 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پایش هفتگی تخم‌گذار | مرکز تخصصی سلامت طیور آدینه</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="auth.js"></script><script src="app-core.js"></script><script src="layer-daily-standards-v1.js"></script><style>
+<!doctype html><html lang="fa" dir="rtl"><head><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://vzcczkavlopznljnnehp.supabase.co" crossorigin><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پایش هفتگی تخم‌گذار | مرکز تخصصی سلامت طیور آدینه</title><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer src="supabase-config.js"></script><script defer src="offline-core.js?v=20261106.4"></script><script defer src="auth.js"></script><script defer src="app-core.js"></script><style>
 *{box-sizing:border-box}body{margin:0;background:#f3f6f4;color:#17251f;font-family:Tahoma,Arial,sans-serif;padding:16px 0 34px}.wrap{width:min(1180px,94%);margin:auto}.card{background:#fff;border:1px solid #dfe8e2;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 5px 20px rgba(15,60,35,.055)}.hero{background:linear-gradient(135deg,#163d2b,#245b3f);color:#fff;border:0}.hero h1{font-size:20px;margin:0 0 8px}.muted{opacity:.78;font-size:12px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric{border:1px solid #e1e9e4;border-radius:14px;padding:12px;background:#fafcfb}.metric small{color:#66756d}.metric b{display:block;font-size:19px;margin-top:5px}.select-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}.group label{display:block;font-size:12px;font-weight:700;color:#52625a;margin-bottom:6px}.group select{width:100%;border:1px solid #d5e0d9;border-radius:11px;padding:11px;background:#fff;font:14px Tahoma}.btn{border:0;border-radius:12px;padding:12px 18px;font:800 13px Tahoma;cursor:pointer;background:#1f6b45;color:#fff}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:10px;border-bottom:1px solid #edf1ee;text-align:right}.badge{display:inline-block;padding:5px 9px;border-radius:9px;background:#edf3ef}.ok{color:#197a48}.warn{color:#a15d00}.bad{color:#a83232}.note{padding:12px;border-radius:12px;background:#f7faf8;font-size:12px;line-height:1.9}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.select-row{grid-template-columns:1fr}.table{display:block;overflow:auto;white-space:nowrap}}@media(max-width:460px){.grid{grid-template-columns:1fr}}
 </style></head><body><main class="wrap">
 <section class="card hero"><h1>پایش هفتگی گله — تخم‌گذار</h1><div id="flockInfo" class="muted">در حال دریافت اطلاعات گله…</div></section>
@@ -10,21 +10,46 @@
 <section class="card"><h3>کیفیت و سلامت هفته</h3><table class="table"><tbody><tr><td>تخم قابل فروش</td><td id="saleable">—</td></tr><tr><td>تخم معیوب</td><td id="defect">—</td></tr><tr><td>Haugh Unit</td><td id="haugh">—</td></tr><tr><td>استحکام پوسته</td><td id="shell">—</td></tr><tr><td>دمای سالن</td><td id="temp">—</td></tr><tr><td>رطوبت</td><td id="rh">—</td></tr></tbody></table></section>
 <section class="card"><div class="note" id="note">این گزارش از داده‌های روزانه همان گله ساخته شده و هفته انتخاب‌شده را نمایش می‌دهد. استانداردها از موتور مستقل Layer Standards خوانده می‌شوند.</div></section>
 </main><script>
-(async function(){
-const $=id=>document.getElementById(id);const qs=new URLSearchParams(location.search);const selection=(typeof getCurrentSelection==='function'?getCurrentSelection():{})||{};const flockId=selection.flockId||qs.get('flock_id')||qs.get('flockId');
+document.addEventListener('DOMContentLoaded',()=>{(async function(){
+const $=id=>document.getElementById(id),qs=new URLSearchParams(location.search),selection=(typeof getCurrentSelection==='function'?getCurrentSelection():{})||{};
+const flockId=selection.flockId||qs.get('flock_id')||qs.get('flockId');
+const access=await checkUserAccess();
+if(!access?.authenticated){location.href='login.html';return;}
+const uid=access.user?.id;
 if(!flockId){$('flockInfo').textContent='گله فعال انتخاب نشده است.';return;}
-const {data:flock,error:fe}=await supabaseClient.from('flocks').select('*').eq('id',flockId).maybeSingle();
-if(fe||!flock){$('flockInfo').textContent='گله یافت نشد.';return;}
+const offline=()=>!navigator.onLine;
+async function cached(table){return window.AdineOffline&&uid?(await AdineOffline.getRows(table,uid)):[];}
+let flock=null;
+if(offline()){
+ flock=(await cached('flocks')).find(x=>String(x.id)===String(flockId))||null;
+}else{
+ const fr=await AdineOffline.withTimeout(supabaseClient.from('flocks').select('*').eq('id',flockId).maybeSingle(),8000,'LAYER_WEEKLY_FLOCK');
+ if(!fr.error&&fr.data){flock=fr.data;try{await AdineOffline.cacheRows('flocks',[flock],uid);}catch(e){console.warn('Layer weekly flock cache:',e);}}
+ else if(AdineOffline.isNetworkFailure(fr.error))flock=(await cached('flocks')).find(x=>String(x.id)===String(flockId))||null;
+ else {$('flockInfo').textContent='گله دریافت نشد: '+(fr.error?.message||'خطای نامشخص');return;}
+}
+if(!flock){$('flockInfo').textContent='اطلاعات این گله روی دستگاه ذخیره نشده است؛ برای دریافت اولیه به اینترنت متصل شوید.';return;}
 if(String(flock.production_type||'').toLowerCase()!=='layer'){location.href='weekly-core.html'+location.search;return;}
-$('flockInfo').textContent=(flock.flock_name||'گله')+' • '+(flock.strain||'—')+' • تخم‌گذار';
-const {data:rows,error}=await supabaseClient.from('layer_weekly_monitoring').select('*').eq('flock_id',flockId).order('week_no',{ascending:true});
-if(error){$('note').textContent='خطا در دریافت پایش هفتگی: '+error.message;return;}
-if(!rows?.length){$('weekSelect').innerHTML='<option>هنوز هفته‌ای ثبت نشده است</option>';return;}
+$('flockInfo').textContent=(flock.flock_name||'گله')+' • '+(flock.strain||'—')+' • تخم‌گذار'+(offline()?' • نمایش آفلاین':'');
+let rows=[];
+if(offline()){
+ rows=(await cached('layer_weekly_monitoring')).filter(x=>String(x.flock_id)===String(flockId));
+}else{
+ const rr=await AdineOffline.withTimeout(supabaseClient.from('layer_weekly_monitoring').select('*').eq('flock_id',flockId).order('week_no',{ascending:true}).limit(300),8000,'LAYER_WEEKLY_QUERY');
+ if(!rr.error&&Array.isArray(rr.data)){
+  rows=rr.data;
+  try{await AdineOffline.cacheRows('layer_weekly_monitoring',rows,uid,{scope:{flock_id:flockId},complete:rows.length<300,limit:300});}catch(e){console.warn('Layer weekly cache:',e);}
+  try{const pending=await AdineOffline.getPending();const local=pending.filter(op=>op.table==='layer_weekly_monitoring'&&String(op.payload.flock_id)===String(flockId)).map(op=>op.payload);const map=new Map(rows.map(x=>[String(x.id),x]));local.forEach(x=>map.set(String(x.id),x));rows=Array.from(map.values());}catch(e){console.warn('Layer weekly pending merge:',e);}
+ }else if(AdineOffline.isNetworkFailure(rr.error))rows=(await cached('layer_weekly_monitoring')).filter(x=>String(x.flock_id)===String(flockId));
+ else {$('note').textContent='خطا در دریافت پایش هفتگی: '+(rr.error?.message||'خطای نامشخص');return;}
+}
+rows.sort((a,b)=>Number(a.week_no||0)-Number(b.week_no||0));
+if(!rows.length){$('weekSelect').innerHTML='<option value="">هنوز هفته‌ای ثبت نشده یا نسخه آفلاین آن ذخیره نشده است</option>';$('note').textContent=offline()?'برای مشاهده آفلاین، ابتدا در حالت آنلاین این گله را باز کنید تا اطلاعات آن ذخیره شود.':'هنوز پایش هفتگی برای این گله ساخته نشده است.';return;}
 rows.forEach(r=>{const o=document.createElement('option');o.value=r.week_no;o.textContent='هفته '+r.week_no+' • '+r.age_start_days+' تا '+r.age_end_days+' روز';$('weekSelect').appendChild(o);});
 function show(){
-const r=rows.find(x=>Number(x.week_no)===Number($('weekSelect').value))||rows.at(-1);if(!r)return;
-$('prod').textContent=(r.avg_hen_day_production??'—')+'٪';$('feed').textContent=(r.avg_feed_per_hen_g??'—')+' گرم';$('water').textContent=(r.avg_water_per_hen_ml??'—')+' ml';$('egg').textContent=(r.avg_egg_weight_g??'—')+' گرم';$('mass').textContent=(r.avg_egg_mass_g??'—')+' g/hen/day';$('fpe').textContent=(r.feed_per_egg_g??'—')+' g/egg';$('mort').textContent=(r.mortality_count??0)+' قطعه';$('status').textContent=r.performance_summary?.daily_status||'پایش شد';$('saleable').textContent=(r.total_saleable_eggs??'—').toLocaleString?.('fa-IR')||r.total_saleable_eggs||'—';$('defect').textContent=((r.total_cracked_eggs||0)+(r.total_dirty_eggs||0)+(r.total_floor_eggs||0)).toLocaleString?.('fa-IR')||'—';$('haugh').textContent=r.avg_haugh_unit??'—';$('shell').textContent=r.avg_shell_strength_g??'—';$('temp').textContent=(r.avg_temperature_c??'—')+' °C';$('rh').textContent=(r.avg_humidity_pct??'—')+'٪';$('note').textContent='هفته '+r.week_no+' از '+r.source_daily_count+' روز روزانه ساخته شده است. '+(r.is_complete?'هفته کامل است.':'هفته ناقص است و هنوز داده بیشتری لازم دارد.');
+ const r=rows.find(x=>Number(x.week_no)===Number($('weekSelect').value))||rows.at(-1);if(!r)return;
+ $('prod').textContent=(r.avg_hen_day_production??'—')+'٪';$('feed').textContent=(r.avg_feed_per_hen_g??'—')+' گرم';$('water').textContent=(r.avg_water_per_hen_ml??'—')+' ml';$('egg').textContent=(r.avg_egg_weight_g??'—')+' گرم';$('mass').textContent=(r.avg_egg_mass_g??'—')+' g/hen/day';$('fpe').textContent=(r.feed_per_egg_g??'—')+' g/egg';$('mort').textContent=(r.mortality_count??0)+' قطعه';$('status').textContent=r.performance_summary?.daily_status||'پایش شد';$('saleable').textContent=(r.total_saleable_eggs??'—').toLocaleString?.('fa-IR')||r.total_saleable_eggs||'—';$('defect').textContent=((r.total_cracked_eggs||0)+(r.total_dirty_eggs||0)+(r.total_floor_eggs||0)).toLocaleString?.('fa-IR')||'—';$('haugh').textContent=r.avg_haugh_unit??'—';$('shell').textContent=r.avg_shell_strength_g??'—';$('temp').textContent=(r.avg_temperature_c??'—')+' °C';$('rh').textContent=(r.avg_humidity_pct??'—')+'٪';$('note').textContent='هفته '+r.week_no+' از '+r.source_daily_count+' رکورد روزانه ساخته شده است. '+(r.is_complete?'هفته کامل است.':'هفته ناقص است و هنوز داده بیشتری لازم دارد.')+(offline()?' (نسخه ذخیره‌شده روی دستگاه)':'');
 }
 $('weekSelect').addEventListener('change',show);$('reportBtn').onclick=()=>location.href='layer-reports.html?flock_id='+encodeURIComponent(flockId)+'&period=weekly&week='+encodeURIComponent($('weekSelect').value);show();
-})();
+})();},{once:true});
 </script></body></html>

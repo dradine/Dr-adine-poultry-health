@@ -25,13 +25,12 @@ function selectedFlockId(){
  return null;
 }
 function selectedDay(){const p=new URLSearchParams(location.search);const d=Number(p.get('day'));if(d>0)return d;const m=String($('dayStatus')?.textContent||'').match(/\d+/);return m?Number(m[0]):1}
-async function context(){
- if(!window.supabaseClient)return null;const id=selectedFlockId();if(!id)return null;const day=selectedDay();
- const [f,r]=await Promise.all([
-  supabaseClient.from('flocks').select('initial_bird_count').eq('id',id).maybeSingle(),
-  supabaseClient.from('broiler_daily_monitoring').select('id,age_days,record_date,doa_count,mortality_count,cull_count,feed_quantity_kg,water_quantity_l').eq('flock_id',id).order('age_days',{ascending:true})
- ]);
- if(f.error||r.error||!f.data)return null;return {id,day,initial:n(f.data.initial_bird_count),rows:r.data||[]};
+function context(){
+ const shared=window.__ADINE_BROILER_DAILY_CONTEXT;
+ if(!shared?.flock||!Array.isArray(shared.records))return null;
+ const id=selectedFlockId();
+ if(id&&String(shared.flock.id)!==String(id))return null;
+ return {id:String(shared.flock.id),day:selectedDay(),initial:n(shared.flock.initial_bird_count),rows:shared.records};
 }
 function averageLive(ctx){
  if(!(ctx?.initial>0))return null;let opening=ctx.initial;
@@ -41,25 +40,33 @@ function averageLive(ctx){
  const closing=Math.max(0,opening-(n($('mortalityCount')?.value)||0)-(n($('cullCount')?.value)||0));
  return (opening+closing)/2;
 }
-async function preview(){
- const ctx=await context();if(!ctx)return false;const avg=averageLive(ctx);if(!(avg>0))return false;
+function preview(){
+ const ctx=context();if(!ctx)return false;const avg=averageLive(ctx);if(!(avg>0))return false;
  const feed=n($('feedQuantity')?.value),water=n($('waterQuantity')?.value);
  set('feedPerBird',feed!=null?((feed*1000)/avg).toFixed(2):'');
  set('waterPerBird',water!=null?((water*1000)/avg).toFixed(2):'');
  return true;
 }
 async function persistBridge(){
- const ctx=await context();if(!ctx)return;const rows=ctx.rows;const target=rows.find(r=>Number(r.age_days)===ctx.day);if(!target?.id)return;
+ const ctx=context();if(!ctx)return;const target=ctx.rows.find(r=>Number(r.age_days)===ctx.day);if(!target?.id)return;
  const avg=averageLive(ctx);if(!(avg>0))return;const feed=n(target.feed_quantity_kg),water=n(target.water_quantity_l);
  const payload={vent_temperature_c:n($('ventTemperature')?.value),feed_per_bird_g:feed!=null?Number(((feed*1000)/avg).toFixed(4)):null,water_per_bird_ml:water!=null?Number(((water*1000)/avg).toFixed(4)):null};
- await supabaseClient.from('broiler_daily_monitoring').update(payload).eq('id',target.id);
+ const result=await supabaseClient.from('broiler_daily_monitoring').update(payload).eq('id',target.id);
+ if(result.error)console.warn('Daily derived metrics bridge update:',result.error);
 }
+let persistRequested=false;
 function start(){
  if(!inject())return setTimeout(start,150);
  ['feedQuantity','waterQuantity','mortalityCount','cullCount','doaCount'].forEach(id=>$(id)?.addEventListener('input',preview));
- let ticks=0;const timer=setInterval(async()=>{ticks++;const ok=await preview();if(ok||ticks>=100)clearInterval(timer)},250);
  document.querySelector('#dailyForm')?.addEventListener('change',preview);
- document.querySelector('#dailyForm')?.addEventListener('submit',()=>setTimeout(persistBridge,1000),true);
+ document.querySelector('#dailyForm')?.addEventListener('submit',()=>{
+  persistRequested=true;
+  setTimeout(()=>{if(persistRequested)persistBridge().finally(()=>{persistRequested=false})},1400);
+ },true);
+ window.addEventListener('adine:broiler-daily-context',()=>{
+  preview();
+  if(persistRequested)persistBridge().finally(()=>{persistRequested=false});
+ });
  preview();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();

@@ -1,6 +1,8 @@
-<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پایش هفتگی گله</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0}body{background:#f3f6f4}</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="offline-core.js?v=1"></script><script src="auth.js"></script><script src="app-core.js"></script></head><body><iframe id="frame" title="پایش هفتگی"></iframe><script>
-(async function(){
+<!doctype html><html lang="fa" dir="rtl"><head><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://vzcczkavlopznljnnehp.supabase.co" crossorigin><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پایش هفتگی گله</title><style>html,body,iframe{margin:0;width:100%;height:100%;border:0}body{background:#f3f6f4}</style><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script defer src="supabase-config.js"></script><script defer src="offline-core.js?v=20261106.4"></script><script defer src="auth.js"></script><script defer src="app-core.js"></script></head><body><div id="routeLoading" role="status" style="position:fixed;inset:0;z-index:2;display:grid;place-items:center;background:#f3f6f4;color:#173f35;font:700 15px/2 Tahoma,Arial,sans-serif">در حال آماده‌سازی پایش هفتگی و دریافت اطلاعات گله…</div><iframe id="frame" title="پایش هفتگی"></iframe><script>
+
+document.addEventListener('DOMContentLoaded',()=>{(async function(){
   const frame=document.getElementById('frame');
+  frame.addEventListener('load',()=>{if(frame.getAttribute('src'))document.getElementById('routeLoading')?.remove();});
   const q=new URLSearchParams(location.search);
   const norm=v=>String(v||'').normalize('NFKC').trim().toLowerCase();
   function routeUnavailable(){
@@ -18,20 +20,22 @@
     }catch(e){console.warn('Weekly router cached flock lookup:',e);return '';}
   }
   async function flockType(id){
+    const local=await cachedType(id);
+    if(local)return local;
     try{
       const request=supabaseClient.from('flocks').select('production_type').eq('id',id).maybeSingle();
-      const r=window.AdineOffline?.withTimeout?await window.AdineOffline.withTimeout(request,5000,'ROUTER_FLOCK'):await request;
+      const r=window.AdineOffline?.withTimeout?await window.AdineOffline.withTimeout(request,3500,'ROUTER_FLOCK'):await request;
       if(!r.error&&r.data?.production_type)return norm(r.data.production_type);
-    }catch(e){console.warn('Weekly router online flock lookup:',e);}
-    return await cachedType(id);
+    }catch(e){console.warn('Flock type lookup:',e);}
+    return '';
   }
   try{
     const selection=(typeof getCurrentSelection==='function'?getCurrentSelection():{})||{};
     const id=q.get('flock_id')||q.get('flockId')||selection.flockId||selection.flock_id||selection.id||'';
-    if(!id){frame.src='weekly-core.html'+location.search;return;}
+    if(!id){const params=new URLSearchParams(location.search);params.set('v','20261105.2');frame.src='weekly-core.html?'+params.toString();return;}
     const type=await flockType(id);
     if(!type){routeUnavailable();return;}
-    frame.src=(type==='layer'||type.includes('تخم'))?'layer-weekly-core.html'+location.search:'weekly-core.html'+location.search;
+    const params=new URLSearchParams(location.search);params.set('v','20261105.2');frame.src=(type==='layer'||type.includes('تخم'))?'layer-weekly-core.html?'+params.toString():'weekly-core.html?'+params.toString();
   }catch(e){console.error('Weekly router:',e);routeUnavailable();}
-})();
+})();},{once:true});;
 </script></body></html>

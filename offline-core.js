@@ -18,7 +18,8 @@
   let dbPromise = null;
   let syncPromise = null;
   let primePromise = null;
-  let lastPrimeAt = 0;
+  const lastPrimeAt = new Map();
+  const PRIME_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
   function openDB() {
     if (dbPromise) return dbPromise;
@@ -191,7 +192,8 @@
     };
     const row = { userId: String(profile.id), profile: minimalProfile, validatedAt: Date.now() };
     await transact('profiles', 'readwrite', s => s.put(row));
-    if (navigator.onLine) prime().catch(e => console.warn('[AdineOffline] pre-cache skipped:', e));
+    // Do not start bulk network snapshot reads during authentication/profile loading.
+    // Dashboard init schedules this work after the interface has become usable.
     return true;
   }
   async function getCachedProfile(userId) {
@@ -378,11 +380,31 @@
   }
   async function prime(force) {
     if (!navigator.onLine || !g.supabaseClient?.from) return { skipped:true };
+    const userId = await getUserId();
+    if (!userId) return { skipped:true, reason:'NO_SESSION' };
     if (primePromise) return primePromise;
-    if (!force && Date.now() - lastPrimeAt < 10 * 60 * 1000) return { skipped:true, reason:'RECENTLY_PRIMED' };
+
+    // Throttle independently for each selected farm/flock. Switching active
+    // flocks must trigger its own offline snapshot instead of inheriting the
+    // previous flock's six-hour throttle.
+    let selection = {};
+    try { selection = JSON.parse(localStorage.getItem('adine_poultry_current_selection') || '{}') || {}; } catch (_) {}
+    const selectedFlockId = selection.flockId || selection.flock_id || 'none';
+    const selectedFarmId = selection.farmId || selection.farm_id || 'none';
+    // Throttle only after a successful snapshot. Failed/interrupted downloads
+    // must remain retryable instead of suppressing offline preparation for hours.
+    const snapshotKey = userId + ':' + selectedFarmId + ':' + selectedFlockId;
+    const stampKey = 'adine_offline_prime_success_v3:' + snapshotKey;
+    const now = Date.now();
+    const memoryStamp = Number(lastPrimeAt.get(snapshotKey) || 0);
+    let persistedStamp = 0;
+    try { persistedStamp = Number(localStorage.getItem(stampKey) || 0); } catch (_) {}
+    const lastSuccess = Math.max(memoryStamp, persistedStamp);
+    if (!force && lastSuccess && now - lastSuccess < PRIME_INTERVAL_MS) {
+      return { skipped:true, reason:'RECENTLY_PRIMED' };
+    }
+
     primePromise = (async function () {
-      const userId = await getUserId();
-      if (!userId) return { skipped:true, reason:'NO_SESSION' };
       const client = g.supabaseClient;
       const queries = await Promise.all([
         withTimeout(client.from('farms').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_FARMS'),
@@ -391,38 +413,115 @@
       ]);
       const tables = ['farms','houses','flocks'];
       let count = 0;
+      let complete = true;
       for (let i=0;i<queries.length;i++) {
         const result = queries[i];
         if (!result.error && Array.isArray(result.data)) {
           await cacheRows(tables[i], result.data, userId, { complete: result.data.length < 1000, limit: 1000 });
           count += result.data.length;
-        } else if (result.error) {
-          console.warn('[AdineOffline] pre-cache table skipped:', tables[i], result.error.message);
+        } else {
+          complete = false;
+          console.warn('[AdineOffline] pre-cache table skipped:', tables[i], result.error?.message || 'INVALID_RESULT');
         }
       }
-      // Pre-cache the active flock's recent history so cumulative values can be
-      // calculated from known data when the user goes offline.
+      // Do not mark a partial parent snapshot as fresh; a later dashboard visit
+      // can retry the missing table without waiting for the throttle interval.
+      if (!complete) return { cached:count, partial:true, retryable:true };
+
+      // Cache the currently selected flock's recent monitoring history. Broiler
+      // and layer use different weekly/monthly tables and must remain separate.
       try {
-        const selection = JSON.parse(localStorage.getItem('adine_poultry_current_selection') || '{}');
-        const flockId = selection.flockId || selection.flock_id;
+        const flockId = selectedFlockId === 'none' ? null : selectedFlockId;
         const flock = (queries[2].data || []).find(x => String(x.id) === String(flockId));
+        let childComplete = true;
+
         if (flockId && flock) {
           const type = String(flock.production_type || '').toLowerCase();
           const layer = type.includes('layer') || type.includes('تخم');
           const dailyTable = layer ? 'layer_daily_monitoring' : 'broiler_daily_monitoring';
-          const daily = await withTimeout(client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000),8000,'PRIME_DAILY');
-          if (!daily.error && Array.isArray(daily.data)) { await cacheRows(dailyTable, daily.data, userId, { scope:{ flock_id:flockId }, complete:daily.data.length < 1000, limit:1000 }); count += daily.data.length; }
-          const weekly = await withTimeout(client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300),8000,'PRIME_WEEKLY');
-          if (!weekly.error && Array.isArray(weekly.data)) { await cacheRows('weekly_records', weekly.data, userId, { scope:{ flock_id:flockId }, complete:weekly.data.length < 300, limit:300 }); count += weekly.data.length; }
+          const daily = await withTimeout(
+            client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000),
+            8000,'PRIME_DAILY'
+          );
+          if (!daily.error && Array.isArray(daily.data)) {
+            await cacheRows(dailyTable, daily.data, userId, { scope:{ flock_id:flockId }, complete:daily.data.length < 1000, limit:1000 });
+            count += daily.data.length;
+          } else {
+            childComplete = false;
+            console.warn('[AdineOffline] daily snapshot skipped:', daily.error?.message || 'INVALID_RESULT');
+          }
+
+          if (layer) {
+            const weekly = await withTimeout(
+              client.from('layer_weekly_monitoring').select('*').eq('flock_id', flockId).order('week_no',{ascending:true}).limit(300),
+              8000,'PRIME_LAYER_WEEKLY'
+            );
+            if (!weekly.error && Array.isArray(weekly.data)) {
+              await cacheRows('layer_weekly_monitoring', weekly.data, userId, { scope:{ flock_id:flockId }, complete:weekly.data.length < 300, limit:300 });
+              count += weekly.data.length;
+            } else {
+              childComplete = false;
+              console.warn('[AdineOffline] layer weekly snapshot skipped:', weekly.error?.message || 'INVALID_RESULT');
+            }
+
+            const monthly = await withTimeout(
+              client.from('layer_monthly_monitoring').select('*').eq('flock_id', flockId).order('jalali_year',{ascending:false}).order('jalali_month',{ascending:false}).limit(120),
+              8000,'PRIME_LAYER_MONTHLY'
+            );
+            if (!monthly.error && Array.isArray(monthly.data)) {
+              await cacheRows('layer_monthly_monitoring', monthly.data, userId, { scope:{ flock_id:flockId }, complete:monthly.data.length < 120, limit:120 });
+              count += monthly.data.length;
+            } else {
+              childComplete = false;
+              console.warn('[AdineOffline] layer monthly snapshot skipped:', monthly.error?.message || 'INVALID_RESULT');
+            }
+          } else {
+            const weekly = await withTimeout(
+              client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300),
+              8000,'PRIME_WEEKLY'
+            );
+            if (!weekly.error && Array.isArray(weekly.data)) {
+              await cacheRows('weekly_records', weekly.data, userId, { scope:{ flock_id:flockId }, complete:weekly.data.length < 300, limit:300 });
+              count += weekly.data.length;
+            } else {
+              childComplete = false;
+              console.warn('[AdineOffline] broiler weekly snapshot skipped:', weekly.error?.message || 'INVALID_RESULT');
+            }
+          }
+
+          const selectedFarmId = selection.farmId || selection.farm_id || flock.farm_id || localStorage.getItem('adine_accounting_farm');
+          if (selectedFarmId) {
+            // The current accounting UI stores both broiler and layer entries
+            // in farm_accounting_transactions, distinguished by farm_type.
+            const accounting = await withTimeout(
+              client.from('farm_accounting_transactions').select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),
+              8000,'PRIME_ACCOUNTING'
+            );
+            if (!accounting.error && Array.isArray(accounting.data)) {
+              await cacheRows('farm_accounting_transactions', accounting.data, userId, { scope:{ farm_id:selectedFarmId }, complete:accounting.data.length < 1000, limit:1000 });
+              count += accounting.data.length;
+            } else {
+              childComplete = false;
+              console.warn('[AdineOffline] accounting snapshot skipped:', accounting.error?.message || 'INVALID_RESULT');
+            }
+          }
         }
-        const selectedFarmId = selection.farmId || selection.farm_id || (flock && flock.farm_id) || localStorage.getItem('adine_accounting_farm');
-        if (selectedFarmId) {
-          const transactions = await withTimeout(client.from('farm_accounting_transactions').select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),8000,'PRIME_ACCOUNTING');
-          if (!transactions.error && Array.isArray(transactions.data)) { await cacheRows('farm_accounting_transactions', transactions.data, userId, { scope:{ farm_id:selectedFarmId }, complete:transactions.data.length < 1000, limit:1000 }); count += transactions.data.length; }
-        }
-      } catch (e) { console.warn('[AdineOffline] active flock history pre-cache skipped:', e); }
-      lastPrimeAt = Date.now();
-      return { cached:count };
+
+        if (!childComplete) return { cached:count, partial:true, retryable:true };
+      } catch (e) {
+        console.warn('[AdineOffline] active flock history pre-cache skipped:', e);
+        return { cached:count, partial:true, retryable:true };
+      }
+
+      const completedAt = Date.now();
+      lastPrimeAt.set(snapshotKey, completedAt);
+      try { localStorage.setItem(stampKey, String(completedAt)); } catch (_) {}
+      try {
+        g.dispatchEvent(new CustomEvent('adine:offline-prime-complete', {
+          detail:{ userId:userId, cached:count, cachedAt:completedAt }
+        }));
+      } catch (_) {}
+      return { cached:count, complete:true, cachedAt:completedAt };
     })().finally(function () { primePromise = null; });
     return primePromise;
   }
@@ -603,15 +702,60 @@
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return false;
     try {
       const r = await navigator.serviceWorker.register('/sw.js', { scope:'/' });
-      if (r.update) r.update().catch(()=>{});
+      // Let the browser perform its normal periodic update check; avoid a forced network check on every app page.
       return true;
     } catch (e) { console.warn('[AdineOffline] Service Worker registration failed:', e); return false; }
   }
+  async function warmShell() {
+    if (!navigator.onLine) return { complete:false, skipped:true, reason:'OFFLINE' };
+    if (!('serviceWorker' in navigator) || typeof MessageChannel === 'undefined') {
+      return { complete:false, skipped:true, reason:'SERVICE_WORKER_UNAVAILABLE' };
+    }
+    try {
+      const registration = await withTimeout(navigator.serviceWorker.ready,10000,'SW_READY');
+      const worker = registration.waiting || registration.installing || registration.active || navigator.serviceWorker.controller;
+      if (!worker) return { complete:false, skipped:true, reason:'SERVICE_WORKER_NOT_ACTIVE' };
+      return await new Promise(resolve => {
+        const channel = new MessageChannel();
+        const timer = setTimeout(() => {
+          try { channel.port1.close(); } catch (_) {}
+          resolve({ complete:false, timeout:true, reason:'WARM_SHELL_TIMEOUT' });
+        },65000);
+        channel.port1.onmessage = event => {
+          clearTimeout(timer);
+          try { channel.port1.close(); } catch (_) {}
+          resolve(event.data || { complete:false, reason:'EMPTY_WARM_SHELL_RESULT' });
+        };
+        try {
+          worker.postMessage({type:'ADINE_WARM_OFFLINE_SHELL'},[channel.port2]);
+        } catch (error) {
+          clearTimeout(timer);
+          try { channel.port1.close(); } catch (_) {}
+          resolve({complete:false,reason:String(error?.message||error)});
+        }
+      });
+    } catch (error) {
+      return { complete:false, reason:String(error?.message||error) };
+    }
+  }
+
   async function init() {
     registerSW();
     try { await openDB(); } catch (e) { console.warn('[AdineOffline] Local storage unavailable:', e); }
     try { if (navigator.storage?.persist) await navigator.storage.persist(); } catch (_) {}
-    if (navigator.onLine) prime().catch(e => console.warn('[AdineOffline] initial pre-cache skipped:', e));
+    // Bulk offline snapshot priming is restricted to the dashboard. Running it
+    // on login and monitoring pages competed with authentication, form reads and UI.
+    const path = String(location.pathname || '').toLowerCase();
+    const isDashboard = path.endsWith('/dashboard.html') || path === '/dashboard.html';
+    if (navigator.onLine && isDashboard) {
+      const schedulePrime = () => setTimeout(() => {
+        if (navigator.onLine && !document.hidden) {
+          prime().catch(e => console.warn('[AdineOffline] deferred pre-cache skipped:', e));
+        }
+      }, 45000);
+      if (document.readyState === 'complete') schedulePrime();
+      else window.addEventListener('load', schedulePrime, { once:true });
+    }
     window.addEventListener('online', function () { sync().then(updateStatus).catch(()=>updateStatus()); });
     window.addEventListener('offline', updateStatus);
     document.addEventListener('visibilitychange', function () { if (!document.hidden && navigator.onLine) sync().then(updateStatus).catch(()=>updateStatus()); });
@@ -620,7 +764,7 @@
   }
 
   g.AdineOffline = {
-    version: 1, maxOfflineDays: MAX_OFFLINE_DAYS, prime:prime,
+    version: 1, maxOfflineDays: MAX_OFFLINE_DAYS, prime:prime, warmShell:warmShell,
     init:init, registerSW:registerSW, saveProfile:saveProfile, getCachedProfile:getCachedProfile, getLastCachedProfile:getLastCachedProfile, clearCachedProfile:clearCachedProfile, clearAllCachedProfiles:clearAllCachedProfiles,
     cacheRows:cacheRows, getRows:getRows, saveLocal:saveLocal, updatePending:updatePending, isPendingRecord:isPendingRecord, sync:sync, updateStatus:updateStatus, exportPendingBackup:exportPendingBackup, importPendingBackup:importPendingBackup,
     isNetworkFailure:isNetworkFailure, withTimeout:withTimeout, isAllowedTable:table=>ALLOWED_TABLES.has(table), showBanner:showBanner, hideBanner:hideBanner,

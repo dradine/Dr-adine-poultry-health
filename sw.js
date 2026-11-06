@@ -33,8 +33,9 @@ const CORE_SHELL = [
   '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/IMG_4309.png'
 ];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
+const SUPABASE_SDK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 const CDN_ASSETS = [
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  SUPABASE_SDK_URL,
   'https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js',
   'https://cdn.jsdelivr.net/npm/persian-date@1.1.0/dist/persian-date.min.js',
   'https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js',
@@ -47,7 +48,7 @@ self.addEventListener('install', event => {
     // Keep installation deliberately small: the previous installer fetched the
     // entire application and several optional CDNs at once, competing with login
     // and dashboard requests on mobile connections.
-    const installAssets = [...CORE_SHELL, 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'];
+    const installAssets = [...CORE_SHELL, SUPABASE_SDK_URL];
     await Promise.all(installAssets.map(async asset => {
       const isCdn = /^https:\/\//i.test(asset);
       const controller = new AbortController();
@@ -70,6 +71,9 @@ self.addEventListener('install', event => {
     // A transient install-time network failure must not advertise an offline-ready shell.
     const verifiedCore = await Promise.all(CORE_SHELL.map(path => cache.match(path)));
     const missingCore = CORE_SHELL.filter((path, index) => !verifiedCore[index]);
+    // Offline authentication still needs the Supabase client to initialize the
+    // shared auth/access helpers. Do not activate an incomplete offline shell.
+    if (!(await cache.match(SUPABASE_SDK_URL))) missingCore.push('supabase-js CDN');
     if (missingCore.length) throw new Error('OFFLINE_CORE_CACHE_INCOMPLETE: ' + missingCore.join(','));
     await self.skipWaiting();
   })());

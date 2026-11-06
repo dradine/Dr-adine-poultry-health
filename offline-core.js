@@ -393,9 +393,10 @@
     const selectedFarmId = selection.farmId || selection.farm_id || 'none';
     // Throttle only after a successful snapshot. Failed/interrupted downloads
     // must remain retryable instead of suppressing offline preparation for hours.
-    const stampKey = 'adine_offline_prime_success_v3:' + userId + ':' + selectedFarmId + ':' + selectedFlockId;
+    const snapshotKey = userId + ':' + selectedFarmId + ':' + selectedFlockId;
+    const stampKey = 'adine_offline_prime_success_v3:' + snapshotKey;
     const now = Date.now();
-    const memoryStamp = Number(lastPrimeAt.get(userId) || 0);
+    const memoryStamp = Number(lastPrimeAt.get(snapshotKey) || 0);
     let persistedStamp = 0;
     try { persistedStamp = Number(localStorage.getItem(stampKey) || 0); } catch (_) {}
     const lastSuccess = Math.max(memoryStamp, persistedStamp);
@@ -513,7 +514,7 @@
       }
 
       const completedAt = Date.now();
-      lastPrimeAt.set(userId, completedAt);
+      lastPrimeAt.set(snapshotKey, completedAt);
       try { localStorage.setItem(stampKey, String(completedAt)); } catch (_) {}
       try {
         g.dispatchEvent(new CustomEvent('adine:offline-prime-complete', {

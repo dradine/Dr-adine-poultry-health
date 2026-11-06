@@ -689,10 +689,13 @@ document.addEventListener(
             };
             showLastSuccess();
 
-            window.addEventListener("adine:offline-prime-complete", function (event) {
-                if (event.detail?.userId !== userId) return;
-                status.textContent = "آماده‌سازی آفلاین کامل شد؛ " + event.detail.cached + " رکورد ذخیره شد.";
-            });
+            if (button.dataset.offlineListener !== "1") {
+                button.dataset.offlineListener = "1";
+                window.addEventListener("adine:offline-prime-complete", function (event) {
+                    if (event.detail?.userId !== userId) return;
+                    status.textContent = "آماده‌سازی آفلاین کامل شد؛ " + event.detail.cached + " رکورد ذخیره شد.";
+                });
+            }
 
             button.onclick = async function () {
                 if (button.disabled) return;
@@ -719,7 +722,6 @@ document.addEventListener(
                 } finally {
                     button.disabled = false;
                     button.textContent = originalText;
-                    showLastSuccess();
                 }
             };
         }

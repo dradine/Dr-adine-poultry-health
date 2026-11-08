@@ -13,6 +13,7 @@ function check(condition, message) {
 
 const accessBridgeSource = fs.readFileSync(path.join(__dirname, '..', 'access-control.js'), 'utf8');
 const weeklySource = fs.readFileSync(path.join(__dirname, '..', 'weekly.js'), 'utf8');
+const dashboardSource = fs.readFileSync(path.join(__dirname, '..', 'Dashboard.html'), 'utf8');
 check(accessBridgeSource.includes("if(window.AdineAuth?.requireAuth){const a=await window.AdineAuth.requireAuth();return a||null}"), 'access bridge fails closed instead of bypassing failed primary profile verification');
 check(/if\s*\(typeof window\.loadCurrentFlock\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly flock loader when it exists');
 check(/if\s*\(typeof window\.loadHistory\s*!==\s*['"]function['"]\)/.test(accessBridgeSource), 'access bridge preserves the native weekly history loader when it exists');
@@ -20,6 +21,7 @@ check(/const rpcResults=await Promise\.all/.test(accessBridgeSource), 'farm acce
 check(/async canAccessFarm\(id\)\{if\(!id\)return false;const rows=await this\.farmAccessRows\(\);return rows\.some/.test(accessBridgeSource), 'farm access checks reuse the RLS-authorized farm list instead of issuing duplicate reads');
 check(/navigator\.onLine===false&&window\.AdineOffline\)return window\.AdineOffline\.getRows\('farms',uid\)/.test(accessBridgeSource), 'farm chooser can use the cached authorized farm list without internet');
 check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySource), 'native weekly loader retains its offline snapshot fallback');
+check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparation\(false,\s*true\)/.test(dashboardSource), 'dashboard automatically warms offline assets and snapshots after login without requiring a manual button press');
 
 (async () => {
   const browser = await chromium.launch({ headless: true });

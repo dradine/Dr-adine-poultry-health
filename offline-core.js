@@ -720,7 +720,7 @@
         const timer = setTimeout(() => {
           try { channel.port1.close(); } catch (_) {}
           resolve({ complete:false, timeout:true, reason:'WARM_SHELL_TIMEOUT' });
-        },65000);
+        },180000);
         channel.port1.onmessage = event => {
           clearTimeout(timer);
           try { channel.port1.close(); } catch (_) {}

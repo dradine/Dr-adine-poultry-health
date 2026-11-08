@@ -701,40 +701,71 @@ document.addEventListener(
                 });
             }
 
-            button.onclick = async function () {
-                if (button.disabled) return;
+            let preparationPromise = null;
+            let autoPreparationStarted = false;
+            const shellStampKey = "adine_offline_shell_warm_v9";
+            const runOfflinePreparation = function (force, automatic) {
+                if (preparationPromise) return preparationPromise;
                 if (!navigator.onLine) {
-                    status.textContent = "برای به‌روزرسانی اطلاعات آفلاین، ابتدا به اینترنت متصل شوید.";
-                    return;
+                    if (!automatic) status.textContent = "برای آماده‌سازی اولیه، یک بار با اینترنت وارد سامانه شوید.";
+                    return Promise.resolve({ skipped:true, reason:"OFFLINE" });
                 }
                 const originalText = button.textContent;
                 button.disabled = true;
                 button.textContent = "در حال آماده‌سازی…";
-                status.textContent = "در حال ذخیره اطلاعات فارم، سالن، گله و سوابق پایش روی همین دستگاه…";
-                try {
-                    status.textContent = "در حال ذخیره فایل‌های اصلی فرم‌ها و بخش‌های پایش روی دستگاه…";
-                    const shellResult = await window.AdineOffline.warmShell();
-                    status.textContent = shellResult?.complete
-                        ? "فایل‌های فرم‌ها ذخیره شدند؛ اکنون اطلاعات گله و سوابق پایش دریافت می‌شود…"
-                        : "برخی فایل‌ها دریافت نشدند؛ اکنون اطلاعات گله و سوابق پایش دریافت می‌شود…";
-                    const result = await window.AdineOffline.prime(true);
-                    if (result?.complete && shellResult?.complete) {
-                        status.textContent = "آماده‌سازی کامل شد؛ " + shellResult.cached + " فایل و " + (result.cached || 0) + " رکورد روی دستگاه ذخیره شد.";
-                    } else if (result?.complete) {
-                        status.textContent = "اطلاعات گله ذخیره شد، اما آماده‌سازی فایل‌ها کامل نشد. اتصال را بررسی و دوباره تلاش کنید.";
-                    } else if (result?.partial) {
-                        status.textContent = "بخشی از فایل‌ها یا اطلاعات ذخیره شد. اتصال را بررسی کنید و دوباره بزنید تا تکمیل شود.";
-                    } else {
-                        status.textContent = "آماده‌سازی انجام نشد؛ " + (result?.reason || shellResult?.reason || "اتصال و ورود حساب را بررسی کنید.");
+                status.textContent = "در حال ذخیره فایل‌های فرم‌ها و اطلاعات گله روی همین دستگاه…";
+                preparationPromise = (async function () {
+                    let shellResult = { complete:true, cached:0, skipped:true };
+                    try {
+                        let shellAlreadyWarm = false;
+                        try { shellAlreadyWarm = !force && localStorage.getItem(shellStampKey) === "1"; } catch (_) {}
+                        if (!shellAlreadyWarm) {
+                            shellResult = await window.AdineOffline.warmShell();
+                            if (shellResult?.complete) {
+                                try { localStorage.setItem(shellStampKey, "1"); } catch (_) {}
+                            }
+                        }
+                        status.textContent = shellResult?.complete
+                            ? "فایل‌های برنامه ذخیره شدند؛ در حال دریافت سوابق فارم و گله…"
+                            : "ذخیره بعضی فایل‌ها کامل نشد؛ در حال تلاش برای دریافت اطلاعات گله…";
+                        const result = await window.AdineOffline.prime(!!force);
+                        if (result?.complete && shellResult?.complete) {
+                            status.textContent = "آماده استفاده آفلاین؛ " + shellResult.cached + " فایل و " + (result.cached || 0) + " رکورد روی دستگاه ذخیره شد.";
+                        } else if (result?.reason === "RECENTLY_PRIMED" && shellResult?.complete) {
+                            showLastSuccess();
+                        } else if (result?.complete) {
+                            status.textContent = "اطلاعات گله ذخیره شد، اما فایل‌های برنامه کامل نیستند؛ دوباره تلاش کنید.";
+                        } else if (result?.partial) {
+                            status.textContent = "آماده‌سازی ناقص است؛ اتصال را بررسی کنید و دوباره تلاش کنید.";
+                        } else {
+                            status.textContent = "آماده‌سازی کامل نشد؛ " + (result?.reason || shellResult?.reason || "ورود و اتصال را بررسی کنید.");
+                        }
+                        return { shellResult, result };
+                    } catch (error) {
+                        console.warn("Offline preparation:", error);
+                        status.textContent = "ذخیره اطلاعات آفلاین انجام نشد؛ اتصال را بررسی و دوباره تلاش کنید.";
+                        return { error };
+                    } finally {
+                        button.disabled = false;
+                        button.textContent = originalText;
+                        preparationPromise = null;
                     }
-                } catch (error) {
-                    console.warn("Offline preparation:", error);
-                    status.textContent = "ذخیره اطلاعات آفلاین انجام نشد؛ اتصال را بررسی و دوباره تلاش کنید.";
-                } finally {
-                    button.disabled = false;
-                    button.textContent = originalText;
-                }
+                })();
+                return preparationPromise;
             };
+
+            button.onclick = function () {
+                autoPreparationStarted = true;
+                runOfflinePreparation(true, false);
+            };
+
+            // Prepare the installed app automatically after login. Users should
+            // not have to discover and press a manual button before going offline.
+            window.setTimeout(function () {
+                if (autoPreparationStarted || !navigator.onLine || document.hidden) return;
+                autoPreparationStarted = true;
+                runOfflinePreparation(false, true);
+            }, 15000);
         }
 
         async function loadAccount() {

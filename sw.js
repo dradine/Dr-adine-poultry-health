@@ -135,7 +135,7 @@ self.addEventListener('message', event => {
     // Required pages get priority, two attempts and a longer timeout. Optional
     // assets are best-effort and must never make an otherwise usable offline app fail.
     await runPool(required, 2, 12000);
-    await runPool(optional, 4, 10000, 1);
+    await runPool(optional, 4, 1, 10000);
     const missing = [];
     for (const path of WARM_REQUIRED) if (!(await cache.match(path))) missing.push(path);
     const result = { complete:missing.length===0, cached, total:assets.length, failed:failed.length, failedPaths:failed.slice(0,20), missing };

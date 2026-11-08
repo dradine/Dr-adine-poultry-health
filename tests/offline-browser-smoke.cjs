@@ -70,6 +70,8 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     check(state.cacheNames.some(name => state.cached[name]?.home), 'homepage entry is stored for offline startup');
     check(state.cacheNames.some(name => state.cached[name]?.login), 'login page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.dashboard), 'dashboard page is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.urls.some(url => url.endsWith('/offline-dashboard.html'))), 'standalone offline dashboard is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.urls.some(url => url.endsWith('/assets/dashboard-icons-tight.png'))), 'approved dashboard icon sprite is stored for offline rendering');
     check(state.cacheNames.some(name => state.cached[name]?.offline), 'offline fallback page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.dailyRouter), 'daily router is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.weeklyRouter), 'weekly router is stored in the app-shell cache');

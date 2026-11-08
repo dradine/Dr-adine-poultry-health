@@ -14,6 +14,7 @@ assert.ok(auth.includes('select("id,full_name,email,phone,role,status,is_active,
 assert.ok(!auth.includes('status,is_active,access_status,approved_at'), 'shared auth must not query a nonexistent access_status column');
 for (const token of ['broiler_daily_monitoring','layer_daily_monitoring','weekly_records','farm_accounting_transactions','farms','houses','flocks']) assert.ok(core.includes(token), 'offline table allowlist missing ' + token);
 assert.ok(sw.includes("url.hostname.includes('supabase.co')"), 'service worker must not cache Supabase API');
+assert.ok(sw.includes('href="/login.html"') && sw.includes('تماس مستقیم با دکتر'), 'emergency homepage fallback must expose login and direct contact links');
 assert.ok(sw.includes("'/offline.html'"), 'offline fallback page must be precached');
 assert.ok(sw.includes('const CORE_SHELL ='), 'offline install must explicitly validate critical entry/auth resources');
 assert.ok(sw.includes('OFFLINE_ENTRY_CACHE_INCOMPLETE'), 'service worker must require the public offline entry shell before activation');

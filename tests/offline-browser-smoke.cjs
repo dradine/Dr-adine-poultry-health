@@ -109,10 +109,11 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     // show a usable home screen if its cached homepage response is unexpectedly absent.
     await page.evaluate(async () => {
       const cache = await caches.open('adine-shell-v11');
-      await cache.delete(new Request(location.origin + '/'));
-      await cache.delete(new Request(location.origin + '/index.html'));
-      await cache.delete('/'); 
-      await cache.delete('/index.html');
+      const keys = await cache.keys();
+      for (const request of keys) {
+        const path = new URL(request.url).pathname;
+        if (path === '/' || path === '/index.html') await cache.delete(request);
+      }
     });
     const fallbackHome = await page.goto(baseURL + '/', { waitUntil:'domcontentloaded', timeout:10000 }).catch(error => ({error}));
     const fallbackText = await page.locator('body').innerText().catch(() => '');
@@ -393,6 +394,26 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     }));
     check(!!offlineResponse && offlineResponse.status() === 200, 'cached login navigation succeeds with browser network disabled');
     check(offlineState.loginHeading.includes('مرکز تخصصی سلامت طیور آدینه'), 'cached login content is rendered offline');
+
+    await page.evaluate(async () => {
+      await window.AdineOffline.saveProfile({
+        id:'__offline_login_resume_smoke__',
+        full_name:'کاربر آزمایشی آفلاین',
+        role:'farm_manager',
+        status:'active',
+        is_active:true,
+        user_type:'farm_manager'
+      });
+    });
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(() => {
+      const button = document.getElementById('offlineResumeButton');
+      return !!button && !button.hidden;
+    }, {timeout:10000});
+    check(await page.locator('#offlineResumeButton').count() === 1, 'cached active account exposes offline resume on login page');
+    await page.locator('#offlineResumeButton').click();
+    await page.waitForURL('**/offline-dashboard.html', {timeout:10000});
+    check((await page.locator('body').innerText()).includes('حالت آفلاین فعال است'), 'offline resume routes to the standalone offline dashboard without Supabase auth');
 
     await context.setOffline(false);
     const apiCached = Object.values(state.cached).some(cache =>

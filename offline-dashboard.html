@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f3b2c">
+<title>حالت آفلاین | مرکز تخصصی سلامت طیور آدینه</title>
+<style>
+:root{color-scheme:light}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#f1f5f1;color:#183b2a;font:15px/2 Tahoma,Arial,sans-serif;padding:18px}
+main{max-width:760px;margin:24px auto;background:#fff;border:1px solid #dce7df;border-radius:22px;padding:24px;box-shadow:0 12px 36px rgba(24,59,42,.08)}
+header{display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid #e3ebe5}
+header img{width:68px;height:68px;object-fit:contain;background:#fff;border-radius:14px}
+h1{font-size:1.15rem;margin:0}header p{margin:2px 0 0;color:#64756b;font-size:.82rem}
+.status{margin:18px 0;padding:12px 14px;border-radius:12px;background:#edf7f0;color:#1f5135;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+a.tile{display:block;text-decoration:none;color:#183b2a;padding:16px;border:1px solid #dce7df;border-radius:15px;background:#fbfdfb;font-weight:800}
+a.tile small{display:block;color:#6b7a71;font-weight:400;font-size:.76rem;margin-top:3px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.actions a{display:inline-block;padding:10px 14px;border-radius:11px;text-decoration:none;font-weight:800;background:#1f5a3b;color:white}
+.actions a.secondary{background:#eef4ef;color:#1f5135;border:1px solid #d5e3d9}
+@media(max-width:520px){main{margin:4px auto;padding:18px}.grid{grid-template-columns:1fr}header img{width:56px;height:56px}}
+</style>
+<script defer src="/offline-core.js?v=20261108.1"></script>
+<script defer src="/offline-dashboard.js?v=20261108.1"></script>
+</head>
+<body>
+<main>
+<header><img src="/IMG_4309.png" alt="لوگوی مرکز تخصصی سلامت طیور آدینه"><div><h1>مرکز تخصصی سلامت طیور آدینه</h1><p>سامانه مدیریت و پایش گله‌های طیور</p></div></header>
+<div id="offlineStatus" class="status" role="status" aria-live="polite">در حال بررسی حساب ذخیره‌شده روی این دستگاه…</div>
+<p id="offlineWelcome">حالت آفلاین</p>
+<div class="grid">
+<a class="tile" href="/Farms.html">ثبت و مدیریت فارم<small>مشاهده و ثبت اطلاعات فارم‌ها</small></a>
+<a class="tile" href="/flocks.html">سالن و گله<small>مشاهده گله‌های ذخیره‌شده</small></a>
+<a class="tile" href="/daily-router.html">پایش روزانه<small>ثبت اطلاعات روزانه گوشتی و تخم‌گذار</small></a>
+<a class="tile" href="/weekly-router.html">گزارش هفتگی<small>ثبت و مشاهده سوابق هفتگی</small></a>
+<a class="tile" href="/accounting-v14.html">حسابداری<small>اطلاعات ذخیره‌شده حسابداری</small></a>
+<a class="tile" href="/offline.html">راهنمای حالت آفلاین<small>راهنما و وضعیت اتصال</small></a>
+</div>
+<div class="actions"><a href="/login.html" class="secondary">بازگشت به ورود</a><a href="tel:+989131278085">تماس با دکتر</a></div>
+</main>
+</body>
+</html>

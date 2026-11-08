@@ -278,6 +278,7 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
       const serverRows = new Map();
       const attempts = {};
       let loseFirstFarmResponse = true;
+      window.AdineAuth = window.AdineAuth || {};
       window.AdineAuth.getSession = async () => ({ user:{ id:uid } });
       window.supabaseClient = {
         auth: { getSession: async () => ({ data:{ session:{ user:{ id:uid } } }, error:null }) },

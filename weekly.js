@@ -112,134 +112,50 @@ initializeEvaluationDatePicker();
 ========================================================= */
 
 async function getWeeklyUserAccess() {
-
+    // Use the same authorization policy as the rest of the app. This also
+    // supports a previously verified offline session and fails closed when
+    // the profile cannot be verified; missing profile data is never approval.
     try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .auth
-                .getUser();
-
-        if (
-            error ||
-            !data ||
-            !data.user
-        ) {
-
-            return {
-                authenticated: false,
-                allowed: false,
-                user: null
-            };
-
-        }
-
-        const user =
-            data.user;
-
-        let profile = null;
-
-        try {
-
-            const profileResult =
-                await supabaseClient
-                    .from("profiles")
-                    .select("*")
-                    .eq(
-                        "id",
-                        user.id
-                    )
-                    .maybeSingle();
-
-            if (!profileResult.error) {
-
-                profile =
-                    profileResult.data;
-
+        if (window.AdineAuth && typeof window.AdineAuth.requireAuth === "function") {
+            const auth = await window.AdineAuth.requireAuth();
+            if (!auth || !auth.user || !auth.profile) {
+                return { authenticated: false, allowed: false, user: null, profile: null };
             }
-
-        }
-
-        catch (profileError) {
-
-            console.warn(
-                "Profile check:",
-                profileError
-            );
-
-        }
-
-        if (!profile) {
-
             return {
                 authenticated: true,
                 allowed: true,
-                user
+                user: auth.user,
+                profile: auth.profile,
+                offline: auth.offline === true
             };
-
         }
 
-        const status =
-            String(
-                profile.status || ""
-            ).toLowerCase();
-
-        const accessStatus =
-            String(
-                profile.access_status || ""
-            ).toLowerCase();
-
-        const role =
-            String(
-                profile.role || ""
-            ).toLowerCase();
-
-        const allowed =
-            accessStatus === "approved" ||
-            status === "active" ||
-            (
-                role === "owner" &&
-                ![
-                    "blocked",
-                    "removed",
-                    "suspended"
-                ].includes(status)
-            );
-
-        return {
-
-            authenticated: true,
-
-            allowed,
-
-            user
-
-        };
-
+        // Defensive fallback for an unexpectedly missing auth.js: do not
+        // permit weekly writes when the profile is missing or unreadable.
+        const sessionResult = await supabaseClient.auth.getSession();
+        const user = !sessionResult.error ? sessionResult.data?.session?.user : null;
+        if (!user) return { authenticated: false, allowed: false, user: null, profile: null };
+        const profileResult = await supabaseClient
+            .from("profiles")
+            .select("id,role,status,is_active")
+            .eq("id", user.id)
+            .maybeSingle();
+        if (profileResult.error || !profileResult.data) {
+            return { authenticated: true, allowed: false, user, profile: null };
+        }
+        const profile = profileResult.data;
+        const status = String(profile.status || "").trim().toLowerCase();
+        const role = String(profile.role || "").trim().toLowerCase();
+        const inactive = profile.is_active === false || profile.is_active === 0 ||
+            ["false", "0"].includes(String(profile.is_active == null ? "" : profile.is_active).trim().toLowerCase());
+        const deniedStatus = ["blocked", "suspended", "removed", "pending", "rejected", "inactive", "disabled"];
+        const allowed = !inactive && !deniedStatus.includes(status) &&
+            status === "active";
+        return { authenticated: true, allowed, user, profile, offline: false };
+    } catch (error) {
+        console.error("Authentication error:", error);
+        return { authenticated: false, allowed: false, user: null, profile: null };
     }
-
-    catch (error) {
-
-        console.error(
-            "Authentication error:",
-            error
-        );
-
-        return {
-
-            authenticated: false,
-
-            allowed: false,
-
-            user: null
-
-        };
-
-    }
-
 }
 
 
@@ -599,26 +515,34 @@ async function loadCurrentFlock() {
     }
 
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from("flocks")
-            .select(`
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        const flockRows = await AdineOffline.getRows("flocks", currentUser?.id || (await AdineAuth.getUser())?.id);
+        data = flockRows.find(row => String(row.id) === String(selection.flockId)) || null;
+        if (data) {
+            const uid = currentUser?.id || (await AdineAuth.getUser())?.id;
+            const farmRows = await AdineOffline.getRows("farms", uid);
+            const houseRows = await AdineOffline.getRows("houses", uid);
+            data.farms = data.farms || { name: farmRows.find(x => String(x.id) === String(data.farm_id))?.name || "-" };
+            data.houses = data.houses || { name: houseRows.find(x => String(x.id) === String(data.house_id))?.name || "-" };
+        }
+    } else {
+        const result = await AdineOffline.withTimeout(supabaseClient.from("flocks").select(`
                 *,
-                farms (
-                    name
-                ),
-                houses (
-                    name
-                )
-            `)
-            .eq(
-                "id",
-                selection.flockId
-            )
-            .maybeSingle();
+                farms ( name ),
+                houses ( name )
+            `).eq("id", selection.flockId).maybeSingle(), 8000, "WEEKLY_FLOCK_QUERY");
+        data = result.data; error = result.error;
+        if (!error && data && window.AdineOffline) {
+            try { await AdineOffline.cacheRows("flocks", [data], data.owner_id || currentUser?.id); } catch (e) { console.warn("Weekly flock cache:", e); }
+        }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            const uid = currentUser?.id || (await AdineAuth.getUser())?.id;
+            const rows = await AdineOffline.getRows("flocks", uid);
+            data = rows.find(row => String(row.id) === String(selection.flockId)) || null;
+            error = null;
+        }
+    }
 
 
     if (
@@ -2754,12 +2678,10 @@ async function saveWeeklyRecord() {
 
         const payload = {
 
-            ...(recordId
-                ? {
-                    id:
-                        recordId
-                }
-                : {}),
+            // Allocate the UUID before the first online request. If the server
+            // commits but the response is lost, the offline retry must reuse
+            // this exact ID instead of creating a duplicate weekly record.
+            id: recordId || (window.AdineOffline ? window.AdineOffline.uuid() : undefined),
 
             owner_id:
                 currentUser.id,
@@ -2860,6 +2782,38 @@ async function saveWeeklyRecord() {
         };
 
 
+        payload.id = recordId || weeklyRecords.find(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays)))?.id || (window.AdineOffline ? AdineOffline.uuid() : undefined);
+
+        if (recordId && window.AdineOffline && await AdineOffline.isPendingRecord("weekly_records", recordId, currentUser.id)) {
+            await AdineOffline.updatePending("weekly_records", payload, currentUser.id);
+            alert("گزارش هفتگی محلی اصلاح شد و در انتظار همگام‌سازی است.");
+            if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره تغییرات"; }
+            clearWeeklyForm(); await loadHistory(); return;
+        }
+
+        if (!navigator.onLine && window.AdineOffline) {
+            if (recordId) {
+                if (await AdineOffline.isPendingRecord("weekly_records", recordId, currentUser.id)) {
+                    await AdineOffline.updatePending("weekly_records", payload, currentUser.id);
+                } else {
+                    alert("ویرایش گزارش هفتگی قبلاً همگام‌سازی‌شده در حالت آفلاین پشتیبانی نمی‌شود. پس از اتصال اینترنت ویرایش کنید.");
+                    return;
+                }
+            } else {
+                const duplicateWeek = weeklyRecords.find(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays)));
+                if (duplicateWeek) {
+                    alert("برای این هفته گزارشی از قبل وجود دارد. برای جلوگیری از بازنویسی ناخواسته، ویرایش گزارش موجود را پس از اتصال اینترنت انجام دهید.");
+                    return;
+                }
+                await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
+            }
+            alert("گزارش هفتگی روی این دستگاه ذخیره شد و پس از اتصال اینترنت همگام‌سازی می‌شود.");
+            if (saveButton) { saveButton.disabled = false; saveButton.textContent = editingRecordId ? "ذخیره تغییرات" : "ذخیره گزارش هفتگی"; }
+            clearWeeklyForm();
+            await loadHistory();
+            return;
+        }
+
         console.log(
             "WEEKLY PAYLOAD:",
             payload
@@ -2890,32 +2844,21 @@ async function saveWeeklyRecord() {
         if (recordId) {
 
             result =
-                await query
-                    .update(
-                        payload
-                    )
-                    .eq(
-                        "id",
-                        recordId
-                    )
+                await AdineOffline.withTimeout(query
+                    .update(payload)
+                    .eq("id", recordId)
                     .select()
-                    .single();
+                    .single(), 8000, "WEEKLY_UPDATE");
 
         }
 
         else {
 
             result =
-                await query
-                    .upsert(
-                        payload,
-                        {
-                            onConflict:
-                                "flock_id,week_number"
-                        }
-                    )
+                await AdineOffline.withTimeout(query
+                    .upsert(payload, { onConflict:"flock_id,week_number" })
                     .select()
-                    .single();
+                    .single(), 8000, "WEEKLY_SAVE");
 
         }
 
@@ -2928,6 +2871,14 @@ async function saveWeeklyRecord() {
 
 
         if (error) {
+            if (!recordId && !weeklyRecords.some(row => Number(row.week_number) === Number(week) || (ageDays != null && Number(row.age_days) === Number(ageDays))) && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+                await AdineOffline.saveLocal("weekly_records", payload, { userId: currentUser.id });
+                alert("گزارش هفتگی روی این دستگاه ذخیره شد و در انتظار همگام‌سازی است.");
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = "ذخیره گزارش هفتگی"; }
+                clearWeeklyForm();
+                await loadHistory();
+                return;
+            }
 
             console.error(
                 "Save weekly error:",
@@ -3034,26 +2985,18 @@ async function loadHistory() {
     }
 
 
-    const {
-        data,
-        error
-    } =
-        await supabaseClient
-            .from(
-                "weekly_records"
-            )
-            .select("*")
-            .eq(
-                "flock_id",
-                currentFlock.id
-            )
-            .order(
-                "week_number",
-                {
-                    ascending:
-                        true
-                }
-            );
+    let data = null, error = null;
+    if (!navigator.onLine && window.AdineOffline) {
+        data = (await AdineOffline.getRows("weekly_records", currentUser.id)).filter(row => String(row.flock_id) === String(currentFlock.id)).sort((a,b) => Number(a.week_number||0)-Number(b.week_number||0));
+    } else {
+        const result = await AdineOffline.withTimeout(supabaseClient.from("weekly_records").select("*").eq("flock_id", currentFlock.id).order("week_number", { ascending:true }), 8000, "WEEKLY_QUERY");
+        data = result.data; error = result.error;
+        if (!error && window.AdineOffline) { try { await AdineOffline.cacheRows("weekly_records", data || [], currentUser.id); const pending = await AdineOffline.getPending(); const local = pending.filter(op => op.table === "weekly_records" && String(op.payload.flock_id) === String(currentFlock.id)).map(op => op.payload); const map = new Map((data || []).map(row => [String(row.id), row])); local.forEach(row => map.set(String(row.id), row)); data = Array.from(map.values()); } catch (e) { console.warn("Weekly records cache:",e); } }
+        if (error && window.AdineOffline && AdineOffline.isNetworkFailure(error)) {
+            data = (await AdineOffline.getRows("weekly_records", currentUser.id)).filter(row => String(row.flock_id) === String(currentFlock.id)).sort((a,b) => Number(a.week_number||0)-Number(b.week_number||0));
+            error = null;
+        }
+    }
 
 
     if (error) {

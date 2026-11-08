@@ -69,7 +69,7 @@ self.addEventListener('install', event => {
     }));
     // Keep the public entry point independent from optional auth/CDN resources.
     // The homepage must remain available even when jsDelivr/Supabase is blocked.
-    const requiredEntry = ['/', '/index.html', '/login.html', '/login.js', '/auth.js', '/style.css', '/auth-compact.css', '/seo.css', '/offline-dashboard.html', '/offline-dashboard.js', '/offline.html', '/manifest.json', '/offline-core.js', '/dashboard-icon-fix.js', '/assets/dashboard-icons-tight.png', '/IMG_4309.png'];
+    const requiredEntry = ['/', '/index.html', '/login.html', '/login.js', '/auth.js', '/style.css', '/auth-compact.css', '/seo.css', '/offline-dashboard.html', '/offline-dashboard.js', '/offline.html', '/manifest.json', '/offline-core.js', '/IMG_4309.png'];
     const missingEntry = [];
     for (const path of requiredEntry) if (!(await cache.match(path))) missingEntry.push(path);
     if (missingEntry.length) throw new Error('OFFLINE_ENTRY_CACHE_INCOMPLETE: ' + missingEntry.join(','));

@@ -17,7 +17,7 @@ assert.ok(sw.includes("url.hostname.includes('supabase.co')"), 'service worker m
 assert.ok(sw.includes("'/offline.html'"), 'offline fallback page must be precached');
 assert.ok(sw.includes('const CORE_SHELL ='), 'offline install must explicitly validate critical entry/auth resources');
 assert.ok(sw.includes('OFFLINE_ENTRY_CACHE_INCOMPLETE'), 'service worker must require the public offline entry shell before activation');
-assert.ok(sw.includes("const requiredEntry = ['/', '/index.html', '/login.html'") && sw.includes("'/offline-dashboard.html'") && sw.includes("'/offline-dashboard.js'") && sw.includes("'/assets/dashboard-icons-tight.png'"), 'offline entry validation must require the public homepage, login UI, standalone offline dashboard and approved icon sprite without requiring optional CDN assets');
+assert.ok(sw.includes("const requiredEntry = ['/', '/index.html', '/login.html'") && sw.includes("'/offline-dashboard.html'") && sw.includes("'/offline-dashboard.js'"), 'offline entry validation must require the public homepage, login UI and standalone offline dashboard without requiring optional icon/CDN assets');
 assert.ok(!sw.includes("missingCore.push('supabase-js CDN')"), 'Supabase CDN failure must not block the public offline homepage');
 assert.ok(sw.includes('AbortController') && sw.includes('2500'), 'navigation network requests must time out and fall back to local cache');
 assert.ok(sw.includes("url.pathname === '/' ? '/index.html'"), 'root navigation must fall back to cached index.html');

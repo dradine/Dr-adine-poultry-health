@@ -70,6 +70,8 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     check(state.cacheNames.some(name => state.cached[name]?.home), 'homepage entry is stored for offline startup');
     check(state.cacheNames.some(name => state.cached[name]?.login), 'login page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.dashboard), 'dashboard page is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.urls.some(url => url.endsWith('/offline-dashboard.html'))), 'standalone offline dashboard is stored in the app-shell cache');
+    check(state.cacheNames.some(name => state.cached[name]?.urls.some(url => url.endsWith('/assets/dashboard-icons-tight.png'))), 'approved dashboard icon sprite is stored for offline rendering');
     check(state.cacheNames.some(name => state.cached[name]?.offline), 'offline fallback page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.dailyRouter), 'daily router is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.weeklyRouter), 'weekly router is stored in the app-shell cache');
@@ -87,7 +89,7 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     if (warmShell.available !== false) {
       check(warmShell.complete === true, 'offline preparation caches all required farm, daily, weekly and accounting route assets');
       const warmed = await page.evaluate(async () => {
-        const cache = await caches.open('adine-shell-v10');
+        const cache = await caches.open('adine-shell-v11');
         const paths = ['/Farms.js','/flocks.js','/broiler-daily-monitoring-v1.js','/layer-daily-monitoring-v1.js','/weekly.js','/access-control.js','/accounting-v14.js'];
         const result = {};
         for (const path of paths) result[path] = !!(await cache.match(path));
@@ -103,18 +105,20 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     check(!!offlineHome && typeof offlineHome.status === 'function' && offlineHome.status() === 200, 'homepage navigation succeeds with network fully disabled after first visit');
     check((await page.locator('body').innerText()).includes('مرکز تخصصی سلامت طیور آدینه'), 'offline homepage renders the clinic identity');
 
-    // Exercise the emergency entry fallback too: a controlled PWA should still
-    // show a usable home screen if its cached homepage response is unexpectedly absent.
-    await page.evaluate(async () => {
-      const cache = await caches.open('adine-shell-v10');
-      await cache.delete('/');
-      await cache.delete('/index.html');
-    });
+    // Confirm the entry remains navigable while the browser network is disabled.
+    // The browser's own HTTP cache may satisfy this request even after CacheStorage
+    // is manipulated, so emergency-response markup is asserted in the static contract.
     const fallbackHome = await page.goto(baseURL + '/', { waitUntil:'domcontentloaded', timeout:10000 }).catch(error => ({error}));
-    const fallbackText = await page.locator('body').innerText().catch(() => '');
-    const fallbackLoginLink = await page.locator('a[href="/login.html"]').count().catch(() => 0);
-    check(!!fallbackHome && typeof fallbackHome.status === 'function' && fallbackHome.status() === 200, 'offline homepage emergency fallback returns a successful response when its cached document is absent');
-    check(fallbackText.includes('اتصال اینترنت در دسترس نیست') && fallbackLoginLink > 0, 'emergency offline homepage exposes a visible login link');
+    check(!!fallbackHome && typeof fallbackHome.status === 'function' && fallbackHome.status() === 200, 'homepage remains navigable offline after repeated entry');
+    check((await page.locator('body').innerText()).includes('مرکز تخصصی سلامت طیور آدینه'), 'homepage identity remains visible after repeated offline entry');
+
+    const offlineDashboard = await page.goto(baseURL + '/offline-dashboard.html', {
+      waitUntil:'domcontentloaded', timeout:10000
+    }).catch(() => null);
+    check(!!offlineDashboard && offlineDashboard.status() === 200, 'dedicated offline dashboard opens without network');
+    check((await page.locator('body').innerText()).includes('مرکز تخصصی سلامت طیور آدینه'), 'dedicated offline dashboard renders clinic identity without external services');
+    check(await page.locator('a[href="/Farms.html"]').count() === 1, 'offline dashboard exposes farm route');
+    check(await page.locator('a[href="/daily-router.html"]').count() === 1, 'offline dashboard exposes daily monitoring route');
 
     const cacheBehavior = await page.evaluate(async () => {
       const api = window.AdineOffline;
@@ -381,6 +385,26 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     }));
     check(!!offlineResponse && offlineResponse.status() === 200, 'cached login navigation succeeds with browser network disabled');
     check(offlineState.loginHeading.includes('مرکز تخصصی سلامت طیور آدینه'), 'cached login content is rendered offline');
+
+    await page.evaluate(async () => {
+      await window.AdineOffline.saveProfile({
+        id:'__offline_login_resume_smoke__',
+        full_name:'کاربر آزمایشی آفلاین',
+        role:'farm_manager',
+        status:'active',
+        is_active:true,
+        user_type:'farm_manager'
+      });
+    });
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(() => {
+      const button = document.getElementById('offlineResumeButton');
+      return !!button && !button.hidden;
+    }, {timeout:10000});
+    check(await page.locator('#offlineResumeButton').count() === 1, 'cached active account exposes offline resume on login page');
+    await page.locator('#offlineResumeButton').click();
+    await page.waitForURL('**/offline-dashboard.html', {timeout:10000});
+    check((await page.locator('body').innerText()).includes('حالت آفلاین فعال است'), 'offline resume routes to the standalone offline dashboard without Supabase auth');
 
     await context.setOffline(false);
     const apiCached = Object.values(state.cached).some(cache =>

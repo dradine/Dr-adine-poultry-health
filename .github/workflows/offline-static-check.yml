@@ -32,6 +32,7 @@ jobs:
           node --check sw.js
           node --check auth.js
           node --check login.js
+          node --check offline-dashboard.js
           node --check Farms.js
           node --check flocks.js
           node --check broiler-daily-monitoring-v1.js

@@ -1,8 +1,8 @@
 /* Adine offline shell service worker v1. Cache static app files only; never cache Supabase API responses. */
 'use strict';
-const VERSION = 'adine-shell-v10';
+const VERSION = 'adine-shell-v11';
 const SHELL = [
-  '/','/index.html','/login.html','/Dashboard.html','/manifest.json','/offline-core.js',
+  '/','/index.html','/login.html','/Dashboard.html','/offline-dashboard.html','/offline-dashboard.js','/manifest.json','/offline-core.js',
   '/config.js','/supabase-config.js','/auth.js','/app-core.js',
   '/style.css','/app.css','/auth-compact.css','/seo.css',
   '/Farms.html','/flocks.html','/daily-core.html','/layer-daily-core.html',
@@ -16,7 +16,7 @@ const SHELL = [
   '/weekly.js','/weekly-lazy-assets-v1.js','/weekly-specialized.js','/performance-engine-v2.js',
   '/performance-intelligence-v1.js','/adine-weight-band-engine-v1.js','/weight-band-runtime-v1.js',
   '/shared-jalali-calendar-v1.js','/accounting-v14.js','/dashboard-compact.css',
-  '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/flocks-genetics-fix-v1.js',
+  '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/assets/dashboard-icons-tight.png','/offline-dashboard.html','/offline-dashboard.js','/flocks-genetics-fix-v1.js',
   '/flocks-genetics-final.js','/production-date-picker.js','/poultry-icons.js',
   '/app.css','/style.css','/auth-compact.css','/seo.css',
   '/login.js','/IMG_4309.png','/apple-touch-icon.png','/favicon.png',
@@ -30,7 +30,7 @@ const CORE_SHELL = [
   '/weekly-core.html','/layer-weekly-core.html','/layer-monthly-core.html',
   '/offline-core.js','/config.js','/supabase-config.js','/auth.js','/login.js',
   '/style.css','/auth-compact.css','/seo.css','/app.css','/dashboard-compact.css',
-  '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/IMG_4309.png'
+  '/dashboard-icon-assets.js','/dashboard-icon-fix.js','/assets/dashboard-icons-tight.png','/offline-dashboard.html','/offline-dashboard.js','/IMG_4309.png'
 ];
 const API_PARTS = ['/rest/v1/','/auth/v1/','/storage/v1/','/realtime/v1/','/functions/v1/'];
 const SUPABASE_SDK_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
@@ -69,7 +69,7 @@ self.addEventListener('install', event => {
     }));
     // Keep the public entry point independent from optional auth/CDN resources.
     // The homepage must remain available even when jsDelivr/Supabase is blocked.
-    const requiredEntry = ['/', '/index.html', '/offline.html', '/manifest.json', '/offline-core.js', '/IMG_4309.png'];
+    const requiredEntry = ['/', '/index.html', '/login.html', '/login.js', '/auth.js', '/style.css', '/auth-compact.css', '/seo.css', '/offline-dashboard.html', '/offline-dashboard.js', '/offline.html', '/manifest.json', '/offline-core.js', '/IMG_4309.png'];
     const missingEntry = [];
     for (const path of requiredEntry) if (!(await cache.match(path))) missingEntry.push(path);
     if (missingEntry.length) throw new Error('OFFLINE_ENTRY_CACHE_INCOMPLETE: ' + missingEntry.join(','));

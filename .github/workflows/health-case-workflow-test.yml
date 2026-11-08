@@ -17,7 +17,7 @@ jobs:
           node --check mortality-disease-intelligence-v2.js
       - name: Validate required workflow hooks
         run: |
-          grep -q "health-case-workflow-v1.js" mortality-disease-intelligence-v2.js
+          grep -q "mortality-case-workflow-v1.js" mortality-disease-intelligence-v2.js
           grep -q "health_events" mortality-case-workflow-v1.js
           grep -q "health_necropsies" mortality-case-workflow-v1.js
           grep -q "health_event_labs" mortality-case-workflow-v1.js

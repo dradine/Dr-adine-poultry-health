@@ -168,7 +168,7 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
       };
       Object.defineProperty(navigator, 'onLine', { configurable:true, get:() => true });
       localStorage.setItem('adine_poultry_current_selection', JSON.stringify({flockId:'prime-layer-flock',farmId:'prime-layer-farm'}));
-      window.AdineAuth=window.AdineAuth||{}; window.AdineAuth.getSession = async () => ({ user:{id:uid} });
+      window.AdineAuth = { getSession: async () => ({ user:{id:uid} }) };
       window.supabaseClient = {
         auth:{},
         from(table) {

@@ -1,6 +1,6 @@
 /* Adine offline shell service worker v1. Cache static app files only; never cache Supabase API responses. */
 'use strict';
-const VERSION = 'adine-shell-v8';
+const VERSION = 'adine-shell-v9';
 const SHELL = [
   '/','/index.html','/login.html','/Dashboard.html','/manifest.json','/offline-core.js',
   '/config.js','/supabase-config.js','/auth.js','/app-core.js',
@@ -67,14 +67,12 @@ self.addEventListener('install', event => {
         clearTimeout(timer);
       }
     }));
-    // Do not activate a new offline worker unless its authentication and app-entry core is cached.
-    // A transient install-time network failure must not advertise an offline-ready shell.
-    const verifiedCore = await Promise.all(CORE_SHELL.map(path => cache.match(path)));
-    const missingCore = CORE_SHELL.filter((path, index) => !verifiedCore[index]);
-    // Offline authentication still needs the Supabase client to initialize the
-    // shared auth/access helpers. Do not activate an incomplete offline shell.
-    if (!(await cache.match(SUPABASE_SDK_URL))) missingCore.push('supabase-js CDN');
-    if (missingCore.length) throw new Error('OFFLINE_CORE_CACHE_INCOMPLETE: ' + missingCore.join(','));
+    // Keep the public entry point independent from optional auth/CDN resources.
+    // The homepage must remain available even when jsDelivr/Supabase is blocked.
+    const requiredEntry = ['/', '/index.html', '/offline.html', '/manifest.json', '/offline-core.js', '/IMG_4309.png'];
+    const missingEntry = [];
+    for (const path of requiredEntry) if (!(await cache.match(path))) missingEntry.push(path);
+    if (missingEntry.length) throw new Error('OFFLINE_ENTRY_CACHE_INCOMPLETE: ' + missingEntry.join(','));
     await self.skipWaiting();
   })());
 });
@@ -139,16 +137,26 @@ self.addEventListener('fetch', event => {
   if (!sameOrigin && !allowedCdn) return;
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
+      const cache = await caches.open(VERSION);
+      const path = url.pathname === '/' ? '/index.html' : url.pathname;
+      // Cache fallback is checked before waiting on the network. A short network
+      // timeout prevents captive/filtered/very slow connections from blanking the
+      // app entry on mobile; the locally cached shell is then returned instantly.
+      const cached = await cache.match(req) || await cache.match(url.pathname) || await cache.match(path);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2500);
       try {
-        const response = await fetch(req);
+        const response = await fetch(new Request(req, { signal:controller.signal }));
         if (response && response.ok) {
-          const cache = await caches.open(VERSION);
           cache.put(req, response.clone()).catch(()=>{});
+          cache.put(url.pathname, response.clone()).catch(()=>{});
+          if (url.pathname === '/') cache.put('/index.html', response.clone()).catch(()=>{});
         }
         return response;
       } catch (_) {
-        const cache = await caches.open(VERSION);
-        return (await cache.match(req)) || (await cache.match(url.pathname)) || (await cache.match('/offline.html')) || Response.error();
+        return cached || await cache.match('/offline.html') || Response.error();
+      } finally {
+        clearTimeout(timer);
       }
     })());
     return;

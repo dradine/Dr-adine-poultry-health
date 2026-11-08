@@ -1,0 +1,42 @@
+name: Offline browser smoke test
+on:
+  push:
+    branches:
+      - feat/offline-first-v1-clean
+  pull_request:
+    paths:
+      - 'sw.js'
+      - 'offline-core.js'
+      - 'login.html'
+      - 'login.js'
+      - 'Dashboard.html'
+      - 'tests/offline-browser-smoke.cjs'
+      - '.github/workflows/offline-browser-smoke.yml'
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Playwright in temporary directory
+        run: |
+          npm install --prefix "$RUNNER_TEMP/playwright" --no-save playwright
+          "$RUNNER_TEMP/playwright/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Start local HTTPS-equivalent secure-context test server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > "$RUNNER_TEMP/offline-test-server.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/offline-test-server.pid"
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:4173/login.html > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/offline-test-server.log"
+          exit 1
+      - name: Exercise service-worker cache and offline login navigation
+        env:
+          PLAYWRIGHT_MODULE: ${{ runner.temp }}/playwright/node_modules/playwright
+          OFFLINE_TEST_BASE_URL: http://127.0.0.1:4173
+        run: node tests/offline-browser-smoke.cjs

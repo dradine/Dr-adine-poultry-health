@@ -406,10 +406,19 @@
 
     primePromise = (async function () {
       const client = g.supabaseClient;
+      async function queryWithRetry(buildQuery, label) {
+        let result = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          result = await withTimeout(buildQuery(), 20000, label);
+          if (!result.error || !isNetworkFailure(result.error) || attempt === 1) return result;
+          await new Promise(resolve => setTimeout(resolve, 1200));
+        }
+        return result || { data:null, error:new Error(label + '_FAILED') };
+      }
       const queries = await Promise.all([
-        withTimeout(client.from('farms').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_FARMS'),
-        withTimeout(client.from('houses').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_HOUSES'),
-        withTimeout(client.from('flocks').select('*').order('created_at',{ascending:false}).limit(1000),8000,'PRIME_FLOCKS')
+        queryWithRetry(() => client.from('farms').select('*').order('created_at',{ascending:false}).limit(1000),'PRIME_FARMS'),
+        queryWithRetry(() => client.from('houses').select('*').order('created_at',{ascending:false}).limit(1000),'PRIME_HOUSES'),
+        queryWithRetry(() => client.from('flocks').select('*').order('created_at',{ascending:false}).limit(1000),'PRIME_FLOCKS')
       ]);
       const tables = ['farms','houses','flocks'];
       let count = 0;
@@ -439,9 +448,9 @@
           const type = String(flock.production_type || '').toLowerCase();
           const layer = type.includes('layer') || type.includes('تخم');
           const dailyTable = layer ? 'layer_daily_monitoring' : 'broiler_daily_monitoring';
-          const daily = await withTimeout(
-            client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000),
-            8000,'PRIME_DAILY'
+          const daily = await queryWithRetry(
+            () => client.from(dailyTable).select('*').eq('flock_id', flockId).order('record_date',{ascending:false}).limit(1000),
+            'PRIME_DAILY'
           );
           if (!daily.error && Array.isArray(daily.data)) {
             await cacheRows(dailyTable, daily.data, userId, { scope:{ flock_id:flockId }, complete:daily.data.length < 1000, limit:1000 });
@@ -452,9 +461,9 @@
           }
 
           if (layer) {
-            const weekly = await withTimeout(
-              client.from('layer_weekly_monitoring').select('*').eq('flock_id', flockId).order('week_no',{ascending:true}).limit(300),
-              8000,'PRIME_LAYER_WEEKLY'
+            const weekly = await queryWithRetry(
+              () => client.from('layer_weekly_monitoring').select('*').eq('flock_id', flockId).order('week_no',{ascending:true}).limit(300),
+              'PRIME_LAYER_WEEKLY'
             );
             if (!weekly.error && Array.isArray(weekly.data)) {
               await cacheRows('layer_weekly_monitoring', weekly.data, userId, { scope:{ flock_id:flockId }, complete:weekly.data.length < 300, limit:300 });
@@ -464,9 +473,9 @@
               console.warn('[AdineOffline] layer weekly snapshot skipped:', weekly.error?.message || 'INVALID_RESULT');
             }
 
-            const monthly = await withTimeout(
-              client.from('layer_monthly_monitoring').select('*').eq('flock_id', flockId).order('jalali_year',{ascending:false}).order('jalali_month',{ascending:false}).limit(120),
-              8000,'PRIME_LAYER_MONTHLY'
+            const monthly = await queryWithRetry(
+              () => client.from('layer_monthly_monitoring').select('*').eq('flock_id', flockId).order('jalali_year',{ascending:false}).order('jalali_month',{ascending:false}).limit(120),
+              'PRIME_LAYER_MONTHLY'
             );
             if (!monthly.error && Array.isArray(monthly.data)) {
               await cacheRows('layer_monthly_monitoring', monthly.data, userId, { scope:{ flock_id:flockId }, complete:monthly.data.length < 120, limit:120 });
@@ -476,9 +485,9 @@
               console.warn('[AdineOffline] layer monthly snapshot skipped:', monthly.error?.message || 'INVALID_RESULT');
             }
           } else {
-            const weekly = await withTimeout(
-              client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300),
-              8000,'PRIME_WEEKLY'
+            const weekly = await queryWithRetry(
+              () => client.from('weekly_records').select('*').eq('flock_id', flockId).order('week_number',{ascending:true}).limit(300),
+              'PRIME_WEEKLY'
             );
             if (!weekly.error && Array.isArray(weekly.data)) {
               await cacheRows('weekly_records', weekly.data, userId, { scope:{ flock_id:flockId }, complete:weekly.data.length < 300, limit:300 });
@@ -493,9 +502,9 @@
           if (selectedFarmId) {
             // The current accounting UI stores both broiler and layer entries
             // in farm_accounting_transactions, distinguished by farm_type.
-            const accounting = await withTimeout(
-              client.from('farm_accounting_transactions').select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),
-              8000,'PRIME_ACCOUNTING'
+            const accounting = await queryWithRetry(
+              () => client.from('farm_accounting_transactions').select('*').eq('farm_id', selectedFarmId).order('event_date',{ascending:false}).limit(1000),
+              'PRIME_ACCOUNTING'
             );
             if (!accounting.error && Array.isArray(accounting.data)) {
               await cacheRows('farm_accounting_transactions', accounting.data, userId, { scope:{ farm_id:selectedFarmId }, complete:accounting.data.length < 1000, limit:1000 });

@@ -44,6 +44,7 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
       for (const name of cacheNames) {
         const cache = await caches.open(name);
         cached[name] = {
+          home: !!(await cache.match('/')) || !!(await cache.match('/index.html')),
           login: !!(await cache.match('/login.html')),
           dashboard: !!(await cache.match('/Dashboard.html')),
           offline: !!(await cache.match('/offline.html')),
@@ -64,6 +65,7 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
     });
 
     check(state.controller, 'service worker controls the login page');
+    check(state.cacheNames.some(name => state.cached[name]?.home), 'homepage entry is stored for offline startup');
     check(state.cacheNames.some(name => state.cached[name]?.login), 'login page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.dashboard), 'dashboard page is stored in the app-shell cache');
     check(state.cacheNames.some(name => state.cached[name]?.offline), 'offline fallback page is stored in the app-shell cache');
@@ -83,7 +85,7 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
     if (warmShell.available !== false) {
       check(warmShell.complete === true, 'offline preparation caches all required farm, daily, weekly and accounting route assets');
       const warmed = await page.evaluate(async () => {
-        const cache = await caches.open('adine-shell-v8');
+        const cache = await caches.open('adine-shell-v9');
         const paths = ['/Farms.js','/flocks.js','/broiler-daily-monitoring-v1.js','/layer-daily-monitoring-v1.js','/weekly.js','/access-control.js','/accounting-v14.js'];
         const result = {};
         for (const path of paths) result[path] = !!(await cache.match(path));
@@ -95,6 +97,9 @@ check(/if\s*\(!navigator\.onLine\s*&&\s*window\.AdineOffline\)/.test(weeklySourc
     }
 
     await context.setOffline(true);
+    const offlineHome = await page.goto(baseURL + '/', { waitUntil:'domcontentloaded', timeout:10000 }).catch(error => ({error}));
+    check(!!offlineHome && typeof offlineHome.status === 'function' && offlineHome.status() === 200, 'homepage navigation succeeds with network fully disabled after first visit');
+    check((await page.locator('body').innerText()).includes('مرکز تخصصی سلامت طیور آدینه'), 'offline homepage renders the clinic identity');
 
     const cacheBehavior = await page.evaluate(async () => {
       const api = window.AdineOffline;

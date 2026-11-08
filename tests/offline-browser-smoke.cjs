@@ -87,7 +87,7 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     if (warmShell.available !== false) {
       check(warmShell.complete === true, 'offline preparation caches all required farm, daily, weekly and accounting route assets');
       const warmed = await page.evaluate(async () => {
-        const cache = await caches.open('adine-shell-v10');
+        const cache = await caches.open('adine-shell-v11');
         const paths = ['/Farms.js','/flocks.js','/broiler-daily-monitoring-v1.js','/layer-daily-monitoring-v1.js','/weekly.js','/access-control.js','/accounting-v14.js'];
         const result = {};
         for (const path of paths) result[path] = !!(await cache.match(path));
@@ -106,7 +106,7 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     // Exercise the emergency entry fallback too: a controlled PWA should still
     // show a usable home screen if its cached homepage response is unexpectedly absent.
     await page.evaluate(async () => {
-      const cache = await caches.open('adine-shell-v10');
+      const cache = await caches.open('adine-shell-v11');
       await cache.delete('/');
       await cache.delete('/index.html');
     });
@@ -115,6 +115,14 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     const fallbackLoginLink = await page.locator('a[href="/login.html"]').count().catch(() => 0);
     check(!!fallbackHome && typeof fallbackHome.status === 'function' && fallbackHome.status() === 200, 'offline homepage emergency fallback returns a successful response when its cached document is absent');
     check(fallbackText.includes('اتصال اینترنت در دسترس نیست') && fallbackLoginLink > 0, 'emergency offline homepage exposes a visible login link');
+
+    const offlineDashboard = await page.goto(baseURL + '/offline-dashboard.html', {
+      waitUntil:'domcontentloaded', timeout:10000
+    }).catch(() => null);
+    check(!!offlineDashboard && offlineDashboard.status() === 200, 'dedicated offline dashboard opens without network');
+    check((await page.locator('body').innerText()).includes('مرکز تخصصی سلامت طیور آدینه'), 'dedicated offline dashboard renders clinic identity without external services');
+    check(await page.locator('a[href="/Farms.html"]').count() === 1, 'offline dashboard exposes farm route');
+    check(await page.locator('a[href="/daily-router.html"]').count() === 1, 'offline dashboard exposes daily monitoring route');
 
     const cacheBehavior = await page.evaluate(async () => {
       const api = window.AdineOffline;

@@ -95,32 +95,50 @@ self.addEventListener('message', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(VERSION);
     const assets = [...new Set(SHELL)].filter(path => !CORE_SHELL.includes(path));
-    let cursor = 0, cached = 0;
+    const required = assets.filter(path => WARM_REQUIRED.includes(path));
+    const optional = assets.filter(path => !WARM_REQUIRED.includes(path));
+    let cached = 0;
     const failed = [];
-    async function worker() {
-      while (true) {
-        const index = cursor++;
-        if (index >= assets.length) return;
-        const path = assets[index];
+    async function fetchAsset(path, attempts, timeoutMs) {
+      for (let attempt = 0; attempt < attempts; attempt++) {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 6000);
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
         try {
           const response = await fetch(new Request(path, { cache:'reload', signal:controller.signal }));
           if (response && response.ok) {
             await cache.put(new URL(path, self.location.origin).pathname, response.clone());
             cached++;
-          } else failed.push(path + ':' + (response?.status || 'NO_RESPONSE'));
+            return true;
+          }
+          if (attempt === attempts - 1) failed.push(path + ':' + (response?.status || 'NO_RESPONSE'));
         } catch (_) {
-          failed.push(path);
+          if (attempt === attempts - 1) failed.push(path + ':NETWORK_OR_TIMEOUT');
         } finally {
           clearTimeout(timer);
         }
+        // Brief backoff helps mobile connections recover after transient failures.
+        if (attempt < attempts - 1) await new Promise(resolve => setTimeout(resolve, 900));
       }
+      return false;
     }
-    await Promise.all(Array.from({length:Math.min(4,assets.length)}, () => worker()));
+    async function runPool(list, concurrency, attempts, timeoutMs) {
+      let cursor = 0;
+      async function worker() {
+        while (true) {
+          const index = cursor++;
+          if (index >= list.length) return;
+          await fetchAsset(list[index], attempts, timeoutMs);
+        }
+      }
+      await Promise.all(Array.from({length:Math.min(concurrency,list.length)}, () => worker()));
+    }
+    // Required pages get priority, two attempts and a longer timeout. Optional
+    // assets are best-effort and must never make an otherwise usable offline app fail.
+    await runPool(required, 2, 12000);
+    await runPool(optional, 4, 10000, 1);
     const missing = [];
     for (const path of WARM_REQUIRED) if (!(await cache.match(path))) missing.push(path);
-    const result = { complete:missing.length===0, cached, total:assets.length, failed:failed.length, missing };
+    const result = { complete:missing.length===0, cached, total:assets.length, failed:failed.length, failedPaths:failed.slice(0,20), missing };
     try { event.ports?.[0]?.postMessage(result); } catch (_) {}
   })().catch(error => {
     try { event.ports?.[0]?.postMessage({complete:false,error:String(error?.message||error)}); } catch (_) {}
@@ -138,13 +156,16 @@ self.addEventListener('fetch', event => {
   if (req.mode === 'navigate') {
     event.respondWith((async () => {
       const cache = await caches.open(VERSION);
+      const isHome = url.pathname === '/' || url.pathname === '/index.html';
       const path = url.pathname === '/' ? '/index.html' : url.pathname;
-      // Cache fallback is checked before waiting on the network. A short network
-      // timeout prevents captive/filtered/very slow connections from blanking the
-      // app entry on mobile; the locally cached shell is then returned instantly.
       const cached = await cache.match(req) || await cache.match(url.pathname) || await cache.match(path);
+
+      // The installed iOS PWA must render its public home screen without waiting
+      // for DNS, VPN, a TLS handshake, or a slow/filtered network request.
+      if (isHome && cached) return cached;
+
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 2500);
+      const timer = setTimeout(() => controller.abort(), isHome ? 5000 : 2500);
       try {
         const response = await fetch(new Request(req, { signal:controller.signal }));
         if (response && response.ok) {
@@ -154,7 +175,11 @@ self.addEventListener('fetch', event => {
         }
         return response;
       } catch (_) {
-        return cached || await cache.match('/offline.html') || Response.error();
+        if (cached) return cached;
+        if (isHome) {
+          return new Response(`<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1f3b2c"><title>مرکز تخصصی سلامت طیور آدینه</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0b2118;color:#f3f8f4;font:16px/2 Tahoma,Arial,sans-serif;padding:22px;box-sizing:border-box"><main style="max-width:520px;text-align:center"><h1>مرکز تخصصی سلامت طیور آدینه</h1><p>در حال حاضر اتصال اینترنت در دسترس نیست.</p><p>اگر قبلاً برنامه را در حالت آنلاین باز کرده‌اید، صفحه ورود و اطلاعات ذخیره‌شده این دستگاه را بررسی کنید.</p><p><a href="/login.html" style="display:inline-block;padding:12px 22px;border-radius:12px;background:#a8d65e;color:#10200f;text-decoration:none;font-weight:bold">ورود به سامانه</a></p><p><a href="tel:+989131278085" style="color:#c8e99a">تماس مستقیم با دکتر</a></p></main></body></html>`, {status:200,headers:{'Content-Type':'text/html; charset=utf-8'}});
+        }
+        return await cache.match('/offline.html') || Response.error();
       } finally {
         clearTimeout(timer);
       }

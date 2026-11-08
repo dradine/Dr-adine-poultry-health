@@ -109,7 +109,9 @@ check(/window\.setTimeout\(function\s*\(\)\s*\{[\s\S]{0,260}runOfflinePreparatio
     // show a usable home screen if its cached homepage response is unexpectedly absent.
     await page.evaluate(async () => {
       const cache = await caches.open('adine-shell-v11');
-      await cache.delete('/');
+      await cache.delete(new Request(location.origin + '/'));
+      await cache.delete(new Request(location.origin + '/index.html'));
+      await cache.delete('/'); 
       await cache.delete('/index.html');
     });
     const fallbackHome = await page.goto(baseURL + '/', { waitUntil:'domcontentloaded', timeout:10000 }).catch(error => ({error}));
